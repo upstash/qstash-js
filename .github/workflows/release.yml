@@ -21,7 +21,9 @@ jobs:
         with:
           node-version: 16
 
-      - run: curl -fsSL https://deno.land/x/install/install.sh | sh
+      - run: |
+          curl -fsSL https://deno.land/x/install/install.sh | sh
+          echo "$HOME/.deno/bin" > $GITHUB_PATH
 
 
       - name: Build
