@@ -1,6 +1,9 @@
 import { HttpClient, Requester } from "./http.ts";
-import { Topics } from "./topic.ts";
-import { Endpoints } from "./endpoint.ts";
+import { Topics } from "./topics.ts";
+import { Messages } from "./messages.ts";
+import { Schedules } from "./schedules.ts";
+import { Endpoints } from "./endpoints.ts";
+import type { Log } from "./types.ts";
 export type ClientConfig = {
   /**
    * Url of the qstash api server
@@ -119,6 +122,15 @@ type PublishRequest = {
   retries?: number;
 };
 
+export type LogsRequest = {
+  cursor?: number;
+};
+
+export type GetLogsRespone = {
+  cursor?: number;
+  logs: Log[];
+};
+
 export class Client {
   public http: Requester;
 
@@ -138,6 +150,12 @@ export class Client {
     return new Endpoints(this.http);
   }
 
+  public get messages(): Messages {
+    return new Messages(this.http);
+  }
+  public get schedules(): Schedules {
+    return new Schedules(this.http);
+  }
   public async publish<R extends PublishRequest = PublishRequest>(
     req: R,
   ): Promise<PublishResponse<R>> {
@@ -146,6 +164,19 @@ export class Client {
       body: req.cron,
       headers: req.headers,
       method: "POST",
+    });
+    return res;
+  }
+
+  public async logs(req?: LogsRequest): Promise<GetLogsRespone> {
+    const query: Record<string, number> = {};
+    if (req?.cursor && req.cursor > 0) {
+      query["cursor"] = req.cursor;
+    }
+    const res = await this.http.request<GetLogsRespone>({
+      path: ["v1", "logs"],
+      method: "GET",
+      query,
     });
     return res;
   }

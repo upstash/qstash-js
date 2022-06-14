@@ -26,6 +26,8 @@ export type UpstashRequest = {
    * A string to set request's method.
    */
   method?: "GET" | "POST" | "PUT" | "DELETE";
+
+  query?: Record<string, string | number | boolean | undefined>;
 };
 export type UpstashResponse<TResult> = TResult & { error?: string };
 
@@ -101,23 +103,27 @@ export class HttpClient implements Requester {
     });
 
     const requestOptions: RequestInit & { backend?: string } = {
-      method: "POST",
+      method: req.method,
       headers,
       body: req.body,
       keepalive: req.keepalive,
     };
 
-    await fetch(
-      "https://qstash-debug.requestcatcher.com/test",
-      requestOptions,
-    );
+    const url = new URL([this.baseUrl, ...(req.path ?? [])].join("/"));
+    if (req.query) {
+      for (const [key, value] of Object.entries(req.query)) {
+        if (typeof value !== "undefined") {
+          url.searchParams.set(key, value.toString());
+        }
+      }
+    }
 
     let res: Response | null = null;
     let error: Error | null = null;
     for (let i = 0; i <= this.retry.attempts; i++) {
       try {
         res = await fetch(
-          [this.baseUrl, ...(req.path ?? [])].join("/"),
+          url.toString(),
           requestOptions,
         );
         break;
