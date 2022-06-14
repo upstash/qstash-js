@@ -66,7 +66,6 @@ await dnt.build({
 // post build steps
 Deno.copyFileSync("LICENSE", `${outDir}/LICENSE`);
 Deno.copyFileSync("README.md", `${outDir}/README.md`);
-Deno.copyFileSync(".releaserc", `${outDir}/.releaserc`);
 
 /**
  * Workaround because currently deno can not typecheck the built modules without `@types/node` being installed as regular dependency
