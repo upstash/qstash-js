@@ -23,7 +23,7 @@ jobs:
           echo "$HOME/.deno/bin" > $GITHUB_PATH
 
       - name: Build
-        run: deno run -A ./cmd/build.ts
+        run: deno run --import-map=imports.json -A ./cmd/build.ts
 
       - name: Release
         env:
