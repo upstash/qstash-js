@@ -97,10 +97,8 @@ export class HttpClient implements Requester {
   public async request<TResult>(
     req: UpstashRequest,
   ): Promise<UpstashResponse<TResult>> {
-    const headers = new Headers({
-      ...req.headers,
-      "Upstash-Authorization": `Bearer ${this.authorization}`,
-    });
+    const headers = new Headers(req.headers);
+    headers.set("Upstash-Authorization", `Bearer ${this.authorization}`);
 
     const requestOptions: RequestInit & { backend?: string } = {
       method: req.method,
@@ -136,10 +134,9 @@ export class HttpClient implements Requester {
       throw error ?? new Error("Exhausted all retries");
     }
 
-    const body = (await res.json()) as UpstashResponse<TResult>;
     if (res.status < 200 || res.status >= 300) {
-      throw new QstashError(body.error ?? res.statusText);
+      throw new QstashError(await res.text() ?? res.statusText);
     }
-    return body;
+    return (await res.json()) as UpstashResponse<TResult>;
   }
 }
