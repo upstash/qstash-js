@@ -11,7 +11,7 @@ export type Log = {
   time: number;
   state: State;
   messageID: string;
-  taskID: string;
+  taskID?: string;
   nextScheduledAt?: number;
   error?: string;
 };

@@ -8,16 +8,23 @@ await dnt.emptyDir(outDir);
 await dnt.build({
   packageManager,
   entryPoints: [
-    "platforms/nodejs.ts",
+    // {
+    //   name: "./nodejs",
+    //   path: "./entrypoints/nodejs.ts",
+    // },
+    {
+      name: "./nextjs",
+      path: "./entrypoints/nextjs.ts",
+    },
   ],
   outDir,
   shims: {
-    deno: "dev",
+    deno: true,
     crypto: true,
   },
-  typeCheck: true,
-  test: typeof Deno.env.get("TEST") !== "undefined",
-
+  typeCheck: false,
+  test: !!Deno.env.get("TEST"),
+  // scriptModule:false,
   package: {
     // package.json properties
     name: "@upstash/qstash",
@@ -35,31 +42,19 @@ await dnt.build({
     },
     homepage: "https://github.com/upstash/sdk-qstash-ts#readme",
     devDependencies: {
-      "size-limit": "latest",
-      "@size-limit/preset-small-lib": "latest",
+      "next": "latest",
+      "micro": "latest",
     },
-
     /**
      * typesVersion is required to make imports work in typescript.
      * Without this you would not be able to import {} from "@upstash/redis/<some_path>"
      */
     typesVersions: {
       "*": {
-        nodejs: "./types/platforms/nodejs.d.ts",
+        // nodejs: "./types/entrypoints/nodejs.d.ts",
+        nextjs: "./types/entrypoints/nextjs.d.ts",
       },
     },
-
-    "size-limit": [
-      {
-        path: "esm/platforms/nodejs.js",
-        limit: "6 KB",
-      },
-
-      {
-        path: "script/platforms/nodejs.js",
-        limit: "10 KB",
-      },
-    ],
   },
 });
 
