@@ -123,7 +123,7 @@ export class Consumer {
       new TextEncoder().encode(req.body),
     );
     if (p.body != base64.encode(bodyHash)) {
-      throw new SignatureError("body hash does not match");
+      throw new SignatureError(`body hash does not match, want: ${p.body}, got: ${base64.encode(bodyHash)}`);
     }
 
     return true;
