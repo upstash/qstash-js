@@ -5,7 +5,7 @@ specifiers:
   '@types/node': 17.0.43
   '@types/react': 18.0.12
   '@types/react-dom': 18.0.5
-  '@upstash/qstash': ^0.0.8
+  '@upstash/qstash': ^0.0.9
   eslint: 8.17.0
   eslint-config-next: 12.1.6
   micro: ^9.3.4
@@ -15,7 +15,7 @@ specifiers:
   typescript: 4.7.3
 
 dependencies:
-  '@upstash/qstash': 0.0.8
+  '@upstash/qstash': 0.0.9
   micro: 9.3.4
   next: 12.1.6_biqbaboplfbrettd7655fr4n2y
   react: 18.2.0
@@ -322,8 +322,8 @@ packages:
       eslint-visitor-keys: 3.3.0
     dev: true
 
-  /@upstash/qstash/0.0.8:
-    resolution: {integrity: sha512-RQCDupkuLGsQThV31M7X+GqsTBwhCbKniYMTXg6hwsrc/3cYVTPq72/0kYbjs6AXzOjyWfAD/r5Ix9jBH+IThw==}
+  /@upstash/qstash/0.0.9:
+    resolution: {integrity: sha512-iJ3I7FIDHz+monqwjOa1GvGfkk3y1r6SR4FEe2k9zX0byWo0Cc6d571zdKqsYk+3ocxb5JbFNIN5xuGCNqOjUA==}
     dependencies:
       '@deno/shim-crypto': 0.2.0
       '@deno/shim-deno': 0.5.0

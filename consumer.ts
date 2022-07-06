@@ -1,5 +1,4 @@
 import * as base64url from "https://deno.land/std@0.144.0/encoding/base64url.ts";
-import * as base64 from "https://deno.land/std@0.144.0/encoding/base64.ts";
 
 export type ConsumerConfig = {
   currentSigningKey: string;
@@ -122,8 +121,15 @@ export class Consumer {
       "SHA-256",
       new TextEncoder().encode(req.body),
     );
-    if (p.body != base64url.encode(bodyHash)) {
-      throw new SignatureError(`body hash does not match, want: ${p.body}, got: ${base64url.encode(bodyHash)}`);
+
+    if (
+      p.body.replaceAll("=", "") != base64url.encode(bodyHash).replace("=", "")
+    ) {
+      throw new SignatureError(
+        `body hash does not match, want: ${p.body}, got: ${
+          base64url.encode(bodyHash)
+        }`,
+      );
     }
 
     return true;
