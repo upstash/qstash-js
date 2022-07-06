@@ -1,2 +1,2 @@
-export { Client } from "../client.ts";
+export { Client } from "../pkg/client/client.ts";
 export { Consumer } from "../consumer.ts";
