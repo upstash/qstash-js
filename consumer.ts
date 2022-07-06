@@ -122,8 +122,8 @@ export class Consumer {
       "SHA-256",
       new TextEncoder().encode(req.body),
     );
-    if (p.body != base64.encode(bodyHash)) {
-      throw new SignatureError(`body hash does not match, want: ${p.body}, got: ${base64.encode(bodyHash)}`);
+    if (p.body != base64url.encode(bodyHash)) {
+      throw new SignatureError(`body hash does not match, want: ${p.body}, got: ${base64url.encode(bodyHash)}`);
     }
 
     return true;
