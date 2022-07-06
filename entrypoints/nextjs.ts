@@ -43,6 +43,7 @@ export function verifySignature(
     const body = (await buffer(req)).toString();
 
     const url = new URL(req.url!, `http://${req.headers.host}`).href;
+    console.log({ url });
 
     const isValid = await consumer.verify({ signature, body, url });
     if (!isValid) {

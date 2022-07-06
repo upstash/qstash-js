@@ -5,7 +5,7 @@ specifiers:
   '@types/node': 17.0.43
   '@types/react': 18.0.12
   '@types/react-dom': 18.0.5
-  '@upstash/qstash': ../../dist
+  '@upstash/qstash': ^0.0.5
   eslint: 8.17.0
   eslint-config-next: 12.1.6
   micro: ^9.3.4
@@ -15,7 +15,7 @@ specifiers:
   typescript: 4.7.3
 
 dependencies:
-  '@upstash/qstash': link:../../dist
+  '@upstash/qstash': 0.0.5
   micro: 9.3.4
   next: 12.1.6_biqbaboplfbrettd7655fr4n2y
   react: 18.2.0
@@ -46,6 +46,21 @@ packages:
     dependencies:
       regenerator-runtime: 0.13.9
     dev: true
+
+  /@deno/shim-crypto/0.2.0:
+    resolution: {integrity: sha512-EFgHZoXTP+3HqEuFujOOKUS2kNP5pIZjBQv/qF5dNB1b1jgCl4foz4sfX6ldtDL+OH1bkyzNwo4NU3PdisNikQ==}
+    dev: false
+
+  /@deno/shim-deno-test/0.3.3:
+    resolution: {integrity: sha512-Ge0Tnl7zZY0VvEfgsyLhjid8DzI1d0La0dgm+3m0/A8gZXgp5xwlyIyue5e4SCUuVB/3AH/0lun9LcJhhTwmbg==}
+    dev: false
+
+  /@deno/shim-deno/0.5.0:
+    resolution: {integrity: sha512-bx2TT/WwmpRlnk2Q0qe9xJMzbyKyl7Uyz9cdXEn756Obu15bRanLiVa/3+09Bg8HYL+mUXydWzh32/oxsVv6dw==}
+    dependencies:
+      '@deno/shim-deno-test': 0.3.3
+      which: 2.0.2
+    dev: false
 
   /@eslint/eslintrc/1.3.0:
     resolution: {integrity: sha512-UWW0TMTmk2d7hLcWD1/e2g5HDM/HQ3csaLSqXCfqwh4uNDuNqlaKWXmEsL4Cs41Z0KnILNvwbHAah3C2yt06kw==}
@@ -306,6 +321,13 @@ packages:
       '@typescript-eslint/types': 5.29.0
       eslint-visitor-keys: 3.3.0
     dev: true
+
+  /@upstash/qstash/0.0.5:
+    resolution: {integrity: sha512-lVmPzNcmY+Uyxw6KJ4NhFnnEPo/vUZbOIcgVdv0MgaGRbSXuEtJlAFnRNx5twCdr0hbz8/kkIha8koScU8AUGQ==}
+    dependencies:
+      '@deno/shim-crypto': 0.2.0
+      '@deno/shim-deno': 0.5.0
+    dev: false
 
   /acorn-jsx/5.3.2_acorn@8.7.1:
     resolution: {integrity: sha512-rq9s+JNhf0IChjtDXxllJ7g41oZk5SlXtp0LHwyA5cejwn7vKmKp4pPri6YEePv2PU65sAsegbXtIinmDFDXgQ==}
@@ -1242,7 +1264,6 @@ packages:
 
   /isexe/2.0.0:
     resolution: {integrity: sha512-RHxMLp9lnKHGHRng9QFhRCMbYAcVpn69smSGcq3f36xjgVVWThj4qqLbTLlq7Ssj8B+fIQ1EuCEGI2lKsyQeIw==}
-    dev: true
 
   /js-tokens/4.0.0:
     resolution: {integrity: sha512-RdJUflcE3cUzKiMqQgsCu06FPu9UdIJO0beYbPhHN4k6apgJtifcoCtT9bcxOpYBtpD2kCM6Sbzg4CausW/PKQ==}
@@ -1889,7 +1910,6 @@ packages:
     hasBin: true
     dependencies:
       isexe: 2.0.0
-    dev: true
 
   /word-wrap/1.2.3:
     resolution: {integrity: sha512-Hz/mrNwitNRh/HUAtM/VT/5VH+ygD6DV7mYKZAtHOrbs8U7lvPS6xf7EJKMF0uW1KJCl0H701g3ZGus+muE5vQ==}

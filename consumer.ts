@@ -107,7 +107,7 @@ export class Consumer {
       throw new SignatureError(`invalid issuer: ${p.iss}`);
     }
     if (p.sub !== req.url) {
-      throw new SignatureError(`invalid subject: ${p.sub}`);
+      throw new SignatureError(`invalid subject: ${p.sub}, want: ${req.url}`);
     }
     const now = Math.floor(Date.now() / 1000);
     if (now > p.exp) {
