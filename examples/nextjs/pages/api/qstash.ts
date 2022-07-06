@@ -11,8 +11,8 @@ async function handler(
 }
 
 export default verifySignature(handler, {
-  "currentSigningKey": "sig_3XkV1SD5puLtBKyGAWHVfktnkaqwMQFV2qkYRXJNmSSDoyYysc",
-  "nextSigningKey": "sig_3coKFaxVLdU8sk8FiURFtJeePitgk19NSqMxZSnzXq2ckiCALJ",
+  "currentSigningKey": "sig_3xVnLBEC758CtJcqW8hfkRjhe7cj2XBANdeVRxta32P9zXZm9o",
+  "nextSigningKey": "sig_4dMSAQ1M4mmYGeSTPFX8ikFVbdq1k4bbknJKH8PoRsWy39kBWX",
 });
 
 export const config = {

@@ -7,8 +7,19 @@ export type ConsumerConfig = {
 };
 
 export type VerifyRequest = {
+  /**
+   * The signature from the `upstash-signature` header.
+   */
   signature: string;
+
+  /**
+   * The raw request body.
+   */
   body: string;
+
+  /**
+   * URL of the endpoint where the request was sent to.
+   */
   url: string;
 };
 
@@ -18,6 +29,9 @@ export class SignatureError extends Error {
     this.name = "SignatureError";
   }
 }
+/**
+ * Consumer offers a simlpe way to verify the signature of a request.
+ */
 export class Consumer {
   private readonly currentSigningKey: string;
   private readonly nextSigningKey: string;
@@ -27,6 +41,15 @@ export class Consumer {
     this.nextSigningKey = config.nextSigningKey;
   }
 
+  /**
+   * Verify the signature of a request.
+   *
+   * Tries to verify the signature with the current signing key.
+   * If that fails, maybe because you have rotated the keys recently, it will
+   * try to verify the signature with the next signing key.
+   *
+   * If that fails, the signature is invalid and a `SignatureError` is thrown.
+   */
   public async verify(req: VerifyRequest): Promise<boolean> {
     const isValid = await this.verifyWithKey(this.currentSigningKey, req);
     if (isValid) {
@@ -35,6 +58,9 @@ export class Consumer {
     return this.verifyWithKey(this.nextSigningKey, req);
   }
 
+  /**
+   * Verify signature with a specific signing key
+   */
   private async verifyWithKey(
     key: string,
     req: VerifyRequest,

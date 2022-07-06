@@ -1,6 +1,6 @@
 export type State =
   | "created"
-  | "scheduled"
+  | "planned"
   | "active"
   | "delivered"
   | "error"
