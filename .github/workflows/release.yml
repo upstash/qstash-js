@@ -27,7 +27,7 @@ jobs:
 
 
       - name: Build
-        run: deno run -A --import-map=imports.json ./cmd/build.ts $VERSION
+        run: deno run -A ./cmd/build.ts $VERSION
 
       - name: Publish
         if: "!github.event.release.prerelease"

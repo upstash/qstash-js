@@ -1,0 +1,13 @@
+lockfileVersion: 5.4
+
+specifiers:
+  '@upstash/qstash': ^0.0.3
+
+dependencies:
+  '@upstash/qstash': 0.0.3
+
+packages:
+
+  /@upstash/qstash/0.0.3:
+    resolution: {integrity: sha512-B1tVPqn6q10yPIeN+7GWUTWkKbp0gVsY2atGHWbg1190wp9x4bFtPv+kHDIKINb3xxmzHr3GdWCSStH+Srbn6g==}
+    dev: false
