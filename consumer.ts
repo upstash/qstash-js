@@ -122,8 +122,11 @@ export class Consumer {
       new TextEncoder().encode(req.body),
     );
 
+    const padding = new RegExp(/=+$/);
+
     if (
-      p.body.replaceAll("=", "") != base64url.encode(bodyHash).replace("=", "")
+      p.body.replace(padding, "") !=
+        base64url.encode(bodyHash).replace(padding, "")
     ) {
       throw new SignatureError(
         `body hash does not match, want: ${p.body}, got: ${
