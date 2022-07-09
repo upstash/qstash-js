@@ -1,4 +1,4 @@
-import { dnt } from "../deps.ts";
+import * as dnt from "https://deno.land/x/dnt@0.28.0/mod.ts";
 
 const packageManager = "npm";
 const outDir = "./dist";
@@ -21,6 +21,15 @@ await dnt.build({
   shims: {
     deno: true,
     crypto: true,
+    custom: [
+      {
+        package: {
+          name: "micro",
+          version: "latest",
+        },
+        globalNames: [{ name: "micro", exportName: "default" }],
+      },
+    ],
   },
   typeCheck: false,
   test: !!Deno.env.get("TEST"),
@@ -41,10 +50,7 @@ await dnt.build({
       url: "https://github.com/upstash/sdk-qstash-ts/issues",
     },
     homepage: "https://github.com/upstash/sdk-qstash-ts#readme",
-    devDependencies: {
-      "next": "latest",
-      "micro": "latest",
-    },
+
     /**
      * typesVersion is required to make imports work in typescript.
      * Without this you would not be able to import {} from "@upstash/redis/<some_path>"

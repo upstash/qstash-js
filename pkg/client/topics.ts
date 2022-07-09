@@ -33,7 +33,7 @@ export type DeleteTopicRequest =
   };
 export type Topic = {
   /**
-   * ID for this topic
+   * id for this topic
    */
   id: string;
 
@@ -45,7 +45,7 @@ export type Topic = {
   /**
    * A list of all subscribed endpoints
    */
-  endpointIDs: string[];
+  endpointIds: string[];
 };
 
 export class Topics {
@@ -79,7 +79,7 @@ export class Topics {
   }
 
   /**
-   * Get a single topic by name or ID.
+   * Get a single topic by name or id.
    */
   public async get(req: GetTopicRequest): Promise<Topic> {
     const idOrName = req.id ?? req.name;
@@ -106,7 +106,7 @@ export class Topics {
   }
 
   /**
-   * Delete a topic by name or ID.
+   * Delete a topic by name or id.
    */
   public async delete(req: DeleteTopicRequest): Promise<void> {
     const idOrName = req.id ?? req.name;

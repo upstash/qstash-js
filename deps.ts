@@ -1,1 +1,1 @@
-export * as dnt from "https://deno.land/x/dnt@0.23.0/mod.ts";
+export * as base64Url from "https://deno.land/std@0.147.0/encoding/base64url.ts";

@@ -7,12 +7,14 @@ async function handler(
 ) {
   console.log(req.headers);
 
+  await new Promise((r) => setTimeout(r, 1000));
   res.status(200).json({ name: "John Doe", body: req.body });
 }
 
 export default verifySignature(handler, {
-  "currentSigningKey": "sig_3xVnLBEC758CtJcqW8hfkRjhe7cj2XBANdeVRxta32P9zXZm9o",
-  "nextSigningKey": "sig_4dMSAQ1M4mmYGeSTPFX8ikFVbdq1k4bbknJKH8PoRsWy39kBWX",
+  "currentSigningKey": "sig_6TPD6JRa4NLZJ2YwjVWWXCH6K833",
+  "nextSigningKey": "sig_5Xm8oz4X8V9LuqeGB6PVxATXYB5z",
+  url: "http://localhost:3000/api/qstash",
 });
 
 export const config = {

@@ -22,7 +22,7 @@ export type UpdateEndpointRequest = {
 export type DeleteEndpointRequest = { id: string };
 export type Endpoint = {
   /**
-   * ID for this endpoint
+   * id for this endpoint
    */
   id: string;
 
@@ -34,7 +34,7 @@ export type Endpoint = {
   /**
    * The topic id this endpoint is subscribed to.
    */
-  topicID: string;
+  topicId: string;
 };
 
 export class Endpoints {

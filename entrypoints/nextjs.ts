@@ -1,18 +1,27 @@
 // @ts-ignore Deno can't compile
 import type { NextApiHandler, NextApiRequest, NextApiResponse } from "next";
 
+// @ts-ignore Deno can't compile
 import { buffer } from "micro";
 
-import { Consumer } from "../consumer.ts";
+import { Consumer } from "../pkg/consumer.ts";
 export type VerifySignaturConfig = {
   currentSigningKey?: string;
   nextSigningKey?: string;
+
+  /**
+   * The url of this api route, including the protocol.
+   *
+   * If you omit this, the url will be automatically determined by checking the `VERCEL_URL` env variable and assuming `https`
+   */
+  url?: string;
 };
 export function verifySignature(
   handler: NextApiHandler,
   config?: VerifySignaturConfig,
 ): NextApiHandler {
   const currentSigningKey = config?.currentSigningKey ??
+    // @ts-ignore Deno can't compile
     process.env.get["QSTASH_CURRENT_SIGNING_KEY"];
   if (!currentSigningKey) {
     throw new Error(
@@ -20,6 +29,7 @@ export function verifySignature(
     );
   }
   const nextSigningKey = config?.nextSigningKey ??
+    // @ts-ignore Deno can't compile
     process.env.get["QSTASH_NEXT_SIGNING_KEY"];
   if (!nextSigningKey) {
     throw new Error(
@@ -41,9 +51,12 @@ export function verifySignature(
     }
 
     const body = (await buffer(req)).toString();
+    console.log(req.headers);
 
-    const url = new URL(req.url!, `https://${req.headers.host}`).href;
-    console.log({ reqUrl: req.url, url });
+    const url = config?.url ?? new URL(
+      req.url!,
+      `https://${process.env.VERCEL_URL}`,
+    ).href;
 
     const isValid = await consumer.verify({ signature, body, url });
     if (!isValid) {

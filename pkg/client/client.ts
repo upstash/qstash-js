@@ -4,9 +4,13 @@ import { Messages } from "./messages.ts";
 import { Schedules } from "./schedules.ts";
 import { Endpoints } from "./endpoints.ts";
 import type { Log } from "./types.ts";
+
+// global BodyInit
 export type ClientConfig = {
   /**
-   * Url of the qstash api server
+   * Url of the qstash api server.
+   *
+   * This is only used for testing.
    *
    * @default "https://qstash.upstash.io"
    */
@@ -15,7 +19,7 @@ export type ClientConfig = {
   /**
    * The authorization token from the upstash console.
    */
-  authorization: string;
+  token: string;
 };
 
 type Destination = {
@@ -75,15 +79,6 @@ export type PublishRequest =
     notBefore?: number;
 
     /**
-     * We will no longer try to deliver the message after this time
-     *
-     * Unix timestamp with second precicion
-     *
-     * @default undefined
-     */
-    deadline?: number;
-
-    /**
      * Provide a unique id for deduplication. This id will be used to detect duplicate messages.
      * If a duplicate message is detected, the request will be accepted but not enqueued.
      *
@@ -94,7 +89,7 @@ export type PublishRequest =
      *
      * @default undefined
      */
-    deduplicationID?: string;
+    deduplicationId?: string;
 
     /**
      * If true, the message content will get hashed and used as deduplication id.
@@ -161,7 +156,7 @@ export class Client {
       baseUrl: config.baseUrl
         ? config.baseUrl.replace(/\/$/, "")
         : "https://qstash.upstash.io",
-      authorization: config.authorization,
+      authorization: config.token,
     });
   }
 
@@ -217,12 +212,9 @@ export class Client {
     if (req.notBefore) {
       headers.set("Upstash-Not-Before", req.notBefore.toFixed());
     }
-    if (req.deadline) {
-      headers.set("Upstash-Deadline", req.deadline.toFixed());
-    }
 
-    if (req.deduplicationID) {
-      headers.set("Upstash-Deduplication-ID", req.deduplicationID);
+    if (req.deduplicationId) {
+      headers.set("Upstash-Deduplication-Id", req.deduplicationId);
     }
 
     if (req.contentBasedDeduplication) {
@@ -298,5 +290,5 @@ export class Client {
 }
 
 type PublishResponse<PublishRequest> = PublishRequest extends { cron: string }
-  ? { scheduleID: string }
-  : { messageID: string };
+  ? { scheduleId: string }
+  : { messageId: string };

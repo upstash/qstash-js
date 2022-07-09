@@ -10,8 +10,8 @@ export type State =
 export type Log = {
   time: number;
   state: State;
-  messageID: string;
-  taskID?: string;
+  messageId: string;
+  taskId?: string;
   nextScheduledAt?: number;
   error?: string;
 };
@@ -19,7 +19,7 @@ export type Log = {
 export type WithCursor<T> = T & { cursor?: number };
 
 export type Task = {
-  taskID: string;
+  taskId: string;
   state: State;
   maxRetry: number;
   retried: number;

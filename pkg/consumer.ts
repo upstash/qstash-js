@@ -1,7 +1,15 @@
-import * as base64url from "https://deno.land/std@0.144.0/encoding/base64url.ts";
-
+import { base64Url } from "../deps.ts";
+/**
+ * Necessary to verify the signature of a request.
+ */
 export type ConsumerConfig = {
+  /**
+   * The current signing key. Get it from `https://console.upstash.com/qstash
+   */
   currentSigningKey: string;
+  /**
+   * The next signing key. Get it from `https://console.upstash.com/qstash
+   */
   nextSigningKey: string;
 };
 
@@ -84,7 +92,7 @@ export class Consumer {
     const isValid = await crypto.subtle.verify(
       { name: "HMAC" },
       k,
-      base64url.decode(signature),
+      base64Url.decode(signature),
       new TextEncoder().encode(`${header}.${payload}`),
     );
 
@@ -100,7 +108,7 @@ export class Consumer {
       iat: number;
       jti: string;
       body: string;
-    } = JSON.parse(new TextDecoder().decode(base64url.decode(payload)));
+    } = JSON.parse(new TextDecoder().decode(base64Url.decode(payload)));
     console.log(JSON.stringify(p, null, 2));
     if (p.iss !== "Upstash") {
       throw new SignatureError(`invalid issuer: ${p.iss}`);
@@ -126,11 +134,11 @@ export class Consumer {
 
     if (
       p.body.replace(padding, "") !=
-        base64url.encode(bodyHash).replace(padding, "")
+        base64Url.encode(bodyHash).replace(padding, "")
     ) {
       throw new SignatureError(
         `body hash does not match, want: ${p.body}, got: ${
-          base64url.encode(bodyHash)
+          base64Url.encode(bodyHash)
         }`,
       );
     }

@@ -8,7 +8,7 @@ export type DeleteScheduleRequest = {
   id: string;
 };
 export type Schedule = {
-  scheduleID: string;
+  scheduled: string;
   cron: string;
   createdAt: number;
   content: {
@@ -16,12 +16,12 @@ export type Schedule = {
     body: string;
   };
   destination: {
-    type: "topicID";
-    topicID: string;
+    type: "topic";
+    topicId: string;
     url?: never;
   } | {
     type: "url";
-    topicID?: never;
+    topicd?: never;
     url: string;
   };
   settings: {

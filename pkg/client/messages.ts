@@ -9,18 +9,18 @@ export type CancelMessageRequest = {
 };
 export type Message =
   & {
-    messageID: string;
+    messaged: string;
     header: Record<string, string[]>;
     body: string;
   }
   & (
     | {
       url: string;
-      topicID?: never;
+      topicd?: never;
     }
     | {
       url?: never;
-      topicID: string;
+      topicId: string;
     }
   );
 export type ListMessagesRequest = {
@@ -109,7 +109,7 @@ export class Messages {
   }
 
   /**
-   * Cancel a topic by name or ID.
+   * Cancel a topic by name or id.
    */
   public async delete(req: CancelMessageRequest): Promise<void> {
     return await this.http.request<void>({
