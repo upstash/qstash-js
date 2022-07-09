@@ -1,4 +1,5 @@
 import { QstashError } from "./error.ts";
+import type { HeadersInit, BodyInit } from "https://raw.githubusercontent.com/microsoft/TypeScript/main/lib/lib.dom.d.ts"
 
 export type UpstashRequest = {
   /**

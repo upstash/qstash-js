@@ -8,6 +8,8 @@ async function handler(
   console.log(req.headers);
 
   await new Promise((r) => setTimeout(r, 1000));
+
+  console.log("Success")
   res.status(200).json({ name: "John Doe", body: req.body });
 }
 

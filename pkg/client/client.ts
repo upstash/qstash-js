@@ -5,7 +5,9 @@ import { Schedules } from "./schedules.ts";
 import { Endpoints } from "./endpoints.ts";
 import type { Log } from "./types.ts";
 
-// global BodyInit
+import type { HeadersInit, BodyInit } from "https://raw.githubusercontent.com/microsoft/TypeScript/main/lib/lib.dom.d.ts"
+
+
 export type ClientConfig = {
   /**
    * Url of the qstash api server.

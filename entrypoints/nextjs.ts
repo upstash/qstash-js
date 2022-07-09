@@ -39,6 +39,7 @@ export function verifySignature(
   const consumer = new Consumer({
     currentSigningKey,
     nextSigningKey,
+    subtleCrypto: crypto.subtle
   });
 
   return async (req: NextApiRequest, res: NextApiResponse) => {

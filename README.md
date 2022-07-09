@@ -66,7 +66,7 @@ const res = await q.publishJSON({
     body: { hello: "world" },
 })
 
-console.log(res.messageID)
+console.log(res.messageId)
 ```
 
 ### Consuming a message
@@ -85,7 +85,7 @@ const c = new Consumer({
 
 const isValid = await c.verify({
   /**
-   * The signature from the `upstash-signature` header.
+   * The signature from the `Upstash-Signature` header.
    */
   signature: "string";
 

@@ -1,4 +1,8 @@
 import { base64Url } from "../deps.ts";
+import { crypto } from "https://deno.land/std/crypto/mod.ts";
+export type SubtleCrypto = typeof crypto.subtle;
+
+// import type {SubtleCrypto}
 /**
  * Necessary to verify the signature of a request.
  */
@@ -11,6 +15,8 @@ export type ConsumerConfig = {
    * The next signing key. Get it from `https://console.upstash.com/qstash
    */
   nextSigningKey: string;
+
+  subtleCrypto: SubtleCrypto
 };
 
 export type VerifyRequest = {
@@ -22,7 +28,7 @@ export type VerifyRequest = {
   /**
    * The raw request body.
    */
-  body: string;
+  body: string | Uint8Array;
 
   /**
    * URL of the endpoint where the request was sent to.
@@ -42,10 +48,12 @@ export class SignatureError extends Error {
 export class Consumer {
   private readonly currentSigningKey: string;
   private readonly nextSigningKey: string;
+  private readonly subtleCrypto: SubtleCrypto
 
   constructor(config: ConsumerConfig) {
     this.currentSigningKey = config.currentSigningKey;
     this.nextSigningKey = config.nextSigningKey;
+    this.subtleCrypto = config.subtleCrypto
   }
 
   /**
@@ -81,7 +89,7 @@ export class Consumer {
     }
     const [header, payload, signature] = parts;
 
-    const k = await crypto.subtle.importKey(
+    const k = await this.subtleCrypto.importKey(
       "raw",
       new TextEncoder().encode(key),
       { name: "HMAC", hash: "SHA-256" },
@@ -89,7 +97,7 @@ export class Consumer {
       ["sign", "verify"],
     );
 
-    const isValid = await crypto.subtle.verify(
+    const isValid = await this.subtleCrypto.verify(
       { name: "HMAC" },
       k,
       base64Url.decode(signature),
@@ -125,20 +133,21 @@ export class Consumer {
       throw new SignatureError("token is not yet valid");
     }
 
-    const bodyHash = await crypto.subtle.digest(
+    const bodyHash = await this.subtleCrypto.digest(
       "SHA-256",
-      new TextEncoder().encode(req.body),
+      typeof req.body === "string"
+        ? new TextEncoder().encode(req.body)
+        : req.body,
     );
 
     const padding = new RegExp(/=+$/);
 
     if (
       p.body.replace(padding, "") !=
-        base64Url.encode(bodyHash).replace(padding, "")
+      base64Url.encode(bodyHash).replace(padding, "")
     ) {
       throw new SignatureError(
-        `body hash does not match, want: ${p.body}, got: ${
-          base64Url.encode(bodyHash)
+        `body hash does not match, want: ${p.body}, got: ${base64Url.encode(bodyHash)
         }`,
       );
     }
