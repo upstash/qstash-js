@@ -5,7 +5,7 @@ export type SubtleCrypto = typeof crypto.subtle;
 /**
  * Necessary to verify the signature of a request.
  */
-export type ConsumerConfig = {
+export type ReceiverConfig = {
   /**
    * The current signing key. Get it from `https://console.upstash.com/qstash
    */
@@ -31,6 +31,8 @@ export type VerifyRequest = {
 
   /**
    * URL of the endpoint where the request was sent to.
+   * 
+   * Omit empty to disable checking the url.
    */
   url?: string;
 };
@@ -42,14 +44,14 @@ export class SignatureError extends Error {
   }
 }
 /**
- * Consumer offers a simlpe way to verify the signature of a request.
+ * Receiver offers a simlpe way to verify the signature of a request.
  */
-export class Consumer {
+export class Receiver {
   private readonly currentSigningKey: string;
   private readonly nextSigningKey: string;
   private readonly subtleCrypto: SubtleCrypto;
 
-  constructor(config: ConsumerConfig) {
+  constructor(config: ReceiverConfig) {
     this.currentSigningKey = config.currentSigningKey;
     this.nextSigningKey = config.nextSigningKey;
     this.subtleCrypto = config.subtleCrypto;
@@ -143,11 +145,10 @@ export class Consumer {
 
     if (
       p.body.replace(padding, "") !=
-        base64Url.encode(bodyHash).replace(padding, "")
+      base64Url.encode(bodyHash).replace(padding, "")
     ) {
       throw new SignatureError(
-        `body hash does not match, want: ${p.body}, got: ${
-          base64Url.encode(bodyHash)
+        `body hash does not match, want: ${p.body}, got: ${base64Url.encode(bodyHash)
         }`,
       );
     }
