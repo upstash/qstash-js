@@ -4,7 +4,7 @@ require("isomorphic-fetch");
 async function main() {
   const q = new Client({
     token:
-      "eyJVc2VySUQiOiJmOGEzMWY1YS1hZmZhLTQ1OTMtYTI5OC1jMzYzNzM0ZDJhMDgiLCJQYXNzd29yZCI6IjFmODE2MDY5MTc2ODQ2ZDU4YzI3MGJhOTZjYmI2ZTI3In0=",
+      "",
   });
 
   const res = await q.publish({
@@ -13,6 +13,11 @@ async function main() {
   });
   console.log(res);
 
+
+
+
+
+  // Validating a signature
   const consumer = new Consumer({
     currentSigningKey: "sig_3nj4aiyJ2JojDnQ1RRodpYubZAZxAJxNfQcRSKPwVUNbueYk2o",
     nextSigningKey: "sig_31zVqmL3s7Eo1vpu1jRSMpaetJXvAT3RvNcfoGUp1Toii8fsQE",

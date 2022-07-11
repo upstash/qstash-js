@@ -18,8 +18,8 @@ export default {
     ctx: ExecutionContext,
   ): Promise<Response> {
     const c = new Consumer({
-      "currentSigningKey": "sig_6TPD6JRa4NLZJ2YwjVWWXCH6K833",
-      "nextSigningKey": "sig_5Xm8oz4X8V9LuqeGB6PVxATXYB5z",
+      "currentSigningKey": "sig_5wKXQ6mPSerYPu6DRqYpA5dDjVZW",
+      "nextSigningKey": "sig_6Psg6RgxALRgP1zFSvuqUim5Nsqc",
     });
 
     const body = await request.text();

@@ -1,8 +1,6 @@
 // @ts-ignore Deno can't compile
 import type { NextApiHandler, NextApiRequest, NextApiResponse } from "next";
 
-// @ts-ignore Deno can't compile
-import { buffer } from "micro";
 
 import { Consumer } from "../pkg/consumer.ts";
 export type VerifySignaturConfig = {
@@ -51,8 +49,16 @@ export function verifySignature(
       throw new Error("`Upstash-Signature` header is not a string");
     }
 
-    const body = (await buffer(req)).toString();
-    console.log(req.headers);
+    const chunks = [];
+    for await (const chunk of req) {
+      chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk);
+    }
+    const body =  Buffer.concat(chunks).toString("utf-8")
+
+
+
+    // const body = (await buffer(req)).toString();
+    console.log(req.headers, body);
 
     const url = config?.url ?? new URL(
       req.url!,

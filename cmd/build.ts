@@ -1,4 +1,4 @@
-import * as dnt from "https://deno.land/x/dnt@0.28.0/mod.ts";
+import * as dnt from "https://deno.land/x/dnt@0.26.0/mod.ts";
 
 const packageManager = "npm";
 const outDir = "./dist";
@@ -8,37 +8,30 @@ await dnt.emptyDir(outDir);
 await dnt.build({
   packageManager,
   entryPoints: [
-    "./entrypoints/nodejs.ts",
+    "entrypoints/nodejs.ts",
     {
       name: "./nodejs",
       path: "./entrypoints/nodejs.ts",
+    },
+
+    {
+      name: "./cloudflare",
+      path: "./entrypoints/cloudflare.ts",
     },
     {
       name: "./nextjs",
       path: "./entrypoints/nextjs.ts",
     },
-    {
-      name: "./cloudflare",
-      path: "./entrypoints/cloudflare.ts",
-    },
+
   ],
   outDir,
   shims: {
     deno: "dev",
     crypto: true,
-    // custom: [
-    //   {
-    //     package: {
-    //       name: "micro",
-    //       version: "latest",
-    //     },
-    //     globalNames: [{ name: "micro", exportName: "default" }],
-    //   },
-    // ],
   },
   typeCheck: false,
-  test: !!Deno.env.get("TEST"),
-  // scriptModule:false,
+  test: false,
+
   package: {
     // package.json properties
     name: "@upstash/qstash",
@@ -55,9 +48,20 @@ await dnt.build({
       url: "https://github.com/upstash/sdk-qstash-ts/issues",
     },
     homepage: "https://github.com/upstash/sdk-qstash-ts#readme",
-    peerDependencies: {
-      "micro": "latest",
+
+    /**
+     * typesVersion is required to make imports work in typescript.
+     * Without this you would not be able to import {} from "@upstash/redis/<some_path>"
+     */
+    typesVersions: {
+      "*": {
+        nodejs: ["./types/entrypoints/nodejs.d.ts"],
+        cloudflare: ["./types/entrypoints/cloudflare.d.ts"],
+        nextjs: ["./types/entrypoints/nextjs.d.ts"],
+      },
     },
+
+
   },
 });
 

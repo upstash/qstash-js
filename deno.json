@@ -1,19 +1,35 @@
 {
   "compilerOptions": {
-    "lib": ["deno.window"]
+    "lib": [
+      "deno.window",
+      "es2021",
+      "dom"
+    ]
   },
   "lint": {
     "files": {
-      "exclude": ["node_modules", "dist", ".next"]
+      "exclude": [
+        "node_modules",
+        "dist",
+        ".next"
+      ]
     },
     "rules": {
-      "tags": ["recommended"],
-      "exclude": ["no-explicit-any"]
+      "tags": [
+        "recommended"
+      ],
+      "exclude": [
+        "no-explicit-any"
+      ]
     }
   },
   "fmt": {
     "files": {
-      "exclude": ["node_modules", "dist", ".next"]
+      "exclude": [
+        "node_modules",
+        "dist",
+        ".next"
+      ]
     }
   }
 }
