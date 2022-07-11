@@ -23,11 +23,17 @@ See
 [the list of APIs](https://docs.upstash.com/features/restapi#rest---redis-api-compatibility)
 supported.
 
+
+## Status of the SDK
+
+It is currently in beta and we are actively collecting feedback from the community.
+Please report any issues you encounter or feature requests in the [GitHub issues](https://github.com/upstash/sdk-qstash-ts/issues) or talk to us on [Discord](https://discord.gg/w9SenAtbme). Thank you!
+
 ## How does qStash work?
 
-qStash is the message broker between your serverless apps. You send a HTTP
+qStash is the message broker between your serverless apps. You send aa HTTP
 request to qStash, that includes a destination, a payload and optional settings.
-We store your message durable and will deliver it to the destination server via
+We store your message durable and will deliver it to the destination API via
 HTTP. In case the destination is not ready to receive the message, we will retry
 the message later, to guarentee at-least-once delivery.
 
@@ -47,29 +53,37 @@ npm install @upstash/qstash
 import { Redis } from "https://deno.land/x/upstash_qstash/mod.ts";
 ```
 
-### Activate qStash
+### Get your authorization token 
 
-Go to [upstash](https://console.upstash.com/qstash) and activate qStash.
+Go to [upstash](https://console.upstash.com/qstash) and copy the token.
 
 ## Basic Usage:
 
 ### Publishing a message
 
 ```ts
-import { Client } from "@upstash/qstash"
+import { Client } from "@upstash/qstash";
+/**
+ * Import a fetch polyfill only if you are using node prior to v18.
+ * This is not necessary for nextjs, deno or cloudflare workers.
+ */
+import "isomorphic-fetch";
 
-const q = new Client({
-  token: <QSTASH_TOKEN>,
-})
+const c = new Client({
+  token: "<QSTASH_TOKEN>",
+});
 
-const res = await q.publishJSON({
-    body: { hello: "world" },
-})
-
-console.log(res.messageId)
+const res = await c.publishJSON({
+  destination: "https://my-api...",
+  body: {
+    hello: "world",
+  },
+});
+console.log(res);
+// { messageId: "msg_xxxxxxxxxxxxxxxx" }
 ```
 
-### Consuming a message
+### Receiving a message
 
 How to consume a message depends on your http server. QStash does not receive
 the http request directly, but should be called by you as the first step in your
@@ -78,12 +92,12 @@ handler function.
 ```ts
 import { Receiver } from "@upstash/qstash";
 
-const c = new Receiver({
+const r = new Receiver({
   currentSigningKey: "..",
   nextSigningKey: "..",
 });
 
-const isValid = await c.verify({
+const isValid = await r.verify({
   /**
    * The signature from the `Upstash-Signature` header.
    */
@@ -103,17 +117,13 @@ const isValid = await c.verify({
 
 ## Docs
 
-See [the documentation](https://docs.upstash.com/features/qstash) for details.
+See [the documentation](https://docs.upstash.com/qstash) for details.
+
+
+
+
 
 ## Contributing
 
 ### [Install Deno](https://deno.land/#installation)
 
-### Running tests
-
-```sh
-QSTASH_TOKEN=".." deno test -A
-```
-
-```
-```
