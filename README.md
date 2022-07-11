@@ -86,9 +86,8 @@ console.log(res);
 
 ### Receiving a message
 
-How to consume a message depends on your http server. QStash does not receive
-the http request directly, but should be called by you as the first step in your
-handler function.
+How to receive a message depends on your http server. The `Receiver.verify`
+method should be called by you as the first step in your handler function.
 
 ```ts
 import { Receiver } from "@upstash/qstash";
@@ -108,11 +107,6 @@ const isValid = await r.verify({
    * The raw request body.
    */
   body: "string";
-
-  /**
-   * URL of the endpoint where the request was sent to.
-   */
-  url: "string";
 })
 ```
 
