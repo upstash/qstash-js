@@ -31,7 +31,7 @@ export type VerifyRequest = {
 
   /**
    * URL of the endpoint where the request was sent to.
-   * 
+   *
    * Omit empty to disable checking the url.
    */
   url?: string;
@@ -145,10 +145,11 @@ export class Receiver {
 
     if (
       p.body.replace(padding, "") !=
-      base64Url.encode(bodyHash).replace(padding, "")
+        base64Url.encode(bodyHash).replace(padding, "")
     ) {
       throw new SignatureError(
-        `body hash does not match, want: ${p.body}, got: ${base64Url.encode(bodyHash)
+        `body hash does not match, want: ${p.body}, got: ${
+          base64Url.encode(bodyHash)
         }`,
       );
     }

@@ -51,7 +51,7 @@ npm install @upstash/qstash
 #### Deno
 
 ```ts
-import { Redis } from "https://deno.land/x/upstash_qstash/mod.ts";
+import { Client } from "https://deno.land/x/upstash_qstash/mod.ts";
 ```
 
 ### Get your authorization token
