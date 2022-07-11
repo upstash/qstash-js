@@ -4,7 +4,7 @@ import * as c from "./pkg/receiver.ts";
 export * from "./pkg/client/client.ts";
 
 export class Receiver extends c.Receiver {
-  constructor(config: Omit<c.ReceiverConfig, "crypto">) {
+  constructor(config: Omit<c.ReceiverConfig, "subtleCrypto">) {
     super({
       ...config,
       // dnt-shim-ignore
