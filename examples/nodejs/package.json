@@ -10,7 +10,7 @@
   "author": "Andreas Thomas",
   "license": "ISC",
   "dependencies": {
-    "@upstash/qstash": "^0.0.0",
+    "@upstash/qstash": "../../dist",
     "isomorphic-fetch": "^3.0.0"
   }
 }

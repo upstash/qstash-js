@@ -8,11 +8,16 @@ await dnt.emptyDir(outDir);
 await dnt.build({
   packageManager,
   entryPoints: [
-
+    "./entrypoints/nodejs.ts",
+    {
+      name: "./nodejs",
+      path: "./entrypoints/nodejs.ts",
+    },
     {
       name: "./nextjs",
       path: "./entrypoints/nextjs.ts",
-    }, {
+    },
+    {
       name: "./cloudflare",
       path: "./entrypoints/cloudflare.ts",
     },
@@ -51,18 +56,7 @@ await dnt.build({
     },
     homepage: "https://github.com/upstash/sdk-qstash-ts#readme",
     peerDependencies: {
-      "micro": "latest"
-    },
-    /**
-     * typesVersion is required to make imports work in typescript.
-     * Without this you would not be able to import {} from "@upstash/redis/<some_path>"
-     */
-    typesVersions: {
-      "*": {
-        // nodejs: "./types/entrypoints/nodejs.d.ts",
-        nextjs: "./types/entrypoints/nextjs.d.ts",
-        cloudflare: "./types/entrypoints/cloudflare.d.ts",
-      },
+      "micro": "latest",
     },
   },
 });

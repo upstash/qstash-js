@@ -16,7 +16,7 @@ export type ConsumerConfig = {
    */
   nextSigningKey: string;
 
-  subtleCrypto: SubtleCrypto
+  subtleCrypto: SubtleCrypto;
 };
 
 export type VerifyRequest = {
@@ -48,12 +48,12 @@ export class SignatureError extends Error {
 export class Consumer {
   private readonly currentSigningKey: string;
   private readonly nextSigningKey: string;
-  private readonly subtleCrypto: SubtleCrypto
+  private readonly subtleCrypto: SubtleCrypto;
 
   constructor(config: ConsumerConfig) {
     this.currentSigningKey = config.currentSigningKey;
     this.nextSigningKey = config.nextSigningKey;
-    this.subtleCrypto = config.subtleCrypto
+    this.subtleCrypto = config.subtleCrypto;
   }
 
   /**
@@ -144,10 +144,11 @@ export class Consumer {
 
     if (
       p.body.replace(padding, "") !=
-      base64Url.encode(bodyHash).replace(padding, "")
+        base64Url.encode(bodyHash).replace(padding, "")
     ) {
       throw new SignatureError(
-        `body hash does not match, want: ${p.body}, got: ${base64Url.encode(bodyHash)
+        `body hash does not match, want: ${p.body}, got: ${
+          base64Url.encode(bodyHash)
         }`,
       );
     }

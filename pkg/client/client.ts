@@ -5,8 +5,10 @@ import { Schedules } from "./schedules.ts";
 import { Endpoints } from "./endpoints.ts";
 import type { Log } from "./types.ts";
 
-import type { HeadersInit, BodyInit } from "https://raw.githubusercontent.com/microsoft/TypeScript/main/lib/lib.dom.d.ts"
-
+import type {
+  BodyInit,
+  HeadersInit,
+} from "https://raw.githubusercontent.com/microsoft/TypeScript/main/lib/lib.dom.d.ts";
 
 export type ClientConfig = {
   /**
@@ -158,7 +160,7 @@ export class Client {
       baseUrl: config.baseUrl
         ? config.baseUrl.replace(/\/$/, "")
         : "https://qstash.upstash.io",
-      authorization: config.token,
+      authorization: `Bearer ${config.token}`,
     });
   }
 

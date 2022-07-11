@@ -1,5 +1,8 @@
 import { QstashError } from "./error.ts";
-import type { HeadersInit, BodyInit } from "https://raw.githubusercontent.com/microsoft/TypeScript/main/lib/lib.dom.d.ts"
+import type {
+  BodyInit,
+  HeadersInit,
+} from "https://raw.githubusercontent.com/microsoft/TypeScript/main/lib/lib.dom.d.ts";
 
 export type UpstashRequest = {
   /**
@@ -99,7 +102,7 @@ export class HttpClient implements Requester {
     req: UpstashRequest,
   ): Promise<UpstashResponse<TResult>> {
     const headers = new Headers(req.headers);
-    headers.set("Upstash-Authorization", `Bearer ${this.authorization}`);
+    headers.set("Authorization", this.authorization);
 
     const requestOptions: RequestInit & { backend?: string } = {
       method: req.method,
