@@ -1,4 +1,4 @@
-import { Consumer } from "@upstash/qstash/cloudflare";
+import { Receiver } from "@upstash/qstash/cloudflare";
 
 export interface Env {
   // Example binding to KV. Learn more at https://developers.cloudflare.com/workers/runtime-apis/kv/
@@ -17,7 +17,7 @@ export default {
     env: Env,
     ctx: ExecutionContext,
   ): Promise<Response> {
-    const c = new Consumer({
+    const c = new Receiver({
       "currentSigningKey": "sig_5wKXQ6mPSerYPu6DRqYpA5dDjVZW",
       "nextSigningKey": "sig_6Psg6RgxALRgP1zFSvuqUim5Nsqc",
     });

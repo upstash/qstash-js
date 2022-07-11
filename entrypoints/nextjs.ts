@@ -2,7 +2,7 @@
 import type { NextApiHandler, NextApiRequest, NextApiResponse } from "next";
 
 
-import { Consumer } from "../pkg/consumer.ts";
+import { Receiver } from "../pkg/receiver.ts";
 export type VerifySignaturConfig = {
   currentSigningKey?: string;
   nextSigningKey?: string;
@@ -34,7 +34,7 @@ export function verifySignature(
       "nextSigningKey is required, either in the config or as env variable QSTASH_NEXT_SIGNING_KEY",
     );
   }
-  const consumer = new Consumer({
+  const receiver = new Receiver({
     currentSigningKey,
     nextSigningKey,
     subtleCrypto: crypto.subtle,
@@ -53,19 +53,15 @@ export function verifySignature(
     for await (const chunk of req) {
       chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk);
     }
-    const body =  Buffer.concat(chunks).toString("utf-8")
+    const body = Buffer.concat(chunks).toString("utf-8")
 
-
-
-    // const body = (await buffer(req)).toString();
-    console.log(req.headers, body);
 
     const url = config?.url ?? new URL(
       req.url!,
       `https://${process.env.VERCEL_URL}`,
     ).href;
 
-    const isValid = await consumer.verify({ signature, body, url });
+    const isValid = await receiver.verify({ signature, body, url });
     if (!isValid) {
       res.status(400);
       res.send("Invalid signature");
@@ -80,7 +76,6 @@ export function verifySignature(
       }
     } catch {
       req.body = body;
-      console.log("body is not json");
     }
 
     return handler(req, res);

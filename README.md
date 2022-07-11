@@ -76,9 +76,9 @@ the http request directly, but should be called by you as the first step in your
 handler function.
 
 ```ts
-import { Consumer } from "@upstash/qstash";
+import { Receiver } from "@upstash/qstash";
 
-const c = new Consumer({
+const c = new Receiver({
   currentSigningKey: "..",
   nextSigningKey: "..",
 });

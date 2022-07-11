@@ -1,10 +1,10 @@
 // dnt-shim-ignore
 
-import * as c from "../pkg/consumer.ts";
+import * as c from "../pkg/receiver.ts";
 export * from "../pkg/client/client.ts";
 
-export class Consumer extends c.Consumer {
-  constructor(config: Omit<c.ConsumerConfig, "crypto">) {
+export class Receiver extends c.Receiver {
+  constructor(config: Omit<c.ReceiverConfig, "crypto">) {
     super({
       ...config,
       // dnt-shim-ignore
