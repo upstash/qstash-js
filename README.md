@@ -1,20 +1,20 @@
 # Upstash qStash SDK
 
-[![Tests](https://github.com/upstash/upstash-redis/actions/workflows/tests.yaml/badge.svg)](https://github.com/upstash/upstash-redis/actions/workflows/tests.yaml)
+[![Tests](https://github.com/upstash/sdk-qstash-ts/actions/workflows/tests.yaml/badge.svg)](https://github.com/upstash/sdk-qstash-ts/actions/workflows/tests.yaml)
 ![npm (scoped)](https://img.shields.io/npm/v/@upstash/redis)
 ![npm bundle size](https://img.shields.io/bundlephobia/minzip/@upstash/redis)
 
-**qStash** is a serverless queueing / messaging system, designed to be used with
-serverless functions to consume from the queue.
+**qStash** is an HTTP based messaging and scheduling solution for serverless and
+edge runtimes.
 
-It is the only connectionless (HTTP based) Redis client and designed for:
+It is 100% built on stateless HTTP requests and designed for:
 
 - Serverless functions (AWS Lambda ...)
 - Cloudflare Workers (see
-  [the example](https://github.com/upstash/upstash-redis/tree/main/examples/cloudflare-workers))
-- Fastly Compute@Edge (see
-  [the example](https://github.com/upstash/upstash-redis/tree/main/examples/fastly))
-- Next.js, Jamstack ...
+  [the example](https://github.com/upstash/sdk-qstash-ts/tree/main/examples/cloudflare-workers))
+- Fastly Compute@Edge
+- Next.js, including [edge](https://nextjs.org/docs/api-reference/edge-runtime)
+- Deno
 - Client side web/mobile applications
 - WebAssembly
 - and other environments where HTTP is preferred over TCP.
