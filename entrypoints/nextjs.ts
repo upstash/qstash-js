@@ -1,7 +1,6 @@
 // @ts-ignore Deno can't compile
 import type { NextApiHandler, NextApiRequest, NextApiResponse } from "next";
 
-
 import { Receiver } from "../pkg/receiver.ts";
 export type VerifySignaturConfig = {
   currentSigningKey?: string;
@@ -51,17 +50,16 @@ export function verifySignature(
 
     const chunks = [];
     for await (const chunk of req) {
-      chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk);
+      chunks.push(typeof chunk === "string" ? Buffer.from(chunk) : chunk);
     }
-    const body = Buffer.concat(chunks).toString("utf-8")
+    const body = Buffer.concat(chunks).toString("utf-8");
 
+    // const url = config?.url ?? new URL(
+    //   req.url!,
+    //   `https://${process.env.VERCEL_URL}`,
+    // ).href;
 
-    const url = config?.url ?? new URL(
-      req.url!,
-      `https://${process.env.VERCEL_URL}`,
-    ).href;
-
-    const isValid = await receiver.verify({ signature, body, url });
+    const isValid = await receiver.verify({ signature, body });
     if (!isValid) {
       res.status(400);
       res.send("Invalid signature");

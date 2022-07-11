@@ -23,11 +23,12 @@ See
 [the list of APIs](https://docs.upstash.com/features/restapi#rest---redis-api-compatibility)
 supported.
 
-
 ## Status of the SDK
 
-It is currently in beta and we are actively collecting feedback from the community.
-Please report any issues you encounter or feature requests in the [GitHub issues](https://github.com/upstash/sdk-qstash-ts/issues) or talk to us on [Discord](https://discord.gg/w9SenAtbme). Thank you!
+It is currently in beta and we are actively collecting feedback from the
+community. Please report any issues you encounter or feature requests in the
+[GitHub issues](https://github.com/upstash/sdk-qstash-ts/issues) or talk to us
+on [Discord](https://discord.gg/w9SenAtbme). Thank you!
 
 ## How does qStash work?
 
@@ -53,7 +54,7 @@ npm install @upstash/qstash
 import { Redis } from "https://deno.land/x/upstash_qstash/mod.ts";
 ```
 
-### Get your authorization token 
+### Get your authorization token
 
 Go to [upstash](https://console.upstash.com/qstash) and copy the token.
 
@@ -119,11 +120,6 @@ const isValid = await r.verify({
 
 See [the documentation](https://docs.upstash.com/qstash) for details.
 
-
-
-
-
 ## Contributing
 
 ### [Install Deno](https://deno.land/#installation)
-

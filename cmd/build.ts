@@ -22,7 +22,6 @@ await dnt.build({
       name: "./nextjs",
       path: "./entrypoints/nextjs.ts",
     },
-
   ],
   outDir,
   shims: {
@@ -60,8 +59,6 @@ await dnt.build({
         nextjs: ["./types/entrypoints/nextjs.d.ts"],
       },
     },
-
-
   },
 });
 

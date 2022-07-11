@@ -3,8 +3,7 @@ require("isomorphic-fetch");
 
 async function main() {
   const q = new Client({
-    token:
-      "",
+    token: "",
   });
 
   const res = await q.publish({
@@ -12,10 +11,6 @@ async function main() {
     body: "Hello World",
   });
   console.log(res);
-
-
-
-
 
   // Validating a signature
   const receiver = new Receiver({
