@@ -17,10 +17,6 @@ It is 100% built on stateless HTTP requests and designed for:
 - WebAssembly
 - and other environments where HTTP is preferred over TCP.
 
-See
-[the list of APIs](https://docs.upstash.com/features/restapi#rest---redis-api-compatibility)
-supported.
-
 ## Status of the SDK
 
 It is currently in beta and we are actively collecting feedback from the
