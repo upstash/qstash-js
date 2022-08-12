@@ -210,7 +210,7 @@ export class Client {
     const headers = new Headers(req.headers);
 
     if (req.delay) {
-      headers.set("Upstash-Delay", req.delay.toFixed());
+      headers.set("Upstash-Delay", `${req.delay.toFixed()}s`);
     }
 
     if (req.notBefore) {
