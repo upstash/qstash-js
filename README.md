@@ -1,6 +1,5 @@
 # Upstash qStash SDK
 
-[![Tests](https://github.com/upstash/sdk-qstash-ts/actions/workflows/tests.yaml/badge.svg)](https://github.com/upstash/sdk-qstash-ts/actions/workflows/tests.yaml)
 ![npm (scoped)](https://img.shields.io/npm/v/@upstash/qstash)
 
 **qStash** is an HTTP based messaging and scheduling solution for serverless and
