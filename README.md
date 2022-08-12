@@ -75,7 +75,8 @@ const c = new Client({
 });
 
 const res = await c.publishJSON({
-  destination: "https://my-api...",
+  url: "https://my-api...",
+  // or topic: "the name or id of a topic"
   body: {
     hello: "world",
   },
