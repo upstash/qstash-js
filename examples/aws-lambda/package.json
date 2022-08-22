@@ -1,0 +1,21 @@
+{
+  "name": "aws-lambda",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "rm -rf dist && esbuild index.ts --bundle --minify --sourcemap --platform=node --target=es2020 --outfile=dist/index.js",
+    "push": "cd dist && zip -r index.zip index.js* && aws lambda update-function-code --function-name sdks-qstash-quickstart-typescript --zip-file fileb://index.zip"
+  },
+  "keywords": [],
+  "author": "Andreas Thomas",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.102",
+    "@types/node": "^18.7.9",
+    "esbuild": "^0.15.5"
+  },
+  "dependencies": {
+    "@upstash/qstash": "^0.1.7"
+  }
+}

@@ -35,7 +35,7 @@ await dnt.build({
     // package.json properties
     name: "@upstash/qstash",
     version: Deno.args[0],
-    description: "Official Deno/Typescript client for qStash",
+    description: "Official Deno/Typescript client for QStash",
     repository: {
       type: "git",
       url: "git+https://github.com/upstash/sdk-qstash-ts.git",

@@ -1,10 +1,10 @@
-# Upstash qStash SDK
+# Upstash QStash SDK
 
 [![Tests](https://github.com/upstash/sdk-qstash-ts/actions/workflows/tests.yaml/badge.svg)](https://github.com/upstash/sdk-qstash-ts/actions/workflows/tests.yaml)
 ![npm (scoped)](https://img.shields.io/npm/v/@upstash/redis)
 ![npm bundle size](https://img.shields.io/bundlephobia/minzip/@upstash/redis)
 
-**qStash** is an HTTP based messaging and scheduling solution for serverless and
+**QStash** is an HTTP based messaging and scheduling solution for serverless and
 edge runtimes.
 
 It is 100% built on stateless HTTP requests and designed for:
@@ -30,10 +30,10 @@ community. Please report any issues you encounter or feature requests in the
 [GitHub issues](https://github.com/upstash/sdk-qstash-ts/issues) or talk to us
 on [Discord](https://discord.gg/w9SenAtbme). Thank you!
 
-## How does qStash work?
+## How does QStash work?
 
-qStash is the message broker between your serverless apps. You send aa HTTP
-request to qStash, that includes a destination, a payload and optional settings.
+QStash is the message broker between your serverless apps. You send aa HTTP
+request to QStash, that includes a destination, a payload and optional settings.
 We store your message durable and will deliver it to the destination API via
 HTTP. In case the destination is not ready to receive the message, we will retry
 the message later, to guarentee at-least-once delivery.
