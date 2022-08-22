@@ -1,8 +1,6 @@
 # Upstash QStash SDK
 
-[![Tests](https://github.com/upstash/sdk-qstash-ts/actions/workflows/tests.yaml/badge.svg)](https://github.com/upstash/sdk-qstash-ts/actions/workflows/tests.yaml)
-![npm (scoped)](https://img.shields.io/npm/v/@upstash/redis)
-![npm bundle size](https://img.shields.io/bundlephobia/minzip/@upstash/redis)
+![npm (scoped)](https://img.shields.io/npm/v/@upstash/qstash)
 
 **QStash** is an HTTP based messaging and scheduling solution for serverless and
 edge runtimes.
@@ -18,10 +16,6 @@ It is 100% built on stateless HTTP requests and designed for:
 - Client side web/mobile applications
 - WebAssembly
 - and other environments where HTTP is preferred over TCP.
-
-See
-[the list of APIs](https://docs.upstash.com/features/restapi#rest---redis-api-compatibility)
-supported.
 
 ## Status of the SDK
 
@@ -75,7 +69,8 @@ const c = new Client({
 });
 
 const res = await c.publishJSON({
-  destination: "https://my-api...",
+  url: "https://my-api...",
+  // or topic: "the name or id of a topic"
   body: {
     hello: "world",
   },

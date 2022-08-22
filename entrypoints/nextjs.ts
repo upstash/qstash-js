@@ -19,7 +19,7 @@ export function verifySignature(
 ): NextApiHandler {
   const currentSigningKey = config?.currentSigningKey ??
     // @ts-ignore Deno can't compile
-    process.env.get["QSTASH_CURRENT_SIGNING_KEY"];
+    process.env["QSTASH_CURRENT_SIGNING_KEY"];
   if (!currentSigningKey) {
     throw new Error(
       "currentSigningKey is required, either in the config or as env variable QSTASH_CURRENT_SIGNING_KEY",
@@ -27,7 +27,7 @@ export function verifySignature(
   }
   const nextSigningKey = config?.nextSigningKey ??
     // @ts-ignore Deno can't compile
-    process.env.get["QSTASH_NEXT_SIGNING_KEY"];
+    process.env["QSTASH_NEXT_SIGNING_KEY"];
   if (!nextSigningKey) {
     throw new Error(
       "nextSigningKey is required, either in the config or as env variable QSTASH_NEXT_SIGNING_KEY",
