@@ -26,9 +26,9 @@ on [Discord](https://discord.gg/w9SenAtbme). Thank you!
 
 ## How does QStash work?
 
-QStash is the message broker between your serverless apps. You send aa HTTP
+QStash is the message broker between your serverless apps. You send an HTTP
 request to QStash, that includes a destination, a payload and optional settings.
-We store your message durable and will deliver it to the destination API via
+We durably store your message and will deliver it to the destination API via
 HTTP. In case the destination is not ready to receive the message, we will retry
 the message later, to guarentee at-least-once delivery.
 
