@@ -9,7 +9,7 @@ export type CancelMessageRequest = {
 };
 export type Message =
   & {
-    messaged: string;
+    messageId: string;
     header: Record<string, string[]>;
     body: string;
   }
