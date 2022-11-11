@@ -12,6 +12,13 @@ export type VerifySignaturConfig = {
    * If you omit this, the url will be automatically determined by checking the `VERCEL_URL` env variable and assuming `https`
    */
   url?: string;
+
+  /**
+   * Number of seconds to tolerate when checking `nbf` and `exp` claims, to deal with small clock differences among different servers
+   *
+   * @default 0
+   */
+  clockTolerance?: number;
 };
 export function verifySignature(
   handler: NextApiHandler,
@@ -59,7 +66,11 @@ export function verifySignature(
     //   `https://${process.env.VERCEL_URL}`,
     // ).href;
 
-    const isValid = await receiver.verify({ signature, body });
+    const isValid = await receiver.verify({
+      signature,
+      body,
+      clockTolerance: config?.clockTolerance,
+    });
     if (!isValid) {
       res.status(400);
       res.send("Invalid signature");

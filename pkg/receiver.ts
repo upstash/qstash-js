@@ -35,6 +35,13 @@ export type VerifyRequest = {
    * Omit empty to disable checking the url.
    */
   url?: string;
+
+  /**
+   * Number of seconds to tolerate when checking `nbf` and `exp` claims, to deal with small clock differences among different servers
+   *
+   * @default 0
+   */
+  clockTolerance?: number;
 };
 
 export class SignatureError extends Error {
@@ -126,11 +133,11 @@ export class Receiver {
       throw new SignatureError(`invalid subject: ${p.sub}, want: ${req.url}`);
     }
     const now = Math.floor(Date.now() / 1000);
-    if (now > p.exp) {
+    if (now - (req.clockTolerance ?? 0) > p.exp) {
       console.log({ now, exp: p.exp });
       throw new SignatureError("token has expired");
     }
-    if (now < p.nbf) {
+    if (now - (req.clockTolerance ?? 0) < p.nbf) {
       throw new SignatureError("token is not yet valid");
     }
 
@@ -144,7 +151,7 @@ export class Receiver {
     const padding = new RegExp(/=+$/);
 
     if (
-      p.body.replace(padding, "") !=
+      p.body.replace(padding, "") !==
         base64Url.encode(bodyHash).replace(padding, "")
     ) {
       throw new SignatureError(
