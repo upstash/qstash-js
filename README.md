@@ -102,6 +102,13 @@ const isValid = await r.verify({
    * The raw request body.
    */
   body: "string";
+
+  /**
+   * Number of seconds to tolerate when checking `nbf` and `exp` claims, to deal with small clock differences among different servers
+   *
+   * @default 0
+   */
+  clockTolerance?: number;
 })
 ```
 
