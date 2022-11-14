@@ -121,6 +121,15 @@ export type PublishRequest =
      * @default The maximum retry quota associated with your account.
      */
     retries?: number;
+
+    /**
+     * Use a callback url to forward the response of your destination server to your callback url.
+     *
+     * The callback url must be publicly accessible
+     *
+     * @default undefined
+     */
+    callback?: string;
   }
   & (
     | {
@@ -227,6 +236,10 @@ export class Client {
 
     if (req.retries) {
       headers.set("Upstash-Retries", req.retries.toFixed());
+    }
+
+    if (req.callback) {
+      headers.set("Upstash-Callback", req.callback);
     }
 
     if (req.cron) {
