@@ -137,7 +137,7 @@ export class Receiver {
       console.log({ now, exp: p.exp });
       throw new SignatureError("token has expired");
     }
-    if (now - (req.clockTolerance ?? 0) < p.nbf) {
+    if (now + (req.clockTolerance ?? 0) < p.nbf) {
       throw new SignatureError("token is not yet valid");
     }
 
@@ -152,11 +152,10 @@ export class Receiver {
 
     if (
       p.body.replace(padding, "") !==
-        base64Url.encode(bodyHash).replace(padding, "")
+      base64Url.encode(bodyHash).replace(padding, "")
     ) {
       throw new SignatureError(
-        `body hash does not match, want: ${p.body}, got: ${
-          base64Url.encode(bodyHash)
+        `body hash does not match, want: ${p.body}, got: ${base64Url.encode(bodyHash)
         }`,
       );
     }
