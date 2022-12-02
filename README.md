@@ -95,6 +95,10 @@ const r = new Receiver({
 const isValid = await r.verify({
   /**
    * The signature from the `Upstash-Signature` header.
+   *
+   * Please note that on some platforms (e.g. Vercel or Netlify) you might
+   * receive the header in lower case: `upstash-signature` 
+   *
    */
   signature: "string";
 
