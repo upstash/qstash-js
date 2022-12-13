@@ -51,7 +51,7 @@ export type ListTasksRequest = {
 
 export type ListTasksResponse = {
   cursor?: number;
-  logs: Task[];
+  tasks: Task[];
 };
 
 export class Messages {
