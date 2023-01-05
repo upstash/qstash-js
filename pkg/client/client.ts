@@ -218,31 +218,31 @@ export class Client {
 
     const headers = new Headers(req.headers);
 
-    if (req.delay) {
+    if (typeof req.delay !== "undefined") {
       headers.set("Upstash-Delay", `${req.delay.toFixed()}s`);
     }
 
-    if (req.notBefore) {
+    if (typeof req.notBefore !== "undefined") {
       headers.set("Upstash-Not-Before", req.notBefore.toFixed());
     }
 
-    if (req.deduplicationId) {
+    if (typeof req.deduplicationId !== "undefined") {
       headers.set("Upstash-Deduplication-Id", req.deduplicationId);
     }
 
-    if (req.contentBasedDeduplication) {
+    if (typeof req.contentBasedDeduplication !== "undefined") {
       headers.set("Upstash-Content-Based-Deduplication", "true");
     }
 
-    if (req.retries) {
+    if (typeof req.retries !== "undefined") {
       headers.set("Upstash-Retries", req.retries.toFixed());
     }
 
-    if (req.callback) {
+    if (typeof req.callback !== "undefined") {
       headers.set("Upstash-Callback", req.callback);
     }
 
-    if (req.cron) {
+    if (typeof req.cron !== "undefined") {
       headers.set("Upstash-Cron", req.cron);
     }
 
