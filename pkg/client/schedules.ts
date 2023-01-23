@@ -8,24 +8,31 @@ export type DeleteScheduleRequest = {
   id: string;
 };
 export type Schedule = {
-  scheduled: string;
+  scheduleId: string;
   cron: string;
   createdAt: number;
   content: {
-    header: Record<string, string[]>;
-    body: string;
+    header?: Record<string, string[]> | null;
+    body?: string | null;
   };
   destination: {
     type: "topic";
-    topicId: string;
     url?: never;
+    topic: {
+      topicId: string;
+      name: string;
+      endpoints: {
+        endpointId: string;
+        url: string;
+        topicId: string;
+      }[];
+    };
   } | {
     type: "url";
-    topicd?: never;
+    topic?: never;
     url: string;
   };
   settings: {
-    deadline?: number;
     notBefore?: number;
     retries?: number;
   };
