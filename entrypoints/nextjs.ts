@@ -19,6 +19,13 @@ export type VerifySignaturConfig = {
    * @default 0
    */
   clockTolerance?: number;
+
+  /**
+   * Opt out of request body parsing.
+   *
+   * If this is set to true, req.body will not be set
+   */
+  disableRequestBodyParsing?: boolean;
 };
 export function verifySignature(
   handler: NextApiHandler,
@@ -77,14 +84,16 @@ export function verifySignature(
       return res.end();
     }
 
-    try {
-      if (req.headers["content-type"] === "application/json") {
-        req.body = JSON.parse(body);
-      } else {
+    if (!config?.disableRequestBodyParsing) {
+      try {
+        if (req.headers["content-type"] === "application/json") {
+          req.body = JSON.parse(body);
+        } else {
+          req.body = body;
+        }
+      } catch {
         req.body = body;
       }
-    } catch {
-      req.body = body;
     }
 
     return handler(req, res);
