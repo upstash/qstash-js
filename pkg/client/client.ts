@@ -1,4 +1,4 @@
-import { HttpClient, Requester } from "./http.ts";
+import { HttpClient, Requester, RetryConfig } from "./http.ts";
 import { Topics } from "./topics.ts";
 import { Messages } from "./messages.ts";
 import { Schedules } from "./schedules.ts";
@@ -24,6 +24,11 @@ export type ClientConfig = {
    * The authorization token from the upstash console.
    */
   token: string;
+
+  /**
+   * Configure how the client should retry requests.
+   */
+  retry?: RetryConfig | false;
 };
 
 type Destination = {
@@ -166,6 +171,7 @@ export class Client {
 
   public constructor(config: ClientConfig) {
     this.http = new HttpClient({
+      retry: config.retry,
       baseUrl: config.baseUrl
         ? config.baseUrl.replace(/\/$/, "")
         : "https://qstash.upstash.io",
@@ -309,3 +315,6 @@ export class Client {
 type PublishResponse<PublishRequest> = PublishRequest extends { cron: string }
   ? { scheduleId: string }
   : { messageId: string };
+
+
+
