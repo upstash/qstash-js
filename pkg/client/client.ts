@@ -28,7 +28,7 @@ export type ClientConfig = {
   /**
    * Configure how the client should retry requests.
    */
-  retry?: RetryConfig | false;
+  retry?: RetryConfig 
 };
 
 type Destination = {
