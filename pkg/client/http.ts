@@ -74,7 +74,7 @@ export class HttpClient implements Requester {
 
   public readonly options?: { backend?: string };
 
-  public readonly retry: {
+  public retry: {
     attempts: number;
     backoff: (retryCount: number) => number;
   };
@@ -122,7 +122,7 @@ export class HttpClient implements Requester {
 
     let res: Response | null = null;
     let error: Error | null = null;
-    for (let i = 0; i <= this.retry.attempts; i++) {
+    for (let i = 0; i < this.retry.attempts; i++) {
       try {
         res = await fetch(
           url.toString(),
