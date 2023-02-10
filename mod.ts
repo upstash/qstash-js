@@ -2,6 +2,7 @@
 
 import * as c from "./pkg/receiver.ts";
 export * from "./pkg/client/client.ts";
+export { HttpClient } from "./pkg/client/http.ts";
 
 export class Receiver extends c.Receiver {
   constructor(config: Omit<c.ReceiverConfig, "subtleCrypto">) {

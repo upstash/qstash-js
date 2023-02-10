@@ -91,8 +91,8 @@ export class HttpClient implements Requester {
       };
     } else {
       this.retry = {
-        attempts: config?.retry?.retries ?? 5,
-        backoff: config?.retry?.backoff ??
+        attempts: config.retry?.retries ? config.retry.retries + 1 : 5,
+        backoff: config.retry?.backoff ??
           ((retryCount) => Math.exp(retryCount) * 50),
       };
     }
