@@ -28,7 +28,7 @@ export type ClientConfig = {
   /**
    * Configure how the client should retry requests.
    */
-  retry?: RetryConfig 
+  retry?: RetryConfig;
 };
 
 type Destination = {
@@ -315,6 +315,3 @@ export class Client {
 type PublishResponse<PublishRequest> = PublishRequest extends { cron: string }
   ? { scheduleId: string }
   : { messageId: string };
-
-
-
