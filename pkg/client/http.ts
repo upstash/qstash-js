@@ -2,7 +2,7 @@ import { QstashError } from "./error.ts";
 import type {
   BodyInit,
   HeadersInit,
-} from "https://raw.githubusercontent.com/microsoft/TypeScript/main/lib/lib.dom.d.ts";
+} from "https://raw.githubusercontent.com/microsoft/TypeScript/7b764164ede080afff02ec731dfea72b3f4f73f3/lib/lib.dom.d.ts";
 
 export type UpstashRequest = {
   /**
