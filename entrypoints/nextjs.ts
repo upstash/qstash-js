@@ -47,6 +47,7 @@ export function verifySignature(
   });
 
   return async (req: NextApiRequest, res: NextApiResponse) => {
+    // @ts-ignore This can throw errors during vercel build
     const signature = req.headers["upstash-signature"];
     if (!signature) {
       throw new Error("`Upstash-Signature` header is missing");
