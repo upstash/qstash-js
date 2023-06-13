@@ -172,6 +172,6 @@ export class Receiver {
       );
     }
 
-    return payload;
+    return body;
   }
 }
