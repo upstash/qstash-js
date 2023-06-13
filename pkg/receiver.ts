@@ -63,22 +63,33 @@ export class Receiver {
     this.nextSigningKey = config.nextSigningKey;
     this.subtleCrypto = config.subtleCrypto;
   }
-
+  
   /**
-   * Verify the signature of a request.
+   * Constructs and verifies the signature of an Event from the provided details.
    *
    * Tries to verify the signature with the current signing key.
    * If that fails, maybe because you have rotated the keys recently, it will
    * try to verify the signature with the next signing key.
    *
-   * If that fails, the signature is invalid and a `SignatureError` is thrown.
+   * @throws SignatureError if validation fails.
    */
-  public async verify(req: VerifyRequest): Promise<boolean> {
-    const isValid = await this.verifyWithKey(this.currentSigningKey, req);
-    if (isValid) {
-      return true;
+  public async constructEvent(req: VerifyRequest): any {
+    let payload
+    try {
+      payload = await this.verifyWithKey(this.currentSigningKey, req);
+    } catch (e) {
+      payload = this.verifyWithKey(this.nextSigningKey, req);
     }
-    return this.verifyWithKey(this.nextSigningKey, req);
+    if (!payload) {
+      throw new SignatureError()
+    }
+    
+    const jsonPayload =
+  payload instanceof Uint8Array
+    ? JSON.parse(new TextDecoder('utf8').decode(payload))
+    : JSON.parse(payload);
+    
+    return jsonPayload;
   }
 
   /**
@@ -87,7 +98,7 @@ export class Receiver {
   private async verifyWithKey(
     key: string,
     req: VerifyRequest,
-  ): Promise<boolean> {
+  ): any {
     const parts = req.signature.split(".");
 
     if (parts.length !== 3) {
@@ -161,6 +172,6 @@ export class Receiver {
       );
     }
 
-    return true;
+    return payload;
   }
 }
