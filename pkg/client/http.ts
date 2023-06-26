@@ -1,4 +1,4 @@
-import { QstashError } from "./error.ts";
+import { QstashError, QstashRatelimitError } from "./error.ts";
 import type {
   BodyInit,
   HeadersInit,
@@ -136,6 +136,13 @@ export class HttpClient implements Requester {
     }
     if (!res) {
       throw error ?? new Error("Exhausted all retries");
+    }
+    if (res.status === 429) {
+      throw new QstashRatelimitError({
+        limit: res.headers.get("Burst-RateLimit-Limit"),
+        remaining: res.headers.get("Burst-RateLimit-Remaining"),
+        reset: res.headers.get("Burst-RateLimit-Reset"),
+      });
     }
 
     if (res.status < 200 || res.status >= 300) {

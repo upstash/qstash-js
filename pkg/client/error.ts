@@ -7,3 +7,9 @@ export class QstashError extends Error {
     this.name = "QstashError";
   }
 }
+
+export class QstashRatelimitError extends QstashError {
+  constructor(args: unknown) {
+    super(`You have been ratelimited. ${JSON.stringify(args)} `);
+  }
+}
