@@ -1,16 +1,9 @@
-import { HttpClient, Requester, RetryConfig } from "./http.ts";
-import { Topics } from "./topics.ts";
-import { Messages } from "./messages.ts";
-import { Schedules } from "./schedules.ts";
-import { Endpoints } from "./endpoints.ts";
-import type { Log } from "./types.ts";
-
-import type {
-  BodyInit,
-  HeadersInit,
-} from "https://raw.githubusercontent.com/microsoft/TypeScript/7b764164ede080afff02ec731dfea72b3f4f73f3/lib/lib.dom.d.ts";
-
-export type ClientConfig = {
+import { HttpClient, Requester, RetryConfig } from "./http";
+import { Topics } from "./topics";
+import { Messages } from "./messages";
+import { Schedules } from "./schedules";
+import { Event } from "./types";
+type ClientConfig = {
   /**
    * Url of the qstash api server.
    *
@@ -31,124 +24,119 @@ export type ClientConfig = {
   retry?: RetryConfig;
 };
 
-type Destination = {
+type Destination =
+  | {
+      /**
+       * The url of a publicly accessible server where you want to send this message to.
+       * The url must have a valid scheme (http or https).
+       */
+      url: string;
+      topic?: never;
+    }
+  | {
+      url?: never;
+      /**
+       * Either the name or id of a topic to send this message to.
+       */
+      topic: string;
+    };
+
+export type PublishRequest = Destination & {
   /**
-   * The url of a publicly accessible server where you want to send this message to.
-   * The url must have a valid scheme (http or https).
+   * The message to send.
+   *
+   * This can be anything, but please set the `Content-Type` header accordingly.
+   *
+   * You can leave this empty if you want to send a message with no body.
    */
-  url: string;
-  topic?: never;
-} | {
-  url?: never;
+  body?: BodyInit;
+
   /**
-   * Either the name or id of a topic to send this message to.
+   * Optionally send along headers with the message.
+   * These headers will be sent to your destination.
+   *
+   * We highly recommend sending a `Content-Type` header along, as this will help your destination
+   * server to understand the content of the message.
    */
-  topic: string;
+  headers?: HeadersInit;
+
+  /**
+   * Optionally delay the delivery of this message.
+   *
+   * In seconds.
+   *
+   * @default undefined
+   */
+  delay?: number;
+
+  /**
+   * Optionally set the absolute delay of this message.
+   * This will override the delay option.
+   * The message will not delivered until the specified time.
+   *
+   * Unix timestamp in seconds.
+   *
+   * @default undefined
+   */
+  notBefore?: number;
+
+  /**
+   * Provide a unique id for deduplication. This id will be used to detect duplicate messages.
+   * If a duplicate message is detected, the request will be accepted but not enqueued.
+   *
+   * We store deduplication ids for 90 days. Afterwards it is possible that the message with the
+   * same deduplication id is delivered again.
+   *
+   * When scheduling a message, the deduplication happens before the schedule is created.
+   *
+   * @default undefined
+   */
+  deduplicationId?: string;
+
+  /**
+   * If true, the message content will get hashed and used as deduplication id.
+   * If a duplicate message is detected, the request will be accepted but not enqueued.
+   *
+   * The content based hash includes the following values:
+   *    - All headers, except Upstash-Authorization, this includes all headers you are sending.
+   *    - The entire raw request body The destination from the url path
+   *
+   * We store deduplication ids for 90 days. Afterwards it is possible that the message with the
+   * same deduplication id is delivered again.
+   *
+   * When scheduling a message, the deduplication happens before the schedule is created.
+   *
+   * @default false
+   */
+  contentBasedDeduplication?: boolean;
+
+  /**
+   * In case your destination server is unavaialble or returns a status code outside of the 200-299
+   * range, we will retry the request after a certain amount of time.
+   *
+   * Configure how many times you would like the delivery to be retried
+   *
+   * @default The maximum retry quota associated with your account.
+   */
+  retries?: number;
+
+  /**
+   * Use a callback url to forward the response of your destination server to your callback url.
+   *
+   * The callback url must be publicly accessible
+   *
+   * @default undefined
+   */
+  callback?: string;
+
+  /**
+   * The method to use when sending a request to your API
+   *
+   * @default `POST`
+   */
+  method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
 };
 
-export type PublishRequest =
-  & Destination
-  & {
-    /**
-     * The message to send.
-     *
-     * This can be anything, but please set the `Content-Type` header accordingly.
-     *
-     * You can leave this empty if you want to send a message with no body.
-     */
-    body?: BodyInit;
-
-    /**
-     * Optionally send along headers with the message.
-     * These headers will be sent to your destination.
-     *
-     * We highly recommend sending a `Content-Type` header along, as this will help your destination
-     * server to understand the content of the message.
-     */
-    headers?: HeadersInit;
-
-    /**
-     * Optionally delay the delivery of this message.
-     *
-     * In seconds.
-     *
-     * @default undefined
-     */
-    delay?: number;
-
-    /**
-     * Optionally set the absolute delay of this message.
-     * This will override the delay option.
-     * The message will not delivered until the specified time.
-     *
-     * Unix timestamp in seconds.
-     *
-     * @default undefined
-     */
-    notBefore?: number;
-
-    /**
-     * Provide a unique id for deduplication. This id will be used to detect duplicate messages.
-     * If a duplicate message is detected, the request will be accepted but not enqueued.
-     *
-     * We store deduplication ids for 90 days. Afterwards it is possible that the message with the
-     * same deduplication id is delivered again.
-     *
-     * When scheduling a message, the deduplication happens before the schedule is created.
-     *
-     * @default undefined
-     */
-    deduplicationId?: string;
-
-    /**
-     * If true, the message content will get hashed and used as deduplication id.
-     * If a duplicate message is detected, the request will be accepted but not enqueued.
-     *
-     * The content based hash includes the following values:
-     *    - All headers, except Upstash-Authorization, this includes all headers you are sending.
-     *    - The entire raw request body The destination from the url path
-     *
-     * We store deduplication ids for 90 days. Afterwards it is possible that the message with the
-     * same deduplication id is delivered again.
-     *
-     * When scheduling a message, the deduplication happens before the schedule is created.
-     *
-     * @default false
-     */
-    contentBasedDeduplication?: boolean;
-
-    /**
-     * In case your destination server is unavaialble or returns a status code outside of the 200-299
-     * range, we will retry the request after a certain amount of time.
-     *
-     * Configure how many times you would like the delivery to be retried
-     *
-     * @default The maximum retry quota associated with your account.
-     */
-    retries?: number;
-
-    /**
-     * Use a callback url to forward the response of your destination server to your callback url.
-     *
-     * The callback url must be publicly accessible
-     *
-     * @default undefined
-     */
-    callback?: string;
-  }
-  & (
-    | {
-      /**
-       * Optionally specify a cron expression to repeatedly send this message to the destination.
-       *
-       * @default undefined
-       */
-      cron: string;
-    }
-    | {
-      cron?: never;
-    }
-  );
 export type PublishJsonRequest = Omit<PublishRequest, "body"> & {
   /**
    * The message to send.
@@ -157,13 +145,13 @@ export type PublishJsonRequest = Omit<PublishRequest, "body"> & {
   body: unknown;
 };
 
-export type LogsRequest = {
+export type EventsRequest = {
   cursor?: number;
 };
 
-export type GetLogsRespone = {
+export type GetEventsResponse = {
   cursor?: number;
-  logs: Log[];
+  events: Event[];
 };
 
 export class Client {
@@ -172,9 +160,7 @@ export class Client {
   public constructor(config: ClientConfig) {
     this.http = new HttpClient({
       retry: config.retry,
-      baseUrl: config.baseUrl
-        ? config.baseUrl.replace(/\/$/, "")
-        : "https://qstash.upstash.io",
+      baseUrl: config.baseUrl ? config.baseUrl.replace(/\/$/, "") : "https://qstash.upstash.io",
       authorization: `Bearer ${config.token}`,
     });
   }
@@ -186,15 +172,6 @@ export class Client {
    */
   public get topics(): Topics {
     return new Topics(this.http);
-  }
-
-  /**
-   * Access the endpoint API.
-   *
-   * Create, read, update or delete endpoints.
-   */
-  public get endpoints(): Endpoints {
-    return new Endpoints(this.http);
   }
 
   /**
@@ -214,15 +191,15 @@ export class Client {
   public get schedules(): Schedules {
     return new Schedules(this.http);
   }
-  public async publish<R extends PublishRequest>(
-    req: R,
-  ): Promise<PublishResponse<R>> {
+  public async publish(req: PublishRequest): Promise<PublishResponse> {
     const destination = req.url ?? req.topic;
     if (!destination) {
       throw new Error("Either url or topic must be set");
     }
 
     const headers = new Headers(req.headers);
+
+    headers.set("Upstash-Method", req.method ?? "POST");
 
     if (typeof req.delay !== "undefined") {
       headers.set("Upstash-Delay", `${req.delay.toFixed()}s`);
@@ -248,12 +225,8 @@ export class Client {
       headers.set("Upstash-Callback", req.callback);
     }
 
-    if (typeof req.cron !== "undefined") {
-      headers.set("Upstash-Cron", req.cron);
-    }
-
-    const res = await this.http.request<PublishResponse<R>>({
-      path: ["v1", "publish", destination],
+    const res = await this.http.request<PublishResponse>({
+      path: ["v2", "publish", destination],
       body: req.body,
       headers,
       method: "POST",
@@ -265,9 +238,7 @@ export class Client {
    * publishJSON is a utility wrapper around `publish` that automatically serializes the body
    * and sets the `Content-Type` header to `application/json`.
    */
-  public async publishJSON<R extends PublishJsonRequest = PublishJsonRequest>(
-    req: R,
-  ): Promise<PublishResponse<R>> {
+  public async publishJSON(req: PublishRequest): Promise<PublishResponse> {
     const headers = new Headers(req.headers);
     headers.set("Content-Type", "application/json");
 
@@ -276,7 +247,7 @@ export class Client {
       headers,
       body: JSON.stringify(req.body),
     } as PublishRequest);
-    return res as unknown as PublishResponse<R>;
+    return res;
   }
 
   /**
@@ -298,13 +269,13 @@ export class Client {
    * }
    * ```
    */
-  public async logs(req?: LogsRequest): Promise<GetLogsRespone> {
+  public async events(req?: EventsRequest): Promise<GetEventsResponse> {
     const query: Record<string, number> = {};
     if (req?.cursor && req.cursor > 0) {
-      query["cursor"] = req.cursor;
+      query.cursor = req.cursor;
     }
-    const res = await this.http.request<GetLogsRespone>({
-      path: ["v1", "logs"],
+    const res = await this.http.request<GetEventsResponse>({
+      path: ["v2", "events"],
       method: "GET",
       query,
     });
@@ -312,6 +283,12 @@ export class Client {
   }
 }
 
-type PublishResponse<PublishRequest> = PublishRequest extends { cron: string }
-  ? { scheduleId: string }
-  : { messageId: string };
+type PublishResponse =
+  | {
+      messageId: string;
+      messageIds?: never;
+    }
+  | {
+      messageId?: never;
+      messageIds: string[];
+    };

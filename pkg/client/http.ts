@@ -1,8 +1,4 @@
-import { QstashError } from "./error.ts";
-import type {
-  BodyInit,
-  HeadersInit,
-} from "https://raw.githubusercontent.com/microsoft/TypeScript/7b764164ede080afff02ec731dfea72b3f4f73f3/lib/lib.dom.d.ts";
+import { QstashError } from "./error";
 
 export type UpstashRequest = {
   /**
@@ -36,30 +32,28 @@ export type UpstashRequest = {
 export type UpstashResponse<TResult> = TResult & { error?: string };
 
 export interface Requester {
-  request: <TResult = unknown>(
-    req: UpstashRequest,
-  ) => Promise<UpstashResponse<TResult>>;
+  request: <TResult = unknown>(req: UpstashRequest) => Promise<UpstashResponse<TResult>>;
 }
 
 export type RetryConfig =
   | false
   | {
-    /**
-     * The number of retries to attempt before giving up.
-     *
-     * @default 5
-     */
-    retries?: number;
-    /**
-     * A backoff function receives the current retry cound and returns a number in milliseconds to wait before retrying.
-     *
-     * @default
-     * ```ts
-     * Math.exp(retryCount) * 50
-     * ```
-     */
-    backoff?: (retryCount: number) => number;
-  };
+      /**
+       * The number of retries to attempt before giving up.
+       *
+       * @default 5
+       */
+      retries?: number;
+      /**
+       * A backoff function receives the current retry cound and returns a number in milliseconds to wait before retrying.
+       *
+       * @default
+       * ```ts
+       * Math.exp(retryCount) * 50
+       * ```
+       */
+      backoff?: (retryCount: number) => number;
+    };
 
 export type HttpClientConfig = {
   baseUrl: string;
@@ -92,15 +86,12 @@ export class HttpClient implements Requester {
     } else {
       this.retry = {
         attempts: config.retry?.retries ? config.retry.retries + 1 : 5,
-        backoff: config.retry?.backoff ??
-          ((retryCount) => Math.exp(retryCount) * 50),
+        backoff: config.retry?.backoff ?? ((retryCount) => Math.exp(retryCount) * 50),
       };
     }
   }
 
-  public async request<TResult>(
-    req: UpstashRequest,
-  ): Promise<UpstashResponse<TResult>> {
+  public async request<TResult>(req: UpstashRequest): Promise<UpstashResponse<TResult>> {
     const headers = new Headers(req.headers);
     headers.set("Authorization", this.authorization);
 
@@ -124,10 +115,7 @@ export class HttpClient implements Requester {
     let error: Error | null = null;
     for (let i = 0; i < this.retry.attempts; i++) {
       try {
-        res = await fetch(
-          url.toString(),
-          requestOptions,
-        );
+        res = await fetch(url.toString(), requestOptions);
         break;
       } catch (err) {
         error = err;
@@ -139,7 +127,7 @@ export class HttpClient implements Requester {
     }
 
     if (res.status < 200 || res.status >= 300) {
-      throw new QstashError(await res.text() ?? res.statusText);
+      throw new QstashError((await res.text()) ?? res.statusText);
     }
     return (await res.json()) as UpstashResponse<TResult>;
   }

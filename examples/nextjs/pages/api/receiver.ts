@@ -7,10 +7,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { Receiver } from "@upstash/qstash";
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse,
-) {
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const signature = req.headers["upstash-signature"] as string | undefined;
   console.log({ signature });
   if (!signature) {

@@ -1,7 +1,7 @@
 // @ts-ignore Deno can't compile
 import type { NextApiHandler, NextApiRequest, NextApiResponse } from "next";
 
-import { Receiver } from "../pkg/receiver.ts";
+import { Receiver } from "../pkg/receiver";
 export type VerifySignaturConfig = {
   currentSigningKey?: string;
   nextSigningKey?: string;
@@ -24,7 +24,8 @@ export function verifySignature(
   handler: NextApiHandler,
   config?: VerifySignaturConfig,
 ): NextApiHandler {
-  const currentSigningKey = config?.currentSigningKey ??
+  const currentSigningKey =
+    config?.currentSigningKey ??
     // @ts-ignore Deno can't compile
     process.env["QSTASH_CURRENT_SIGNING_KEY"];
   if (!currentSigningKey) {
@@ -32,7 +33,8 @@ export function verifySignature(
       "currentSigningKey is required, either in the config or as env variable QSTASH_CURRENT_SIGNING_KEY",
     );
   }
-  const nextSigningKey = config?.nextSigningKey ??
+  const nextSigningKey =
+    config?.nextSigningKey ??
     // @ts-ignore Deno can't compile
     process.env["QSTASH_NEXT_SIGNING_KEY"];
   if (!nextSigningKey) {

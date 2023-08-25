@@ -1,0 +1,47 @@
+{
+  "name": "@upstash/qstash",
+  "private": true,
+  "version": "2.0.0",
+  "description": "Official Typescript client for QStash",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/upstash/sdk-qstash-ts.git"
+  },
+  "keywords": [
+    "qstash",
+    "queue",
+    "events",
+    "serverless",
+    "upstash"
+  ],
+  "author": "Andreas Thomas <dev@chronark.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/upstash/sdk-qstash-ts/issues"
+  },
+  "homepage": "https://github.com/upstash/sdk-qstash-ts#readme",
+  "main": "index.js",
+  "typesVersions": {
+    "*": {
+      "nodejs": [
+        "./types/entrypoints/nodejs.d.ts"
+      ],
+      "cloudflare": [
+        "./types/entrypoints/cloudflare.d.ts"
+      ],
+      "nextjs": [
+        "./types/entrypoints/nextjs.d.ts"
+      ]
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "fmt": "pnpm rome check . --apply-suggested && pnpm rome format . --write"
+  },
+  "devDependencies": {
+    "@types/node": "^20.4.9",
+    "rome": "11.0.0",
+    "tsup": "^7.2.0",
+    "typescript": "^5.1.6"
+  }
+}

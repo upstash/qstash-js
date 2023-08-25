@@ -1,8 +1,4 @@
-import type {
-  APIGatewayEvent,
-  APIGatewayProxyResult,
-  Context,
-} from "aws-lambda";
+import type { APIGatewayEvent, APIGatewayProxyResult, Context } from "aws-lambda";
 
 import { Receiver } from "@upstash/qstash";
 const receiver = new Receiver({
@@ -12,7 +8,7 @@ const receiver = new Receiver({
 
 export const handler = async (
   event: APIGatewayEvent,
-  context: Context,
+  _context: Context,
 ): Promise<APIGatewayProxyResult> => {
   const isValid = await receiver.verify({
     signature: event.headers["upstash-signature"]!,

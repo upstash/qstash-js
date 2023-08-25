@@ -1,28 +1,14 @@
-export type State =
-  | "created"
-  | "planned"
-  | "active"
-  | "delivered"
-  | "error"
-  | "failed"
-  | "canceled";
+export type State = "CREATED" | "ACTIVE" | "DELIVERED" | "ERROR" | "RETRY" | "FAILED";
 
-export type Log = {
+export type Event = {
   time: number;
   state: State;
   messageId: string;
-  taskId?: string;
-  nextScheduledAt?: number;
+  nextDeliveryTime?: number;
   error?: string;
+  url: string;
+  topicName?: string;
+  endpointName?: string;
 };
 
 export type WithCursor<T> = T & { cursor?: number };
-
-export type Task = {
-  taskId: string;
-  state: State;
-  maxRetry: number;
-  retried: number;
-  completedAt?: number;
-  url: string;
-};

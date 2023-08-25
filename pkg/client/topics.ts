@@ -1,42 +1,47 @@
-import { Requester } from "./http.ts";
+import { Requester } from "./http";
 
-export type CreateTopicRequest = {
+export type Endpoint = {
+  /**
+   * The name of the endpoint (optional)
+   */
+  name?: string;
+
+  /**
+   * The url of the endpoint
+   */
+  url: string;
+};
+
+export type AddEndpointsRequest = {
   /**
    * The name of the topic.
    * Must be unique and only contain alphanumeric, hyphen, underscore and periods.
    */
   name: string;
+
+  endpoints: Endpoint[];
 };
 
-export type GetTopicRequest =
-  | {
-    name: string;
-    id?: never;
-  }
-  | {
-    id: string;
-    name?: never;
-  };
-
-export type UpdateTopicRequest = {
-  id: string;
-  name?: string;
-};
-export type DeleteTopicRequest =
-  | {
-    name: string;
-    id?: never;
-  }
-  | {
-    id: string;
-    name?: never;
-  };
-export type Topic = {
+export type RemoveEndpointsRequest = {
   /**
-   * id for this topic
+   * The name of the topic.
+   * Must be unique and only contain alphanumeric, hyphen, underscore and periods.
    */
-  id: string;
+  name: string;
 
+  endpoints: (
+    | {
+        name: string;
+        url?: string;
+      }
+    | {
+        name?: string;
+        url: string;
+      }
+  )[];
+};
+
+export type Topic = {
   /**
    * The name of this topic.
    */
@@ -45,7 +50,7 @@ export type Topic = {
   /**
    * A list of all subscribed endpoints
    */
-  endpointIds: string[];
+  endpoints: Endpoint[];
 };
 
 export class Topics {
@@ -56,14 +61,26 @@ export class Topics {
   }
 
   /**
-   * Create a new topic with the given name.
+   * Create a new topic with the given name and endpoints
    */
-  public async create(req: CreateTopicRequest): Promise<Topic> {
+  public async addEndpoints(req: AddEndpointsRequest): Promise<Topic> {
     return await this.http.request<Topic>({
       method: "POST",
-      path: ["v1", "topics"],
+      path: ["v2", "topics", req.name],
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: req.name }),
+      body: JSON.stringify({ endpoints: req.endpoints }),
+    });
+  }
+
+  /**
+   * Remove endpoints from a topic.
+   */
+  public async removeEndpoints(req: RemoveEndpointsRequest): Promise<Topic> {
+    return await this.http.request<Topic>({
+      method: "DELETE",
+      path: ["v2", "topics", req.name],
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ endpoints: req.endpoints }),
     });
   }
 
@@ -73,50 +90,27 @@ export class Topics {
   public async list(): Promise<Topic[]> {
     return await this.http.request<Topic[]>({
       method: "GET",
-      path: ["v1", "topics"],
-      headers: { "Content-Type": "application/json" },
+      path: ["v2", "topics"],
     });
   }
 
   /**
-   * Get a single topic by name or id.
+   * Get a single topic
    */
-  public async get(req: GetTopicRequest): Promise<Topic> {
-    const idOrName = req.id ?? req.name;
-    if (!idOrName) {
-      throw new Error("Either id or name must be provided");
-    }
+  public async get(name: string): Promise<Topic> {
     return await this.http.request<Topic>({
       method: "GET",
-      path: ["v1", "topics", idOrName],
-      headers: { "Content-Type": "application/json" },
+      path: ["v2", "topics", name],
     });
   }
 
   /**
-   * Update a topic
+   * Delete a topic
    */
-  public async update(req: UpdateTopicRequest): Promise<Topic> {
-    return await this.http.request<Topic>({
-      method: "PUT",
-      path: ["v1", "topics", req.id],
-      body: JSON.stringify({ name: req.name }),
-      headers: { "Content-Type": "application/json" },
-    });
-  }
-
-  /**
-   * Delete a topic by name or id.
-   */
-  public async delete(req: DeleteTopicRequest): Promise<void> {
-    const idOrName = req.id ?? req.name;
-    if (!idOrName) {
-      throw new Error("Either id or name must be provided");
-    }
+  public async delete(name: string): Promise<void> {
     return await this.http.request<void>({
       method: "DELETE",
-      path: ["v1", "topics", idOrName],
-      headers: { "Content-Type": "application/json" },
+      path: ["v2", "topics", name],
     });
   }
 }

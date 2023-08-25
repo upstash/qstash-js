@@ -12,14 +12,10 @@ export interface Env {
 }
 
 export default {
-  async fetch(
-    request: Request,
-    env: Env,
-    ctx: ExecutionContext,
-  ): Promise<Response> {
+  async fetch(request: Request, _env: Env, _ctx: ExecutionContext): Promise<Response> {
     const c = new Receiver({
-      "currentSigningKey": "sig_5wKXQ6mPSerYPu6DRqYpA5dDjVZW",
-      "nextSigningKey": "sig_6Psg6RgxALRgP1zFSvuqUim5Nsqc",
+      currentSigningKey: "sig_5wKXQ6mPSerYPu6DRqYpA5dDjVZW",
+      nextSigningKey: "sig_6Psg6RgxALRgP1zFSvuqUim5Nsqc",
     });
 
     const body = await request.text();

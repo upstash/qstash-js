@@ -1,63 +1,83 @@
-import { Requester } from "./http.ts";
-import type { Log, Task } from "./types.ts";
+import { Requester } from "./http";
 
-export type GetScheduleRequest = {
-  id: string;
-};
-export type DeleteScheduleRequest = {
-  id: string;
-};
 export type Schedule = {
   scheduleId: string;
   cron: string;
   createdAt: number;
-  content: {
-    header?: Record<string, string[]> | null;
-    body?: string | null;
-  };
-  destination: {
-    type: "topic";
-    url?: never;
-    topic: {
-      topicId: string;
-      name: string;
-      endpoints: {
-        endpointId: string;
-        url: string;
-        topicId: string;
-      }[];
-    };
-  } | {
-    type: "url";
-    topic?: never;
-    url: string;
-  };
-  settings: {
-    notBefore?: number;
-    retries?: number;
-  };
+  destination: string;
+  method: string;
+  header?: Record<string, string[]>;
+  body?: string;
+  retries: number;
+  delay?: number;
+  callback?: string;
 };
 
-export type ListLogsRequest = {
-  // Schedule id
-  id: string;
-  cursor?: number;
-};
+export type CreateScheduleRequest = {
+  /**
+   * Either a URL or topic name
+   */
+  destination: string;
 
-export type ListLogsResponse = {
-  cursor?: number;
-  logs: Log[];
-};
+  /**
+   * The message to send.
+   *
+   * This can be anything, but please set the `Content-Type` header accordingly.
+   *
+   * You can leave this empty if you want to send a message with no body.
+   */
+  body?: BodyInit;
 
-export type ListTasksRequest = {
-  // Schedule id
-  id: string;
-  cursor?: number;
-};
+  /**
+   * Optionally send along headers with the message.
+   * These headers will be sent to your destination.
+   *
+   * We highly recommend sending a `Content-Type` header along, as this will help your destination
+   * server to understand the content of the message.
+   */
+  headers?: HeadersInit;
 
-export type ListTasksResponse = {
-  cursor?: number;
-  logs: Task[];
+  /**
+   * Optionally delay the delivery of this message.
+   *
+   * In seconds.
+   *
+   * @default undefined
+   */
+  delay?: number;
+
+  /**
+   * In case your destination server is unavaialble or returns a status code outside of the 200-299
+   * range, we will retry the request after a certain amount of time.
+   *
+   * Configure how many times you would like the delivery to be retried
+   *
+   * @default The maximum retry quota associated with your account.
+   */
+  retries?: number;
+
+  /**
+   * Use a callback url to forward the response of your destination server to your callback url.
+   *
+   * The callback url must be publicly accessible
+   *
+   * @default undefined
+   */
+  callback?: string;
+
+  /**
+   * The method to use when sending a request to your API
+   *
+   * @default `POST`
+   */
+  method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
+
+  /**
+   * Optionally specify a cron expression to repeatedly send this message to the destination.
+   *
+   * @default undefined
+   */
+  cron: string;
 };
 
 export class Schedules {
@@ -68,13 +88,24 @@ export class Schedules {
   }
 
   /**
+   * Create a schedule
+   */
+  public async create(req: CreateScheduleRequest): Promise<{ scheduleId: string }> {
+    return await this.http.request({
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      path: ["v2", "schedules"],
+      body: JSON.stringify(req),
+    });
+  }
+
+  /**
    * Get a schedule
    */
-  public async get(req: GetScheduleRequest): Promise<Schedule> {
+  public async get(scheduleId: string): Promise<Schedule> {
     return await this.http.request<Schedule>({
       method: "GET",
-      path: ["v1", "schedules", req.id],
-      headers: { "Content-Type": "application/json" },
+      path: ["v2", "schedules", scheduleId],
     });
   }
 
@@ -84,19 +115,17 @@ export class Schedules {
   public async list(): Promise<Schedule[]> {
     return await this.http.request<Schedule[]>({
       method: "GET",
-      path: ["v1", "schedules"],
-      headers: { "Content-Type": "application/json" },
+      path: ["v2", "schedules"],
     });
   }
 
   /**
    * Delete a schedule
    */
-  public async delete(req: DeleteScheduleRequest): Promise<void> {
+  public async delete(scheduleId: string): Promise<void> {
     return await this.http.request<void>({
       method: "DELETE",
-      path: ["v1", "schedules", req.id],
-      headers: { "Content-Type": "application/json" },
+      path: ["v2", "schedules", scheduleId],
     });
   }
 }

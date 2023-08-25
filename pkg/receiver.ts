@@ -1,5 +1,5 @@
-import { base64Url } from "../deps.ts";
-import { crypto } from "https://deno.land/std/crypto/mod.ts";
+import * as base64url from "./encoding/base64url";
+
 export type SubtleCrypto = typeof crypto.subtle;
 
 /**
@@ -84,16 +84,11 @@ export class Receiver {
   /**
    * Verify signature with a specific signing key
    */
-  private async verifyWithKey(
-    key: string,
-    req: VerifyRequest,
-  ): Promise<boolean> {
+  private async verifyWithKey(key: string, req: VerifyRequest): Promise<boolean> {
     const parts = req.signature.split(".");
 
     if (parts.length !== 3) {
-      throw new SignatureError(
-        "`Upstash-Signature` header is not a valid signature",
-      );
+      throw new SignatureError("`Upstash-Signature` header is not a valid signature");
     }
     const [header, payload, signature] = parts;
 
@@ -108,7 +103,7 @@ export class Receiver {
     const isValid = await this.subtleCrypto.verify(
       { name: "HMAC" },
       k,
-      base64Url.decode(signature),
+      base64url.decode(signature),
       new TextEncoder().encode(`${header}.${payload}`),
     );
 
@@ -124,7 +119,7 @@ export class Receiver {
       iat: number;
       jti: string;
       body: string;
-    } = JSON.parse(new TextDecoder().decode(base64Url.decode(payload)));
+    } = JSON.parse(new TextDecoder().decode(base64url.decode(payload)));
     if (p.iss !== "Upstash") {
       throw new SignatureError(`invalid issuer: ${p.iss}`);
     }
@@ -143,21 +138,14 @@ export class Receiver {
 
     const bodyHash = await this.subtleCrypto.digest(
       "SHA-256",
-      typeof req.body === "string"
-        ? new TextEncoder().encode(req.body)
-        : req.body,
+      typeof req.body === "string" ? new TextEncoder().encode(req.body) : req.body,
     );
 
     const padding = new RegExp(/=+$/);
 
-    if (
-      p.body.replace(padding, "") !==
-        base64Url.encode(bodyHash).replace(padding, "")
-    ) {
+    if (p.body.replace(padding, "") !== base64url.encode(bodyHash).replace(padding, "")) {
       throw new SignatureError(
-        `body hash does not match, want: ${p.body}, got: ${
-          base64Url.encode(bodyHash)
-        }`,
+        `body hash does not match, want: ${p.body}, got: ${base64url.encode(bodyHash)}`,
       );
     }
 
