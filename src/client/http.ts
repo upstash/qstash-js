@@ -118,7 +118,7 @@ export class HttpClient implements Requester {
         res = await fetch(url.toString(), requestOptions);
         break;
       } catch (err) {
-        error = err;
+        error = err as Error;
         await new Promise((r) => setTimeout(r, this.retry.backoff(i)));
       }
     }

@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { verifySignature } from "@upstash/qstash/nextjs";
+import { verifySignature } from "@upstash/qstash/nextjs-serverless";
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
   console.log(req.headers);
@@ -14,7 +14,6 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 export default verifySignature(handler, {
   currentSigningKey: "sig_5wKXQ6mPSerYPu6DRqYpA5dDjVZW",
   nextSigningKey: "sig_6Psg6RgxALRgP1zFSvuqUim5Nsqc",
-  url: "http://localhost:3000/api/qstash", // omit this when you deploy
 });
 
 export const config = {

@@ -26,7 +26,7 @@
  * @module
  */
 
-import * as base64 from "./base64.ts";
+import * as base64 from "./base64";
 
 /*
  * Some variants allow or require omitting the padding '=' signs:

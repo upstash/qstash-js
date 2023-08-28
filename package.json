@@ -1,12 +1,14 @@
 {
   "name": "@upstash/qstash",
-  "private": true,
-  "version": "2.0.0",
+  "version": "2.0.0-canary.10",
   "description": "Official Typescript client for QStash",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/upstash/sdk-qstash-ts.git"
   },
+  "module": "./dist/node.js",
+  "main": "./dist/node.js",
+  "types": "./dist/node.d.ts",
   "keywords": [
     "qstash",
     "queue",
@@ -20,21 +22,63 @@
     "url": "https://github.com/upstash/sdk-qstash-ts/issues"
   },
   "homepage": "https://github.com/upstash/sdk-qstash-ts#readme",
-  "main": "index.js",
-  
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsup",
     "fmt": "pnpm rome check . --apply-suggested && pnpm rome format . --write"
   },
   "devDependencies": {
+    "@types/crypto-js": "^4.1.1",
     "@types/node": "^20.4.9",
+    "next": "^13.4.19",
     "rome": "11.0.0",
     "tsup": "^7.2.0",
-    "@types/crypto-js": "^4.1.1",
     "typescript": "^5.1.6"
   },
   "dependencies": {
     "crypto-js": "^4.1.1",
     "jose": "^4.14.4"
+  },
+  "exports": {
+    ".": {
+      "import": "./dist/node.js",
+      "require": "./dist/node.js",
+      "types": "./node.dist/d.ts"
+    },
+    "./node": {
+      "import": "./dist/node.js",
+      "require": "./dist/node.js",
+      "types": "./node.dist/d.ts"
+    },
+    "./cloudflare": {
+      "import": "./dist/cloudflare.js",
+      "require": "./dist/cloudflare.js",
+      "types": "./dist/cloudflare.d.ts"
+    },
+    "./nextjs-edge": {
+      "import": "./dist/nextjs-edge.js",
+      "require": "./dist/nextjs-edge.js",
+      "types": "./dist/nextjs-edge.d.ts"
+    },
+    "./nextjs-serverless": {
+      "import": "./dist/nextjs-serverless.js",
+      "require": "./dist/nextjs-serverless.js",
+      "types": "./dist/nextjs-serverless.d.ts"
+    }
+  },
+  "engines": {
+    "node": ">=18",
+    "deno": ">=1.10.0"
+  },
+
+  "typesVersions": {
+    "*": {
+      "nodejs": ["./dist/nodejs.d.ts"],
+      "cloudflare": ["./dist/cloudflare.d.ts"],
+      "nextjs-edge": ["./dist/nextjs-edge.d.ts"],
+      "nextjs-serverless": ["./dist/nextjs-serverless.d.ts"]
+    }
   }
 }

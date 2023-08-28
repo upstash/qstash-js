@@ -24,7 +24,6 @@ type ClientConfig = {
   retry?: RetryConfig;
 };
 
-
 export type PublishRequest = {
   /**
    * The message to send.
@@ -120,11 +119,10 @@ export type PublishRequest = {
    */
   method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
 
-
-/**
- * The url or topicName where the message should be sent to.
- */
-  destination: string
+  /**
+   * The url or topicName where the message should be sent to.
+   */
+  destination: string;
 };
 
 export type PublishJsonRequest = Omit<PublishRequest, "body"> & {
@@ -182,8 +180,6 @@ export class Client {
     return new Schedules(this.http);
   }
   public async publish(req: PublishRequest): Promise<PublishResponse> {
-   
-
     const headers = new Headers(req.headers);
 
     headers.set("Upstash-Method", req.method ?? "POST");
