@@ -24,24 +24,8 @@ type ClientConfig = {
   retry?: RetryConfig;
 };
 
-type Destination =
-  | {
-      /**
-       * The url of a publicly accessible server where you want to send this message to.
-       * The url must have a valid scheme (http or https).
-       */
-      url: string;
-      topic?: never;
-    }
-  | {
-      url?: never;
-      /**
-       * Either the name or id of a topic to send this message to.
-       */
-      topic: string;
-    };
 
-export type PublishRequest = Destination & {
+export type PublishRequest = {
   /**
    * The message to send.
    *
@@ -135,6 +119,12 @@ export type PublishRequest = Destination & {
    * @default `POST`
    */
   method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
+
+
+/**
+ * The url or topicName where the message should be sent to.
+ */
+  destination: string
 };
 
 export type PublishJsonRequest = Omit<PublishRequest, "body"> & {
@@ -192,10 +182,7 @@ export class Client {
     return new Schedules(this.http);
   }
   public async publish(req: PublishRequest): Promise<PublishResponse> {
-    const destination = req.url ?? req.topic;
-    if (!destination) {
-      throw new Error("Either url or topic must be set");
-    }
+   
 
     const headers = new Headers(req.headers);
 
@@ -226,7 +213,7 @@ export class Client {
     }
 
     const res = await this.http.request<PublishResponse>({
-      path: ["v2", "publish", destination],
+      path: ["v2", "publish", req.destination],
       body: req.body,
       headers,
       method: "POST",
