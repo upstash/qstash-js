@@ -1,0 +1,50 @@
+{
+  "name": "@upstash/qstash",
+  "version": "2.0.0-canary.21",
+  "description": "Official Typescript client for QStash",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/upstash/sdk-qstash-ts.git"
+  },
+  "module": "./dist/index.js",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "keywords": [
+    "qstash",
+    "queue",
+    "events",
+    "serverless",
+    "upstash"
+  ],
+  "author": "Andreas Thomas <dev@chronark.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/upstash/sdk-qstash-ts/issues"
+  },
+  "homepage": "https://github.com/upstash/sdk-qstash-ts#readme",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "fmt": "pnpm rome check . --apply-unsafe && pnpm rome format . --write"
+  },
+  "devDependencies": {
+    "@types/crypto-js": "^4.1.1",
+    "@types/node": "^20.5.7",
+    "next": "^13.4.19",
+    "rome": "12.1.3",
+    "tsup": "^7.2.0",
+    "typescript": "^5.2.2"
+  },
+  "dependencies": {
+    "crypto-js": "^4.1.1",
+    "jose": "^4.14.4"
+  },
+  "typesVersions": {
+    "*": {
+      ".": ["./dist/index.d.ts"],
+      "nextjs": ["./dist/nextjs.d.ts"]
+    }
+  }
+}

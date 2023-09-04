@@ -1,6 +1,5 @@
-import { base64Url } from "../deps.ts";
-import { crypto } from "https://deno.land/std/crypto/mod.ts";
-export type SubtleCrypto = typeof crypto.subtle;
+import * as jose from "jose";
+import * as crypto from "crypto-js";
 
 /**
  * Necessary to verify the signature of a request.
@@ -14,8 +13,6 @@ export type ReceiverConfig = {
    * The next signing key. Get it from `https://console.upstash.com/qstash
    */
   nextSigningKey: string;
-
-  subtleCrypto: SubtleCrypto;
 };
 
 export type VerifyRequest = {
@@ -27,7 +24,7 @@ export type VerifyRequest = {
   /**
    * The raw request body.
    */
-  body: string | Uint8Array;
+  body: string;
 
   /**
    * URL of the endpoint where the request was sent to.
@@ -56,12 +53,10 @@ export class SignatureError extends Error {
 export class Receiver {
   private readonly currentSigningKey: string;
   private readonly nextSigningKey: string;
-  private readonly subtleCrypto: SubtleCrypto;
 
   constructor(config: ReceiverConfig) {
     this.currentSigningKey = config.currentSigningKey;
     this.nextSigningKey = config.nextSigningKey;
-    this.subtleCrypto = config.subtleCrypto;
   }
 
   /**
@@ -84,39 +79,17 @@ export class Receiver {
   /**
    * Verify signature with a specific signing key
    */
-  private async verifyWithKey(
-    key: string,
-    req: VerifyRequest,
-  ): Promise<boolean> {
-    const parts = req.signature.split(".");
+  private async verifyWithKey(key: string, req: VerifyRequest): Promise<boolean> {
+    const jwt = await jose
+      .jwtVerify(req.signature, new TextEncoder().encode(key), {
+        issuer: "Upstash",
+        clockTolerance: req.clockTolerance,
+      })
+      .catch((e) => {
+        throw new SignatureError((e as Error).message);
+      });
 
-    if (parts.length !== 3) {
-      throw new SignatureError(
-        "`Upstash-Signature` header is not a valid signature",
-      );
-    }
-    const [header, payload, signature] = parts;
-
-    const k = await this.subtleCrypto.importKey(
-      "raw",
-      new TextEncoder().encode(key),
-      { name: "HMAC", hash: "SHA-256" },
-      false,
-      ["sign", "verify"],
-    );
-
-    const isValid = await this.subtleCrypto.verify(
-      { name: "HMAC" },
-      k,
-      base64Url.decode(signature),
-      new TextEncoder().encode(`${header}.${payload}`),
-    );
-
-    if (!isValid) {
-      throw new SignatureError("signature does not match");
-    }
-
-    const p: {
+    const p = jwt.payload as {
       iss: string;
       sub: string;
       exp: number;
@@ -124,41 +97,18 @@ export class Receiver {
       iat: number;
       jti: string;
       body: string;
-    } = JSON.parse(new TextDecoder().decode(base64Url.decode(payload)));
-    if (p.iss !== "Upstash") {
-      throw new SignatureError(`invalid issuer: ${p.iss}`);
-    }
+    };
 
     if (typeof req.url !== "undefined" && p.sub !== req.url) {
       throw new SignatureError(`invalid subject: ${p.sub}, want: ${req.url}`);
     }
-    const now = Math.floor(Date.now() / 1000);
-    if (now - (req.clockTolerance ?? 0) > p.exp) {
-      console.log({ now, exp: p.exp });
-      throw new SignatureError("token has expired");
-    }
-    if (now + (req.clockTolerance ?? 0) < p.nbf) {
-      throw new SignatureError("token is not yet valid");
-    }
 
-    const bodyHash = await this.subtleCrypto.digest(
-      "SHA-256",
-      typeof req.body === "string"
-        ? new TextEncoder().encode(req.body)
-        : req.body,
-    );
+    const bodyHash = crypto.SHA256(req.body as string).toString(crypto.enc.Base64url);
 
     const padding = new RegExp(/=+$/);
 
-    if (
-      p.body.replace(padding, "") !==
-        base64Url.encode(bodyHash).replace(padding, "")
-    ) {
-      throw new SignatureError(
-        `body hash does not match, want: ${p.body}, got: ${
-          base64Url.encode(bodyHash)
-        }`,
-      );
+    if (p.body.replace(padding, "") !== bodyHash.replace(padding, "")) {
+      throw new SignatureError(`body hash does not match, want: ${p.body}, got: ${bodyHash}`);
     }
 
     return true;

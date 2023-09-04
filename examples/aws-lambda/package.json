@@ -11,11 +11,11 @@
   "author": "Andreas Thomas",
   "license": "ISC",
   "devDependencies": {
-    "@types/aws-lambda": "^8.10.102",
-    "@types/node": "^18.7.9",
-    "esbuild": "^0.15.5"
+    "@types/aws-lambda": "^8.10.119",
+    "@types/node": "^20.5.7",
+    "esbuild": "^0.19.2"
   },
   "dependencies": {
-    "@upstash/qstash": "^0.1.7"
+    "@upstash/qstash": "workspace:2.0.0-canary.16"
   }
 }
