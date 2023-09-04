@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repo
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Set env
         run: echo "VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
@@ -19,26 +19,44 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v2
         with:
-          node-version: 16
+          node-version: lts/*
 
-      - run: |
-          curl -fsSL https://deno.land/x/install/install.sh | sh
-          echo "$HOME/.deno/bin" > $GITHUB_PATH
+      - uses: pnpm/action-setup@v2
+        with:
+          version: latest
+          run_install: false
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+    
+      - uses: actions/cache@v3
+        name: Setup pnpm cache
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
 
 
-      - name: Build
-        run: deno run -A ./cmd/build.ts $VERSION
+      - name: Set package version
+        run: node ./scripts/set-version.js . ${{ env.VERSION }}
+
+      - name: Install
+        run: pnpm install
+
+      - name: Build package
+        run: pnpm build
+
+      - name: Authenticate Registry
+        run: npm set "//registry.npmjs.org/:_authToken" ${{ secrets.NPM_TOKEN }}
+        
+      - name: Publish canary
+        if: "github.event.release.prerelease"
+        run: pnpm publish --access public --tag=canary --no-git-checks 
 
       - name: Publish
         if: "!github.event.release.prerelease"
-        working-directory: ./dist
-        run: |
-          echo "//registry.npmjs.org/:_authToken=${{secrets.NPM_TOKEN}}" > .npmrc
-          npm publish --access public
-
-      - name: Publish release candidate
-        if: "github.event.release.prerelease"
-        working-directory: ./dist
-        run: |
-          echo "//registry.npmjs.org/:_authToken=${{secrets.NPM_TOKEN}}" > .npmrc
-          npm publish --access public --tag=next
+        run: pnpm publish --access public --no-git-checks 

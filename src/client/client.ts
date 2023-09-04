@@ -3,6 +3,7 @@ import { Topics } from "./topics";
 import { Messages } from "./messages";
 import { Schedules } from "./schedules";
 import { Event } from "./types";
+import { DLQ } from "./dlq";
 type ClientConfig = {
   /**
    * Url of the qstash api server.
@@ -163,6 +164,15 @@ export class Client {
   }
 
   /**
+   * Access the dlq API.
+   *
+   * List or remove messages from the DLQ.
+   */
+  public get dlq(): DLQ {
+    return new DLQ(this.http);
+  }
+
+  /**
    * Access the message API.
    *
    * Read or cancel messages.
@@ -174,7 +184,7 @@ export class Client {
   /**
    * Access the schedule API.
    *
-   * Read or delete schedules.
+   * Create, read or delete schedules.
    */
   public get schedules(): Schedules {
     return new Schedules(this.http);
