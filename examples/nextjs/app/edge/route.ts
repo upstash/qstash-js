@@ -14,10 +14,3 @@ async function handler(req: NextRequest) {
 export const POST = verifySignatureEdge(handler);
 
 export const runtime = "edge";
-
-// export const bodyParser= false
-// export const config = {
-//   api: {
-//     bodyParser: false,
-//   },
-// };
