@@ -25,7 +25,7 @@ type ClientConfig = {
   retry?: RetryConfig;
 };
 
-export type PublishRequest = {
+export type PublishRequest<TBody = BodyInit> = {
   /**
    * The message to send.
    *
@@ -33,7 +33,7 @@ export type PublishRequest = {
    *
    * You can leave this empty if you want to send a message with no body.
    */
-  body?: BodyInit;
+  body?: TBody;
 
   /**
    * Optionally send along headers with the message.
@@ -119,12 +119,22 @@ export type PublishRequest = {
    * @default `POST`
    */
   method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
-
-  /**
-   * The url or topicName where the message should be sent to.
-   */
-  destination: string;
-};
+} & (
+  | {
+      /**
+       * The url where the message should be sent to.
+       */
+      url: string;
+      topic?: never;
+    }
+  | {
+      url?: never;
+      /**
+       * The url where the message should be sent to.
+       */
+      topic: string;
+    }
+);
 
 export type PublishJsonRequest = Omit<PublishRequest, "body"> & {
   /**
@@ -189,7 +199,9 @@ export class Client {
   public get schedules(): Schedules {
     return new Schedules(this.http);
   }
-  public async publish(req: PublishRequest): Promise<PublishResponse> {
+  public async publish<TRequest extends PublishRequest>(
+    req: TRequest,
+  ): Promise<PublishResponse<TRequest>> {
     const headers = new Headers(req.headers);
 
     headers.set("Upstash-Method", req.method ?? "POST");
@@ -218,8 +230,8 @@ export class Client {
       headers.set("Upstash-Callback", req.callback);
     }
 
-    const res = await this.http.request<PublishResponse>({
-      path: ["v2", "publish", req.destination],
+    const res = await this.http.request<PublishResponse<TRequest>>({
+      path: ["v2", "publish", req.url ?? req.topic],
       body: req.body,
       headers,
       method: "POST",
@@ -231,11 +243,15 @@ export class Client {
    * publishJSON is a utility wrapper around `publish` that automatically serializes the body
    * and sets the `Content-Type` header to `application/json`.
    */
-  public async publishJSON(req: PublishRequest): Promise<PublishResponse> {
+  public async publishJSON<
+    TBody = unknown,
+    TRequest extends PublishRequest<TBody> = PublishRequest<TBody>,
+  >(req: TRequest): Promise<PublishResponse<TRequest>> {
     const headers = new Headers(req.headers);
     headers.set("Content-Type", "application/json");
 
-    const res = await this.publish({
+    // @ts-ignore it's just internal
+    const res = await this.publish<TRequest>({
       ...req,
       headers,
       body: JSON.stringify(req.body),
@@ -275,13 +291,12 @@ export class Client {
     return res;
   }
 }
+type PublishToUrlResponse = {
+  messageId: string;
+  url: string;
+  deduplicated?: boolean;
+};
 
-type PublishResponse =
-  | {
-      messageId: string;
-      messageIds?: never;
-    }
-  | {
-      messageId?: never;
-      messageIds: string[];
-    };
+type PublishToTopicResponse = PublishToUrlResponse[];
+
+type PublishResponse<R> = R extends { url: string } ? PublishToUrlResponse : PublishToTopicResponse;

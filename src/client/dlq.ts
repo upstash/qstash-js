@@ -1,8 +1,8 @@
 import { Requester } from "./http";
-import type { Message } from "./messages"
+import type { Message } from "./messages";
 
 type DlqMessage = Message & {
-  dlqId: string
+  dlqId: string;
 };
 
 export class DLQ {

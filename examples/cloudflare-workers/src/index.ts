@@ -8,10 +8,8 @@ export type Env = {
 export default {
   async fetch(request: Request, env: Env, _ctx: ExecutionContext): Promise<Response> {
     const c = new Receiver({
-      currentSigningKey:
-        env.QSTASH_CURRENT_SIGNING_KEY ,
-      nextSigningKey:
-        env.QSTASH_NEXT_SIGNING_KEY,
+      currentSigningKey: env.QSTASH_CURRENT_SIGNING_KEY,
+      nextSigningKey: env.QSTASH_NEXT_SIGNING_KEY,
     });
 
     const body = await request.text();
