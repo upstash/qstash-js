@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifySignatureEdge } from "@upstash/qstash/nextjs";
 
-async function handler(req: NextRequest) {
-
+async function handler(_req: NextRequest) {
   // simulate work
   await new Promise((r) => setTimeout(r, 1000));
 
