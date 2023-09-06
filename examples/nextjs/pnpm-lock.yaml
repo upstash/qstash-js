@@ -6,8 +6,8 @@ settings:
 
 dependencies:
   '@upstash/qstash':
-    specifier: 2.0.0-canary.21
-    version: 2.0.0-canary.21
+    specifier: 2.1.1-canary.4
+    version: 2.1.1-canary.4
   next:
     specifier: ^13.4.19
     version: 13.4.19(react-dom@18.2.0)(react@18.2.0)
@@ -337,8 +337,8 @@ packages:
       eslint-visitor-keys: 3.4.3
     dev: true
 
-  /@upstash/qstash@2.0.0-canary.21:
-    resolution: {integrity: sha512-/iA6p308KILgkC6VVjZnCP+VfsYoVaz3+L/uvU8uxtw1+IBlp5vI0p7Rf4373ptIcFjEj9wb5vsYxR5L2a1jaA==}
+  /@upstash/qstash@2.1.1-canary.4:
+    resolution: {integrity: sha512-NWPeAgJK+SXGMCxadfsk3Ot0heop0EowUhiQ8xI1BPHyuSUcTnbn41VVhHkHcQ/Q+8mFyGb+9CV3GKTwMQtM/A==}
     dependencies:
       crypto-js: 4.1.1
       jose: 4.14.4

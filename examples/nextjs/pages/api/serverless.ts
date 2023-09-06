@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { verifySignature } from "@upstash/qstash/nextjs";
+import { Nextjs } from "@upstash/qstash";
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
   console.log(req.headers);
@@ -11,7 +11,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   res.status(200).json({ name: "John Doe", body: req.body });
 }
 
-export default verifySignature(handler);
+export default Nextjs.verifySignature(handler);
 
 export const config = {
   api: {

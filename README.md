@@ -17,13 +17,6 @@ It is 100% built on stateless HTTP requests and designed for:
 - WebAssembly
 - and other environments where HTTP is preferred over TCP.
 
-## Status of the SDK
-
-It is currently in beta and we are actively collecting feedback from the
-community. Please report any issues you encounter or feature requests in the
-[GitHub issues](https://github.com/upstash/sdk-qstash-ts/issues) or talk to us
-on [Discord](https://discord.gg/w9SenAtbme). Thank you!
-
 ## How does QStash work?
 
 QStash is the message broker between your serverless apps. You send an HTTP
@@ -40,12 +33,6 @@ the message later, to guarentee at-least-once delivery.
 
 ```bash
 npm install @upstash/qstash
-```
-
-#### Deno
-
-```ts
-import { Client } from "https://deno.land/x/upstash_qstash/mod.ts";
 ```
 
 ### Get your authorization token
