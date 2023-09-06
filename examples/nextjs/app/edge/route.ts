@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Nextjs } from "@upstash/qstash";
+import { verifySignatureEdge } from "@upstash/qstash/dist/nextjs";
 
 async function handler(_req: NextRequest) {
   // simulate work
@@ -9,6 +9,6 @@ async function handler(_req: NextRequest) {
   return NextResponse.json({ name: "John Doe" });
 }
 
-export const POST = Nextjs.verifySignatureEdge(handler);
+export const POST = verifySignatureEdge(handler);
 
 export const runtime = "edge";

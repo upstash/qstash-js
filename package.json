@@ -1,12 +1,12 @@
 {
   "name": "@upstash/qstash",
-  "version": "2.1.1-canary.9",
+  "version": "2.1.2-canary.1",
   "description": "Official Typescript client for QStash",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/upstash/sdk-qstash-ts.git"
   },
-  "module": "./dist/index.mjs",
+  "module": "./dist/index.js",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "keywords": [
@@ -23,7 +23,7 @@
   },
   "homepage": "https://github.com/upstash/sdk-qstash-ts#readme",
   "files": [
-    "./dist"
+    "dist"
   ],
   "scripts": {
     "build": "tsup",
@@ -40,5 +40,11 @@
   "dependencies": {
     "crypto-js": "^4.1.1",
     "jose": "^4.14.4"
+  },
+  "typesVersions": {
+    "*": {
+      ".": ["./dist/index.d.ts"],
+      "nextjs": ["./dist/nextjs.d.ts"]
+    }
   }
 }

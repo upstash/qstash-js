@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Nextjs } from "@upstash/qstash";
+import { verifySignatureEdge } from "@upstash/qstash/dist/nextjs";
 
 async function handler(req: NextRequest) {
   console.log(req.headers);
@@ -11,7 +11,7 @@ async function handler(req: NextRequest) {
   return NextResponse.json({ name: "John Doe", body: req.body });
 }
 
-export default Nextjs.verifySignatureEdge(handler);
+export default verifySignatureEdge(handler);
 
 export const config = {
   runtime: "edge",
