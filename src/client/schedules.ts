@@ -93,8 +93,8 @@ export class Schedules {
   public async create(req: CreateScheduleRequest): Promise<{ scheduleId: string }> {
     return await this.http.request({
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      path: ["v2", "schedules"],
+      headers: { "Content-Type": "application/json", "Upstash-Cron": req.cron },
+      path: ["v2", "schedules", req.destination],
       body: JSON.stringify(req),
     });
   }
