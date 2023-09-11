@@ -95,7 +95,7 @@ export class Schedules {
       method: "POST",
       headers: { "Content-Type": "application/json", "Upstash-Cron": req.cron },
       path: ["v2", "schedules", req.destination],
-      body: JSON.stringify(req),
+      body: JSON.stringify(req.body),
     });
   }
 
