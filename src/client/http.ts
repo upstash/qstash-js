@@ -28,6 +28,13 @@ export type UpstashRequest = {
   method?: "GET" | "POST" | "PUT" | "DELETE";
 
   query?: Record<string, string | number | boolean | undefined>;
+
+  /**
+   * if enabled, call `res.json()`
+   *
+   * @default true
+   */
+  parseResponseAsJson?: boolean;
 };
 export type UpstashResponse<TResult> = TResult & { error?: string };
 
@@ -127,8 +134,13 @@ export class HttpClient implements Requester {
     }
 
     if (res.status < 200 || res.status >= 300) {
-      throw new QstashError((await res.text()) ?? res.statusText);
+      const body = await res.text();
+      throw new QstashError(body.length > 0 ? body : `Error: status=${res.status}`);
     }
-    return (await res.json()) as UpstashResponse<TResult>;
+    if (req.parseResponseAsJson === false) {
+      return undefined as unknown as UpstashResponse<TResult>;
+    } else {
+      return (await res.json()) as UpstashResponse<TResult>;
+    }
   }
 }

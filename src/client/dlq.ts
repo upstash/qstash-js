@@ -15,10 +15,14 @@ export class DLQ {
   /**
    * List messages in the dlq
    */
-  public async listMessages(): Promise<DlqMessage[]> {
-    return await this.http.request<DlqMessage[]>({
+  public async listMessages(opts?: { cursor?: string }): Promise<{
+    messages: DlqMessage[];
+    cursor?: string;
+  }> {
+    return await this.http.request({
       method: "GET",
-      path: ["v2", "dlq", "messages"],
+      path: ["v2", "dlq"],
+      query: { cursor: opts?.cursor },
     });
   }
 
@@ -28,7 +32,8 @@ export class DLQ {
   public async delete(dlqMessageId: string): Promise<void> {
     return await this.http.request<void>({
       method: "DELETE",
-      path: ["v2", "dlq", "messages", dlqMessageId],
+      path: ["v2", "dlq", dlqMessageId],
+      parseResponseAsJson: false, // there is no response
     });
   }
 }
