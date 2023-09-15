@@ -74,8 +74,6 @@ export type CreateScheduleRequest = {
 
   /**
    * Specify a cron expression to repeatedly send this message to the destination.
-   *
-   * @default undefined
    */
   cron: string;
 };
@@ -92,13 +90,16 @@ export class Schedules {
    */
   public async create(req: CreateScheduleRequest): Promise<{ scheduleId: string }> {
     const headers = new Headers(req.headers);
-    
+
     if (!headers.has("Content-Type")) {
       headers.set("Content-Type", "application/json");
     }
 
-    headers.set("Upstash-Cron", req.cron)
-    headers.set("Upstash-Method", req.method ?? "POST");
+    headers.set("Upstash-Cron", req.cron);
+
+    if (typeof req.method !== "undefined") {
+      headers.set("Upstash-Method", req.method);
+    }
 
     if (typeof req.delay !== "undefined") {
       headers.set("Upstash-Delay", `${req.delay.toFixed()}s`);
