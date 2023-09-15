@@ -73,7 +73,7 @@ export type CreateScheduleRequest = {
   method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
 
   /**
-   * Optionally specify a cron expression to repeatedly send this message to the destination.
+   * Specify a cron expression to repeatedly send this message to the destination.
    *
    * @default undefined
    */
@@ -91,11 +91,32 @@ export class Schedules {
    * Create a schedule
    */
   public async create(req: CreateScheduleRequest): Promise<{ scheduleId: string }> {
+    const headers = new Headers(req.headers);
+    
+    if (!headers.has("Content-Type")) {
+      headers.set("Content-Type", "application/json");
+    }
+
+    headers.set("Upstash-Cron", req.cron)
+    headers.set("Upstash-Method", req.method ?? "POST");
+
+    if (typeof req.delay !== "undefined") {
+      headers.set("Upstash-Delay", `${req.delay.toFixed()}s`);
+    }
+
+    if (typeof req.retries !== "undefined") {
+      headers.set("Upstash-Retries", req.retries.toFixed());
+    }
+
+    if (typeof req.callback !== "undefined") {
+      headers.set("Upstash-Callback", req.callback);
+    }
+
     return await this.http.request({
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      path: ["v2", "schedules"],
-      body: JSON.stringify(req),
+      headers,
+      path: ["v2", "schedules", req.destination],
+      body: req.body,
     });
   }
 
