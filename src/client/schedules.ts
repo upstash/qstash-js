@@ -96,6 +96,7 @@ export class Schedules {
     }
 
     headers.set("Upstash-Cron", req.cron);
+
     if (typeof req.method !== "undefined") {
       headers.set("Upstash-Method", req.method);
     }
