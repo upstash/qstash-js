@@ -111,6 +111,7 @@ export class Schedules {
       if (value !== null) {
         headers.set(`Upstash-Forward-${key}`, value);
       }
+      headers.delete(key) // clean up non-prefixed headers
     }
 
     if (!headers.has("Content-Type")) {
