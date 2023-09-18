@@ -76,6 +76,7 @@ export class Messages {
     return await this.http.request<void>({
       method: "DELETE",
       path: ["v2", "messages", messageId],
+      parseResponseAsJson: false
     });
   }
 }
