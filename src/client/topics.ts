@@ -31,13 +31,13 @@ export type RemoveEndpointsRequest = {
 
   endpoints: (
     | {
-        name: string;
-        url?: string;
-      }
+      name: string;
+      url?: string;
+    }
     | {
-        name?: string;
-        url: string;
-      }
+      name?: string;
+      url: string;
+    }
   )[];
 };
 
@@ -111,6 +111,8 @@ export class Topics {
     return await this.http.request<void>({
       method: "DELETE",
       path: ["v2", "topics", name],
+      parseResponseAsJson: false
     });
+
   }
 }
