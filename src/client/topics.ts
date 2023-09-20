@@ -63,24 +63,26 @@ export class Topics {
   /**
    * Create a new topic with the given name and endpoints
    */
-  public async addEndpoints(req: AddEndpointsRequest): Promise<Topic> {
-    return await this.http.request<Topic>({
+  public async addEndpoints(req: AddEndpointsRequest): Promise<void> {
+    await this.http.request<Topic>({
       method: "POST",
       path: ["v2", "topics", req.name, "endpoints"],
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ endpoints: req.endpoints }),
+      parseResponseAsJson: false,
     });
   }
 
   /**
    * Remove endpoints from a topic.
    */
-  public async removeEndpoints(req: RemoveEndpointsRequest): Promise<Topic> {
-    return await this.http.request<Topic>({
+  public async removeEndpoints(req: RemoveEndpointsRequest): Promise<void> {
+    await this.http.request<Topic>({
       method: "DELETE",
       path: ["v2", "topics", req.name, "endpoints"],
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ endpoints: req.endpoints }),
+      parseResponseAsJson: false,
     });
   }
 
