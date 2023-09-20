@@ -148,7 +148,7 @@ export class Schedules {
     return await this.http.request<void>({
       method: "DELETE",
       path: ["v2", "schedules", scheduleId],
-      parseResponseAsJson: false
+      parseResponseAsJson: false,
     });
   }
 }
