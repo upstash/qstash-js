@@ -31,13 +31,13 @@ export type RemoveEndpointsRequest = {
 
   endpoints: (
     | {
-      name: string;
-      url?: string;
-    }
+        name: string;
+        url?: string;
+      }
     | {
-      name?: string;
-      url: string;
-    }
+        name?: string;
+        url: string;
+      }
   )[];
 };
 
@@ -66,7 +66,7 @@ export class Topics {
   public async addEndpoints(req: AddEndpointsRequest): Promise<Topic> {
     return await this.http.request<Topic>({
       method: "POST",
-      path: ["v2", "topics", req.name],
+      path: ["v2", "topics", req.name, "endpoints"],
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ endpoints: req.endpoints }),
     });
@@ -78,7 +78,7 @@ export class Topics {
   public async removeEndpoints(req: RemoveEndpointsRequest): Promise<Topic> {
     return await this.http.request<Topic>({
       method: "DELETE",
-      path: ["v2", "topics", req.name],
+      path: ["v2", "topics", req.name, "endpoints"],
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ endpoints: req.endpoints }),
     });
@@ -111,8 +111,7 @@ export class Topics {
     return await this.http.request<void>({
       method: "DELETE",
       path: ["v2", "topics", name],
-      parseResponseAsJson: false
+      parseResponseAsJson: false,
     });
-
   }
 }
