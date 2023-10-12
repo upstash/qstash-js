@@ -2,7 +2,7 @@ import type { NextApiHandler, NextApiRequest, NextApiResponse } from "next";
 import { NextRequest, NextFetchEvent, NextResponse } from "next/server";
 import { Receiver } from "./receiver";
 
-export type VerifySignaturConfig = {
+export type VerifySignatureConfig = {
   currentSigningKey?: string;
   nextSigningKey?: string;
 
@@ -23,7 +23,7 @@ export type VerifySignaturConfig = {
 
 export function verifySignature(
   handler: NextApiHandler,
-  config?: VerifySignaturConfig,
+  config?: VerifySignatureConfig,
 ): NextApiHandler {
   const currentSigningKey = config?.currentSigningKey ?? process.env.QSTASH_CURRENT_SIGNING_KEY;
   if (!currentSigningKey) {
@@ -90,7 +90,7 @@ export function verifySignature(
 
 export function verifySignatureEdge(
   handler: (req: NextRequest, nfe: NextFetchEvent) => NextResponse | Promise<NextResponse>,
-  config?: VerifySignaturConfig,
+  config?: VerifySignatureConfig,
 ) {
   const currentSigningKey = config?.currentSigningKey ?? process.env.QSTASH_CURRENT_SIGNING_KEY;
   if (!currentSigningKey) {
