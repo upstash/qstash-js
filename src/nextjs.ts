@@ -89,7 +89,7 @@ export function verifySignature(
 }
 
 export function verifySignatureEdge(
-  handler: (req: NextRequest, nfe: NextFetchEvent) => NextResponse | Promise<NextResponse>,
+  handler: (req: NextRequest, nfe?: NextFetchEvent) => NextResponse | Promise<NextResponse>,
   config?: VerifySignaturConfig,
 ) {
   const currentSigningKey = config?.currentSigningKey ?? process.env.QSTASH_CURRENT_SIGNING_KEY;
