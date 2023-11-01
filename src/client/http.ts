@@ -1,4 +1,8 @@
-import { QstashError } from "./error";
+import { QstashError, QstashRatelimitError } from "./error";
+import type {
+  BodyInit,
+  HeadersInit,
+} from "https://raw.githubusercontent.com/microsoft/TypeScript/7b764164ede080afff02ec731dfea72b3f4f73f3/lib/lib.dom.d.ts";
 
 export type UpstashRequest = {
   /**
@@ -131,6 +135,13 @@ export class HttpClient implements Requester {
     }
     if (!res) {
       throw error ?? new Error("Exhausted all retries");
+    }
+    if (res.status === 429) {
+      throw new QstashRatelimitError({
+        limit: res.headers.get("Burst-RateLimit-Limit"),
+        remaining: res.headers.get("Burst-RateLimit-Remaining"),
+        reset: res.headers.get("Burst-RateLimit-Reset"),
+      });
     }
 
     if (res.status < 200 || res.status >= 300) {
