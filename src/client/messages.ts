@@ -50,6 +50,11 @@ export type Message = {
    * The callback url if configured.
    */
   callback?: string;
+
+  /**
+   * The failure callback url if configured.
+   */
+  failureCallback?: string;
 };
 
 export class Messages {
