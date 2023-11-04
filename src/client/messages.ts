@@ -42,7 +42,7 @@ export type Message = {
   notBefore?: number;
 
   /**
-   * A unix timestamp (milliseconds) when this messages was crated.
+   * A unix timestamp (milliseconds) when this messages was created.
    */
   createdAt: number;
 
