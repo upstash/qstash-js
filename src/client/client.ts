@@ -1,9 +1,9 @@
+import { DLQ } from "./dlq";
 import { HttpClient, Requester, RetryConfig } from "./http";
-import { Topics } from "./topics";
 import { Messages } from "./messages";
 import { Schedules } from "./schedules";
+import { Topics } from "./topics";
 import { Event } from "./types";
-import { DLQ } from "./dlq";
 type ClientConfig = {
   /**
    * Url of the qstash api server.
@@ -112,6 +112,15 @@ export type PublishRequest<TBody = BodyInit> = {
    * @default undefined
    */
   callback?: string;
+
+  /**
+   * Use a failure callback url to handle messages that could not be delivered.
+   *
+   * The failure callback url must be publicly accessible
+   *
+   * @default undefined
+   */
+  failureCallback?: string;
 
   /**
    * The method to use when sending a request to your API
@@ -228,6 +237,10 @@ export class Client {
 
     if (typeof req.callback !== "undefined") {
       headers.set("Upstash-Callback", req.callback);
+    }
+
+    if (typeof req.failureCallback !== "undefined") {
+      headers.set("Upstash-Failure-Callback", req.failureCallback);
     }
 
     const res = await this.http.request<PublishResponse<TRequest>>({

@@ -42,7 +42,7 @@ export type Message = {
   notBefore?: number;
 
   /**
-   * A unix timestamp (milliseconds) when this messages was crated.
+   * A unix timestamp (milliseconds) when this messages was created.
    */
   createdAt: number;
 
@@ -50,6 +50,11 @@ export type Message = {
    * The callback url if configured.
    */
   callback?: string;
+
+  /**
+   * The failure callback url if configured.
+   */
+  failureCallback?: string;
 };
 
 export class Messages {
