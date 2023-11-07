@@ -31,7 +31,7 @@ jobs:
         shell: bash
         run: |
           echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
-    
+
       - uses: actions/cache@v3
         name: Setup pnpm cache
         with:
@@ -42,7 +42,7 @@ jobs:
 
 
       - name: Set package version
-        run: node ./scripts/set-version.js . ${{ env.VERSION }}
+        run: echo $(jq --arg v "${{ env.VERSION }}" '(.version) = $v' package.json) > package.json
 
       - name: Install
         run: pnpm install
@@ -52,11 +52,11 @@ jobs:
 
       - name: Authenticate Registry
         run: npm set "//registry.npmjs.org/:_authToken" ${{ secrets.NPM_TOKEN }}
-        
+
       - name: Publish canary
         if: "github.event.release.prerelease"
-        run: pnpm publish --access public --tag=canary --no-git-checks 
+        run: pnpm publish --access public --tag=canary --no-git-checks
 
       - name: Publish
         if: "!github.event.release.prerelease"
-        run: pnpm publish --access public --no-git-checks 
+        run: pnpm publish --access public --no-git-checks
