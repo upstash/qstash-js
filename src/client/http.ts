@@ -1,4 +1,5 @@
 import { QstashError, QstashRatelimitError } from "./error";
+import type { HeadersInit } from "undici";
 
 export type UpstashRequest = {
   /**
@@ -104,7 +105,7 @@ export class HttpClient implements Requester {
 
     const requestOptions: RequestInit & { backend?: string } = {
       method: req.method,
-      headers,
+      headers: headers as Headers,
       body: req.body,
       keepalive: req.keepalive,
     };

@@ -15,6 +15,10 @@
         "useBlockStatements": "error",
         "noNonNullAssertion": "off"
       },
+      "suspicious": {
+        "noConfusingVoidType": "off",
+        "noExplicitAny": "off"
+      },
       "performance": {
         "noDelete": "off"
       }

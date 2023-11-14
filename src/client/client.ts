@@ -4,6 +4,8 @@ import { Messages } from "./messages";
 import { Schedules } from "./schedules";
 import { Topics } from "./topics";
 import { Event } from "./types";
+import type { HeadersInit } from "undici";
+
 type ClientConfig = {
   /**
    * Url of the qstash api server.
@@ -209,7 +211,7 @@ export class Client {
     return new Schedules(this.http);
   }
   public async publish<TRequest extends PublishRequest>(
-    req: TRequest,
+    req: TRequest
   ): Promise<PublishResponse<TRequest>> {
     const headers = new Headers(req.headers);
 
@@ -258,7 +260,7 @@ export class Client {
    */
   public async publishJSON<
     TBody = unknown,
-    TRequest extends PublishRequest<TBody> = PublishRequest<TBody>,
+    TRequest extends PublishRequest<TBody> = PublishRequest<TBody>
   >(req: TRequest): Promise<PublishResponse<TRequest>> {
     const headers = new Headers(req.headers);
     headers.set("Content-Type", "application/json");

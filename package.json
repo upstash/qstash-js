@@ -6,9 +6,8 @@
     "type": "git",
     "url": "git+https://github.com/upstash/sdk-qstash-ts.git"
   },
-  "module": "./dist/index.js",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "main": "./index.js",
+  "types": "./index.d.ts",
   "keywords": [
     "qstash",
     "queue",
@@ -23,7 +22,7 @@
   },
   "homepage": "https://github.com/upstash/sdk-qstash-ts#readme",
   "files": [
-    "dist"
+    "./**"
   ],
   "scripts": {
     "build": "tsup",
@@ -35,19 +34,21 @@
     "@types/node": "^20.5.7",
     "next": "^14.0.2",
     "tsup": "^7.2.0",
-    "typescript": "^5.2.2"
+    "typescript": "^5.2.2",
+    "bun-types": "^1.0.7"
   },
   "dependencies": {
     "crypto-js": "^4.2.0",
-    "jose": "^4.14.4"
+    "jose": "^4.14.4",
+    "undici": "^5.27.2"
   },
   "typesVersions": {
     "*": {
       ".": [
-        "./dist/index.d.ts"
+        "./index.d.ts"
       ],
       "nextjs": [
-        "./dist/nextjs.d.ts"
+        "./nextjs.d.ts"
       ]
     }
   }

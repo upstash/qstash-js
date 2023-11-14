@@ -1,4 +1,5 @@
 import { Requester } from "./http";
+import type { HeadersInit } from "undici";
 
 export type Schedule = {
   scheduleId: string;
