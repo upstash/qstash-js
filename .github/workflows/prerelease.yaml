@@ -5,11 +5,10 @@ on:
       - main
 
 jobs:
-  release:
-    concurrency: release
+  prerelease:
     outputs:
       version: ${{ steps.version.outputs.version }}
-    name: Release
+    name: Pre release
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repo
@@ -29,7 +28,7 @@ jobs:
 
       - name: Set version
         run: |
-          echo $(jq --arg v "${{ steps.version.outputs.version }}" '(.version) = $v' package.json) > package.json
+          echo $(jq --arg v "${{ steps.version.outputs.version }}" '(.version) = $v' ../package.json) > ../package.json
 
       - name: Install Dependencies
         run: pnpm install
