@@ -28,7 +28,7 @@ jobs:
 
       - name: Set version
         run: |
-          echo $(jq --arg v "${{ steps.version.outputs.version }}" '(.version) = $v' ../package.json) > ../package.json
+          echo $(jq --arg v "${{ steps.version.outputs.version }}" '(.version) = $v' package.json) > package.json
 
       - name: Install Dependencies
         run: pnpm install
@@ -40,5 +40,4 @@ jobs:
         run: npm config set //registry.npmjs.org/:_authToken=${{secrets.NPM_TOKEN}}
 
       - name: Publish ci version
-        working-directory: ./dist
         run: npm publish --tag=ci --verbose
