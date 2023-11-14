@@ -6,6 +6,7 @@
     "type": "git",
     "url": "git+https://github.com/upstash/sdk-qstash-ts.git"
   },
+  "module": "./dist/index.js",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "keywords": [
@@ -39,16 +40,15 @@
   },
   "dependencies": {
     "crypto-js": "^4.2.0",
-    "jose": "^4.14.4",
-    "undici": "^5.27.2"
+    "jose": "^4.14.4"
   },
   "typesVersions": {
     "*": {
       ".": [
-        "./index.d.ts"
+        "./dist/index.d.ts"
       ],
       "nextjs": [
-        "./nextjs.d.ts"
+        "./dist/nextjs.d.ts"
       ]
     }
   }
