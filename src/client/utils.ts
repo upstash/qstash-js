@@ -5,7 +5,7 @@ export function prefixHeaders(headers: Headers) {
     "upstash-method",
     "upstash-delay",
     "upstash-not-before",
-    "upstash-Deduplication-id",
+    "upstash-deduplication-id",
     "upstash-content-based-deduplication",
     "upstash-retries",
     "upstash-callback",
