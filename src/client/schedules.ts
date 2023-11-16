@@ -11,6 +11,7 @@ export type Schedule = {
   retries: number;
   delay?: number;
   callback?: string;
+  failureCallback?: string;
 };
 
 export type CreateScheduleRequest = {
@@ -47,7 +48,7 @@ export type CreateScheduleRequest = {
   delay?: number;
 
   /**
-   * In case your destination server is unavaialble or returns a status code outside of the 200-299
+   * In case your destination server is unavailable or returns a status code outside of the 200-299
    * range, we will retry the request after a certain amount of time.
    *
    * Configure how many times you would like the delivery to be retried
@@ -64,6 +65,15 @@ export type CreateScheduleRequest = {
    * @default undefined
    */
   callback?: string;
+
+  /**
+   * Use a failure callback url to handle messages that could not be delivered.
+   *
+   * The failure callback url must be publicly accessible
+   *
+   * @default undefined
+   */
+  failureCallback?: string;
 
   /**
    * The method to use when sending a request to your API
@@ -136,6 +146,10 @@ export class Schedules {
       headers.set("Upstash-Callback", req.callback);
     }
 
+    if (typeof req.failureCallback !== "undefined") {
+      headers.set("Upstash-Failure-Callback", req.failureCallback);
+    }
+
     return await this.http.request({
       method: "POST",
       headers,
@@ -171,7 +185,7 @@ export class Schedules {
     return await this.http.request<void>({
       method: "DELETE",
       path: ["v2", "schedules", scheduleId],
-      parseResponseAsJson: false
+      parseResponseAsJson: false,
     });
   }
 }
