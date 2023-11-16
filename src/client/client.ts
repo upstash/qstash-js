@@ -4,6 +4,7 @@ import { Messages } from "./messages";
 import { Schedules } from "./schedules";
 import { Topics } from "./topics";
 import { Event } from "./types";
+import { prefixHeaders } from "./utils";
 type ClientConfig = {
   /**
    * Url of the qstash api server.
@@ -168,7 +169,9 @@ export class Client {
   public constructor(config: ClientConfig) {
     this.http = new HttpClient({
       retry: config.retry,
-      baseUrl: config.baseUrl ? config.baseUrl.replace(/\/$/, "") : "https://qstash.upstash.io",
+      baseUrl: config.baseUrl
+        ? config.baseUrl.replace(/\/$/, "")
+        : "https://qstash.upstash.io",
       authorization: `Bearer ${config.token}`,
     });
   }
@@ -209,9 +212,9 @@ export class Client {
     return new Schedules(this.http);
   }
   public async publish<TRequest extends PublishRequest>(
-    req: TRequest,
+    req: TRequest
   ): Promise<PublishResponse<TRequest>> {
-    const headers = new Headers(req.headers);
+    const headers = prefixHeaders(new Headers(req.headers));
 
     headers.set("Upstash-Method", req.method ?? "POST");
 
@@ -258,7 +261,7 @@ export class Client {
    */
   public async publishJSON<
     TBody = unknown,
-    TRequest extends PublishRequest<TBody> = PublishRequest<TBody>,
+    TRequest extends PublishRequest<TBody> = PublishRequest<TBody>
   >(req: TRequest): Promise<PublishResponse<TRequest>> {
     const headers = new Headers(req.headers);
     headers.set("Content-Type", "application/json");
@@ -312,4 +315,6 @@ type PublishToUrlResponse = {
 
 type PublishToTopicResponse = PublishToUrlResponse[];
 
-type PublishResponse<R> = R extends { url: string } ? PublishToUrlResponse : PublishToTopicResponse;
+type PublishResponse<R> = R extends { url: string }
+  ? PublishToUrlResponse
+  : PublishToTopicResponse;

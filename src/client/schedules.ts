@@ -1,3 +1,4 @@
+import { prefixHeaders } from "./utils";
 import { Requester } from "./http";
 
 export type Schedule = {
@@ -98,31 +99,10 @@ export class Schedules {
   /**
    * Create a schedule
    */
-  public async create(req: CreateScheduleRequest): Promise<{ scheduleId: string }> {
-    const headers = new Headers(req.headers);
-
-    const ignoredHeaders = new Set([
-      "content-type",
-      "upstash-cron",
-      "upstash-method",
-      "upstash-delay",
-      "upstash-retries",
-      "upstash-callback"
-    ]);
-    
-    // Get keys of headers that need to be prefixed
-    const keysToBePrefixed = Array.from(headers.keys()).filter(
-      key => !ignoredHeaders.has(key.toLowerCase()) && !key.toLowerCase().startsWith("upstash-forward-")
-    );
-
-    // Add the prefixed headers
-    for (const key of keysToBePrefixed) {
-      const value = headers.get(key);
-      if (value !== null) {
-        headers.set(`Upstash-Forward-${key}`, value);
-      }
-      headers.delete(key) // clean up non-prefixed headers
-    }
+  public async create(
+    req: CreateScheduleRequest
+  ): Promise<{ scheduleId: string }> {
+    const headers = prefixHeaders(new Headers(req.headers));
 
     if (!headers.has("Content-Type")) {
       headers.set("Content-Type", "application/json");
