@@ -263,7 +263,7 @@ export class Client {
     TBody = unknown,
     TRequest extends PublishRequest<TBody> = PublishRequest<TBody>
   >(req: TRequest): Promise<PublishResponse<TRequest>> {
-    const headers = new Headers(req.headers);
+    const headers = prefixHeaders(new Headers(req.headers));
     headers.set("Content-Type", "application/json");
 
     // @ts-ignore it's just internal
