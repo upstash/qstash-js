@@ -1,22 +1,15 @@
 export function prefixHeaders(headers: Headers) {
-  const ignoredHeaders = new Set([
-    "content-type",
-    "upstash-cron",
-    "upstash-method",
-    "upstash-delay",
-    "upstash-not-before",
-    "upstash-deduplication-id",
-    "upstash-content-based-deduplication",
-    "upstash-retries",
-    "upstash-callback",
-    "upstash-failure-callback",
-  ]);
+  const isIgnoredHeader = (header: string) => {
+    const lowerCaseHeader = header.toLowerCase();
+    return (
+      lowerCaseHeader.startsWith("content-type") ||
+      lowerCaseHeader.startsWith("upstash-")
+    );
+  };
 
   // Get keys of headers that need to be prefixed
   const keysToBePrefixed = Array.from(headers.keys()).filter(
-    (key) =>
-      !ignoredHeaders.has(key.toLowerCase()) &&
-      !key.toLowerCase().startsWith("upstash-forward-")
+    (key) => !isIgnoredHeader(key)
   );
 
   // Add the prefixed headers
