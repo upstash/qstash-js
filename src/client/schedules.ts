@@ -1,3 +1,4 @@
+import { prefixHeaders } from "./utils";
 import { Requester } from "./http";
 
 export type Schedule = {
@@ -98,8 +99,10 @@ export class Schedules {
   /**
    * Create a schedule
    */
-  public async create(req: CreateScheduleRequest): Promise<{ scheduleId: string }> {
-    const headers = new Headers(req.headers);
+  public async create(
+    req: CreateScheduleRequest
+  ): Promise<{ scheduleId: string }> {
+    const headers = prefixHeaders(new Headers(req.headers));
 
     if (!headers.has("Content-Type")) {
       headers.set("Content-Type", "application/json");
