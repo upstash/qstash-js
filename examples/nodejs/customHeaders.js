@@ -19,7 +19,7 @@ async function main() {
   // Validating a signature
   const receiver = new Receiver({
     currentSigningKey: "sig_3nj4aiyJ2JojDnQ1RRodpYubZAZxAJxNfQcRSKPwVUNbueYk2o",
-    nextSigningKey: "sig_31zVqmL3s7Eo1vpu1jRSMpaetJXvAT3RvNcfoGUp1Toii8fsQE",
+    nextSigningKey: "sig_31zVqmL3s7Eo1vpu1jRSMpaetJXvAT3RvNcfoGUp1Toii8fsQEE",
   });
 
   const isValid = await receiver
