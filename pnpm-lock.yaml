@@ -6,11 +6,11 @@ settings:
 
 dependencies:
   crypto-js:
-    specifier: ^4.2.0
+    specifier: '>=4.2.0'
     version: 4.2.0
   jose:
-    specifier: ^4.14.4
-    version: 4.14.4
+    specifier: ^ 5.2.3
+    version: 5.2.3
 
 devDependencies:
   '@biomejs/biome':
@@ -754,8 +754,8 @@ packages:
     resolution: {integrity: sha512-RHxMLp9lnKHGHRng9QFhRCMbYAcVpn69smSGcq3f36xjgVVWThj4qqLbTLlq7Ssj8B+fIQ1EuCEGI2lKsyQeIw==}
     dev: true
 
-  /jose@4.14.4:
-    resolution: {integrity: sha512-j8GhLiKmUAh+dsFXlX1aJCbt5KMibuKb+d7j1JaOJG6s2UjX1PQlW+OKB/sD4a/5ZYF4RcmYmLSndOoU3Lt/3g==}
+  /jose@5.2.3:
+    resolution: {integrity: sha512-KUXdbctm1uHVL8BYhnyHkgp3zDX5KW8ZhAKVFEfUbU2P8Alpzjb+48hHvjOdQIyPshoblhzsuqOwEEAbtHVirA==}
     dev: false
 
   /joycon@3.1.1:
