@@ -36,4 +36,16 @@ export class DLQ {
       parseResponseAsJson: false, // there is no response
     });
   }
+
+  /**
+   * Remove multiple messages from the dlq using their `dlqId`s
+   */
+  public async deleteMany(req: { dlqIds: string[] }): Promise<{ deleted: number }> {
+    return await this.http.request({
+      method: "DELETE",
+      path: ["v2", "dlq"],
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ dlqIds: req.dlqIds }),
+    });
+  }
 }
