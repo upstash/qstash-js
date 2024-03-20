@@ -317,7 +317,7 @@ export class Client {
    * Batch publish messages to QStash, serializing each body to JSON.
    */
   public async batchJSON<
-    TBody extends BodyInit = BodyInit,
+    TBody = unknown,
     TRequest extends PublishRequest<TBody> = PublishRequest<TBody>
   >(
     req: TRequest[]
@@ -331,6 +331,7 @@ export class Client {
       message.headers.set("Content-Type", "application/json");
     }
 
+    // @ts-ignore it's just internal
     const res = await this.batch(req);
     return res;
   }
