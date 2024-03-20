@@ -290,10 +290,7 @@ export class Client {
     const messages = [];
     for (const message of req) {
       const headers = this.processHeaders(message);
-      const headerEntries: Record<string, string> = {};
-      for (const [key, value] of headers.entries()) {
-        headerEntries[key] = value;
-      }
+      const headerEntries = Object.fromEntries(headers.entries());
 
       messages.push({
         destination: message.url ?? message.topic,
