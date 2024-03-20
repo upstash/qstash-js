@@ -290,10 +290,14 @@ export class Client {
     const messages = [];
     for (const message of req) {
       const headers = this.processHeaders(message);
+      const headerEntries: Record<string, string> = {};
+      for (const [key, value] of headers.entries()) {
+        headerEntries[key] = value;
+      }
 
       messages.push({
         destination: message.url ?? message.topic,
-        headers: headers,
+        headers: headerEntries,
         body: message.body,
       });
     }
@@ -312,6 +316,9 @@ export class Client {
     return res;
   }
 
+  /**
+   * Batch publish messages to QStash, serializing each body to JSON.
+   */
   public async batchJSON<
     TBody = unknown,
     TRequest extends PublishRequest<TBody> = PublishRequest<TBody>
@@ -320,7 +327,7 @@ export class Client {
   ): Promise<(PublishToUrlResponse | PublishToTopicResponse)[]> {
     for (const message of req) {
       if ("body" in message) {
-        // @ts-ignore we can assign make the body a string from the JSON
+        // @ts-ignore we can make the body a string from the JSON
         message["body"] = JSON.stringify(message["body"]);
       }
 
