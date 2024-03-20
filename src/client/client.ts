@@ -284,9 +284,10 @@ export class Client {
   /**
    * Batch publish messages to QStash.
    */
-  public async batch(req: PublishRequest[]): Promise<
-    (PublishToUrlResponse | PublishToTopicResponse)[]> {
-    const messages = []
+  public async batch(
+    req: PublishRequest[]
+  ): Promise<(PublishToUrlResponse | PublishToTopicResponse)[]> {
+    const messages = [];
     for (const message of req) {
       const headers = this.processHeaders(message);
 
@@ -310,6 +311,28 @@ export class Client {
 
     return res;
   }
+
+  public async batchJSON<
+    TBody = unknown,
+    TRequest extends PublishRequest<TBody> = PublishRequest<TBody>
+  >(
+    req: TRequest[]
+  ): Promise<(PublishToUrlResponse | PublishToTopicResponse)[]> {
+    for (const message of req) {
+      if ("body" in message) {
+        // @ts-ignore we can assign make the body a string from the JSON
+        message["body"] = JSON.stringify(message["body"]);
+      }
+
+      message.headers = prefixHeaders(new Headers(message.headers));
+      message.headers.set("Content-Type", "application/json");
+    }
+
+    // @ts-ignore it's just internal
+    const res = await this.batch(req);
+    return res;
+  }
+
   /**
    * Retrieve your logs.
    *
