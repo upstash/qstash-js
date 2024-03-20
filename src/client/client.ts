@@ -211,9 +211,8 @@ export class Client {
   public get schedules(): Schedules {
     return new Schedules(this.http);
   }
-  public async publish<TRequest extends PublishRequest>(
-    req: TRequest
-  ): Promise<PublishResponse<TRequest>> {
+
+  private processHeaders(req: PublishRequest) {
     const headers = prefixHeaders(new Headers(req.headers));
 
     headers.set("Upstash-Method", req.method ?? "POST");
@@ -246,6 +245,13 @@ export class Client {
       headers.set("Upstash-Failure-Callback", req.failureCallback);
     }
 
+    return headers;
+  }
+
+  public async publish<TRequest extends PublishRequest>(
+    req: TRequest
+  ): Promise<PublishResponse<TRequest>> {
+    const headers = this.processHeaders(req);
     const res = await this.http.request<PublishResponse<TRequest>>({
       path: ["v2", "publish", req.url ?? req.topic],
       body: req.body,
@@ -272,6 +278,60 @@ export class Client {
       headers,
       body: JSON.stringify(req.body),
     } as PublishRequest);
+    return res;
+  }
+
+  /**
+   * Batch publish messages to QStash.
+   */
+  public async batch(
+    req: PublishRequest[]
+  ): Promise<(PublishToUrlResponse | PublishToTopicResponse)[]> {
+    const messages = [];
+    for (const message of req) {
+      const headers = this.processHeaders(message);
+      const headerEntries = Object.fromEntries(headers.entries());
+
+      messages.push({
+        destination: message.url ?? message.topic,
+        headers: headerEntries,
+        body: message.body,
+      });
+    }
+
+    const res = await this.http.request<
+      (PublishToUrlResponse | PublishToTopicResponse)[]
+    >({
+      path: ["v2", "batch"],
+      body: JSON.stringify(messages),
+      headers: {
+        "Content-Type": "application/json",
+      },
+      method: "POST",
+    });
+
+    return res;
+  }
+
+  /**
+   * Batch publish messages to QStash, serializing each body to JSON.
+   */
+  public async batchJSON<
+    TBody extends BodyInit = BodyInit,
+    TRequest extends PublishRequest<TBody> = PublishRequest<TBody>
+  >(
+    req: TRequest[]
+  ): Promise<(PublishToUrlResponse | PublishToTopicResponse)[]> {
+    for (const message of req) {
+      if ("body" in message) {
+        message.body = JSON.stringify(message.body) as TBody
+      }
+
+      message.headers = new Headers(message.headers);
+      message.headers.set("Content-Type", "application/json");
+    }
+
+    const res = await this.batch(req);
     return res;
   }
 
