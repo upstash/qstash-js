@@ -320,22 +320,20 @@ export class Client {
    * Batch publish messages to QStash, serializing each body to JSON.
    */
   public async batchJSON<
-    TBody = unknown,
+    TBody extends BodyInit = BodyInit,
     TRequest extends PublishRequest<TBody> = PublishRequest<TBody>
   >(
     req: TRequest[]
   ): Promise<(PublishToUrlResponse | PublishToTopicResponse)[]> {
     for (const message of req) {
       if ("body" in message) {
-        // @ts-ignore we can make the body a string from the JSON
-        message["body"] = JSON.stringify(message["body"]);
+        message.body = JSON.stringify(message.body) as TBody
       }
 
-      message.headers = prefixHeaders(new Headers(message.headers));
+      message.headers = new Headers(message.headers);
       message.headers.set("Content-Type", "application/json");
     }
 
-    // @ts-ignore it's just internal
     const res = await this.batch(req);
     return res;
   }
