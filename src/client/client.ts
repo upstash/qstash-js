@@ -99,9 +99,10 @@ export type PublishRequest<TBody = BodyInit> = {
    * In case your destination server is unavaialble or returns a status code outside of the 200-299
    * range, we will retry the request after a certain amount of time.
    *
-   * Configure how many times you would like the delivery to be retried
+   * Configure how many times you would like the delivery to be retried up to the maxRetries limit 
+   * defined in your plan. 
    *
-   * @default The maximum retry quota associated with your account.
+   * @default 3
    */
   retries?: number;
 
