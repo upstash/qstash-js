@@ -287,7 +287,7 @@ export class Client {
    */
   public async batch(
     req: PublishRequest[]
-  ): Promise<(PublishToUrlResponse | PublishToTopicResponse)[]> {
+  ): Promise<PublishResponse<PublishRequest>[]> {
     const messages = [];
     for (const message of req) {
       const headers = this.processHeaders(message);
@@ -300,9 +300,7 @@ export class Client {
       });
     }
 
-    const res = await this.http.request<
-      (PublishToUrlResponse | PublishToTopicResponse)[]
-    >({
+    const res = await this.http.request<PublishResponse<PublishRequest>[]>({
       path: ["v2", "batch"],
       body: JSON.stringify(messages),
       headers: {
@@ -320,21 +318,20 @@ export class Client {
   public async batchJSON<
     TBody = unknown,
     TRequest extends PublishRequest<TBody> = PublishRequest<TBody>
-  >(
-    req: TRequest[]
-  ): Promise<(PublishToUrlResponse | PublishToTopicResponse)[]> {
+  >(req: TRequest[]): Promise<PublishResponse<TRequest>[]> {
     for (const message of req) {
       if ("body" in message) {
-        message.body = JSON.stringify(message.body) as TBody
+        message.body = JSON.stringify(message.body) as unknown as TBody;
       }
 
       message.headers = new Headers(message.headers);
       message.headers.set("Content-Type", "application/json");
     }
 
-    // @ts-ignore it's just internal
-    const res = await this.batch(req);
-    return res;
+    // Since we are serializing the bodies to JSON, and stringifying,
+    //  we can safely cast the request to `PublishRequest`
+    const res = await this.batch(req as PublishRequest[]);
+    return res as PublishResponse<TRequest>[];
   }
 
   /**
@@ -369,14 +366,14 @@ export class Client {
     return res;
   }
 }
-type PublishToUrlResponse = {
+export type PublishToUrlResponse = {
   messageId: string;
   url: string;
   deduplicated?: boolean;
 };
 
-type PublishToTopicResponse = PublishToUrlResponse[];
+export type PublishToTopicResponse = PublishToUrlResponse[];
 
-type PublishResponse<R> = R extends { url: string }
+export type PublishResponse<R> = R extends { url: string }
   ? PublishToUrlResponse
   : PublishToTopicResponse;
