@@ -1,6 +1,7 @@
 import { DLQ } from "./dlq";
 import { HttpClient, Requester, RetryConfig } from "./http";
 import { Messages } from "./messages";
+import { Queues } from "./queue";
 import { Schedules } from "./schedules";
 import { Topics } from "./topics";
 import { Event } from "./types";
@@ -131,21 +132,21 @@ export type PublishRequest<TBody = BodyInit> = {
    */
   method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
 } & (
-  | {
+    | {
       /**
        * The url where the message should be sent to.
        */
       url: string;
       topic?: never;
     }
-  | {
+    | {
       url?: never;
       /**
        * The url where the message should be sent to.
        */
       topic: string;
     }
-);
+  );
 
 export type PublishJsonRequest = Omit<PublishRequest, "body"> & {
   /**
@@ -162,6 +163,11 @@ export type EventsRequest = {
 export type GetEventsResponse = {
   cursor?: number;
   events: Event[];
+};
+
+export type EnqueueRequest = {
+  publishRequest: PublishRequest;
+  queueName: string;
 };
 
 export class Client {
@@ -211,6 +217,15 @@ export class Client {
    */
   public get schedules(): Schedules {
     return new Schedules(this.http);
+  }
+
+  /**
+   * Access the queue API.
+   * 
+   * Create, read, update or delete queues.
+   */
+  public get queues(): Queues {
+    return new Queues(this.http);
   }
 
   private processHeaders(req: PublishRequest) {
@@ -333,6 +348,49 @@ export class Client {
     const res = await this.batch(req as PublishRequest[]);
     return res as PublishResponse<TRequest>[];
   }
+
+  /*
+  curl -X POST "https://qstash.upstash.io/v2/enqueue/myQueue/https://www.example.com" \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -H "Upstash-Method: ..." \
+  -H "Upstash-Delay: ..." \
+  -H "Upstash-Retries: ..." \
+  -H "Upstash-Forward-Custom-Header: custom-value" \
+  ... other headers ...
+  -d '{"message":"Hello, World!"}'
+  */
+  public async enqueue(req: EnqueueRequest): Promise<PublishResponse<PublishRequest>> {
+    const headers = this.processHeaders(req.publishRequest);
+    const destination = req.publishRequest.url ?? req.publishRequest.topic;
+    const res = await this.http.request<PublishResponse<PublishRequest>>({
+      path: ["v2", "enqueue", req.queueName, destination],
+      body: req.publishRequest.body,
+      headers,
+      method: "POST",
+    });
+
+    return res;
+  }
+
+  public async enqueueJSON<TBody = unknown>(
+    req: EnqueueRequest & { publishRequest: PublishRequest<TBody> }
+  ): Promise<PublishResponse<PublishRequest<TBody>>> {
+    const headers = prefixHeaders(new Headers(req.publishRequest.headers));
+    headers.set("Content-Type", "application/json");
+
+    const res = await this.enqueue({
+      ...req,
+      publishRequest: {
+        ...req.publishRequest,
+        headers,
+        body: JSON.stringify(req.publishRequest.body),
+      },
+    });
+
+    return res;
+  }
+
 
   /**
    * Retrieve your logs.
