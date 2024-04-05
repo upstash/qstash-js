@@ -3,7 +3,7 @@ import { HttpClient, Requester, RetryConfig } from "./http";
 import { Messages } from "./messages";
 import { Schedules } from "./schedules";
 import { Topics } from "./topics";
-import { Event } from "./types";
+import { Event, State } from "./types";
 import { prefixHeaders } from "./utils";
 type ClientConfig = {
   /**
@@ -157,6 +157,15 @@ export type PublishJsonRequest = Omit<PublishRequest, "body"> & {
 
 export type EventsRequest = {
   cursor?: number;
+  messageId?: string;
+  state?: State;
+  url?: string;
+  topicName?: string;
+  scheduleId?: string;
+  queueName?: string;
+  fromDate?: number; // unix timestamp (ms)
+  toDate?: number; // unix timestamp (ms)
+  count?: number;
 };
 
 export type GetEventsResponse = {
@@ -354,10 +363,14 @@ export class Client {
    * ```
    */
   public async events(req?: EventsRequest): Promise<GetEventsResponse> {
-    const query: Record<string, number> = {};
-    if (req?.cursor && req.cursor > 0) {
-      query.cursor = req.cursor;
-    }
+    const query: Record<string, string> = {};
+    Object.keys(req ?? {}).forEach(key => {
+      const value = (req as Record<string, any>)[key];
+      if (typeof value !== "undefined") {
+        query[key] = value.toString();
+      }
+    });
+
     const res = await this.http.request<GetEventsResponse>({
       path: ["v2", "events"],
       method: "GET",
