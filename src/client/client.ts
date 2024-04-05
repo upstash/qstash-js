@@ -366,6 +366,9 @@ export class Client {
     const query: Record<string, string> = {};
     Object.keys(req ?? {}).forEach(key => {
       const value = (req as Record<string, any>)[key];
+      if (typeof value === "number" && value < 0) {
+        return;
+      }
       if (typeof value !== "undefined") {
         query[key] = value.toString();
       }
