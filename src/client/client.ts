@@ -365,7 +365,7 @@ export class Client {
   public async events(req?: EventsRequest): Promise<GetEventsResponse> {
     const query: Record<string, string> = {};
     Object.keys(req ?? {}).forEach(key => {
-      const value = (req as Record<string, any>)[key];
+      const value = (req as Record<string, string | number>)[key];
       if (typeof value === "number" && value < 0) {
         return;
       }
