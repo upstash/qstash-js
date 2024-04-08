@@ -349,17 +349,10 @@ export class Client {
     return res as PublishResponse<TRequest>[];
   }
 
-  /*
-  curl -X POST "https://qstash.upstash.io/v2/enqueue/myQueue/https://www.example.com" \
-  -H "Authorization: Bearer <token>" \
-  -H "Content-Type: application/json" \
-  -H "Upstash-Method: ..." \
-  -H "Upstash-Delay: ..." \
-  -H "Upstash-Retries: ..." \
-  -H "Upstash-Forward-Custom-Header: custom-value" \
-  ... other headers ...
-  -d '{"message":"Hello, World!"}'
-  */
+
+  /**
+   * Enqueue a message to a queue.
+   */
   public async enqueue(req: EnqueueRequest): Promise<PublishResponse<PublishRequest>> {
     const headers = this.processHeaders(req.publishRequest);
     const destination = req.publishRequest.url ?? req.publishRequest.topic;
@@ -373,6 +366,9 @@ export class Client {
     return res;
   }
 
+  /**
+   * Enqueue a message to a queue, serializing the body to JSON.
+   */
   public async enqueueJSON<TBody = unknown>(
     req: EnqueueRequest & { publishRequest: PublishRequest<TBody> }
   ): Promise<PublishResponse<PublishRequest<TBody>>> {
