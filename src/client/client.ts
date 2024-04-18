@@ -157,6 +157,10 @@ export type PublishJsonRequest = Omit<PublishRequest, "body"> & {
 
 export type EventsRequest = {
   cursor?: number;
+  filter?: EventsRequestFilter
+};
+
+type EventsRequestFilter = {
   messageId?: string;
   state?: State;
   url?: string;
@@ -166,7 +170,7 @@ export type EventsRequest = {
   fromDate?: number; // unix timestamp (ms)
   toDate?: number; // unix timestamp (ms)
   count?: number;
-};
+}
 
 export type GetEventsResponse = {
   cursor?: number;
@@ -364,8 +368,11 @@ export class Client {
    */
   public async events(req?: EventsRequest): Promise<GetEventsResponse> {
     const query: Record<string, string> = {};
-    Object.keys(req ?? {}).forEach(key => {
-      const value = (req as Record<string, string | number>)[key];
+    if (req?.cursor && req.cursor > 0) {
+      query.cursor = req.cursor.toString();
+    }
+
+    Object.entries(req?.filter ?? {}).forEach(([key, value]) => {
       if (typeof value === "number" && value < 0) {
         return;
       }
