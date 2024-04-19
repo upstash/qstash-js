@@ -372,14 +372,14 @@ export class Client {
       query.cursor = req.cursor.toString();
     }
 
-    Object.entries(req?.filter ?? {}).forEach(([key, value]) => {
+    for (const [key, value] of Object.entries(req?.filter ?? {})) {
       if (typeof value === "number" && value < 0) {
-        return;
+        continue;
       }
       if (typeof value !== "undefined") {
         query[key] = value.toString();
       }
-    });
+    }
 
     const res = await this.http.request<GetEventsResponse>({
       path: ["v2", "events"],
