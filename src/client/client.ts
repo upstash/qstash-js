@@ -132,14 +132,14 @@ export type PublishRequest<TBody = BodyInit> = {
    */
   method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
 } & (
-	| {
+  | {
       /**
        * The url where the message should be sent to.
        */
       url: string;
       topic?: never;
     }
-	| {
+  | {
       url?: never;
       /**
        * The url where the message should be sent to.
