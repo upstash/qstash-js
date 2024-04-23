@@ -14,16 +14,13 @@ export type UpsertQueueRequest = {
   parallelism: number,
 }
 
-export type EnqueueRequest = {
-  publishRequest: PublishRequest;
-  queueName: string;
-};
+export type EnqueueRequest = PublishRequest
 
 export class Queue {
   private readonly http: Requester;
-  private readonly queueName: string;
+  private readonly queueName: string | undefined;
 
-  constructor(http: Requester, queueName: string) {
+  constructor(http: Requester, queueName?: string) {
     this.http = http;
     this.queueName = queueName;
   }
@@ -32,6 +29,10 @@ export class Queue {
    * Create or update the queue
    */
   public async upsert(req: UpsertQueueRequest): Promise<void> {
+    if (!this.queueName) {
+      throw new Error("Please provide a queue name to the Queue constructor")
+    }
+
     const body = {
       queueName: this.queueName,
       parallelism: req.parallelism
@@ -44,6 +45,7 @@ export class Queue {
         "Content-Type": "application/json",
       },
       body: JSON.stringify(body),
+      parseResponseAsJson: false,
     })
   }
 
@@ -51,6 +53,10 @@ export class Queue {
    * Get the queue details
    */
   public async get(): Promise<TQueue> {
+    if (!this.queueName) {
+      throw new Error("Please provide a queue name to the Queue constructor")
+    }
+
     return await this.http.request<TQueue>({
       method: "GET",
       path: ["v2", "queues", this.queueName],
@@ -71,9 +77,14 @@ export class Queue {
    * Delete the queue
    */
   public async delete(): Promise<void> {
+    if (!this.queueName) {
+      throw new Error("Please provide a queue name to the Queue constructor")
+    }
+
     await this.http.request({
       method: "DELETE",
       path: ["v2", "queues", this.queueName],
+      parseResponseAsJson: false,
     })
   }
 
@@ -81,11 +92,15 @@ export class Queue {
    * Enqueue a message to a queue.
    */
   public async enqueue(req: EnqueueRequest): Promise<PublishResponse<PublishRequest>> {
-    const headers = processHeaders(req.publishRequest);
-    const destination = req.publishRequest.url ?? req.publishRequest.topic;
+    if (!this.queueName) {
+      throw new Error("Please provide a queue name to the Queue constructor")
+    }
+
+    const headers = processHeaders(req);
+    const destination = req.url ?? req.topic;
     const res = await this.http.request<PublishResponse<PublishRequest>>({
-      path: ["v2", "enqueue", req.queueName, destination],
-      body: req.publishRequest.body,
+      path: ["v2", "enqueue", this.queueName, destination],
+      body: req.body,
       headers,
       method: "POST",
     });
@@ -97,19 +112,16 @@ export class Queue {
    * Enqueue a message to a queue, serializing the body to JSON.
    */
   public async enqueueJSON<TBody = unknown>(
-    req: EnqueueRequest & { publishRequest: PublishRequest<TBody> }
+    req: PublishRequest<TBody>
   ): Promise<PublishResponse<PublishRequest<TBody>>> {
-    const headers = prefixHeaders(new Headers(req.publishRequest.headers));
+    const headers = prefixHeaders(new Headers(req.headers));
     headers.set("Content-Type", "application/json");
 
     const res = await this.enqueue({
       ...req,
-      publishRequest: {
-        ...req.publishRequest,
-        headers,
-        body: JSON.stringify(req.publishRequest.body),
-      },
-    });
+      body: JSON.stringify(req.body),
+      headers,
+    })
 
     return res;
   }

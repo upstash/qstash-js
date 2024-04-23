@@ -166,7 +166,7 @@ export type GetEventsResponse = {
 };
 
 export type QueueRequest = {
-  queueName: string;
+  queueName?: string;
 };
 
 export class Client {
@@ -223,8 +223,8 @@ export class Client {
    * 
    * Create, read, update or delete queues.
    */
-  public queue(req: QueueRequest): Queue {
-    return new Queue(this.http, req.queueName);
+  public queue(req?: QueueRequest): Queue {
+    return new Queue(this.http, req?.queueName);
   }
 
   public async publish<TRequest extends PublishRequest>(
