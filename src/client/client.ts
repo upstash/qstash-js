@@ -4,8 +4,8 @@ import { Messages } from "./messages";
 import { Queue } from "./queue";
 import { Schedules } from "./schedules";
 import { Topics } from "./topics";
-import { Event } from "./types";
 import { prefixHeaders, processHeaders } from "./utils";
+import { Event, State } from "./types";
 type ClientConfig = {
   /**
    * Url of the qstash api server.
@@ -158,7 +158,20 @@ export type PublishJsonRequest = Omit<PublishRequest, "body"> & {
 
 export type EventsRequest = {
   cursor?: number;
+  filter?: EventsRequestFilter
 };
+
+type EventsRequestFilter = {
+  messageId?: string;
+  state?: State;
+  url?: string;
+  topicName?: string;
+  scheduleId?: string;
+  queueName?: string;
+  fromDate?: number; // unix timestamp (ms)
+  toDate?: number; // unix timestamp (ms)
+  count?: number;
+}
 
 export type GetEventsResponse = {
   cursor?: number;
@@ -333,10 +346,20 @@ export class Client {
    * ```
    */
   public async events(req?: EventsRequest): Promise<GetEventsResponse> {
-    const query: Record<string, number> = {};
+    const query: Record<string, string> = {};
     if (req?.cursor && req.cursor > 0) {
-      query.cursor = req.cursor;
+      query.cursor = req.cursor.toString();
     }
+
+    for (const [key, value] of Object.entries(req?.filter ?? {})) {
+      if (typeof value === "number" && value < 0) {
+        continue;
+      }
+      if (typeof value !== "undefined") {
+        query[key] = value.toString();
+      }
+    }
+
     const res = await this.http.request<GetEventsResponse>({
       path: ["v2", "events"],
       method: "GET",
