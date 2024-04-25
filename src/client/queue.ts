@@ -2,7 +2,7 @@ import type { PublishRequest, PublishResponse } from "./client";
 import type { Requester } from "./http";
 import { prefixHeaders, processHeaders } from "./utils";
 
-export type TQueue = {
+export type QueueResponse = {
   createdAt: number,
   updatedAt: number,
   name: string,
@@ -52,12 +52,12 @@ export class Queue {
   /**
    * Get the queue details
    */
-  public async get(): Promise<TQueue> {
+  public async get(): Promise<QueueResponse> {
     if (!this.queueName) {
       throw new Error("Please provide a queue name to the Queue constructor")
     }
 
-    return await this.http.request<TQueue>({
+    return await this.http.request<QueueResponse>({
       method: "GET",
       path: ["v2", "queues", this.queueName],
     })
@@ -66,8 +66,8 @@ export class Queue {
   /**
    * List queues
    */
-  public async list(): Promise<TQueue[]> {
-    return await this.http.request<TQueue[]>({
+  public async list(): Promise<QueueResponse[]> {
+    return await this.http.request<QueueResponse[]>({
       method: "GET",
       path: ["v2", "queues"],
     })
