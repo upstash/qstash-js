@@ -1,10 +1,11 @@
 import { DLQ } from "./dlq";
 import { HttpClient, Requester, RetryConfig } from "./http";
 import { Messages } from "./messages";
+import { Queue } from "./queue";
 import { Schedules } from "./schedules";
 import { Topics } from "./topics";
+import { prefixHeaders, processHeaders } from "./utils";
 import { Event, State } from "./types";
-import { prefixHeaders } from "./utils";
 type ClientConfig = {
   /**
    * Url of the qstash api server.
@@ -177,6 +178,10 @@ export type GetEventsResponse = {
   events: Event[];
 };
 
+export type QueueRequest = {
+  queueName?: string;
+};
+
 export class Client {
   public http: Requester;
 
@@ -226,46 +231,19 @@ export class Client {
     return new Schedules(this.http);
   }
 
-  private processHeaders(req: PublishRequest) {
-    const headers = prefixHeaders(new Headers(req.headers));
-
-    headers.set("Upstash-Method", req.method ?? "POST");
-
-    if (typeof req.delay !== "undefined") {
-      headers.set("Upstash-Delay", `${req.delay.toFixed()}s`);
-    }
-
-    if (typeof req.notBefore !== "undefined") {
-      headers.set("Upstash-Not-Before", req.notBefore.toFixed());
-    }
-
-    if (typeof req.deduplicationId !== "undefined") {
-      headers.set("Upstash-Deduplication-Id", req.deduplicationId);
-    }
-
-    if (typeof req.contentBasedDeduplication !== "undefined") {
-      headers.set("Upstash-Content-Based-Deduplication", "true");
-    }
-
-    if (typeof req.retries !== "undefined") {
-      headers.set("Upstash-Retries", req.retries.toFixed());
-    }
-
-    if (typeof req.callback !== "undefined") {
-      headers.set("Upstash-Callback", req.callback);
-    }
-
-    if (typeof req.failureCallback !== "undefined") {
-      headers.set("Upstash-Failure-Callback", req.failureCallback);
-    }
-
-    return headers;
+  /**
+   * Access the queue API.
+   * 
+   * Create, read, update or delete queues.
+   */
+  public queue(req?: QueueRequest): Queue {
+    return new Queue(this.http, req?.queueName);
   }
 
   public async publish<TRequest extends PublishRequest>(
     req: TRequest
   ): Promise<PublishResponse<TRequest>> {
-    const headers = this.processHeaders(req);
+    const headers = processHeaders(req);
     const res = await this.http.request<PublishResponse<TRequest>>({
       path: ["v2", "publish", req.url ?? req.topic],
       body: req.body,
@@ -303,7 +281,7 @@ export class Client {
   ): Promise<PublishResponse<PublishRequest>[]> {
     const messages = [];
     for (const message of req) {
-      const headers = this.processHeaders(message);
+      const headers = processHeaders(message);
       const headerEntries = Object.fromEntries(headers.entries());
 
       messages.push({
@@ -346,6 +324,7 @@ export class Client {
     const res = await this.batch(req as PublishRequest[]);
     return res as PublishResponse<TRequest>[];
   }
+
 
   /**
    * Retrieve your logs.
