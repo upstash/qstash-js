@@ -35,8 +35,8 @@
       "require": "./dist/index.js"
     },
     "./nextjs": {
-      "import": "./dist/index.mjs",
-      "require": "./dist/index.js"
+      "import": "./dist/nextjs/index.mjs",
+      "require": "./dist/nextjs/index.js"
     }
   },
   "devDependencies": {
