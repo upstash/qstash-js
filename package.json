@@ -35,22 +35,12 @@
     "@types/node": "^20.5.7",
     "next": "^14.0.2",
     "tsup": "^7.2.0",
-    "typescript": "^5.2.2",
+    "typescript": "latest",
     "undici-types": "^6.16.0"
   },
   "dependencies": {
     "crypto-js": ">=4.2.0",
     "jose": "^ 5.2.3",
     "undici": "^6.16.0"
-  },
-  "typesVersions": {
-    "*": {
-      ".": [
-        "./dist/index.d.ts"
-      ],
-      "nextjs": [
-        "./dist/nextjs.d.ts"
-      ]
-    }
   }
 }
