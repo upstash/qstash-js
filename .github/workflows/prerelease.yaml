@@ -18,6 +18,11 @@ jobs:
         id: version
         run: echo "::set-output name=version::v0.0.0-ci.${GITHUB_SHA}-$(date +%Y%m%d%H%M%S)"
 
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
       - name: Setup Bun
         uses: oven-sh/setup-bun@v1
         with:
