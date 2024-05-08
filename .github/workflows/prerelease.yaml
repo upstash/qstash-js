@@ -35,4 +35,5 @@ jobs:
         run: echo "//registry.npmjs.org/:_authToken=${{secrets.NPM_TOKEN}}" > .npmrc
 
       - name: Publish CI Version
+        working-directory: ./dist
         run: npm publish --tag=ci --verbose

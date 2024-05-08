@@ -6,9 +6,9 @@
     "type": "git",
     "url": "git+https://github.com/upstash/sdk-qstash-ts.git"
   },
-  "module": "./dist/index.js",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "module": "./index.js",
+  "main": "./index.js",
+  "types": "./index.d.ts",
   "keywords": [
     "qstash",
     "queue",
@@ -23,7 +23,7 @@
   },
   "homepage": "https://github.com/upstash/sdk-qstash-ts#readme",
   "files": [
-    "dist"
+    "./**"
   ],
   "scripts": {
     "build": "tsup",
@@ -31,8 +31,8 @@
   },
   "exports": {
     ".": {
-      "import": "./dist/index.mjs",
-      "require": "./dist/index.js"
+      "import": "./index.mjs",
+      "require": "./index.js"
     },
     "./nextjs": {
       "import": "./nextjs.mjs",
