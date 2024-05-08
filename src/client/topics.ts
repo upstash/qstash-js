@@ -1,4 +1,4 @@
-import { Requester } from "./http";
+import type { Requester } from "./http";
 
 export type Endpoint = {
   /**

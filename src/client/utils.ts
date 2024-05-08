@@ -1,4 +1,5 @@
 import type { PublishRequest } from "./client";
+import { Headers } from "undici";
 
 export function prefixHeaders(headers: Headers) {
   const isIgnoredHeader = (header: string) => {

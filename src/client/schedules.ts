@@ -1,5 +1,6 @@
 import { prefixHeaders } from "./utils";
-import { Requester } from "./http";
+import type { Requester } from "./http";
+import { type BodyInit, Headers, type HeadersInit } from "undici";
 
 export type Schedule = {
   scheduleId: string;

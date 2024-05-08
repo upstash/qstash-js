@@ -1,4 +1,4 @@
-import { Requester } from "./http";
+import type { Requester } from "./http";
 import type { Message } from "./messages";
 
 type DlqMessage = Message & {
@@ -40,7 +40,9 @@ export class DLQ {
   /**
    * Remove multiple messages from the dlq using their `dlqId`s
    */
-  public async deleteMany(req: { dlqIds: string[] }): Promise<{ deleted: number }> {
+  public async deleteMany(req: {
+    dlqIds: string[];
+  }): Promise<{ deleted: number }> {
     return await this.http.request({
       method: "DELETE",
       path: ["v2", "dlq"],

@@ -1,11 +1,14 @@
 import { DLQ } from "./dlq";
-import { HttpClient, Requester, RetryConfig } from "./http";
+import { HttpClient, type Requester, type RetryConfig } from "./http";
 import { Messages } from "./messages";
 import { Queue } from "./queue";
 import { Schedules } from "./schedules";
 import { Topics } from "./topics";
 import { prefixHeaders, processHeaders } from "./utils";
-import { Event, State } from "./types";
+import type { Event, State } from "./types";
+import type { BodyInit, HeadersInit } from "undici";
+import { Headers } from "undici";
+
 type ClientConfig = {
   /**
    * Url of the qstash api server.
@@ -100,8 +103,8 @@ export type PublishRequest<TBody = BodyInit> = {
    * In case your destination server is unavaialble or returns a status code outside of the 200-299
    * range, we will retry the request after a certain amount of time.
    *
-   * Configure how many times you would like the delivery to be retried up to the maxRetries limit 
-   * defined in your plan. 
+   * Configure how many times you would like the delivery to be retried up to the maxRetries limit
+   * defined in your plan.
    *
    * @default 3
    */
@@ -158,7 +161,7 @@ export type PublishJsonRequest = Omit<PublishRequest, "body"> & {
 
 export type EventsRequest = {
   cursor?: number;
-  filter?: EventsRequestFilter
+  filter?: EventsRequestFilter;
 };
 
 type EventsRequestFilter = {
@@ -171,7 +174,7 @@ type EventsRequestFilter = {
   fromDate?: number; // unix timestamp (ms)
   toDate?: number; // unix timestamp (ms)
   count?: number;
-}
+};
 
 export type GetEventsResponse = {
   cursor?: number;
@@ -233,7 +236,7 @@ export class Client {
 
   /**
    * Access the queue API.
-   * 
+   *
    * Create, read, update or delete queues.
    */
   public queue(req?: QueueRequest): Queue {
@@ -324,7 +327,6 @@ export class Client {
     const res = await this.batch(req as PublishRequest[]);
     return res as PublishResponse<TRequest>[];
   }
-
 
   /**
    * Retrieve your logs.

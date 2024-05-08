@@ -1,3 +1,4 @@
+import type { BodyInit, HeadersInit } from "undici";
 import { QstashError, QstashRatelimitError } from "./error";
 
 export type UpstashRequest = {
@@ -39,7 +40,9 @@ export type UpstashRequest = {
 export type UpstashResponse<TResult> = TResult & { error?: string };
 
 export interface Requester {
-  request: <TResult = unknown>(req: UpstashRequest) => Promise<UpstashResponse<TResult>>;
+  request: <TResult = unknown>(
+    req: UpstashRequest
+  ) => Promise<UpstashResponse<TResult>>;
 }
 
 export type RetryConfig =
@@ -93,12 +96,15 @@ export class HttpClient implements Requester {
     } else {
       this.retry = {
         attempts: config.retry?.retries ? config.retry.retries + 1 : 5,
-        backoff: config.retry?.backoff ?? ((retryCount) => Math.exp(retryCount) * 50),
+        backoff:
+          config.retry?.backoff ?? ((retryCount) => Math.exp(retryCount) * 50),
       };
     }
   }
 
-  public async request<TResult>(req: UpstashRequest): Promise<UpstashResponse<TResult>> {
+  public async request<TResult>(
+    req: UpstashRequest
+  ): Promise<UpstashResponse<TResult>> {
     const headers = new Headers(req.headers);
     headers.set("Authorization", this.authorization);
 
@@ -142,12 +148,13 @@ export class HttpClient implements Requester {
 
     if (res.status < 200 || res.status >= 300) {
       const body = await res.text();
-      throw new QstashError(body.length > 0 ? body : `Error: status=${res.status}`);
+      throw new QstashError(
+        body.length > 0 ? body : `Error: status=${res.status}`
+      );
     }
     if (req.parseResponseAsJson === false) {
       return undefined as unknown as UpstashResponse<TResult>;
-    } else {
-      return (await res.json()) as UpstashResponse<TResult>;
     }
+    return (await res.json()) as UpstashResponse<TResult>;
   }
 }
