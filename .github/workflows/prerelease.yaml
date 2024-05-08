@@ -12,11 +12,13 @@ jobs:
       - name: Checkout Repo
         uses: actions/checkout@v3
 
-      - name: Set env
-        run: echo "VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+      - name: Get Version
+        id: version
+        run: echo "::set-output name=version::v0.0.0-ci.${GITHUB_SHA}-$(date +%Y%m%d%H%M%S)"
 
-      - name: Set package version
-        run: echo $(jq --arg v "${{ env.VERSION }}" '(.version) = $v' package.json) > package.json
+      - name: Set Version
+        run: |
+          echo $(jq --arg v "${{ steps.version.outputs.version }}" '(.version) = $v' package.json) > package.json
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v1
@@ -29,8 +31,8 @@ jobs:
       - name: Build
         run: bun run build
 
-      - name: Add npm token
+      - name: SET NPM_TOKEN
         run: echo "//registry.npmjs.org/:_authToken=${{secrets.NPM_TOKEN}}" > .npmrc
 
-      - name: Publish ci version
+      - name: Publish CI Version
         run: npm publish --tag=ci --verbose
