@@ -1,5 +1,5 @@
 import * as jose from "jose";
-import * as crypto from "crypto-js";
+import crypto from "crypto-js";
 
 /**
  * Necessary to verify the signature of a request.
@@ -79,7 +79,10 @@ export class Receiver {
   /**
    * Verify signature with a specific signing key
    */
-  private async verifyWithKey(key: string, req: VerifyRequest): Promise<boolean> {
+  private async verifyWithKey(
+    key: string,
+    req: VerifyRequest
+  ): Promise<boolean> {
     const jwt = await jose
       .jwtVerify(req.signature, new TextEncoder().encode(key), {
         issuer: "Upstash",
@@ -103,12 +106,16 @@ export class Receiver {
       throw new SignatureError(`invalid subject: ${p.sub}, want: ${req.url}`);
     }
 
-    const bodyHash = crypto.SHA256(req.body as string).toString(crypto.enc.Base64url);
+    const bodyHash = crypto
+      .SHA256(req.body as string)
+      .toString(crypto.enc.Base64url);
 
     const padding = new RegExp(/=+$/);
 
     if (p.body.replace(padding, "") !== bodyHash.replace(padding, "")) {
-      throw new SignatureError(`body hash does not match, want: ${p.body}, got: ${bodyHash}`);
+      throw new SignatureError(
+        `body hash does not match, want: ${p.body}, got: ${bodyHash}`
+      );
     }
 
     return true;
