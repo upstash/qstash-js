@@ -35,9 +35,11 @@
       "require": "./dist/index.js"
     },
     "./nextjs": {
-      "import": "./dist/nextjs/index.mjs",
-      "require": "./dist/nextjs/index.js"
-    }
+      "import": "./nextjs.mjs",
+      "require": "./nextjs.js"
+    },
+    "./nextjs.js": "./nextjs.js",
+    "./nextjs.mjs": "./nextjs.mjs"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.3.3",
