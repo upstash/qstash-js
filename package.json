@@ -26,6 +26,14 @@
     "./nextjs": {
       "import": "./nextjs.mjs",
       "require": "./nextjs.js"
+    },
+    "./dist/nextjs": {
+      "import": "./nextjs.mjs",
+      "require": "./nextjs.js"
+    },
+    "./dist": {
+      "import": "./index.mjs",
+      "require": "./index.js"
     }
   },
   "typesVersions": {
