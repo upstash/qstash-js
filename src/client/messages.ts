@@ -78,7 +78,7 @@ export class Messages {
    * Cancel a message
    */
   public async delete(messageId: string): Promise<void> {
-    return await this.http.request<void>({
+    return await this.http.request({
       method: "DELETE",
       path: ["v2", "messages", messageId],
       parseResponseAsJson: false,

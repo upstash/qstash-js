@@ -13,5 +13,6 @@
     "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true,
     "allowJs": true
-  }
+  },
+  "exclude": ["examples"]
 }

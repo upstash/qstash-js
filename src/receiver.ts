@@ -68,28 +68,25 @@ export class Receiver {
    *
    * If that fails, the signature is invalid and a `SignatureError` is thrown.
    */
-  public async verify(req: VerifyRequest): Promise<boolean> {
-    const isValid = await this.verifyWithKey(this.currentSigningKey, req);
+  public async verify(request: VerifyRequest): Promise<boolean> {
+    const isValid = await this.verifyWithKey(this.currentSigningKey, request);
     if (isValid) {
       return true;
     }
-    return this.verifyWithKey(this.nextSigningKey, req);
+    return this.verifyWithKey(this.nextSigningKey, request);
   }
 
   /**
    * Verify signature with a specific signing key
    */
-  private async verifyWithKey(
-    key: string,
-    req: VerifyRequest
-  ): Promise<boolean> {
+  private async verifyWithKey(key: string, request: VerifyRequest): Promise<boolean> {
     const jwt = await jose
-      .jwtVerify(req.signature, new TextEncoder().encode(key), {
+      .jwtVerify(request.signature, new TextEncoder().encode(key), {
         issuer: "Upstash",
-        clockTolerance: req.clockTolerance,
+        clockTolerance: request.clockTolerance,
       })
-      .catch((e) => {
-        throw new SignatureError((e as Error).message);
+      .catch((error: unknown) => {
+        throw new SignatureError((error as Error).message);
       });
 
     const p = jwt.payload as {
@@ -102,20 +99,16 @@ export class Receiver {
       body: string;
     };
 
-    if (typeof req.url !== "undefined" && p.sub !== req.url) {
-      throw new SignatureError(`invalid subject: ${p.sub}, want: ${req.url}`);
+    if (request.url !== undefined && p.sub !== request.url) {
+      throw new SignatureError(`invalid subject: ${p.sub}, want: ${request.url}`);
     }
 
-    const bodyHash = crypto
-      .SHA256(req.body as string)
-      .toString(crypto.enc.Base64url);
+    const bodyHash = crypto.SHA256(request.body).toString(crypto.enc.Base64url);
 
     const padding = new RegExp(/=+$/);
 
     if (p.body.replace(padding, "") !== bodyHash.replace(padding, "")) {
-      throw new SignatureError(
-        `body hash does not match, want: ${p.body}, got: ${bodyHash}`
-      );
+      throw new SignatureError(`body hash does not match, want: ${p.body}, got: ${bodyHash}`);
     }
 
     return true;

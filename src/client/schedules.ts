@@ -100,42 +100,40 @@ export class Schedules {
   /**
    * Create a schedule
    */
-  public async create(
-    req: CreateScheduleRequest
-  ): Promise<{ scheduleId: string }> {
-    const headers = prefixHeaders(new Headers(req.headers));
+  public async create(request: CreateScheduleRequest): Promise<{ scheduleId: string }> {
+    const headers = prefixHeaders(new Headers(request.headers));
 
     if (!headers.has("Content-Type")) {
       headers.set("Content-Type", "application/json");
     }
 
-    headers.set("Upstash-Cron", req.cron);
+    headers.set("Upstash-Cron", request.cron);
 
-    if (typeof req.method !== "undefined") {
-      headers.set("Upstash-Method", req.method);
+    if (request.method !== undefined) {
+      headers.set("Upstash-Method", request.method);
     }
 
-    if (typeof req.delay !== "undefined") {
-      headers.set("Upstash-Delay", `${req.delay.toFixed()}s`);
+    if (request.delay !== undefined) {
+      headers.set("Upstash-Delay", `${request.delay.toFixed(0)}s`);
     }
 
-    if (typeof req.retries !== "undefined") {
-      headers.set("Upstash-Retries", req.retries.toFixed());
+    if (request.retries !== undefined) {
+      headers.set("Upstash-Retries", request.retries.toFixed(0));
     }
 
-    if (typeof req.callback !== "undefined") {
-      headers.set("Upstash-Callback", req.callback);
+    if (request.callback !== undefined) {
+      headers.set("Upstash-Callback", request.callback);
     }
 
-    if (typeof req.failureCallback !== "undefined") {
-      headers.set("Upstash-Failure-Callback", req.failureCallback);
+    if (request.failureCallback !== undefined) {
+      headers.set("Upstash-Failure-Callback", request.failureCallback);
     }
 
     return await this.http.request({
       method: "POST",
       headers,
-      path: ["v2", "schedules", req.destination],
-      body: req.body,
+      path: ["v2", "schedules", request.destination],
+      body: request.body,
     });
   }
 
@@ -163,7 +161,7 @@ export class Schedules {
    * Delete a schedule
    */
   public async delete(scheduleId: string): Promise<void> {
-    return await this.http.request<void>({
+    return await this.http.request({
       method: "DELETE",
       path: ["v2", "schedules", scheduleId],
       parseResponseAsJson: false,

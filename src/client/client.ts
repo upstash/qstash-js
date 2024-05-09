@@ -191,9 +191,7 @@ export class Client {
   public constructor(config: ClientConfig) {
     this.http = new HttpClient({
       retry: config.retry,
-      baseUrl: config.baseUrl
-        ? config.baseUrl.replace(/\/$/, "")
-        : "https://qstash.upstash.io",
+      baseUrl: config.baseUrl ? config.baseUrl.replace(/\/$/, "") : "https://qstash.upstash.io",
       authorization: `Bearer ${config.token}`,
     });
   }
@@ -239,21 +237,21 @@ export class Client {
    *
    * Create, read, update or delete queues.
    */
-  public queue(req?: QueueRequest): Queue {
-    return new Queue(this.http, req?.queueName);
+  public queue(request?: QueueRequest): Queue {
+    return new Queue(this.http, request?.queueName);
   }
 
   public async publish<TRequest extends PublishRequest>(
-    req: TRequest
+    request: TRequest
   ): Promise<PublishResponse<TRequest>> {
-    const headers = processHeaders(req);
-    const res = await this.http.request<PublishResponse<TRequest>>({
-      path: ["v2", "publish", req.url ?? req.topic],
-      body: req.body,
+    const headers = processHeaders(request);
+    const response = await this.http.request<PublishResponse<TRequest>>({
+      path: ["v2", "publish", request.url ?? request.topic],
+      body: request.body,
       headers,
       method: "POST",
     });
-    return res;
+    return response;
   }
 
   /**
@@ -262,28 +260,26 @@ export class Client {
    */
   public async publishJSON<
     TBody = unknown,
-    TRequest extends PublishRequest<TBody> = PublishRequest<TBody>
-  >(req: TRequest): Promise<PublishResponse<TRequest>> {
-    const headers = prefixHeaders(new Headers(req.headers));
+    TRequest extends PublishRequest<TBody> = PublishRequest<TBody>,
+  >(request: TRequest): Promise<PublishResponse<TRequest>> {
+    const headers = prefixHeaders(new Headers(request.headers));
     headers.set("Content-Type", "application/json");
 
-    // @ts-ignore it's just internal
-    const res = await this.publish<TRequest>({
-      ...req,
+    // @ts-expect-error it's just internal
+    const response = await this.publish<TRequest>({
+      ...request,
       headers,
-      body: JSON.stringify(req.body),
+      body: JSON.stringify(request.body),
     } as PublishRequest);
-    return res;
+    return response;
   }
 
   /**
    * Batch publish messages to QStash.
    */
-  public async batch(
-    req: PublishRequest[]
-  ): Promise<PublishResponse<PublishRequest>[]> {
+  public async batch(request: PublishRequest[]): Promise<PublishResponse<PublishRequest>[]> {
     const messages = [];
-    for (const message of req) {
+    for (const message of request) {
       const headers = processHeaders(message);
       const headerEntries = Object.fromEntries(headers.entries());
 
@@ -294,7 +290,7 @@ export class Client {
       });
     }
 
-    const res = await this.http.request<PublishResponse<PublishRequest>[]>({
+    const response = await this.http.request<PublishResponse<PublishRequest>[]>({
       path: ["v2", "batch"],
       body: JSON.stringify(messages),
       headers: {
@@ -303,7 +299,7 @@ export class Client {
       method: "POST",
     });
 
-    return res;
+    return response;
   }
 
   /**
@@ -311,9 +307,9 @@ export class Client {
    */
   public async batchJSON<
     TBody = unknown,
-    TRequest extends PublishRequest<TBody> = PublishRequest<TBody>
-  >(req: TRequest[]): Promise<PublishResponse<TRequest>[]> {
-    for (const message of req) {
+    TRequest extends PublishRequest<TBody> = PublishRequest<TBody>,
+  >(request: TRequest[]): Promise<PublishResponse<TRequest>[]> {
+    for (const message of request) {
       if ("body" in message) {
         message.body = JSON.stringify(message.body) as unknown as TBody;
       }
@@ -324,8 +320,8 @@ export class Client {
 
     // Since we are serializing the bodies to JSON, and stringifying,
     //  we can safely cast the request to `PublishRequest`
-    const res = await this.batch(req as PublishRequest[]);
-    return res as PublishResponse<TRequest>[];
+    const response = await this.batch(request as PublishRequest[]);
+    return response as PublishResponse<TRequest>[];
   }
 
   /**
@@ -347,27 +343,28 @@ export class Client {
    * }
    * ```
    */
-  public async events(req?: EventsRequest): Promise<GetEventsResponse> {
+  public async events(request?: EventsRequest): Promise<GetEventsResponse> {
     const query: Record<string, string> = {};
-    if (req?.cursor && req.cursor > 0) {
-      query.cursor = req.cursor.toString();
+    if (request?.cursor && request.cursor > 0) {
+      query.cursor = request.cursor.toString();
     }
 
-    for (const [key, value] of Object.entries(req?.filter ?? {})) {
+    for (const [key, value] of Object.entries(request?.filter ?? {})) {
       if (typeof value === "number" && value < 0) {
         continue;
       }
+      // eslint-disable-next-line unicorn/no-typeof-undefined
       if (typeof value !== "undefined") {
         query[key] = value.toString();
       }
     }
 
-    const res = await this.http.request<GetEventsResponse>({
+    const response = await this.http.request<GetEventsResponse>({
       path: ["v2", "events"],
       method: "GET",
       query,
     });
-    return res;
+    return response;
   }
 }
 export type PublishToUrlResponse = {

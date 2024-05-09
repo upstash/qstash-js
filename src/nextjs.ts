@@ -1,5 +1,6 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
 import type { NextApiHandler, NextApiRequest, NextApiResponse } from "next";
-import { NextRequest, NextFetchEvent, NextResponse } from "next/server";
+import { type NextRequest, type NextFetchEvent, NextResponse } from "next/server";
 import { Receiver } from "./receiver";
 
 export type VerifySignatureConfig = {
@@ -20,6 +21,8 @@ export type VerifySignatureConfig = {
    */
   clockTolerance?: number;
 };
+
+const BAD_REQUEST = 400;
 
 export function verifySignature(
   handler: NextApiHandler,
@@ -42,25 +45,24 @@ export function verifySignature(
     nextSigningKey,
   });
 
-  return async (req: NextApiRequest, res: NextApiResponse) => {
+  return async (request: NextApiRequest, response: NextApiResponse) => {
     // @ts-ignore This can throw errors during vercel build
-    const signature = req.headers["upstash-signature"];
+    const signature = request.headers["upstash-signature"];
     if (!signature) {
-      res.status(400);
-      res.send("`Upstash-Signature` header is missing");
-      res.end();
+      response.status(BAD_REQUEST);
+      response.send("`Upstash-Signature` header is missing");
+      response.end();
       return;
     }
     if (typeof signature !== "string") {
-      throw new Error("`Upstash-Signature` header is not a string");
+      throw new TypeError("`Upstash-Signature` header is not a string");
     }
 
     const chunks = [];
-    for await (const chunk of req) {
-      // @ts-ignore
+    for await (const chunk of request) {
       chunks.push(typeof chunk === "string" ? Buffer.from(chunk) : chunk);
     }
-    const body = Buffer.concat(chunks).toString("utf-8");
+    const body = Buffer.concat(chunks).toString("utf8");
 
     const isValid = await receiver.verify({
       signature,
@@ -68,28 +70,26 @@ export function verifySignature(
       clockTolerance: config?.clockTolerance,
     });
     if (!isValid) {
-      res.status(400);
-      res.send("Invalid signature");
-      res.end();
+      response.status(BAD_REQUEST);
+      response.send("Invalid signature");
+      response.end();
       return;
     }
 
     try {
-      if (req.headers["content-type"] === "application/json") {
-        req.body = JSON.parse(body);
-      } else {
-        req.body = body;
-      }
+      request.body = (
+        request.headers["content-type"] === "application/json" ? JSON.parse(body) : body
+      ) as string;
     } catch {
-      req.body = body;
+      request.body = body;
     }
 
-    return handler(req, res);
+    return handler(request, response);
   };
 }
 
 export function verifySignatureEdge(
-  handler: (req: NextRequest, nfe?: NextFetchEvent) => NextResponse | Promise<NextResponse>,
+  handler: (request: NextRequest, nfe?: NextFetchEvent) => NextResponse | Promise<NextResponse>,
   config?: VerifySignatureConfig
 ) {
   const currentSigningKey = config?.currentSigningKey ?? process.env.QSTASH_CURRENT_SIGNING_KEY;
@@ -109,20 +109,20 @@ export function verifySignatureEdge(
     nextSigningKey,
   });
 
-  return async (req: NextRequest, nfe: NextFetchEvent) => {
-    const reqClone = req.clone() as NextRequest;
+  return async (request: NextRequest, nfe: NextFetchEvent) => {
+    const requestClone = request.clone() as NextRequest;
     // @ts-ignore This can throw errors during vercel build
-    const signature = req.headers.get("upstash-signature");
+    const signature = request.headers.get("upstash-signature");
     if (!signature) {
       return new NextResponse(new TextEncoder().encode("`Upstash-Signature` header is missing"), {
         status: 403,
       });
     }
     if (typeof signature !== "string") {
-      throw new Error("`Upstash-Signature` header is not a string");
+      throw new TypeError("`Upstash-Signature` header is not a string");
     }
 
-    const body = await req.text();
+    const body = await request.text();
     const isValid = await receiver.verify({
       signature,
       body,
@@ -132,7 +132,7 @@ export function verifySignatureEdge(
       return new NextResponse(new TextEncoder().encode("invalid signature"), { status: 403 });
     }
 
-    return handler(reqClone, nfe);
+    return handler(requestClone, nfe);
   };
 }
 
@@ -140,8 +140,8 @@ type VerifySignatureAppRouterResponse = NextResponse | Promise<NextResponse>;
 
 export function verifySignatureAppRouter(
   handler:
-    | ((req: Request) => VerifySignatureAppRouterResponse)
-    | ((req: NextRequest) => VerifySignatureAppRouterResponse),
+    | ((request: Request) => VerifySignatureAppRouterResponse)
+    | ((request: NextRequest) => VerifySignatureAppRouterResponse),
   config?: VerifySignatureConfig
 ) {
   const currentSigningKey = config?.currentSigningKey ?? process.env.QSTASH_CURRENT_SIGNING_KEY;
@@ -161,20 +161,20 @@ export function verifySignatureAppRouter(
     nextSigningKey,
   });
 
-  return async (req: NextRequest | Request) => {
-    const reqClone = req.clone() as NextRequest;
+  return async (request: NextRequest | Request) => {
+    const requestClone = request.clone() as NextRequest;
     // @ts-ignore This can throw errors during vercel build
-    const signature = req.headers.get("upstash-signature");
+    const signature = request.headers.get("upstash-signature");
     if (!signature) {
       return new NextResponse(new TextEncoder().encode("`Upstash-Signature` header is missing"), {
         status: 403,
       });
     }
     if (typeof signature !== "string") {
-      throw new Error("`Upstash-Signature` header is not a string");
+      throw new TypeError("`Upstash-Signature` header is not a string");
     }
 
-    const body = await req.text();
+    const body = await request.text();
     const isValid = await receiver.verify({
       signature,
       body,
@@ -184,6 +184,6 @@ export function verifySignatureAppRouter(
       return new NextResponse(new TextEncoder().encode("invalid signature"), { status: 403 });
     }
 
-    return handler(reqClone);
+    return handler(requestClone);
   };
 }

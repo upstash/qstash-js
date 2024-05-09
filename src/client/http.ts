@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-magic-numbers */
 import type { BodyInit, HeadersInit } from "undici";
 import { QstashError, QstashRatelimitError } from "./error";
 
@@ -39,11 +40,9 @@ export type UpstashRequest = {
 };
 export type UpstashResponse<TResult> = TResult & { error?: string };
 
-export interface Requester {
-  request: <TResult = unknown>(
-    req: UpstashRequest
-  ) => Promise<UpstashResponse<TResult>>;
-}
+export type Requester = {
+  request: <TResult = unknown>(request: UpstashRequest) => Promise<UpstashResponse<TResult>>;
+};
 
 export type RetryConfig =
   | false
@@ -88,73 +87,68 @@ export class HttpClient implements Requester {
 
     this.authorization = config.authorization;
 
-    if (typeof config?.retry === "boolean" && config?.retry === false) {
-      this.retry = {
-        attempts: 1,
-        backoff: () => 0,
-      };
-    } else {
-      this.retry = {
-        attempts: config.retry?.retries ? config.retry.retries + 1 : 5,
-        backoff:
-          config.retry?.backoff ?? ((retryCount) => Math.exp(retryCount) * 50),
-      };
-    }
+    this.retry =
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      typeof config.retry === "boolean" && !config.retry
+        ? {
+            attempts: 1,
+            backoff: () => 0,
+          }
+        : {
+            attempts: config.retry?.retries ? config.retry.retries + 1 : 5,
+            backoff: config.retry?.backoff ?? ((retryCount) => Math.exp(retryCount) * 50),
+          };
   }
 
-  public async request<TResult>(
-    req: UpstashRequest
-  ): Promise<UpstashResponse<TResult>> {
-    const headers = new Headers(req.headers);
+  public async request<TResult>(request: UpstashRequest): Promise<UpstashResponse<TResult>> {
+    const headers = new Headers(request.headers);
     headers.set("Authorization", this.authorization);
 
     const requestOptions: RequestInit & { backend?: string } = {
-      method: req.method,
+      method: request.method,
       headers,
-      body: req.body,
-      keepalive: req.keepalive,
+      body: request.body,
+      keepalive: request.keepalive,
     };
 
-    const url = new URL([this.baseUrl, ...(req.path ?? [])].join("/"));
-    if (req.query) {
-      for (const [key, value] of Object.entries(req.query)) {
-        if (typeof value !== "undefined") {
+    const url = new URL([this.baseUrl, ...request.path].join("/"));
+    if (request.query) {
+      for (const [key, value] of Object.entries(request.query)) {
+        if (value !== undefined) {
           url.searchParams.set(key, value.toString());
         }
       }
     }
 
-    let res: Response | null = null;
-    let error: Error | null = null;
-    for (let i = 0; i < this.retry.attempts; i++) {
+    let response: Response | undefined = undefined;
+    let error: Error | undefined = undefined;
+    for (let index = 0; index < this.retry.attempts; index++) {
       try {
-        res = await fetch(url.toString(), requestOptions);
+        response = await fetch(url.toString(), requestOptions);
         break;
-      } catch (err) {
-        error = err as Error;
-        await new Promise((r) => setTimeout(r, this.retry.backoff(i)));
+      } catch (error_) {
+        error = error_ as Error;
+        await new Promise((r) => setTimeout(r, this.retry.backoff(index)));
       }
     }
-    if (!res) {
+    if (!response) {
       throw error ?? new Error("Exhausted all retries");
     }
-    if (res.status === 429) {
+    if (response.status === 429) {
       throw new QstashRatelimitError({
-        limit: res.headers.get("Burst-RateLimit-Limit"),
-        remaining: res.headers.get("Burst-RateLimit-Remaining"),
-        reset: res.headers.get("Burst-RateLimit-Reset"),
+        limit: response.headers.get("Burst-RateLimit-Limit"),
+        remaining: response.headers.get("Burst-RateLimit-Remaining"),
+        reset: response.headers.get("Burst-RateLimit-Reset"),
       });
     }
 
-    if (res.status < 200 || res.status >= 300) {
-      const body = await res.text();
-      throw new QstashError(
-        body.length > 0 ? body : `Error: status=${res.status}`
-      );
+    if (response.status < 200 || response.status >= 300) {
+      const body = await response.text();
+      throw new QstashError(body.length > 0 ? body : `Error: status=${response.status}`);
     }
-    if (req.parseResponseAsJson === false) {
+    if (request.parseResponseAsJson === false) {
       return undefined as unknown as UpstashResponse<TResult>;
     }
-    return (await res.json()) as UpstashResponse<TResult>;
+    return (await response.json()) as UpstashResponse<TResult>;
   }
 }

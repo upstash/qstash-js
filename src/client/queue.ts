@@ -29,14 +29,14 @@ export class Queue {
   /**
    * Create or update the queue
    */
-  public async upsert(req: UpsertQueueRequest): Promise<void> {
+  public async upsert(request: UpsertQueueRequest): Promise<void> {
     if (!this.queueName) {
       throw new Error("Please provide a queue name to the Queue constructor");
     }
 
     const body = {
       queueName: this.queueName,
-      parallelism: req.parallelism,
+      parallelism: request.parallelism,
     };
 
     await this.http.request({
@@ -92,40 +92,38 @@ export class Queue {
   /**
    * Enqueue a message to a queue.
    */
-  public async enqueue(
-    req: EnqueueRequest
-  ): Promise<PublishResponse<PublishRequest>> {
+  public async enqueue(request: EnqueueRequest): Promise<PublishResponse<PublishRequest>> {
     if (!this.queueName) {
       throw new Error("Please provide a queue name to the Queue constructor");
     }
 
-    const headers = processHeaders(req);
-    const destination = req.url ?? req.topic;
-    const res = await this.http.request<PublishResponse<PublishRequest>>({
+    const headers = processHeaders(request);
+    const destination = request.url ?? request.topic;
+    const response = await this.http.request<PublishResponse<PublishRequest>>({
       path: ["v2", "enqueue", this.queueName, destination],
-      body: req.body,
+      body: request.body,
       headers,
       method: "POST",
     });
 
-    return res;
+    return response;
   }
 
   /**
    * Enqueue a message to a queue, serializing the body to JSON.
    */
   public async enqueueJSON<TBody = unknown>(
-    req: PublishRequest<TBody>
+    request: PublishRequest<TBody>
   ): Promise<PublishResponse<PublishRequest<TBody>>> {
-    const headers = prefixHeaders(new Headers(req.headers));
+    const headers = prefixHeaders(new Headers(request.headers));
     headers.set("Content-Type", "application/json");
 
-    const res = await this.enqueue({
-      ...req,
-      body: JSON.stringify(req.body),
+    const response = await this.enqueue({
+      ...request,
+      body: JSON.stringify(request.body),
       headers,
     });
 
-    return res;
+    return response;
   }
 }
