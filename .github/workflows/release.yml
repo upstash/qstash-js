@@ -40,7 +40,6 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pnpm-store-
 
-
       - name: Set package version
         run: echo $(jq --arg v "${{ env.VERSION }}" '(.version) = $v' package.json) > package.json
 
