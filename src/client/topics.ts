@@ -43,6 +43,14 @@ export type RemoveEndpointsRequest = {
 
 export type Topic = {
   /**
+   * A unix timestamp (milliseconds)
+   */
+  createdAt: number;
+  /**
+   * A unix timestamp (milliseconds)
+   */
+  updatedAt: number;
+  /**
    * The name of this topic.
    */
   name: string;
