@@ -110,7 +110,7 @@ export function verifySignatureEdge(
   });
 
   return async (req: NextRequest, nfe: NextFetchEvent) => {
-    const reqClone = new NextRequest(req);
+    const reqClone = req.clone();
     // @ts-ignore This can throw errors during vercel build
     const signature = req.headers.get("upstash-signature");
     if (!signature) {
@@ -132,7 +132,7 @@ export function verifySignatureEdge(
       return new NextResponse(new TextEncoder().encode("invalid signature"), { status: 403 });
     }
 
-    return handler(reqClone, nfe);
+    return handler(new NextRequest(req), nfe);
   };
 }
 
@@ -162,7 +162,7 @@ export function verifySignatureAppRouter(
   });
 
   return async (req: NextRequest | Request) => {
-    const reqClone = new NextRequest(req);
+    const reqClone = req.clone();
     // @ts-ignore This can throw errors during vercel build
     const signature = req.headers.get("upstash-signature");
     if (!signature) {
@@ -184,6 +184,6 @@ export function verifySignatureAppRouter(
       return new NextResponse(new TextEncoder().encode("invalid signature"), { status: 403 });
     }
 
-    return handler(reqClone);
+    return handler(new NextRequest(req));
   };
 }
