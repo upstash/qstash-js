@@ -6,9 +6,20 @@
     "type": "git",
     "url": "git+https://github.com/upstash/sdk-qstash-ts.git"
   },
-  "module": "./dist/index.js",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./index.mjs",
+      "require": "./index.js"
+    },
+    "./nextjs": {
+      "import": "./nextjs.mjs",
+      "require": "./nextjs.js"
+    },
+    "./dist/nextjs": {
+      "import": "./nextjs.mjs",
+      "require": "./nextjs.js"
+    }
+  },
   "keywords": [
     "qstash",
     "queue",
