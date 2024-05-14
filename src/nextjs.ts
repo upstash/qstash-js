@@ -137,13 +137,15 @@ export function verifySignatureEdge(
 }
 
 type VerifySignatureAppRouterResponse =
-  | Response
   | NextResponse
-  | Promise<Response>
-  | Promise<NextResponse>;
+  | Promise<NextResponse>
+  | Response
+  | Promise<Response>;
 
 export function verifySignatureAppRouter(
-  handler: (request: Request | NextRequest) => VerifySignatureAppRouterResponse,
+  handler:
+    | ((request: Request) => VerifySignatureAppRouterResponse)
+    | ((request: NextRequest) => VerifySignatureAppRouterResponse),
   config?: VerifySignatureConfig
 ) {
   const currentSigningKey = config?.currentSigningKey ?? process.env.QSTASH_CURRENT_SIGNING_KEY;
