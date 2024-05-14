@@ -6,8 +6,6 @@ chmod +x run_servers.sh
 ./run_servers.sh &
 SERVERS_PID=$!
 
-# Wait a bit to ensure servers are up
-sleep 10
 
 # Run bun test
 echo "Running tests..."

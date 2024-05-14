@@ -1,10 +1,8 @@
-/* eslint-disable @typescript-eslint/no-magic-numbers */
-/* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable no-console */
+import type { Context } from "hono";
 import { Hono } from "hono";
 
 export type MessageDetails = {
-  headers: any;
+  headers: Record<string, unknown>;
   body: string;
   callback?: string;
   retryCount?: number;
@@ -14,17 +12,33 @@ export const messageIds = new Map<string | null | undefined, MessageDetails>();
 
 const app = new Hono();
 
-app.get("/", (c) => {
-  return c.text("Hello Bun!");
-});
+const HEADER_MESSAGE_ID = "upstash-message-id";
+const HEADER_BYPASS_TUNNEL = "bypass-tunnel-reminder";
+const CLIENT_TEST_VALUE = "client-test";
 
-app.post("/message", async (c) => {
-  console.warn("Just received a call from", c.req.raw.headers.get("upstash-message-id"));
+app.get("/", (c) => c.text("Hello Bun!"));
 
-  if (c.req.raw.headers.get("bypass-tunnel-reminder") === "client-test") {
+const handleMessage = async (c: Context, topic: string) => {
+  console.warn(`${topic}: Just received a call from`, c.req.raw.headers.get(HEADER_MESSAGE_ID));
+
+  if (c.req.raw.headers.get(HEADER_BYPASS_TUNNEL) === CLIENT_TEST_VALUE) {
     const body = await c.req.text();
 
-    messageIds.set(c.req.raw.headers.get("upstash-message-id"), {
+    messageIds.set(c.req.raw.headers.get(HEADER_MESSAGE_ID), {
+      headers: c.req.raw.headers as unknown as Record<string, unknown>,
+      body,
+    });
+  }
+  return c.json({ hello: "world" });
+};
+
+app.post("/message", async (c) => {
+  console.warn("Just received a call from", c.req.raw.headers.get(HEADER_MESSAGE_ID));
+
+  if (c.req.raw.headers.get(HEADER_BYPASS_TUNNEL) === CLIENT_TEST_VALUE) {
+    const body = await c.req.text();
+
+    messageIds.set(c.req.raw.headers.get(HEADER_MESSAGE_ID), {
       headers: c.req.raw.headers as unknown as Record<string, unknown>,
       body,
     });
@@ -33,7 +47,7 @@ app.post("/message", async (c) => {
 });
 
 app.post("/failed-message", async (c) => {
-  const messageId = c.req.raw.headers.get("upstash-message-id");
+  const messageId = c.req.raw.headers.get(HEADER_MESSAGE_ID);
   console.warn("Just received a call from throwing error", messageId);
 
   messageIds.set(messageId, {
@@ -45,8 +59,7 @@ app.post("/failed-message", async (c) => {
   return c.notFound();
 });
 
-app.post("/failed-callback", async (c) => {
-  console.warn("Running failed callback");
+const handleCallback = async (c: Context, message: string) => {
   const body = await c.req.json<Record<string, unknown>>();
   const sourceMessageId = body.sourceMessageId as string | undefined;
   const originalMessage = messageIds.get(sourceMessageId);
@@ -57,22 +70,11 @@ app.post("/failed-callback", async (c) => {
     callback: sourceMessageId,
   });
 
-  return c.json({ message: "upstash" });
-});
+  return c.json({ message });
+};
 
-app.post("/message-callback", async (c) => {
-  const body = await c.req.json<Record<string, unknown>>();
-  const sourceMessageId = body.sourceMessageId as string | undefined;
-  const originalMessage = messageIds.get(sourceMessageId);
-  if (!originalMessage) return c.json({ message: "originalMessage missing!" });
-
-  messageIds.set(sourceMessageId, {
-    ...originalMessage,
-    callback: sourceMessageId,
-  });
-
-  return c.json({ message: "upstash" });
-});
+app.post("/failed-callback", (c) => handleCallback(c, "upstash"));
+app.post("/message-callback", (c) => handleCallback(c, "upstash"));
 
 app.get("/publish-verify", (c) => {
   const messageIdFromParameters = c.req.query("messageId");
@@ -81,35 +83,20 @@ app.get("/publish-verify", (c) => {
   return c.json(selectedMessageId);
 });
 
-app.post("/topic1", async (c) => {
-  console.warn("TOPIC1: Just received a call from", c.req.raw.headers.get("upstash-message-id"));
+app.get("/publish-verify-multiple", (c) => {
+  const messageIdFromParameters = new URL(c.req.url).searchParams.getAll("messageId");
+  const internalMessageIds = [];
 
-  if (c.req.raw.headers.get("bypass-tunnel-reminder") === "client-test") {
-    const body = await c.req.text();
-
-    messageIds.set(c.req.raw.headers.get("upstash-message-id"), {
-      headers: c.req.raw.headers as unknown as Record<string, unknown>,
-      body,
-    });
+  for (const messageId of messageIdFromParameters) {
+    internalMessageIds.push(messageIds.get(messageId));
   }
-  return c.json({ hello: "world" });
+  return c.json(internalMessageIds);
 });
 
-app.post("/topic2", async (c) => {
-  console.warn("TOPIC2: Just received a call from", c.req.raw.headers.get("upstash-message-id"));
+app.post("/topic1", (c) => handleMessage(c, "TOPIC1"));
+app.post("/topic2", (c) => handleMessage(c, "TOPIC2"));
 
-  if (c.req.raw.headers.get("bypass-tunnel-reminder") === "client-test") {
-    const body = await c.req.text();
-
-    messageIds.set(c.req.raw.headers.get("upstash-message-id"), {
-      headers: c.req.raw.headers as unknown as Record<string, unknown>,
-      body,
-    });
-  }
-  return c.json({ hello: "world" });
-});
-
-console.log("Proxy server is listening on port:", process.env.PORT);
+console.warn("Proxy server is listening on port:", process.env.PORT);
 
 export default {
   port: process.env.PORT,
