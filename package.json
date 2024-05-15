@@ -58,7 +58,6 @@
     "@types/crypto-js": "^4.2.0",
     "@types/node": "^20.5.7",
     "next": "^14.0.2",
-    "undici-types": "^6.16.0",
     "@commitlint/cli": "^19.2.2",
     "@commitlint/config-conventional": "^19.2.2",
     "@typescript-eslint/eslint-plugin": "^7.0.1",
