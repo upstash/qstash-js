@@ -2,8 +2,9 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-magic-numbers */
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
+import { nanoid } from "nanoid";
 import { sleep } from "bun";
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterAll, afterEach, describe, expect, test } from "bun:test";
 import type { MessageDetails } from "../../proxy-server/server";
 import { Client } from "./client";
 
@@ -40,7 +41,8 @@ describe("E2E Publish", () => {
       });
 
       const proxyResult = await fetchJSON<MessageDetails>(
-        `/publish-verify?messageId=${result.messageId}`
+        `/publish-verify?messageId=${result.messageId}`,
+        5000
       );
       expect(result.messageId).toBe(proxyResult.headers["upstash-message-id"] as string);
       expect(proxyResult.headers["test-header"]).toBe("test-value");
@@ -198,5 +200,42 @@ describe("E2E Topic Publish", () => {
       await client.topics.delete(topic);
     },
     { timeout: 15_000 }
+  );
+});
+
+describe("E2E Queue", () => {
+  const client = new Client({ token: process.env.QSTASH_TOKEN! });
+
+  afterAll(async () => {
+    const queueDetails = await client.queue().list();
+    await Promise.all(
+      queueDetails.map(async (q) => {
+        await client.queue({ queueName: q.name }).delete();
+      })
+    );
+  });
+
+  test(
+    "should create a queue, verify it then remove it",
+    async () => {
+      const queueName = nanoid();
+      await client.queue({ queueName }).upsert({ parallelism: 1 });
+
+      const queueDetails = await client.queue({ queueName }).enqueue({
+        url: `${BASE_PROXY_SERVER_PATH}/message`,
+        body: JSON.stringify({ hello: "world" }),
+        headers: {
+          "test-header": "test-value",
+          "Upstash-Forward-bypass-tunnel-reminder": "client-test",
+        },
+      });
+      //Queue takes at least 20 sec to call an endpoint
+      const json = await fetchJSON<MessageDetails>(
+        `/publish-verify?messageId=${queueDetails.messageId}`,
+        25_000
+      );
+      expect(json.headers["test-header"]).toEqual("test-value");
+    },
+    { timeout: 35_000 }
   );
 });

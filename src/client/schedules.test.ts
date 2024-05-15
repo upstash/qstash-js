@@ -1,12 +1,20 @@
 /* eslint-disable @typescript-eslint/no-magic-numbers */
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { describe, expect, test } from "bun:test";
+import { afterAll, describe, expect, test } from "bun:test";
 import { Client } from "./client";
-import { sleep } from "bun";
 import type { Schedule } from "./schedules";
 
 describe("Schedules", () => {
   const client = new Client({ token: process.env.QSTASH_TOKEN! });
+
+  afterAll(async () => {
+    const scheduleDetails = await client.schedules.list();
+    await Promise.all(
+      scheduleDetails.map(async (s) => {
+        await client.schedules.delete(s.scheduleId);
+      })
+    );
+  });
 
   test(
     "should schedule a message then verify it",
@@ -25,8 +33,6 @@ describe("Schedules", () => {
         retries: 5,
         cron: "*/10 * * * * ",
       });
-
-      await sleep(5000);
 
       const scheduledMessage = await client.schedules.get(scheduleId);
       expect(scheduledMessage).toEqual(
@@ -64,19 +70,11 @@ describe("Schedules", () => {
         cron: "*/10 * * * * ",
       });
 
-      await sleep(5000);
-
       const scheduledMessage = await client.schedules.list();
-      await Promise.all([
-        client.schedules.delete(scheduleId1),
-        client.schedules.delete(scheduleId2),
-      ]);
-      await sleep(2500);
 
-      expect(scheduledMessage.map((message) => message.scheduleId)).toEqual([
-        scheduleId1,
-        scheduleId2,
-      ]);
+      expect(scheduledMessage.map((message) => message.scheduleId).sort()).toEqual(
+        [scheduleId1, scheduleId2].sort()
+      );
     },
     { timeout: 15_000 }
   );
