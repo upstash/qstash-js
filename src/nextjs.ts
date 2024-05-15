@@ -185,6 +185,6 @@ export function verifySignatureAppRouter(
       return new NextResponse(new TextEncoder().encode("invalid signature"), { status: 403 });
     }
 
-    return handler(new NextRequest(request));
+    return handler(request as NextRequest);
   };
 }
