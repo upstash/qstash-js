@@ -1,4 +1,4 @@
-import { Requester } from "./http";
+import type { Requester } from "./http";
 
 export type Endpoint = {
   /**
@@ -63,12 +63,12 @@ export class Topics {
   /**
    * Create a new topic with the given name and endpoints
    */
-  public async addEndpoints(req: AddEndpointsRequest): Promise<void> {
+  public async addEndpoints(request: AddEndpointsRequest): Promise<void> {
     await this.http.request<Topic>({
       method: "POST",
-      path: ["v2", "topics", req.name, "endpoints"],
+      path: ["v2", "topics", request.name, "endpoints"],
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ endpoints: req.endpoints }),
+      body: JSON.stringify({ endpoints: request.endpoints }),
       parseResponseAsJson: false,
     });
   }
@@ -76,12 +76,12 @@ export class Topics {
   /**
    * Remove endpoints from a topic.
    */
-  public async removeEndpoints(req: RemoveEndpointsRequest): Promise<void> {
+  public async removeEndpoints(request: RemoveEndpointsRequest): Promise<void> {
     await this.http.request<Topic>({
       method: "DELETE",
-      path: ["v2", "topics", req.name, "endpoints"],
+      path: ["v2", "topics", request.name, "endpoints"],
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ endpoints: req.endpoints }),
+      body: JSON.stringify({ endpoints: request.endpoints }),
       parseResponseAsJson: false,
     });
   }
@@ -110,7 +110,7 @@ export class Topics {
    * Delete a topic
    */
   public async delete(name: string): Promise<void> {
-    return await this.http.request<void>({
+    return await this.http.request({
       method: "DELETE",
       path: ["v2", "topics", name],
       parseResponseAsJson: false,

@@ -1,18 +1,14 @@
 import type { PublishRequest } from "./client";
+import { Headers } from "undici";
+
+const isIgnoredHeader = (header: string) => {
+  const lowerCaseHeader = header.toLowerCase();
+  return lowerCaseHeader.startsWith("content-type") || lowerCaseHeader.startsWith("upstash-");
+};
 
 export function prefixHeaders(headers: Headers) {
-  const isIgnoredHeader = (header: string) => {
-    const lowerCaseHeader = header.toLowerCase();
-    return (
-      lowerCaseHeader.startsWith("content-type") ||
-      lowerCaseHeader.startsWith("upstash-")
-    );
-  };
-
   // Get keys of headers that need to be prefixed
-  const keysToBePrefixed = Array.from(headers.keys()).filter(
-    (key) => !isIgnoredHeader(key)
-  );
+  const keysToBePrefixed = [...headers.keys()].filter((key) => !isIgnoredHeader(key));
 
   // Add the prefixed headers
   for (const key of keysToBePrefixed) {
@@ -26,37 +22,37 @@ export function prefixHeaders(headers: Headers) {
   return headers;
 }
 
-export function processHeaders(req: PublishRequest) {
-  const headers = prefixHeaders(new Headers(req.headers));
+export function processHeaders(request: PublishRequest) {
+  const headers = prefixHeaders(new Headers(request.headers));
 
-  headers.set("Upstash-Method", req.method ?? "POST");
+  headers.set("Upstash-Method", request.method ?? "POST");
 
-  if (typeof req.delay !== "undefined") {
-    headers.set("Upstash-Delay", `${req.delay.toFixed()}s`);
+  if (request.delay !== undefined) {
+    headers.set("Upstash-Delay", `${request.delay.toFixed(0)}s`);
   }
 
-  if (typeof req.notBefore !== "undefined") {
-    headers.set("Upstash-Not-Before", req.notBefore.toFixed());
+  if (request.notBefore !== undefined) {
+    headers.set("Upstash-Not-Before", request.notBefore.toFixed(0));
   }
 
-  if (typeof req.deduplicationId !== "undefined") {
-    headers.set("Upstash-Deduplication-Id", req.deduplicationId);
+  if (request.deduplicationId !== undefined) {
+    headers.set("Upstash-Deduplication-Id", request.deduplicationId);
   }
 
-  if (typeof req.contentBasedDeduplication !== "undefined") {
+  if (request.contentBasedDeduplication !== undefined) {
     headers.set("Upstash-Content-Based-Deduplication", "true");
   }
 
-  if (typeof req.retries !== "undefined") {
-    headers.set("Upstash-Retries", req.retries.toFixed());
+  if (request.retries !== undefined) {
+    headers.set("Upstash-Retries", request.retries.toFixed(0));
   }
 
-  if (typeof req.callback !== "undefined") {
-    headers.set("Upstash-Callback", req.callback);
+  if (request.callback !== undefined) {
+    headers.set("Upstash-Callback", request.callback);
   }
 
-  if (typeof req.failureCallback !== "undefined") {
-    headers.set("Upstash-Failure-Callback", req.failureCallback);
+  if (request.failureCallback !== undefined) {
+    headers.set("Upstash-Failure-Callback", request.failureCallback);
   }
 
   return headers;

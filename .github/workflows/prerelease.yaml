@@ -5,10 +5,8 @@ on:
       - main
 
 jobs:
-  prerelease:
-    outputs:
-      version: ${{ steps.version.outputs.version }}
-    name: Pre release
+  release:
+    name: Release
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repo
@@ -23,21 +21,26 @@ jobs:
         with:
           node-version: 18
 
-      - name: Install pnpm
-        run: npm install -g pnpm
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
 
       - name: Set version
         run: |
           echo $(jq --arg v "${{ steps.version.outputs.version }}" '(.version) = $v' package.json) > package.json
 
       - name: Install Dependencies
-        run: pnpm install
+        run: bun install
 
       - name: Build
-        run: pnpm run build
+        run: bun run build
 
       - name: Set NPM_TOKEN
         run: npm config set //registry.npmjs.org/:_authToken=${{secrets.NPM_TOKEN}}
 
       - name: Publish ci version
-        run: npm publish --tag=ci --verbose
+        working-directory: ./dist
+        run: |
+          npm pkg delete scripts.prepare
+          npm publish --tag=ci --verbose
