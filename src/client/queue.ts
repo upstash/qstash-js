@@ -1,7 +1,6 @@
 import type { PublishRequest, PublishResponse } from "./client";
 import type { Requester } from "./http";
 import { prefixHeaders, processHeaders } from "./utils";
-import { Headers } from "undici";
 
 export type QueueResponse = {
   createdAt: number;
@@ -115,6 +114,7 @@ export class Queue {
   public async enqueueJSON<TBody = unknown>(
     request: PublishRequest<TBody>
   ): Promise<PublishResponse<PublishRequest<TBody>>> {
+    //@ts-expect-error caused by undici and bunjs type overlap
     const headers = prefixHeaders(new Headers(request.headers));
     headers.set("Content-Type", "application/json");
 

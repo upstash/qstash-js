@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-magic-numbers */
-import type { BodyInit, HeadersInit } from "undici";
 import { QstashError, QstashRatelimitError } from "./error";
+import type { BodyInit, HeadersInit } from "./types";
 
 export type UpstashRequest = {
   /**
@@ -101,6 +101,7 @@ export class HttpClient implements Requester {
   }
 
   public async request<TResult>(request: UpstashRequest): Promise<UpstashResponse<TResult>> {
+    //@ts-expect-error caused by undici and bunjs type overlap
     const headers = new Headers(request.headers);
     headers.set("Authorization", this.authorization);
 

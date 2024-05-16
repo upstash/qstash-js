@@ -1,6 +1,6 @@
 import { prefixHeaders } from "./utils";
 import type { Requester } from "./http";
-import { type BodyInit, Headers, type HeadersInit } from "undici";
+import type { BodyInit, HeadersInit } from "./types";
 
 export type Schedule = {
   scheduleId: string;
@@ -101,6 +101,7 @@ export class Schedules {
    * Create a schedule
    */
   public async create(request: CreateScheduleRequest): Promise<{ scheduleId: string }> {
+    //@ts-expect-error caused by undici and bunjs type overlap
     const headers = prefixHeaders(new Headers(request.headers));
 
     if (!headers.has("Content-Type")) {
