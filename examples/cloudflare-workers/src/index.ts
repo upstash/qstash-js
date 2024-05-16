@@ -1,4 +1,4 @@
-import { Receiver } from "../../../dist";
+import { Receiver } from "@upstash/qstash";
 
 export type Env = {
   QSTASH_CURRENT_SIGNING_KEY: string;
