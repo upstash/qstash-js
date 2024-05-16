@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 import type { NextApiHandler, NextApiRequest, NextApiResponse } from "next";
-import { type NextRequest, type NextFetchEvent, NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { type NextFetchEvent, NextResponse } from "next/server";
 import { Receiver } from "./receiver";
 
 export type VerifySignatureConfig = {
@@ -110,7 +111,6 @@ export function verifySignatureEdge(
   });
 
   return async (request: NextRequest, nfe: NextFetchEvent) => {
-    const requestClone = request.clone() as NextRequest;
     // @ts-ignore This can throw errors during vercel build
     const signature = request.headers.get("upstash-signature");
     if (!signature) {
@@ -132,11 +132,15 @@ export function verifySignatureEdge(
       return new NextResponse(new TextEncoder().encode("invalid signature"), { status: 403 });
     }
 
-    return handler(requestClone, nfe);
+    return handler(request, nfe);
   };
 }
 
-type VerifySignatureAppRouterResponse = NextResponse | Promise<NextResponse>;
+type VerifySignatureAppRouterResponse =
+  | NextResponse
+  | Promise<NextResponse>
+  | Response
+  | Promise<Response>;
 
 export function verifySignatureAppRouter(
   handler:
@@ -162,8 +166,6 @@ export function verifySignatureAppRouter(
   });
 
   return async (request: NextRequest | Request) => {
-    const requestClone = request.clone() as NextRequest;
-    // @ts-ignore This can throw errors during vercel build
     const signature = request.headers.get("upstash-signature");
     if (!signature) {
       return new NextResponse(new TextEncoder().encode("`Upstash-Signature` header is missing"), {
@@ -184,6 +186,6 @@ export function verifySignatureAppRouter(
       return new NextResponse(new TextEncoder().encode("invalid signature"), { status: 403 });
     }
 
-    return handler(requestClone);
+    return handler(request as NextRequest);
   };
 }

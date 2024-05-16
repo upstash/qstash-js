@@ -48,7 +48,7 @@ export class SignatureError extends Error {
   }
 }
 /**
- * Receiver offers a simlpe way to verify the signature of a request.
+ * Receiver offers a simple way to verify the signature of a request.
  */
 export class Receiver {
   private readonly currentSigningKey: string;

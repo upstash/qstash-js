@@ -5,9 +5,7 @@ import { Queue } from "./queue";
 import { Schedules } from "./schedules";
 import { Topics } from "./topics";
 import { prefixHeaders, processHeaders } from "./utils";
-import type { Event, State } from "./types";
-import type { BodyInit, HeadersInit } from "undici";
-import { Headers } from "undici";
+import type { BodyInit, Event, HeadersInit, State } from "./types";
 
 type ClientConfig = {
   /**
@@ -262,6 +260,7 @@ export class Client {
     TBody = unknown,
     TRequest extends PublishRequest<TBody> = PublishRequest<TBody>,
   >(request: TRequest): Promise<PublishResponse<TRequest>> {
+    //@ts-expect-error caused by undici and bunjs type overlap
     const headers = prefixHeaders(new Headers(request.headers));
     headers.set("Content-Type", "application/json");
 
@@ -313,9 +312,9 @@ export class Client {
       if ("body" in message) {
         message.body = JSON.stringify(message.body) as unknown as TBody;
       }
-
+      //@ts-expect-error caused by undici and bunjs type overlap
       message.headers = new Headers(message.headers);
-      message.headers.set("Content-Type", "application/json");
+      (message.headers as Headers).set("Content-Type", "application/json");
     }
 
     // Since we are serializing the bodies to JSON, and stringifying,
