@@ -5,7 +5,7 @@ on:
 env:
   QSTASH_TOKEN: ${{ secrets.QSTASH_TOKEN }}
 jobs:
-  test:
+  local-tests:
     runs-on: ubuntu-latest
 
     name: Tests
@@ -25,13 +25,14 @@ jobs:
         run: bun run fmt
 
       - name: Run tests
-        run: bun test pkg --bail --timeout 20000
+        run: bun test --bail
 
       - name: Build
         run: bun run build
 
   cloudflare-workers-local-build:
     runs-on: ubuntu-latest
+    needs: local-tests
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -44,7 +45,7 @@ jobs:
       - uses: pnpm/action-setup@v4
         name: Install pnpm
         with:
-          version: 8
+          version: 9
           run_install: true
 
       - name: Local build
