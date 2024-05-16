@@ -48,11 +48,10 @@
   ],
   "scripts": {
     "build": "tsup && cp README.md ./dist/ && cp package.json ./dist/ && cp LICENSE ./dist/",
-    "test": "bun test ",
+    "test": "bun test",
     "fmt": "prettier --write .",
     "lint": "tsc && eslint \"src/**/*.{js,ts,tsx}\" --quiet --fix",
-    "prepare": "husky install",
-    "proxy": "chmod +x run_servers_and_test.sh && ./run_servers_and_test.sh"
+    "prepare": "husky install"
   },
   "devDependencies": {
     "@types/crypto-js": "^4.2.0",
@@ -64,10 +63,7 @@
     "bun-types": "^1.1.7",
     "eslint": "^8",
     "eslint-plugin-unicorn": "^51.0.1",
-    "hono": "^4.3.3",
     "husky": "^9.0.10",
-    "localtunnel": "^2.0.2",
-    "nanoid": "^5.0.7",
     "next": "^14.0.2",
     "prettier": "^3.2.5",
     "tsup": "latest",
