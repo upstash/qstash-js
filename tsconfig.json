@@ -12,7 +12,8 @@
     "skipLibCheck": true,
     "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true,
-    "allowJs": true
+    "allowJs": true,
+    "types": ["bun-types"]
   },
   "exclude": ["examples"]
 }

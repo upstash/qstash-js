@@ -1,5 +1,4 @@
 import type { PublishRequest } from "./client";
-import { Headers } from "undici";
 
 const isIgnoredHeader = (header: string) => {
   const lowerCaseHeader = header.toLowerCase();
@@ -23,6 +22,7 @@ export function prefixHeaders(headers: Headers) {
 }
 
 export function processHeaders(request: PublishRequest) {
+  //@ts-expect-error caused by undici and bunjs type overlap
   const headers = prefixHeaders(new Headers(request.headers));
 
   headers.set("Upstash-Method", request.method ?? "POST");

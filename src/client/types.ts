@@ -12,3 +12,10 @@ export type Event = {
 };
 
 export type WithCursor<T> = T & { cursor?: number };
+
+export type BodyInit = Blob | FormData | URLSearchParams | ReadableStream<Uint8Array> | string;
+export type HeadersInit =
+  | Headers
+  | Record<string, string>
+  | [string, string][]
+  | IterableIterator<[string, string]>;
