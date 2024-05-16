@@ -6,10 +6,7 @@ env:
   QSTASH_TOKEN: ${{ secrets.QSTASH_TOKEN }}
 jobs:
   test:
-    runs-on:
-      group: large-runners
-      labels: ubuntu-4x
-    concurrency: test
+    runs-on: ubuntu-latest
 
     name: Tests
     steps:
@@ -36,16 +33,19 @@ jobs:
   cloudflare-workers-local-build:
     runs-on: ubuntu-latest
     steps:
-      - name: Setup repo
-        uses: actions/checkout@v3
-      - name: Setup nodejs
-        uses: actions/setup-node@v3
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      - name: Install example
-        run: pnpm install
-        working-directory: examples/cloudflare-workers
+      - uses: pnpm/action-setup@v4
+        name: Install pnpm
+        with:
+          version: 8
+          run_install: true
 
       - name: Local build
         run: pnpm run start
