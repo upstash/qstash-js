@@ -55,6 +55,11 @@ export type Message = {
    * The failure callback url if configured.
    */
   failureCallback?: string;
+
+  /**
+   * The queue name if this message was sent to a queue.
+   */
+  queueName?: string;
 };
 
 export class Messages {

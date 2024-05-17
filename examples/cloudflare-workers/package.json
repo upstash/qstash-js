@@ -2,7 +2,7 @@
   "name": "cloudflare-workers",
   "version": "0.0.0",
   "dependencies": {
-    "@upstash/qstash": "2.0.0-canary.21"
+    "@upstash/qstash": "../../dist"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20230821.0",

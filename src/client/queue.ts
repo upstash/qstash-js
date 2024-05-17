@@ -14,8 +14,6 @@ export type UpsertQueueRequest = {
   parallelism: number;
 };
 
-export type EnqueueRequest = PublishRequest;
-
 export class Queue {
   private readonly http: Requester;
   private readonly queueName: string | undefined;
@@ -91,14 +89,16 @@ export class Queue {
   /**
    * Enqueue a message to a queue.
    */
-  public async enqueue(request: EnqueueRequest): Promise<PublishResponse<PublishRequest>> {
+  public async enqueue<TRequest extends PublishRequest>(
+    request: TRequest
+  ): Promise<PublishResponse<TRequest>> {
     if (!this.queueName) {
       throw new Error("Please provide a queue name to the Queue constructor");
     }
 
     const headers = processHeaders(request);
     const destination = request.url ?? request.topic;
-    const response = await this.http.request<PublishResponse<PublishRequest>>({
+    const response = await this.http.request<PublishResponse<TRequest>>({
       path: ["v2", "enqueue", this.queueName, destination],
       body: request.body,
       headers,

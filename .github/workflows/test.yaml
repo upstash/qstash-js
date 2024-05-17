@@ -1,0 +1,99 @@
+name: Tests
+on:
+  pull_request:
+
+env:
+  QSTASH_TOKEN: ${{ secrets.QSTASH_TOKEN }}
+jobs:
+  local-tests:
+    runs-on: ubuntu-latest
+
+    name: QStash Tests
+    steps:
+      - name: Setup repo
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Install Dependencies
+        run: bun install
+
+      - name: Run tests
+        run: bun test --bail
+
+      - name: Build
+        run: bun run build
+
+  cloudflare-workers-local-build:
+    runs-on: ubuntu-latest
+    name: CF Workers Local Build
+    steps:
+      - name: Setup repo
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Install Dependencies
+        run: bun install
+
+      - name: Build
+        run: bun run build
+
+      - name: Change directory to examples/cloudflare-workers
+        run: cd examples/cloudflare-workers
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - uses: pnpm/action-setup@v4
+        name: Install pnpm
+        with:
+          version: 9
+          run_install: true
+
+      - name: Local build
+        run: sh ./test.sh
+        working-directory: examples/cloudflare-workers
+
+  nextjs-local-build:
+    runs-on: ubuntu-latest
+    name: NextJS Local Build
+    steps:
+      - name: Setup repo
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Install Dependencies
+        run: bun install
+
+      - name: Build
+        run: bun run build
+
+      - name: Change directory to examples/cloudflare-workers
+        run: cd examples/nextjs
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - uses: pnpm/action-setup@v4
+        name: Install pnpm
+        with:
+          version: 9
+          run_install: true
+
+      - name: Local build
+        run: pnpm run build
