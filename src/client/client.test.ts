@@ -121,6 +121,14 @@ describe("E2E Queue", () => {
 
   afterAll(async () => {
     const queueDetails = await client.queue().list();
+    const topics = await client.topics.list();
+
+    await Promise.all(
+      topics.map(async (t) => {
+        await client.topics.delete(t.name);
+      })
+    );
+
     await Promise.all(
       queueDetails.map(async (q) => {
         await client.queue({ queueName: q.name }).delete();
@@ -145,6 +153,60 @@ describe("E2E Queue", () => {
 
       const verifiedMessage = await client.messages.get(queueDetails.messageId);
       expect(verifiedMessage.queueName).toBe(queueName);
+    },
+    { timeout: 35_000 }
+  );
+
+  test(
+    "should batch items to topic and url with queueName",
+    async () => {
+      const queueName = nanoid();
+      const topicName = nanoid();
+
+      await client.queue({ queueName }).upsert({ parallelism: 1 });
+      await client.topics.addEndpoints({
+        name: topicName,
+        endpoints: [{ url: "https://example.com/", name: "first" }],
+      });
+
+      await client.batch([
+        {
+          topic: topicName,
+          body: "message",
+          queueName,
+        },
+        {
+          url: "https://example.com/",
+          queueName,
+        },
+      ]);
+    },
+    { timeout: 35_000 }
+  );
+
+  test(
+    "should batch json items to topic and url with queueName",
+    async () => {
+      const queueName = nanoid();
+      const topicName = nanoid();
+
+      await client.queue({ queueName }).upsert({ parallelism: 1 });
+      await client.topics.addEndpoints({
+        name: topicName,
+        endpoints: [{ url: "https://example.com/", name: "first" }],
+      });
+
+      await client.batchJSON([
+        {
+          topic: topicName,
+          body: "message",
+          queueName,
+        },
+        {
+          url: "https://example.com/",
+          queueName,
+        },
+      ]);
     },
     { timeout: 35_000 }
   );
