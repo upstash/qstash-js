@@ -28,7 +28,7 @@ type ClientConfig = {
   retry?: RetryConfig;
 };
 
-export type PublichBatchRequest<TBody = BodyInit> = PublishRequest<TBody> & {
+export type PublishBatchRequest<TBody = BodyInit> = PublishRequest<TBody> & {
   queueName?: string;
 };
 export type PublishRequest<TBody = BodyInit> = {
@@ -279,7 +279,7 @@ export class Client {
   /**
    * Batch publish messages to QStash.
    */
-  public async batch(request: PublichBatchRequest[]): Promise<PublishResponse<PublishRequest>[]> {
+  public async batch(request: PublishBatchRequest[]): Promise<PublishResponse<PublishRequest>[]> {
     const messages = [];
     for (const message of request) {
       const headers = processHeaders(message);
@@ -310,7 +310,7 @@ export class Client {
    */
   public async batchJSON<
     TBody = unknown,
-    TRequest extends PublichBatchRequest<TBody> = PublichBatchRequest<TBody>,
+    TRequest extends PublishBatchRequest<TBody> = PublishBatchRequest<TBody>,
   >(request: TRequest[]): Promise<PublishResponse<TRequest>[]> {
     for (const message of request) {
       if ("body" in message) {
