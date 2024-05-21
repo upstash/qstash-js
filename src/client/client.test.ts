@@ -121,6 +121,14 @@ describe("E2E Queue", () => {
 
   afterAll(async () => {
     const queueDetails = await client.queue().list();
+    const topics = await client.topics.list();
+
+    await Promise.all(
+      topics.map(async (t) => {
+        await client.topics.delete(t.name);
+      })
+    );
+
     await Promise.all(
       queueDetails.map(async (q) => {
         await client.queue({ queueName: q.name }).delete();
@@ -153,11 +161,17 @@ describe("E2E Queue", () => {
     "should batch items to topic and url with queueName",
     async () => {
       const queueName = nanoid();
+      const topicName = nanoid();
+
       await client.queue({ queueName }).upsert({ parallelism: 1 });
+      await client.topics.addEndpoints({
+        name: topicName,
+        endpoints: [{ url: "https://example.com/", name: "first" }],
+      });
 
       await client.batch([
         {
-          topic: "test",
+          topic: topicName,
           body: "message",
           queueName,
         },
@@ -174,11 +188,17 @@ describe("E2E Queue", () => {
     "should batch json items to topic and url with queueName",
     async () => {
       const queueName = nanoid();
+      const topicName = nanoid();
+
       await client.queue({ queueName }).upsert({ parallelism: 1 });
+      await client.topics.addEndpoints({
+        name: topicName,
+        endpoints: [{ url: "https://example.com/", name: "first" }],
+      });
 
       await client.batchJSON([
         {
-          topic: "test",
+          topic: topicName,
           body: "message",
           queueName,
         },
