@@ -148,4 +148,46 @@ describe("E2E Queue", () => {
     },
     { timeout: 35_000 }
   );
+
+  test(
+    "should batch items to topic and url with queueName",
+    async () => {
+      const queueName = nanoid();
+      await client.queue({ queueName }).upsert({ parallelism: 1 });
+
+      await client.batch([
+        {
+          topic: "test",
+          body: "message",
+          queueName,
+        },
+        {
+          url: "https://example.com/",
+          queueName,
+        },
+      ]);
+    },
+    { timeout: 35_000 }
+  );
+
+  test(
+    "should batch json items to topic and url with queueName",
+    async () => {
+      const queueName = nanoid();
+      await client.queue({ queueName }).upsert({ parallelism: 1 });
+
+      await client.batchJSON([
+        {
+          topic: "test",
+          body: "message",
+          queueName,
+        },
+        {
+          url: "https://example.com/",
+          queueName,
+        },
+      ]);
+    },
+    { timeout: 35_000 }
+  );
 });
