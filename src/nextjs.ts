@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 import type { NextApiHandler, NextApiRequest, NextApiResponse } from "next";
-import type { NextRequest } from "next/server";
+import { type NextRequest } from "next/server";
 import { type NextFetchEvent, NextResponse } from "next/server";
 import { Receiver } from "./receiver";
 
@@ -112,6 +112,7 @@ export function verifySignatureEdge(
 
   return async (request: NextRequest, nfe: NextFetchEvent) => {
     // @ts-ignore This can throw errors during vercel build
+    const requestClone = request.clone() as NextRequest;
     const signature = request.headers.get("upstash-signature");
     if (!signature) {
       return new NextResponse(new TextEncoder().encode("`Upstash-Signature` header is missing"), {
@@ -122,7 +123,7 @@ export function verifySignatureEdge(
       throw new TypeError("`Upstash-Signature` header is not a string");
     }
 
-    const body = await request.text();
+    const body = await requestClone.text();
     const isValid = await receiver.verify({
       signature,
       body,
@@ -166,6 +167,7 @@ export function verifySignatureAppRouter(
   });
 
   return async (request: NextRequest | Request) => {
+    const requestClone = request.clone() as NextRequest;
     const signature = request.headers.get("upstash-signature");
     if (!signature) {
       return new NextResponse(new TextEncoder().encode("`Upstash-Signature` header is missing"), {
@@ -176,7 +178,7 @@ export function verifySignatureAppRouter(
       throw new TypeError("`Upstash-Signature` header is not a string");
     }
 
-    const body = await request.text();
+    const body = await requestClone.text();
     const isValid = await receiver.verify({
       signature,
       body,
