@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-magic-numbers */
-import { OpenAIStream } from "ai";
 import { QstashError, QstashRatelimitError, QstashChatRatelimitError } from "./error";
-import type { BodyInit, HeadersInit, RequestOptions } from "./types";
+import type { BodyInit, ChatCompletionChunk, HeadersInit, RequestOptions } from "./types";
 
 export type UpstashRequest = {
   /**
@@ -43,7 +42,7 @@ export type UpstashResponse<TResult> = TResult & { error?: string };
 
 export type Requester = {
   request: <TResult = unknown>(request: UpstashRequest) => Promise<UpstashResponse<TResult>>;
-  requestStream: <TResult = unknown>(request: UpstashRequest) => Promise<ReadableStream<TResult>>;
+  requestStream: (request: UpstashRequest) => AsyncIterable<ChatCompletionChunk>;
 };
 
 export type RetryConfig =
@@ -119,7 +118,7 @@ export class HttpClient implements Requester {
     if (!response) {
       throw error ?? new Error("Exhausted all retries");
     }
-    this.checkResponse(response);
+    await this.checkResponse(response);
 
     if (request.parseResponseAsJson === false) {
       return undefined as unknown as UpstashResponse<TResult>;
@@ -127,7 +126,7 @@ export class HttpClient implements Requester {
     return (await response.json()) as UpstashResponse<TResult>;
   }
 
-  public async requestStream<TResult>(request: UpstashRequest): Promise<ReadableStream<TResult>> {
+  public async *requestStream(request: UpstashRequest): AsyncIterable<ChatCompletionChunk> {
     const [url, requestOptions] = this.prepareRequest(request)
 
     let response: Response | undefined = undefined;
@@ -145,9 +144,42 @@ export class HttpClient implements Requester {
     if (!response) {
       throw error ?? new Error("Exhausted all retries");
     }
-    this.checkResponse(response);
+    await this.checkResponse(response);
 
-    return OpenAIStream(response);
+    if (!response.body) {
+      throw new Error("No response body");
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) {
+          // stops here when max token reached
+          break;
+        }
+        
+        const chunkText = decoder.decode(value, { stream: true });
+        const chunks = chunkText.split('\n').filter(Boolean);
+
+        for (const chunk of chunks) {
+          if (chunk.startsWith('data: ')) {
+            const data = chunk.slice(6);
+
+            if (data === "[DONE]") {
+              // stops here last message is delivered
+              break;
+            }
+            
+            yield JSON.parse(data);
+          }
+        }
+      }
+    } finally {
+      await reader.cancel();
+    }
   }
 
   private prepareRequest = (request: UpstashRequest): [string, RequestOptions] => {
@@ -184,7 +216,7 @@ export class HttpClient implements Requester {
           "reset-requests": response.headers.get("x-ratelimit-reset-requests"),
           "reset-tokens": response.headers.get("x-ratelimit-reset-tokens"),
         });
-      };
+      }
 
       throw new QstashRatelimitError({
         limit: response.headers.get("Burst-RateLimit-Limit"),

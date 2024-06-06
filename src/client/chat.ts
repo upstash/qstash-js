@@ -1,12 +1,11 @@
-import { Requester } from './http';
-import {
+import type { Requester } from './http';
+import type {
   ChatRequest,
   ChatCompletion,
   PromptRequest,
   ChatCompletionMessage,
   StreamParameter,
   StreamEnabled,
-  StreamDisabled,
   ChatCompletionChunk
 } from './types';
 
@@ -17,23 +16,23 @@ export class Chat {
     this.http = http;
   }
 
-  private static toChatRequest<TStream extends StreamParameter>(req: PromptRequest<TStream>): ChatRequest<TStream> {
+  private static toChatRequest<TStream extends StreamParameter>(request: PromptRequest<TStream>): ChatRequest<TStream> {
 
     const messages: ChatCompletionMessage[] = [];
-    messages.push({ role: "system", content: req.system });
-    messages.push({ role: "user", content: req.user });
+    messages.push({ role: "system", content: request.system }, { role: "user", content: request.user });
 
-    const chatReq: ChatRequest<any> = { ...req, messages };
-    return chatReq;
+    // @ts-expect-error ts can't resolve the type
+    const chatRequest: ChatRequest<TStream> = { ...request, messages };
+    return chatRequest;
   }
 
   create = async <TStream extends StreamParameter>(
-    req: ChatRequest<TStream>
-  ): Promise<TStream extends StreamEnabled ? ReadableStream<ChatCompletionChunk> : ChatCompletion> => {
-    const body = JSON.stringify(req);
+    request: ChatRequest<TStream>
+  ): Promise<TStream extends StreamEnabled ? AsyncIterable<ChatCompletionChunk> : ChatCompletion> => {
+    const body = JSON.stringify(request);
 
-    if ("stream" in req && req.stream) {
-      // @ts-ignore when req.stream, we return ChatCompletion
+    if ("stream" in request && request.stream) {
+      // @ts-expect-error when req.stream, we return ChatCompletion
       return this.http.requestStream({
           path: ["llm", "v1", "chat", "completions"],
           method: "POST",
@@ -56,9 +55,9 @@ export class Chat {
   }
 
   prompt = async <TStream extends StreamParameter>(
-    req: PromptRequest<TStream>
-  ): Promise<TStream extends StreamEnabled ? ReadableStream<ChatCompletionChunk> : ChatCompletion> => {
-    const chatReq = Chat.toChatRequest<TStream>(req);
-    return this.create<TStream>(chatReq);
+    request: PromptRequest<TStream>
+  ): Promise<TStream extends StreamEnabled ? AsyncIterable<ChatCompletionChunk> : ChatCompletion> => {
+    const chatRequest = Chat.toChatRequest<TStream>(request);
+    return this.create<TStream>(chatRequest);
   }
 }
