@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-magic-numbers */
-import { QstashError, QstashRatelimitError } from "./error";
-import type { BodyInit, HeadersInit } from "./types";
+import { OpenAIStream } from "ai";
+import { QstashError, QstashRatelimitError, QstashChatRatelimitError } from "./error";
+import type { BodyInit, HeadersInit, RequestOptions } from "./types";
 
 export type UpstashRequest = {
   /**
@@ -42,6 +43,7 @@ export type UpstashResponse<TResult> = TResult & { error?: string };
 
 export type Requester = {
   request: <TResult = unknown>(request: UpstashRequest) => Promise<UpstashResponse<TResult>>;
+  requestStream: <TResult = unknown>(request: UpstashRequest) => Promise<ReadableStream<TResult>>;
 };
 
 export type RetryConfig =
@@ -101,25 +103,7 @@ export class HttpClient implements Requester {
   }
 
   public async request<TResult>(request: UpstashRequest): Promise<UpstashResponse<TResult>> {
-    //@ts-expect-error caused by undici and bunjs type overlap
-    const headers = new Headers(request.headers);
-    headers.set("Authorization", this.authorization);
-
-    const requestOptions: RequestInit & { backend?: string } = {
-      method: request.method,
-      headers,
-      body: request.body,
-      keepalive: request.keepalive,
-    };
-
-    const url = new URL([this.baseUrl, ...request.path].join("/"));
-    if (request.query) {
-      for (const [key, value] of Object.entries(request.query)) {
-        if (value !== undefined) {
-          url.searchParams.set(key, value.toString());
-        }
-      }
-    }
+    const [url, requestOptions] = this.prepareRequest(request)
 
     let response: Response | undefined = undefined;
     let error: Error | undefined = undefined;
@@ -135,7 +119,73 @@ export class HttpClient implements Requester {
     if (!response) {
       throw error ?? new Error("Exhausted all retries");
     }
+    this.checkResponse(response);
+
+    if (request.parseResponseAsJson === false) {
+      return undefined as unknown as UpstashResponse<TResult>;
+    }
+    return (await response.json()) as UpstashResponse<TResult>;
+  }
+
+  public async requestStream<TResult>(request: UpstashRequest): Promise<ReadableStream<TResult>> {
+    const [url, requestOptions] = this.prepareRequest(request)
+
+    let response: Response | undefined = undefined;
+    let error: Error | undefined = undefined;
+    for (let index = 0; index < this.retry.attempts; index++) {
+      try {
+        response = await fetch(url, requestOptions);
+        break;
+      } catch (error_) {
+        error = error_ as Error;
+        await new Promise((r) => setTimeout(r, this.retry.backoff(index)));
+      }
+    }
+
+    if (!response) {
+      throw error ?? new Error("Exhausted all retries");
+    }
+    this.checkResponse(response);
+
+    return OpenAIStream(response);
+  }
+
+  private prepareRequest = (request: UpstashRequest): [string, RequestOptions] => {
+    //@ts-expect-error caused by undici and bunjs type overlap
+    const headers = new Headers(request.headers);
+    headers.set("Authorization", this.authorization);
+
+    const requestOptions: RequestOptions = {
+      method: request.method,
+      headers,
+      body: request.body,
+      keepalive: request.keepalive,
+    };
+
+    const url = new URL([this.baseUrl, ...request.path].join("/"));
+    if (request.query) {
+      for (const [key, value] of Object.entries(request.query)) {
+        if (value !== undefined) {
+          url.searchParams.set(key, value.toString());
+        }
+      }
+    }
+    return [url.toString(), requestOptions];
+  }
+
+  private async checkResponse(response: Response) {
     if (response.status === 429) {
+      if (response.headers.get("x-ratelimit-limit-requests")) {
+        throw new QstashChatRatelimitError({
+          "limit-requests": response.headers.get("x-ratelimit-limit-requests"),
+          "limit-tokens": response.headers.get("x-ratelimit-limit-tokens"),
+          "remaining-requests": response.headers.get("x-ratelimit-remaining-requests"),
+          "remaining-tokens": response.headers.get("x-ratelimit-remaining-tokens"),
+          "reset-requests": response.headers.get("x-ratelimit-reset-requests"),
+          "reset-tokens": response.headers.get("x-ratelimit-reset-tokens"),
+        });
+      };
+
       throw new QstashRatelimitError({
         limit: response.headers.get("Burst-RateLimit-Limit"),
         remaining: response.headers.get("Burst-RateLimit-Remaining"),
@@ -147,9 +197,5 @@ export class HttpClient implements Requester {
       const body = await response.text();
       throw new QstashError(body.length > 0 ? body : `Error: status=${response.status}`);
     }
-    if (request.parseResponseAsJson === false) {
-      return undefined as unknown as UpstashResponse<TResult>;
-    }
-    return (await response.json()) as UpstashResponse<TResult>;
   }
 }

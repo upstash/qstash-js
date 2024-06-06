@@ -13,3 +13,9 @@ export class QstashRatelimitError extends QstashError {
     super(`You have been ratelimited. ${JSON.stringify(args)} `);
   }
 }
+
+export class QstashChatRatelimitError extends QstashError {
+  constructor(args: unknown) {
+    super(`You have been ratelimited. ${JSON.stringify(args)} `);
+  }
+}

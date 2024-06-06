@@ -6,6 +6,7 @@ import { Schedules } from "./schedules";
 import { Topics } from "./topics";
 import { prefixHeaders, processHeaders } from "./utils";
 import type { BodyInit, Event, HeadersInit, State } from "./types";
+import { Chat } from "./chat";
 
 type ClientConfig = {
   /**
@@ -188,6 +189,7 @@ export type QueueRequest = {
 
 export class Client {
   public http: Requester;
+  public chat: Chat;
 
   public constructor(config: ClientConfig) {
     this.http = new HttpClient({
@@ -195,6 +197,7 @@ export class Client {
       baseUrl: config.baseUrl ? config.baseUrl.replace(/\/$/, "") : "https://qstash.upstash.io",
       authorization: `Bearer ${config.token}`,
     });
+    this.chat = new Chat(this.http);
   }
 
   /**
