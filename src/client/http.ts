@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-magic-numbers */
 import { QstashError, QstashRatelimitError, QstashChatRatelimitError } from "./error";
-import type { BodyInit, ChatCompletionChunk, HeadersInit, RequestOptions } from "./types";
+import type { BodyInit, HeadersInit, RequestOptions } from "./types";
+import type { ChatCompletionChunk } from "./llm/types";
 
 export type UpstashRequest = {
   /**

@@ -1,4 +1,4 @@
-import type { Requester } from "./http";
+import type { Requester } from "../http";
 import type {
   ChatRequest,
   ChatCompletion,

@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { describe, expect, test } from "bun:test";
-import { Client } from "./client";
+import { Client } from "../client";
 import { OpenAIStream, StreamingTextResponse } from "ai";
 import type { ChatCompletionChunk } from "./types";
 

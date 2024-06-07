@@ -6,7 +6,7 @@ import { Schedules } from "./schedules";
 import { Topics } from "./topics";
 import { prefixHeaders, processHeaders } from "./utils";
 import type { BodyInit, Event, HeadersInit, State } from "./types";
-import { Chat } from "./chat";
+import { Chat } from "./llm/chat";
 
 type ClientConfig = {
   /**
