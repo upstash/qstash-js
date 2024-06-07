@@ -4,7 +4,7 @@ import { Messages } from "./messages";
 import { Queue } from "./queue";
 import { Schedules } from "./schedules";
 import { Topics } from "./topics";
-import { prefixHeaders, processHeaders } from "./utils";
+import { getRequestPath, prefixHeaders, processHeaders } from "./utils";
 import type { BodyInit, Event, HeadersInit, State } from "./types";
 import { Chat } from "./llm/chat";
 
@@ -143,13 +143,23 @@ export type PublishRequest<TBody = BodyInit> = {
        */
       url: string;
       topic?: never;
+      api?: never;
     }
   | {
       url?: never;
       /**
-       * The url where the message should be sent to.
+       * The topic the message should be sent to.
        */
       topic: string;
+      api?: never;
+    }
+  | {
+      url?: never;
+      topic?: never;
+      /**
+       * The api endpoint the request should be sent to.
+       */
+      api: "llm";
     }
 );
 
@@ -257,7 +267,7 @@ export class Client {
   ): Promise<PublishResponse<TRequest>> {
     const headers = processHeaders(request);
     const response = await this.http.request<PublishResponse<TRequest>>({
-      path: ["v2", "publish", request.url ?? request.topic],
+      path: ["v2", "publish", getRequestPath(request)],
       body: request.body,
       headers,
       method: "POST",
@@ -296,7 +306,7 @@ export class Client {
       const headerEntries = Object.fromEntries(headers.entries());
 
       messages.push({
-        destination: message.url ?? message.topic,
+        destination: getRequestPath(message),
         headers: headerEntries,
         body: message.body,
         ...(message.queueName && { queue: message.queueName }),
@@ -380,14 +390,20 @@ export class Client {
     return response;
   }
 }
-export type PublishToUrlResponse = {
+
+export type PublishToApiResponse = {
   messageId: string;
+};
+
+export type PublishToUrlResponse = PublishToApiResponse & {
   url: string;
   deduplicated?: boolean;
 };
 
 export type PublishToTopicResponse = PublishToUrlResponse[];
 
-export type PublishResponse<R> = R extends { url: string }
+export type PublishResponse<TRequest> = TRequest extends { url: string }
   ? PublishToUrlResponse
-  : PublishToTopicResponse;
+  : TRequest extends { topic: string }
+    ? PublishToTopicResponse
+    : PublishToApiResponse;
