@@ -22,39 +22,49 @@ async function checkStream(
 describe("Test Qstash chat", () => {
   const client = new Client({ token: process.env.QSTASH_TOKEN! });
 
-  test("should respond to prompt", async () => {
-    const response = await client.chat().prompt({
-      model: "meta-llama/Meta-Llama-3-8B-Instruct",
-      system: "from now on, foo is whale",
-      user: "what exactly is foo?",
-    });
+  test(
+    "should respond to prompt",
+    async () => {
+      const response = await client.chat().prompt({
+        model: "meta-llama/Meta-Llama-3-8B-Instruct",
+        system: "from now on, foo is whale",
+        user: "what exactly is foo?",
+        temperature: 0.5,
+      });
 
-    expect(response instanceof ReadableStream).toBeFalse();
-    expect(response.choices.length).toBe(1);
-    expect(response.choices[0].message.content.includes("whale")).toBeTrue();
-    expect(response.choices[0].message.role).toBe("assistant");
-  });
+      expect(response instanceof ReadableStream).toBeFalse();
+      expect(response.choices.length).toBe(1);
+      expect(response.choices[0].message.content.includes("whale")).toBeTrue();
+      expect(response.choices[0].message.role).toBe("assistant");
+    },
+    { timeout: 30_000, retry: 3 }
+  );
 
-  test("should respond to create", async () => {
-    const response = await client.chat().create({
-      model: "meta-llama/Meta-Llama-3-8B-Instruct",
-      messages: [
-        {
-          role: "system",
-          content: "from now on, foo is whale",
-        },
-        {
-          role: "user",
-          content: "what exactly is foo?",
-        },
-      ],
-    });
+  test(
+    "should respond to create",
+    async () => {
+      const response = await client.chat().create({
+        model: "meta-llama/Meta-Llama-3-8B-Instruct",
+        messages: [
+          {
+            role: "system",
+            content: "from now on, foo is whale",
+          },
+          {
+            role: "user",
+            content: "what exactly is foo?",
+          },
+        ],
+        temperature: 0.5,
+      });
 
-    expect(response instanceof ReadableStream).toBeFalse();
-    expect(response.choices.length).toBe(1);
-    expect(response.choices[0].message.content.includes("whale")).toBeTrue();
-    expect(response.choices[0].message.role).toBe("assistant");
-  });
+      expect(response instanceof ReadableStream).toBeFalse();
+      expect(response.choices.length).toBe(1);
+      expect(response.choices[0].message.content.includes("whale")).toBeTrue();
+      expect(response.choices[0].message.role).toBe("assistant");
+    },
+    { timeout: 30_000, retry: 3 }
+  );
 
   test(
     "should stream prompt",
@@ -64,30 +74,35 @@ describe("Test Qstash chat", () => {
         system: "from now on, foo is whale",
         user: "what exactly is foo?",
         stream: true,
+        temperature: 0.5,
       });
 
       await checkStream(response, ["whale"]);
     },
-    { timeout: 30_000 }
+    { timeout: 30_000, retry: 3 }
   );
 
-  test("should stream create", async () => {
-    const response = await client.chat().create({
-      model: "meta-llama/Meta-Llama-3-8B-Instruct",
-      messages: [
-        {
-          role: "system",
-          content: "from now on, foo is whale",
-        },
-        {
-          role: "user",
-          content: "what exactly is foo?",
-        },
-      ],
-      stream: true,
-      max_tokens: 5,
-    });
+  test(
+    "should stream create",
+    async () => {
+      const response = await client.chat().create({
+        model: "meta-llama/Meta-Llama-3-8B-Instruct",
+        messages: [
+          {
+            role: "system",
+            content: "from now on, foo is whale",
+          },
+          {
+            role: "user",
+            content: "what exactly is foo?",
+          },
+        ],
+        stream: true,
+        temperature: 0.5,
+      });
 
-    await checkStream(response, ["whale"]);
-  });
+      await checkStream(response, ["whale"]);
+    },
+    { timeout: 30_000, retry: 3 }
+  );
 });
