@@ -30,6 +30,15 @@ export class Chat {
     return chatRequest;
   }
 
+  /**
+   * Calls the Upstash completions api given a ChatRequest.
+   *
+   * Returns a ChatCompletion or a stream of ChatCompletionChunks
+   * if stream is enabled.
+   *
+   * @param request ChatRequest with messages
+   * @returns Chat completion or stream
+   */
   create = async <TStream extends StreamParameter>(
     request: ChatRequest<TStream>
   ): Promise<
@@ -60,6 +69,17 @@ export class Chat {
     });
   };
 
+  /**
+   * Calls the Upstash completions api given a PromptRequest.
+   *
+   * Returns a ChatCompletion or a stream of ChatCompletionChunks
+   * if stream is enabled.
+   *
+   * @param request PromptRequest with system and user messages.
+   *    Note that system parameter shouldn't be passed in the case of
+   *    mistralai/Mistral-7B-Instruct-v0.2 model.
+   * @returns Chat completion or stream
+   */
   prompt = async <TStream extends StreamParameter>(
     request: PromptRequest<TStream>
   ): Promise<

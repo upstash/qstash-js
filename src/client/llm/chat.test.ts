@@ -23,7 +23,7 @@ describe("Test Qstash chat", () => {
   const client = new Client({ token: process.env.QSTASH_TOKEN! });
 
   test("should respond to prompt", async () => {
-    const response = await client.chat.prompt({
+    const response = await client.chat().prompt({
       model: "meta-llama/Meta-Llama-3-8B-Instruct",
       system: "from now on, foo is whale",
       user: "what exactly is foo?",
@@ -36,7 +36,7 @@ describe("Test Qstash chat", () => {
   });
 
   test("should respond to create", async () => {
-    const response = await client.chat.create({
+    const response = await client.chat().create({
       model: "meta-llama/Meta-Llama-3-8B-Instruct",
       messages: [
         {
@@ -59,7 +59,7 @@ describe("Test Qstash chat", () => {
   test(
     "should stream prompt",
     async () => {
-      const response = await client.chat.prompt({
+      const response = await client.chat().prompt({
         model: "meta-llama/Meta-Llama-3-8B-Instruct",
         system: "from now on, foo is whale",
         user: "what exactly is foo?",
@@ -72,7 +72,7 @@ describe("Test Qstash chat", () => {
   );
 
   test("should stream create", async () => {
-    const response = await client.chat.create({
+    const response = await client.chat().create({
       model: "meta-llama/Meta-Llama-3-8B-Instruct",
       messages: [
         {
