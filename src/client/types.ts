@@ -31,9 +31,7 @@ export type ChatCompletionMessage = {
   content: string;
 };
 
-type ChatModel = 
-  | "meta-llama/Meta-Llama-3-8B-Instruct" 
-  | "mistralai/Mistral-7B-Instruct-v0.2";
+type ChatModel = "meta-llama/Meta-Llama-3-8B-Instruct" | "mistralai/Mistral-7B-Instruct-v0.2";
 
 type ChatResponseFormat = {
   type: "text" | "json_object";
@@ -96,9 +94,9 @@ export type ChatCompletionChunk = {
   usage: CompletionUsage;
 };
 
-export type StreamEnabled = {stream: true}
-export type StreamDisabled = {stream: false} | {}
-export type StreamParameter = StreamEnabled | StreamDisabled
+export type StreamEnabled = { stream: true };
+export type StreamDisabled = { stream: false } | object;
+export type StreamParameter = StreamEnabled | StreamDisabled;
 
 export type ChatRequest<TStream extends StreamParameter> = {
   messages: ChatCompletionMessage[];
@@ -117,7 +115,10 @@ export type ChatRequest<TStream extends StreamParameter> = {
   top_p?: number;
 } & TStream;
 
-export type PromptRequest<TStream extends StreamParameter> = Omit<ChatRequest<TStream>, "messages" | "stream"> & {
+export type PromptRequest<TStream extends StreamParameter> = Omit<
+  ChatRequest<TStream>,
+  "messages" | "stream"
+> & {
   system: string;
   user: string;
 } & TStream;

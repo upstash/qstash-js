@@ -102,7 +102,60 @@ export class HttpClient implements Requester {
   }
 
   public async request<TResult>(request: UpstashRequest): Promise<UpstashResponse<TResult>> {
-    const [url, requestOptions] = this.prepareRequest(request)
+    const { response } = await this.requestWithBackoff(request);
+    if (request.parseResponseAsJson === false) {
+      return undefined as unknown as UpstashResponse<TResult>;
+    }
+    return (await response.json()) as UpstashResponse<TResult>;
+  }
+
+  public async *requestStream(request: UpstashRequest): AsyncIterable<ChatCompletionChunk> {
+    const { response } = await this.requestWithBackoff(request);
+
+    if (!response.body) {
+      throw new Error("No response body");
+    }
+
+    const body: ReadableStream<Uint8Array> = response.body;
+    const reader = body.getReader();
+    const decoder = new TextDecoder();
+
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) {
+          // stops here when max token reached
+          break;
+        }
+
+        const chunkText = decoder.decode(value, { stream: true });
+        const chunks = chunkText.split("\n").filter(Boolean);
+
+        for (const chunk of chunks) {
+          if (chunk.startsWith("data: ")) {
+            const data = chunk.slice(6);
+
+            if (data === "[DONE]") {
+              // stops here last message is delivered
+              break;
+            }
+
+            yield JSON.parse(data);
+          }
+        }
+      }
+    } finally {
+      await reader.cancel();
+    }
+  }
+  private requestWithBackoff = async (
+    request: UpstashRequest
+  ): Promise<{
+    response: Response;
+    error: Error | undefined;
+  }> => {
+    const [url, requestOptions] = this.processRequest(request);
 
     let response: Response | undefined = undefined;
     let error: Error | undefined = undefined;
@@ -120,69 +173,13 @@ export class HttpClient implements Requester {
     }
     await this.checkResponse(response);
 
-    if (request.parseResponseAsJson === false) {
-      return undefined as unknown as UpstashResponse<TResult>;
-    }
-    return (await response.json()) as UpstashResponse<TResult>;
-  }
+    return {
+      response,
+      error,
+    };
+  };
 
-  public async *requestStream(request: UpstashRequest): AsyncIterable<ChatCompletionChunk> {
-    const [url, requestOptions] = this.prepareRequest(request)
-
-    let response: Response | undefined = undefined;
-    let error: Error | undefined = undefined;
-    for (let index = 0; index < this.retry.attempts; index++) {
-      try {
-        response = await fetch(url, requestOptions);
-        break;
-      } catch (error_) {
-        error = error_ as Error;
-        await new Promise((r) => setTimeout(r, this.retry.backoff(index)));
-      }
-    }
-
-    if (!response) {
-      throw error ?? new Error("Exhausted all retries");
-    }
-    await this.checkResponse(response);
-
-    if (!response.body) {
-      throw new Error("No response body");
-    }
-
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-
-    try {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) {
-          // stops here when max token reached
-          break;
-        }
-        
-        const chunkText = decoder.decode(value, { stream: true });
-        const chunks = chunkText.split('\n').filter(Boolean);
-
-        for (const chunk of chunks) {
-          if (chunk.startsWith('data: ')) {
-            const data = chunk.slice(6);
-
-            if (data === "[DONE]") {
-              // stops here last message is delivered
-              break;
-            }
-            
-            yield JSON.parse(data);
-          }
-        }
-      }
-    } finally {
-      await reader.cancel();
-    }
-  }
-
-  private prepareRequest = (request: UpstashRequest): [string, RequestOptions] => {
+  private processRequest = (request: UpstashRequest): [string, RequestOptions] => {
     //@ts-expect-error caused by undici and bunjs type overlap
     const headers = new Headers(request.headers);
     headers.set("Authorization", this.authorization);
@@ -203,7 +200,7 @@ export class HttpClient implements Requester {
       }
     }
     return [url.toString(), requestOptions];
-  }
+  };
 
   private async checkResponse(response: Response) {
     if (response.status === 429) {
