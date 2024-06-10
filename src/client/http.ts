@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-magic-numbers */
-import { QstashError, QstashRatelimitError } from "./error";
-import type { BodyInit, HeadersInit } from "./types";
+import { QstashError, QstashRatelimitError, QstashChatRatelimitError } from "./error";
+import type { BodyInit, HeadersInit, RequestOptions } from "./types";
+import type { ChatCompletionChunk } from "./llm/types";
 
 export type UpstashRequest = {
   /**
@@ -42,6 +43,7 @@ export type UpstashResponse<TResult> = TResult & { error?: string };
 
 export type Requester = {
   request: <TResult = unknown>(request: UpstashRequest) => Promise<UpstashResponse<TResult>>;
+  requestStream: (request: UpstashRequest) => AsyncIterable<ChatCompletionChunk>;
 };
 
 export type RetryConfig =
@@ -101,25 +103,60 @@ export class HttpClient implements Requester {
   }
 
   public async request<TResult>(request: UpstashRequest): Promise<UpstashResponse<TResult>> {
-    //@ts-expect-error caused by undici and bunjs type overlap
-    const headers = new Headers(request.headers);
-    headers.set("Authorization", this.authorization);
+    const { response } = await this.requestWithBackoff(request);
+    if (request.parseResponseAsJson === false) {
+      return undefined as unknown as UpstashResponse<TResult>;
+    }
+    return (await response.json()) as UpstashResponse<TResult>;
+  }
 
-    const requestOptions: RequestInit & { backend?: string } = {
-      method: request.method,
-      headers,
-      body: request.body,
-      keepalive: request.keepalive,
-    };
+  public async *requestStream(request: UpstashRequest): AsyncIterable<ChatCompletionChunk> {
+    const { response } = await this.requestWithBackoff(request);
 
-    const url = new URL([this.baseUrl, ...request.path].join("/"));
-    if (request.query) {
-      for (const [key, value] of Object.entries(request.query)) {
-        if (value !== undefined) {
-          url.searchParams.set(key, value.toString());
+    if (!response.body) {
+      throw new Error("No response body");
+    }
+
+    const body: ReadableStream<Uint8Array> = response.body;
+    const reader = body.getReader();
+    const decoder = new TextDecoder();
+
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) {
+          // stops here when max token reached
+          break;
+        }
+
+        const chunkText = decoder.decode(value, { stream: true });
+        const chunks = chunkText.split("\n").filter(Boolean);
+
+        for (const chunk of chunks) {
+          if (chunk.startsWith("data: ")) {
+            const data = chunk.slice(6);
+
+            if (data === "[DONE]") {
+              // stops here last message is delivered
+              break;
+            }
+
+            yield JSON.parse(data);
+          }
         }
       }
+    } finally {
+      await reader.cancel();
     }
+  }
+  private requestWithBackoff = async (
+    request: UpstashRequest
+  ): Promise<{
+    response: Response;
+    error: Error | undefined;
+  }> => {
+    const [url, requestOptions] = this.processRequest(request);
 
     let response: Response | undefined = undefined;
     let error: Error | undefined = undefined;
@@ -135,7 +172,50 @@ export class HttpClient implements Requester {
     if (!response) {
       throw error ?? new Error("Exhausted all retries");
     }
+    await this.checkResponse(response);
+
+    return {
+      response,
+      error,
+    };
+  };
+
+  private processRequest = (request: UpstashRequest): [string, RequestOptions] => {
+    //@ts-expect-error caused by undici and bunjs type overlap
+    const headers = new Headers(request.headers);
+    headers.set("Authorization", this.authorization);
+
+    const requestOptions: RequestOptions = {
+      method: request.method,
+      headers,
+      body: request.body,
+      keepalive: request.keepalive,
+    };
+
+    const url = new URL([this.baseUrl, ...request.path].join("/"));
+    if (request.query) {
+      for (const [key, value] of Object.entries(request.query)) {
+        if (value !== undefined) {
+          url.searchParams.set(key, value.toString());
+        }
+      }
+    }
+    return [url.toString(), requestOptions];
+  };
+
+  private async checkResponse(response: Response) {
     if (response.status === 429) {
+      if (response.headers.get("x-ratelimit-limit-requests")) {
+        throw new QstashChatRatelimitError({
+          "limit-requests": response.headers.get("x-ratelimit-limit-requests"),
+          "limit-tokens": response.headers.get("x-ratelimit-limit-tokens"),
+          "remaining-requests": response.headers.get("x-ratelimit-remaining-requests"),
+          "remaining-tokens": response.headers.get("x-ratelimit-remaining-tokens"),
+          "reset-requests": response.headers.get("x-ratelimit-reset-requests"),
+          "reset-tokens": response.headers.get("x-ratelimit-reset-tokens"),
+        });
+      }
+
       throw new QstashRatelimitError({
         limit: response.headers.get("Burst-RateLimit-Limit"),
         remaining: response.headers.get("Burst-RateLimit-Remaining"),
@@ -147,9 +227,5 @@ export class HttpClient implements Requester {
       const body = await response.text();
       throw new QstashError(body.length > 0 ? body : `Error: status=${response.status}`);
     }
-    if (request.parseResponseAsJson === false) {
-      return undefined as unknown as UpstashResponse<TResult>;
-    }
-    return (await response.json()) as UpstashResponse<TResult>;
   }
 }

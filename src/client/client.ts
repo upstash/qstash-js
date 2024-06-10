@@ -6,6 +6,7 @@ import { Schedules } from "./schedules";
 import { Topics } from "./topics";
 import { prefixHeaders, processHeaders } from "./utils";
 import type { BodyInit, Event, HeadersInit, State } from "./types";
+import { Chat } from "./llm/chat";
 
 type ClientConfig = {
   /**
@@ -240,6 +241,15 @@ export class Client {
    */
   public queue(request?: QueueRequest): Queue {
     return new Queue(this.http, request?.queueName);
+  }
+
+  /**
+   * Access the Chat API
+   *
+   * Call the create or prompt methods
+   */
+  public chat(): Chat {
+    return new Chat(this.http);
   }
 
   public async publish<TRequest extends PublishRequest>(

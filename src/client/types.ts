@@ -19,3 +19,20 @@ export type HeadersInit =
   | Record<string, string>
   | [string, string][]
   | IterableIterator<[string, string]>;
+
+export type RequestOptions = RequestInit & { backend?: string };
+
+export type ChatRateLimit = {
+  "limit-requests": string | null;
+  "limit-tokens": string | null;
+  "remaining-requests": string | null;
+  "remaining-tokens": string | null;
+  "reset-requests": string | null;
+  "reset-tokens": string | null;
+};
+
+export type RateLimit = {
+  limit: string | null;
+  remaining: string | null;
+  reset: string | null;
+};
