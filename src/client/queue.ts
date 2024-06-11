@@ -1,6 +1,6 @@
 import type { PublishRequest, PublishResponse } from "./client";
 import type { Requester } from "./http";
-import { prefixHeaders, processHeaders } from "./utils";
+import { getRequestPath, prefixHeaders, processHeaders } from "./utils";
 
 export type QueueResponse = {
   createdAt: number;
@@ -97,7 +97,7 @@ export class Queue {
     }
 
     const headers = processHeaders(request);
-    const destination = request.url ?? request.topic;
+    const destination = getRequestPath(request);
     const response = await this.http.request<PublishResponse<TRequest>>({
       path: ["v2", "enqueue", this.queueName, destination],
       body: request.body,
@@ -111,9 +111,10 @@ export class Queue {
   /**
    * Enqueue a message to a queue, serializing the body to JSON.
    */
-  public async enqueueJSON<TBody = unknown>(
-    request: PublishRequest<TBody>
-  ): Promise<PublishResponse<PublishRequest<TBody>>> {
+  public async enqueueJSON<
+    TBody = unknown,
+    TRequest extends PublishRequest<TBody> = PublishRequest<TBody>,
+  >(request: TRequest): Promise<PublishResponse<TRequest>> {
     //@ts-expect-error caused by undici and bunjs type overlap
     const headers = prefixHeaders(new Headers(request.headers));
     headers.set("Content-Type", "application/json");
@@ -124,6 +125,7 @@ export class Queue {
       headers,
     });
 
+    // @ts-expect-error can't assign union type to conditional
     return response;
   }
 }

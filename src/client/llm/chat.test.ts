@@ -105,4 +105,60 @@ describe("Test Qstash chat", () => {
     },
     { timeout: 30_000, retry: 3 }
   );
+
+  test("should publish with llm api", async () => {
+    const result = await client.publishJSON({
+      api: "llm",
+      body: {
+        model: "meta-llama/Meta-Llama-3-8B-Instruct",
+        messages: [
+          {
+            role: "user",
+            content: "hello",
+          },
+        ],
+      },
+      callback: "https://example.com",
+    });
+    expect(result.messageId).toBeTruthy();
+  });
+
+  test("should batch with llm api", async () => {
+    const result = await client.batchJSON([
+      {
+        api: "llm",
+        body: {
+          model: "meta-llama/Meta-Llama-3-8B-Instruct",
+          messages: [
+            {
+              role: "user",
+              content: "hello",
+            },
+          ],
+        },
+        callback: "https://example.com",
+      },
+    ]);
+    expect(result.length).toBe(1);
+    expect(result[0].messageId).toBeTruthy();
+  });
+
+  test("should enqueue with llm api", async () => {
+    const queueName = "upstash-queue";
+    const queue = client.queue({ queueName });
+    const result = await queue.enqueueJSON({
+      api: "llm",
+      body: {
+        model: "meta-llama/Meta-Llama-3-8B-Instruct",
+        messages: [
+          {
+            role: "user",
+            content: "hello",
+          },
+        ],
+      },
+      callback: "https://example.com/",
+    });
+    expect(result.messageId).toBeTruthy();
+  });
 });

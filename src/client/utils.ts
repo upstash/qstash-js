@@ -57,3 +57,7 @@ export function processHeaders(request: PublishRequest) {
 
   return headers;
 }
+
+export function getRequestPath(request: Pick<PublishRequest, "url" | "topic" | "api">): string {
+  return request.url ?? request.topic ?? `api/${request.api}`;
+}
