@@ -3,9 +3,9 @@ import { HttpClient, type Requester, type RetryConfig } from "./http";
 import { Messages } from "./messages";
 import { Queue } from "./queue";
 import { Schedules } from "./schedules";
-import { Topics } from "./topics";
+import { UrlGroups } from "./url-groups";
 import { getRequestPath, prefixHeaders, processHeaders } from "./utils";
-import type { BodyInit, Event, HeadersInit, State } from "./types";
+import type { BodyInit, Event, GetEventsPayload, HeadersInit, State } from "./types";
 import { Chat } from "./llm/chat";
 
 type ClientConfig = {
@@ -142,20 +142,20 @@ export type PublishRequest<TBody = BodyInit> = {
        * The url where the message should be sent to.
        */
       url: string;
-      topic?: never;
+      urlGroup?: never;
       api?: never;
     }
   | {
       url?: never;
       /**
-       * The topic the message should be sent to.
+       * The url group the message should be sent to.
        */
-      topic: string;
+      urlGroup: string;
       api?: never;
     }
   | {
       url?: never;
-      topic?: never;
+      urlGroup?: never;
       /**
        * The api endpoint the request should be sent to.
        */
@@ -180,7 +180,7 @@ type EventsRequestFilter = {
   messageId?: string;
   state?: State;
   url?: string;
-  topicName?: string;
+  urlGroup?: string;
   scheduleId?: string;
   queueName?: string;
   fromDate?: number; // unix timestamp (ms)
@@ -209,12 +209,12 @@ export class Client {
   }
 
   /**
-   * Access the topic API.
+   * Access the urlGroup API.
    *
-   * Create, read, update or delete topics.
+   * Create, read, update or delete urlGroups.
    */
-  public get topics(): Topics {
-    return new Topics(this.http);
+  public get urlGroups(): UrlGroups {
+    return new UrlGroups(this.http);
   }
 
   /**
@@ -382,12 +382,20 @@ export class Client {
       }
     }
 
-    const response = await this.http.request<GetEventsResponse>({
+    const responsePayload = await this.http.request<GetEventsPayload>({
       path: ["v2", "events"],
       method: "GET",
       query,
     });
-    return response;
+    return {
+      cursor: responsePayload.cursor,
+      events: responsePayload.events.map((event) => {
+        return {
+          ...event,
+          urlGroup: event.topicName,
+        };
+      }),
+    };
   }
 }
 
@@ -400,10 +408,10 @@ export type PublishToUrlResponse = PublishToApiResponse & {
   deduplicated?: boolean;
 };
 
-export type PublishToTopicResponse = PublishToUrlResponse[];
+export type PublishToUrlGroupsResponse = PublishToUrlResponse[];
 
 export type PublishResponse<TRequest> = TRequest extends { url: string }
   ? PublishToUrlResponse
-  : TRequest extends { topic: string }
-    ? PublishToTopicResponse
+  : TRequest extends { urlGroup: string }
+    ? PublishToUrlGroupsResponse
     : PublishToApiResponse;

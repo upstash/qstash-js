@@ -14,7 +14,7 @@ export type Endpoint = {
 
 export type AddEndpointsRequest = {
   /**
-   * The name of the topic.
+   * The name of the url group.
    * Must be unique and only contain alphanumeric, hyphen, underscore and periods.
    */
   name: string;
@@ -24,7 +24,7 @@ export type AddEndpointsRequest = {
 
 export type RemoveEndpointsRequest = {
   /**
-   * The name of the topic.
+   * The name of the url group.
    * Must be unique and only contain alphanumeric, hyphen, underscore and periods.
    */
   name: string;
@@ -41,7 +41,7 @@ export type RemoveEndpointsRequest = {
   )[];
 };
 
-export type Topic = {
+export type UrlGroup = {
   /**
    * A unix timestamp (milliseconds)
    */
@@ -51,7 +51,7 @@ export type Topic = {
    */
   updatedAt: number;
   /**
-   * The name of this topic.
+   * The name of this url group.
    */
   name: string;
 
@@ -61,7 +61,7 @@ export type Topic = {
   endpoints: Endpoint[];
 };
 
-export class Topics {
+export class UrlGroups {
   private readonly http: Requester;
 
   constructor(http: Requester) {
@@ -69,10 +69,10 @@ export class Topics {
   }
 
   /**
-   * Create a new topic with the given name and endpoints
+   * Create a new url group with the given name and endpoints
    */
   public async addEndpoints(request: AddEndpointsRequest): Promise<void> {
-    await this.http.request<Topic>({
+    await this.http.request<UrlGroup>({
       method: "POST",
       path: ["v2", "topics", request.name, "endpoints"],
       headers: { "Content-Type": "application/json" },
@@ -82,10 +82,10 @@ export class Topics {
   }
 
   /**
-   * Remove endpoints from a topic.
+   * Remove endpoints from a url group.
    */
   public async removeEndpoints(request: RemoveEndpointsRequest): Promise<void> {
-    await this.http.request<Topic>({
+    await this.http.request<UrlGroup>({
       method: "DELETE",
       path: ["v2", "topics", request.name, "endpoints"],
       headers: { "Content-Type": "application/json" },
@@ -95,27 +95,27 @@ export class Topics {
   }
 
   /**
-   * Get a list of all topics.
+   * Get a list of all url groups.
    */
-  public async list(): Promise<Topic[]> {
-    return await this.http.request<Topic[]>({
+  public async list(): Promise<UrlGroup[]> {
+    return await this.http.request<UrlGroup[]>({
       method: "GET",
       path: ["v2", "topics"],
     });
   }
 
   /**
-   * Get a single topic
+   * Get a single url group
    */
-  public async get(name: string): Promise<Topic> {
-    return await this.http.request<Topic>({
+  public async get(name: string): Promise<UrlGroup> {
+    return await this.http.request<UrlGroup>({
       method: "GET",
       path: ["v2", "topics", name],
     });
   }
 
   /**
-   * Delete a topic
+   * Delete a url group
    */
   public async delete(name: string): Promise<void> {
     return await this.http.request({

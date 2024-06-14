@@ -18,7 +18,7 @@ export type Schedule = {
 
 export type CreateScheduleRequest = {
   /**
-   * Either a URL or topic name
+   * Either a URL or urlGroup name
    */
   destination: string;
 
