@@ -1,5 +1,5 @@
 {
-  "version": "0.0.0-canary.2",
+  "version": "2.5.5",
   "name": "@upstash/qstash",
   "description": "Official Typescript client for QStash",
   "author": "Andreas Thomas <dev@chronark.com>",
@@ -28,7 +28,7 @@
       "require": "./nextjs.js"
     },
     "./dist/nextjs": {
-      "import": "./nextjs.mjs",
+      "import": "./nextjs.js",
       "require": "./nextjs.js"
     }
   },
