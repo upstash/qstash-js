@@ -24,7 +24,7 @@
       "require": "./index.js"
     },
     "./nextjs": {
-      "import": "./nextjs.mjs",
+      "import": "./nextjs.js",
       "require": "./nextjs.js"
     },
     "./dist/nextjs": {
