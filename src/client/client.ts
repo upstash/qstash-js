@@ -7,6 +7,8 @@ import { UrlGroups } from "./url-groups";
 import { getRequestPath, prefixHeaders, processHeaders } from "./utils";
 import type { BodyInit, Event, GetEventsPayload, HeadersInit, State } from "./types";
 import { Chat } from "./llm/chat";
+import type { LlmProvider } from "./llm/types";
+import { appendLLMOptions } from "./llm/utils";
 
 type ClientConfig = {
   /**
@@ -156,6 +158,7 @@ export type PublishRequest<TBody = BodyInit> = {
       url: string;
       urlGroup?: never;
       api?: never;
+      llmProvider?: never;
     }
   | {
       url?: never;
@@ -164,6 +167,7 @@ export type PublishRequest<TBody = BodyInit> = {
        */
       urlGroup: string;
       api?: never;
+      llmProvider?: never;
     }
   | {
       url?: never;
@@ -172,6 +176,23 @@ export type PublishRequest<TBody = BodyInit> = {
        * The api endpoint the request should be sent to.
        */
       api: "llm";
+      llmProvider?: never;
+    }
+  | {
+      /**
+       * 3rd party provider url such as OpenAI: https://api.openai.com/v1/chat/completions
+       */
+      url?: string;
+      urlGroup?: never;
+      api?: never;
+      /**
+       * 3rd party provider name such as OpenAI, TogetherAI
+       */
+      llmProvider: LlmProvider;
+      /**
+       * 3rd party provider secret key
+       */
+      llmToken?: string;
     }
 );
 
@@ -299,12 +320,16 @@ export class Client {
     const headers = prefixHeaders(new Headers(request.headers));
     headers.set("Content-Type", "application/json");
 
+    //If needed, this allows users to directly pass their requests to any open-ai compatible 3rd party llm directly from sdk.
+    appendLLMOptions<TBody, TRequest>(request, headers);
+
     // @ts-expect-error it's just internal
     const response = await this.publish<TRequest>({
       ...request,
       headers,
       body: JSON.stringify(request.body),
     } as PublishRequest);
+
     return response;
   }
 
@@ -350,6 +375,10 @@ export class Client {
       }
       //@ts-expect-error caused by undici and bunjs type overlap
       message.headers = new Headers(message.headers);
+      //@ts-expect-error caused by undici and bunjs type overlap
+      //If needed, this allows users to directly pass their requests to any open-ai compatible 3rd party llm directly from sdk.
+      appendLLMOptions<TBody, TRequest>(message, message.headers);
+
       (message.headers as Headers).set("Content-Type", "application/json");
     }
 
