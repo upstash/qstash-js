@@ -320,7 +320,7 @@ export class Client {
     const headers = prefixHeaders(new Headers(request.headers));
     headers.set("Content-Type", "application/json");
 
-    //If need this allows users to directly pass their requests to any open-ai compatible 3rd party llm directly from sdk.
+    //If needed, this allows users to directly pass their requests to any open-ai compatible 3rd party llm directly from sdk.
     appendLLMOptions<TBody, TRequest>(request, headers);
 
     // @ts-expect-error it's just internal
@@ -376,7 +376,7 @@ export class Client {
       //@ts-expect-error caused by undici and bunjs type overlap
       message.headers = new Headers(message.headers);
       //@ts-expect-error caused by undici and bunjs type overlap
-      //If need this allows users to directly pass their requests to any open-ai compatible 3rd party llm directly from sdk.
+      //If needed, this allows users to directly pass their requests to any open-ai compatible 3rd party llm directly from sdk.
       appendLLMOptions<TBody, TRequest>(message, message.headers);
 
       (message.headers as Headers).set("Content-Type", "application/json");

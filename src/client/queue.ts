@@ -135,7 +135,7 @@ export class Queue {
     const headers = prefixHeaders(new Headers(request.headers));
     headers.set("Content-Type", "application/json");
 
-    //If need this allows users to directly pass their requests to any open-ai compatible 3rd party llm directly from sdk.
+    //If needed, this allows users to directly pass their requests to any open-ai compatible 3rd party llm directly from sdk.
     appendLLMOptions<TBody, TRequest>(request, headers);
 
     const response = await this.enqueue({
