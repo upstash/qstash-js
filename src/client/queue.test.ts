@@ -1,18 +1,18 @@
 /* eslint-disable @typescript-eslint/no-magic-numbers */
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { afterAll, describe, expect, test } from "bun:test";
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { Client } from "./client";
+import { clearQueues } from "./client.test";
 
 describe("Queue", () => {
   const client = new Client({ token: process.env.QSTASH_TOKEN! });
 
   afterAll(async () => {
-    const queueDetails = await client.queue().list();
-    await Promise.all(
-      queueDetails.map(async (q) => {
-        await client.queue({ queueName: q.name }).delete();
-      })
-    );
+    await clearQueues(client);
+  });
+
+  beforeAll(async () => {
+    await clearQueues(client);
   });
 
   test("should create a queue, verify it then remove it", async () => {
@@ -23,6 +23,9 @@ describe("Queue", () => {
     expect(queueDetails.name).toEqual(queueName);
 
     await client.queue({ queueName }).delete();
+
+    const queues = await client.queue().list();
+    expect(queues.length).toBe(0);
   });
 
   test("should create multiple queue, verify them then remove them", async () => {
