@@ -28,4 +28,20 @@ describe("Messages", () => {
     },
     { timeout: 20_000 }
   );
+
+  test(
+    "should send message with timeout",
+    async () => {
+      const message = await client.publishJSON({
+        url: `https://example.com`,
+        body: { hello: "world" },
+        timeout: 90,
+      });
+
+      const verifiedMessage = await client.messages.get(message.messageId);
+      expect(verifiedMessage.messageId).toBeTruthy();
+      await client.messages.delete(message.messageId);
+    },
+    { timeout: 20_000 }
+  );
 });

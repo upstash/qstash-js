@@ -14,11 +14,12 @@ export type Schedule = {
   delay?: number;
   callback?: string;
   failureCallback?: string;
+  isPaused: true | undefined;
 };
 
 export type CreateScheduleRequest = {
   /**
-   * Either a URL or topic name
+   * Either a URL or urlGroup name
    */
   destination: string;
 
@@ -88,6 +89,18 @@ export type CreateScheduleRequest = {
    * Specify a cron expression to repeatedly send this message to the destination.
    */
   cron: string;
+
+  /**
+   * The HTTP timeout value to use while calling the destination URL.
+   * When a timeout is specified, it will be used instead of the maximum timeout
+   * value permitted by the QStash plan. It is useful in scenarios, where a message
+   * should be delivered with a shorter timeout.
+   *
+   * In seconds.
+   *
+   * @default undefined
+   */
+  timeout?: number;
 };
 
 export class Schedules {
@@ -130,6 +143,10 @@ export class Schedules {
       headers.set("Upstash-Failure-Callback", request.failureCallback);
     }
 
+    if (request.timeout !== undefined) {
+      headers.set("Upstash-Timeout", `${request.timeout}s`);
+    }
+
     return await this.http.request({
       method: "POST",
       headers,
@@ -165,6 +182,31 @@ export class Schedules {
     return await this.http.request({
       method: "DELETE",
       path: ["v2", "schedules", scheduleId],
+      parseResponseAsJson: false,
+    });
+  }
+
+  /**
+   * Pauses the schedule.
+   *
+   * A paused schedule will not deliver messages until
+   * it is resumed.
+   */
+  public async pause({ schedule }: { schedule: string }) {
+    await this.http.request({
+      method: "PATCH",
+      path: ["v2", "schedules", schedule, "pause"],
+      parseResponseAsJson: false,
+    });
+  }
+
+  /**
+   * Resumes the schedule.
+   */
+  public async resume({ schedule }: { schedule: string }) {
+    await this.http.request({
+      method: "PATCH",
+      path: ["v2", "schedules", schedule, "resume"],
       parseResponseAsJson: false,
     });
   }

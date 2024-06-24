@@ -63,7 +63,7 @@ const c = new Client({
 
 const res = await c.publishJSON({
   url: "https://my-api...",
-  // or topic: "the name or id of a topic"
+  // or urlGroup: "the name or id of a url group"
   body: {
     hello: "world",
   },

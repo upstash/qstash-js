@@ -5,6 +5,13 @@ type DlqMessage = Message & {
   dlqId: string;
 };
 
+export type DlqMessagePayload = Omit<DlqMessage, "urlGroup"> & { topicName: string };
+
+export type DlqMessageGetPayload = {
+  messages: DlqMessagePayload[];
+  cursor?: string;
+};
+
 export class DLQ {
   private readonly http: Requester;
 
@@ -19,11 +26,20 @@ export class DLQ {
     messages: DlqMessage[];
     cursor?: string;
   }> {
-    return await this.http.request({
+    const messagesPayload = await this.http.request<DlqMessageGetPayload>({
       method: "GET",
       path: ["v2", "dlq"],
       query: { cursor: options?.cursor },
     });
+    return {
+      messages: messagesPayload.messages.map((message) => {
+        return {
+          ...message,
+          urlGroup: message.topicName,
+        };
+      }),
+      cursor: messagesPayload.cursor,
+    };
   }
 
   /**
