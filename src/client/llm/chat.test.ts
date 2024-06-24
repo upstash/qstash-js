@@ -261,4 +261,60 @@ describe("Test Qstash chat with third party LLMs", () => {
     },
     { timeout: 30_000, retry: 3 }
   );
+
+  test("should publish with llm api", async () => {
+    const result = await client.publishJSON({
+      llmProvider: "openai",
+      body: {
+        model: "gpt-3.5-turbo",
+        messages: [
+          {
+            role: "user",
+            content: "Where is the capital of Turkey?",
+          },
+        ],
+      },
+      callback: "https://oz.requestcatcher.com/",
+    });
+    expect(result.messageId).toBeTruthy();
+  });
+
+  test("should batch with llm api", async () => {
+    const result = await client.batchJSON([
+      {
+        llmProvider: "openai",
+        body: {
+          model: "gpt-3.5-turbo",
+          messages: [
+            {
+              role: "user",
+              content: "hello",
+            },
+          ],
+        },
+        callback: "https://example.com",
+      },
+    ]);
+    expect(result.length).toBe(1);
+    expect(result[0].messageId).toBeTruthy();
+  });
+
+  test("should enqueue with llm api", async () => {
+    const queueName = "upstash-queue";
+    const queue = client.queue({ queueName });
+    const result = await queue.enqueueJSON({
+      llmProvider: "openai",
+      body: {
+        model: "gpt-3.5-turbo",
+        messages: [
+          {
+            role: "user",
+            content: "hello",
+          },
+        ],
+      },
+      callback: "https://example.com/",
+    });
+    expect(result.messageId).toBeTruthy();
+  });
 });
