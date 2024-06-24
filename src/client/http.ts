@@ -38,6 +38,7 @@ export type UpstashRequest = {
    * @default true
    */
   parseResponseAsJson?: boolean;
+  baseUrl?: string;
 };
 export type UpstashResponse<TResult> = TResult & { error?: string };
 
@@ -150,6 +151,7 @@ export class HttpClient implements Requester {
       await reader.cancel();
     }
   }
+
   private requestWithBackoff = async (
     request: UpstashRequest
   ): Promise<{
@@ -183,8 +185,9 @@ export class HttpClient implements Requester {
   private processRequest = (request: UpstashRequest): [string, RequestOptions] => {
     //@ts-expect-error caused by undici and bunjs type overlap
     const headers = new Headers(request.headers);
-    headers.set("Authorization", this.authorization);
-
+    if (!headers.has("Authorization")) {
+      headers.set("Authorization", this.authorization);
+    }
     const requestOptions: RequestOptions = {
       method: request.method,
       headers,
@@ -192,7 +195,7 @@ export class HttpClient implements Requester {
       keepalive: request.keepalive,
     };
 
-    const url = new URL([this.baseUrl, ...request.path].join("/"));
+    const url = new URL([request.baseUrl ?? this.baseUrl, ...request.path].join("/"));
     if (request.query) {
       for (const [key, value] of Object.entries(request.query)) {
         if (value !== undefined) {
