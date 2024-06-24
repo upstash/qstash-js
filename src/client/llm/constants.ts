@@ -1,6 +1,6 @@
-import type { ProviderBaseUrls, Providers } from "./types";
+import type { LlmProviderBaseUrl, LlmProvider } from "./types";
 
-export const PROVIDER_MAP: Record<Providers, ProviderBaseUrls> = {
+export const PROVIDER_MAP: Record<LlmProvider, LlmProviderBaseUrl> = {
   openai: "https://api.openai.com",
   togetherai: "https://api.together.xyz",
 };

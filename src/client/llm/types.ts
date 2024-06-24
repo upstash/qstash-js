@@ -177,8 +177,8 @@ type ChatRequestFields = ChatRequestCommonFields & {
   messages: ChatCompletionMessage[];
 };
 
-export type Providers = "openai" | "togetherai";
-export type ProviderBaseUrls = "https://api.openai.com" | "https://api.together.xyz";
+export type LlmProvider = "openai" | "togetherai";
+export type LlmProviderBaseUrl = "https://api.openai.com" | "https://api.together.xyz";
 
 type ChatRequestProviders =
   | {
