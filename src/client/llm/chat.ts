@@ -91,11 +91,11 @@ export class Chat {
       const baseUrl = PROVIDER_MAP[request.provider];
 
       const llmToken = request.llmToken;
-      //@ts-expect-error Gotta remove, otherwise openai throwsn an error
+      //@ts-expect-error We need to delete the prop, otherwise openai throws an error
       delete request.llmToken;
-      //@ts-expect-error Gotta remove, otherwise openai throwsn an error
+      //@ts-expect-error We need to delete the prop, otherwise openai throws an error
       delete request.system;
-      //@ts-expect-error Gotta remove, otherwise openai throwsn an error
+      //@ts-expect-error We need to delete the prop, otherwise openai throws an error
       delete request.provider;
 
       const body = JSON.stringify(request);
