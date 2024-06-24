@@ -38,4 +38,33 @@ describe("Queue", () => {
     await client.queue({ queueName: queueName1 }).delete();
     await client.queue({ queueName: queueName2 }).delete();
   });
+
+  test("should pause/resume", async () => {
+    const name = "upstash-pause-resume-queue";
+    const queue = client.queue({ queueName: name });
+    await queue.upsert({ parallelism: 1 });
+
+    let queueInfo = await queue.get();
+    expect(queueInfo.paused).toBeFalse();
+
+    await queue.pause();
+
+    queueInfo = await queue.get();
+    expect(queueInfo.paused).toBeTrue();
+
+    await queue.resume();
+
+    queueInfo = await queue.get();
+    expect(queueInfo.paused).toBeFalse();
+
+    await queue.upsert({ paused: true });
+
+    queueInfo = await queue.get();
+    expect(queueInfo.paused).toBeTrue();
+
+    await queue.upsert({ paused: false });
+
+    queueInfo = await queue.get();
+    expect(queueInfo.paused).toBeFalse();
+  });
 });

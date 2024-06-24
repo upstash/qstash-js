@@ -7,8 +7,15 @@ export type Event = {
   nextDeliveryTime?: number;
   error?: string;
   url: string;
-  topicName?: string;
+  urlGroup?: string;
   endpointName?: string;
+};
+
+export type EventPayload = Omit<Event, "urlGroup"> & { topicName: string };
+
+export type GetEventsPayload = {
+  cursor?: number;
+  events: EventPayload[];
 };
 
 export type WithCursor<T> = T & { cursor?: number };

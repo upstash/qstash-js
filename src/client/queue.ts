@@ -8,10 +8,24 @@ export type QueueResponse = {
   name: string;
   parallelism: number;
   lag: number;
+  paused?: boolean;
 };
 
 export type UpsertQueueRequest = {
-  parallelism: number;
+  /**
+   * The number of parallel consumers consuming from the queue.
+   *
+   * @default 1
+   */
+  parallelism?: number;
+
+  /**
+   * Whether to pause the queue or not. A paused queue will not
+   * deliver new messages until it is resumed.
+   *
+   * @default false
+   */
+  paused?: boolean;
 };
 
 export class Queue {
@@ -33,7 +47,8 @@ export class Queue {
 
     const body = {
       queueName: this.queueName,
-      parallelism: request.parallelism,
+      parallelism: request.parallelism ?? 1,
+      paused: request.paused ?? false,
     };
 
     await this.http.request({
@@ -127,5 +142,38 @@ export class Queue {
 
     // @ts-expect-error can't assign union type to conditional
     return response;
+  }
+
+  /**
+   * Pauses the queue.
+   *
+   * A paused queue will not deliver messages until
+   * it is resumed.
+   */
+  public async pause() {
+    if (!this.queueName) {
+      throw new Error("Please provide a queue name to the Queue constructor");
+    }
+
+    await this.http.request({
+      method: "POST",
+      path: ["v2", "queues", this.queueName, "pause"],
+      parseResponseAsJson: false,
+    });
+  }
+
+  /**
+   * Resumes the queue.
+   */
+  public async resume() {
+    if (!this.queueName) {
+      throw new Error("Please provide a queue name to the Queue constructor");
+    }
+
+    await this.http.request({
+      method: "POST",
+      path: ["v2", "queues", this.queueName, "resume"],
+      parseResponseAsJson: false,
+    });
   }
 }

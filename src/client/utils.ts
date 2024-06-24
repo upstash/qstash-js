@@ -55,9 +55,13 @@ export function processHeaders(request: PublishRequest) {
     headers.set("Upstash-Failure-Callback", request.failureCallback);
   }
 
+  if (request.timeout !== undefined) {
+    headers.set("Upstash-Timeout", `${request.timeout}s`);
+  }
+
   return headers;
 }
 
-export function getRequestPath(request: Pick<PublishRequest, "url" | "topic" | "api">): string {
-  return request.url ?? request.topic ?? `api/${request.api}`;
+export function getRequestPath(request: Pick<PublishRequest, "url" | "urlGroup" | "api">): string {
+  return request.url ?? request.urlGroup ?? `api/${request.api}`;
 }

@@ -85,17 +85,17 @@ describe("E2E Publish", () => {
   });
 });
 
-describe("E2E Topic Publish", () => {
+describe("E2E Url Group Publish", () => {
   const client = new Client({ token: process.env.QSTASH_TOKEN! });
 
-  test("should publish message multiple topics", async () => {
-    const endpoint = { name: "topic1", url: "https://oz.requestcatcher.com/?foo=bar" };
-    const endpoint1 = { name: "topic2", url: "https://oz.requestcatcher.com/?baz=bar" };
-    const topic = "my-proxy-topic";
+  test("should publish message multiple url groups", async () => {
+    const endpoint = { name: "urlGroup1", url: "https://oz.requestcatcher.com/?foo=bar" };
+    const endpoint1 = { name: "urlGroup2", url: "https://oz.requestcatcher.com/?baz=bar" };
+    const urlGroup = "my-proxy-url-group";
 
-    await client.topics.addEndpoints({
+    await client.urlGroups.addEndpoints({
       endpoints: [endpoint, endpoint1],
-      name: topic,
+      name: urlGroup,
     });
 
     const result = await client.publish({
@@ -103,16 +103,16 @@ describe("E2E Topic Publish", () => {
         "test-header": "test-value",
         "Upstash-Forward-bypass-tunnel-reminder": "client-test",
       },
-      topic,
+      urlGroup,
       delay: 3,
     });
     const verifiedMessage = await client.messages.get(result[0].messageId);
     const verifiedMessage1 = await client.messages.get(result[1].messageId);
 
     for (const messageDetail of [verifiedMessage, verifiedMessage1]) {
-      expect(messageDetail.topicName).toEqual(topic);
+      expect(messageDetail.urlGroup).toEqual(urlGroup);
     }
-    await client.topics.delete(topic);
+    await client.urlGroups.delete(urlGroup);
   });
 });
 
@@ -121,11 +121,11 @@ describe("E2E Queue", () => {
 
   afterAll(async () => {
     const queueDetails = await client.queue().list();
-    const topics = await client.topics.list();
+    const urlGroups = await client.urlGroups.list();
 
     await Promise.all(
-      topics.map(async (t) => {
-        await client.topics.delete(t.name);
+      urlGroups.map(async (t) => {
+        await client.urlGroups.delete(t.name);
       })
     );
 
@@ -158,20 +158,20 @@ describe("E2E Queue", () => {
   );
 
   test(
-    "should batch items to topic and url with queueName",
+    "should batch items to urlGroup and url with queueName",
     async () => {
       const queueName = nanoid();
-      const topicName = nanoid();
+      const urlGroup = nanoid();
 
       await client.queue({ queueName }).upsert({ parallelism: 1 });
-      await client.topics.addEndpoints({
-        name: topicName,
+      await client.urlGroups.addEndpoints({
+        name: urlGroup,
         endpoints: [{ url: "https://example.com/", name: "first" }],
       });
 
       await client.batch([
         {
-          topic: topicName,
+          urlGroup: urlGroup,
           body: "message",
           queueName,
         },
@@ -185,20 +185,20 @@ describe("E2E Queue", () => {
   );
 
   test(
-    "should batch json items to topic and url with queueName",
+    "should batch json items to urlGroup and url with queueName",
     async () => {
       const queueName = nanoid();
-      const topicName = nanoid();
+      const urlGroup = nanoid();
 
       await client.queue({ queueName }).upsert({ parallelism: 1 });
-      await client.topics.addEndpoints({
-        name: topicName,
+      await client.urlGroups.addEndpoints({
+        name: urlGroup,
         endpoints: [{ url: "https://example.com/", name: "first" }],
       });
 
       await client.batchJSON([
         {
-          topic: topicName,
+          urlGroup: urlGroup,
           body: "message",
           queueName,
         },

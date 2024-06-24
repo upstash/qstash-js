@@ -7,9 +7,9 @@ export type Message = {
   messageId: string;
 
   /**
-   * The topic name if this message was sent to a topic.
+   * The url group name if this message was sent to a urlGroup.
    */
-  topicName?: string;
+  urlGroup?: string;
 
   /**
    * The url where this message is sent to.
@@ -62,6 +62,8 @@ export type Message = {
   queueName?: string;
 };
 
+export type MessagePayload = Omit<Message, "urlGroup"> & { topicName: string };
+
 export class Messages {
   private readonly http: Requester;
 
@@ -73,10 +75,15 @@ export class Messages {
    * Get a message
    */
   public async get(messageId: string): Promise<Message> {
-    return await this.http.request<Message>({
+    const messagePayload = await this.http.request<MessagePayload>({
       method: "GET",
       path: ["v2", "messages", messageId],
     });
+    const message: Message = {
+      ...messagePayload,
+      urlGroup: messagePayload.topicName,
+    };
+    return message;
   }
 
   /**
