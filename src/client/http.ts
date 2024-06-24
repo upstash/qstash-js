@@ -28,7 +28,7 @@ export type UpstashRequest = {
   /**
    * A string to set request's method.
    */
-  method?: "GET" | "POST" | "PUT" | "DELETE";
+  method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
 
   query?: Record<string, string | number | boolean | undefined>;
 

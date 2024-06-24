@@ -78,4 +78,30 @@ describe("Schedules", () => {
     },
     { timeout: 15_000 }
   );
+
+  test("should pause/resume", async () => {
+    const createResult = await client.schedules.create({
+      cron: "1 1 1 1 1",
+      destination: "https://example.com",
+      body: JSON.stringify({ ex_key: "ex_value" }),
+    });
+
+    expect(createResult).toBeTruthy();
+
+    let getResult = await client.schedules.get(createResult.scheduleId);
+
+    expect(getResult.scheduleId).toBe(createResult.scheduleId);
+    expect(getResult.cron).toBe("1 1 1 1 1");
+    expect(getResult.isPaused).toBeUndefined();
+
+    await client.schedules.pause({ schedule: createResult.scheduleId });
+
+    getResult = await client.schedules.get(createResult.scheduleId);
+    expect(getResult.isPaused).toBeTrue();
+
+    await client.schedules.resume({ schedule: createResult.scheduleId });
+
+    getResult = await client.schedules.get(createResult.scheduleId);
+    expect(getResult.isPaused).toBeUndefined();
+  });
 });

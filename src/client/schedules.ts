@@ -14,6 +14,7 @@ export type Schedule = {
   delay?: number;
   callback?: string;
   failureCallback?: string;
+  isPaused: true | undefined;
 };
 
 export type CreateScheduleRequest = {
@@ -181,6 +182,31 @@ export class Schedules {
     return await this.http.request({
       method: "DELETE",
       path: ["v2", "schedules", scheduleId],
+      parseResponseAsJson: false,
+    });
+  }
+
+  /**
+   * Pauses the schedule.
+   *
+   * A paused schedule will not deliver messages until
+   * it is resumed.
+   */
+  public async pause({ schedule }: { schedule: string }) {
+    await this.http.request({
+      method: "PATCH",
+      path: ["v2", "schedules", schedule, "pause"],
+      parseResponseAsJson: false,
+    });
+  }
+
+  /**
+   * Resumes the schedule.
+   */
+  public async resume({ schedule }: { schedule: string }) {
+    await this.http.request({
+      method: "PATCH",
+      path: ["v2", "schedules", schedule, "resume"],
       parseResponseAsJson: false,
     });
   }
