@@ -88,6 +88,18 @@ export type CreateScheduleRequest = {
    * Specify a cron expression to repeatedly send this message to the destination.
    */
   cron: string;
+
+  /**
+   * The HTTP timeout value to use while calling the destination URL.
+   * When a timeout is specified, it will be used instead of the maximum timeout
+   * value permitted by the QStash plan. It is useful in scenarios, where a message
+   * should be delivered with a shorter timeout.
+   *
+   * In seconds.
+   *
+   * @default undefined
+   */
+  timeout?: number;
 };
 
 export class Schedules {
@@ -128,6 +140,10 @@ export class Schedules {
 
     if (request.failureCallback !== undefined) {
       headers.set("Upstash-Failure-Callback", request.failureCallback);
+    }
+
+    if (request.timeout !== undefined) {
+      headers.set("Upstash-Timeout", `${request.timeout}s`);
     }
 
     return await this.http.request({

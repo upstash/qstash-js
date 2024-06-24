@@ -55,6 +55,10 @@ export function processHeaders(request: PublishRequest) {
     headers.set("Upstash-Failure-Callback", request.failureCallback);
   }
 
+  if (request.timeout !== undefined) {
+    headers.set("Upstash-Timeout", `${request.timeout}s`);
+  }
+
   return headers;
 }
 

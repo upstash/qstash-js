@@ -136,6 +136,18 @@ export type PublishRequest<TBody = BodyInit> = {
    * @default `POST`
    */
   method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
+
+  /**
+   * The HTTP timeout value to use while calling the destination URL.
+   * When a timeout is specified, it will be used instead of the maximum timeout
+   * value permitted by the QStash plan. It is useful in scenarios, where a message
+   * should be delivered with a shorter timeout.
+   *
+   * In seconds.
+   *
+   * @default undefined
+   */
+  timeout?: number;
 } & (
   | {
       /**
