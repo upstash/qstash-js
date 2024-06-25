@@ -151,8 +151,6 @@ const response = await client.chat().create({
   stream: true,
   temperature: 0.5,
 });
-
-await checkStream(response, ["whale"]);
 ```
 
 ## Docs
