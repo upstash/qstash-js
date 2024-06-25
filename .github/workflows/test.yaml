@@ -22,7 +22,7 @@ jobs:
         run: bun install
 
       - name: Run tests
-        run: bun test --bail
+        run: bun test
 
       - name: Build
         run: bun run build
