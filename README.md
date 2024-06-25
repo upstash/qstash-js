@@ -2,8 +2,7 @@
 
 ![npm (scoped)](https://img.shields.io/npm/v/@upstash/qstash)
 
-> [!NOTE]  
-> **This project is in GA Stage.**
+> [!NOTE] > **This project is in GA Stage.**
 >
 > The Upstash Professional Support fully covers this project. It receives regular updates, and bug fixes.
 > The Upstash team is committed to maintaining and improving its functionality.
@@ -100,6 +99,60 @@ const isValid = await r.verify({
    */
   body: "string";
 })
+```
+
+### Publishing a message to Open AI or any Open AI Compatible LLM
+
+No need for complicated setup your LLM request. We'll call LLM and schedule it for your serverless needs.
+
+```ts
+import { Client } from "@upstash/qstash";
+
+const c = new Client({
+  token: "<QSTASH_TOKEN>",
+});
+
+const result = await client.publishJSON({
+  llmProvider: "openai", // We currently support open-ai and together-ai, but QStash will work with any OpenAI compatible API
+  llmToken: "YOUR_TOKEN",
+  url: "OPEN_AI_COMPATIBLE_BASE_URL",
+  body: {
+    model: "gpt-3.5-turbo",
+    messages: [
+      {
+        role: "user",
+        content: "Where is the capital of Turkey?",
+      },
+    ],
+  },
+  callback: "https://oz.requestcatcher.com/",
+});
+```
+
+### Chatting with your favorite LLM
+
+You can easily start streaming Upstash, OpenAI or TogetherAI responses from your favorite framework(Next.js) or library
+
+```ts
+const response = await client.chat().create({
+  provider: "upstash", // Optionally, provider: "openai"
+  model: "meta-llama/Meta-Llama-3-8B-Instruct", // Optionally, model: "gpt-3.5-turbo",
+  llmToken: process.env.OPENAI_API_KEY!,
+  messages: [
+    {
+      role: "system",
+      content: "from now on, foo is whale",
+    },
+    {
+      role: "user",
+      content: "what exactly is foo?",
+    },
+  ],
+  stream: true,
+  temperature: 0.5,
+});
+
+await checkStream(response, ["whale"]);
 ```
 
 ## Docs
