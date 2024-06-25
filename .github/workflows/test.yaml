@@ -4,6 +4,7 @@ on:
 
 env:
   QSTASH_TOKEN: ${{ secrets.QSTASH_TOKEN }}
+  OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
 jobs:
   local-tests:
     runs-on: ubuntu-latest
