@@ -1,11 +1,28 @@
 /* eslint-disable @typescript-eslint/no-magic-numbers */
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { afterAll, describe, expect, test } from "bun:test";
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { nanoid } from "nanoid";
 import { Client } from "./client";
 
+export const clearQueues = async (client: Client) => {
+  const queueDetails = await client.queue().list();
+  await Promise.all(
+    queueDetails.map(async (q) => {
+      await client.queue({ queueName: q.name }).delete();
+    })
+  );
+};
+
 describe("E2E Publish", () => {
   const client = new Client({ token: process.env.QSTASH_TOKEN! });
+
+  afterAll(async () => {
+    await clearQueues(client);
+  });
+
+  beforeAll(async () => {
+    await clearQueues(client);
+  });
 
   test("should publish a json message", async () => {
     const result = await client.publishJSON({
@@ -153,6 +170,7 @@ describe("E2E Queue", () => {
 
       const verifiedMessage = await client.messages.get(queueDetails.messageId);
       expect(verifiedMessage.queueName).toBe(queueName);
+      await client.queue({ queueName }).delete();
     },
     { timeout: 35_000 }
   );
@@ -180,6 +198,7 @@ describe("E2E Queue", () => {
           queueName,
         },
       ]);
+      await client.queue({ queueName }).delete();
     },
     { timeout: 35_000 }
   );
@@ -207,6 +226,7 @@ describe("E2E Queue", () => {
           queueName,
         },
       ]);
+      await client.queue({ queueName }).delete();
     },
     { timeout: 35_000 }
   );
