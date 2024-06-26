@@ -17,6 +17,17 @@ export type Message = {
   url: string;
 
   /**
+   * The endpoint name of the message if the endpoint is given a
+   * name within the url group.
+   */
+  endpointName?: string;
+
+  /**
+   * The api name if this message was sent to an api
+   */
+  api?: string;
+
+  /**
    * The http method used to deliver the message
    */
   method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
@@ -30,6 +41,12 @@ export type Message = {
    * The http body sent to your API
    */
   body?: string;
+
+  /**
+   * The base64 encoded body if the body contains non-UTF-8 characters,
+   * `None` otherwise.
+   */
+  bodyBase64?: string;
 
   /**
    * Maxmimum number of retries.
@@ -60,6 +77,16 @@ export type Message = {
    * The queue name if this message was sent to a queue.
    */
   queueName?: string;
+
+  /**
+   * The scheduleId of the message if the message is triggered by a schedule
+   */
+  scheduleId?: string;
+
+  /**
+   * IP address of the publisher of this message
+   */
+  callerIp?: string;
 };
 
 export type MessagePayload = Omit<Message, "urlGroup"> & { topicName: string };
