@@ -37,6 +37,60 @@ export type DlqMessageGetPayload = {
   cursor?: string;
 };
 
+export type DLQFilter = {
+  /**
+   * Filter DLQ entries by message id
+   */
+  messageId?: string;
+
+  /**
+   * Filter DLQ entries by url
+   */
+  url?: string;
+
+  /**
+   * Filter DLQ entries by url group name
+   */
+  urlGroup?: string;
+
+  /**
+   * Filter DLQ entries by api name
+   */
+  api?: string;
+
+  /**
+   * Filter DLQ entries by queue name
+   */
+  queueName?: string;
+
+  /**
+   * Filter DLQ entries by schedule id
+   */
+  scheduleId?: string;
+
+  /**
+   * Filter DLQ entries by starting time, in milliseconds
+   */
+  fromDate?: number;
+
+  /**
+   * Filter DLQ entries by ending time, in milliseconds
+   */
+  toDate?: number;
+
+  /**
+   * Filter DLQ entries by HTTP status of the response
+   */
+  responseStatus?: number;
+
+  /**
+   * Filter DLQ entries by IP address of the publisher of the message
+   */
+  callerIp?: string;
+};
+
+export type DLQFilterPayload = Omit<DLQFilter, "urlGroup"> & { topicName?: string };
+
 export class DLQ {
   private readonly http: Requester;
 
@@ -47,14 +101,27 @@ export class DLQ {
   /**
    * List messages in the dlq
    */
-  public async listMessages(options?: { cursor?: string }): Promise<{
+  public async listMessages(options?: {
+    cursor?: string;
+    count?: number;
+    filter?: DLQFilter;
+  }): Promise<{
     messages: DlqMessage[];
     cursor?: string;
   }> {
+    const filterPayload: DLQFilterPayload = {
+      ...options?.filter,
+      topicName: options?.filter?.urlGroup,
+    };
+
     const messagesPayload = await this.http.request<DlqMessageGetPayload>({
       method: "GET",
       path: ["v2", "dlq"],
-      query: { cursor: options?.cursor },
+      query: {
+        cursor: options?.cursor,
+        count: options?.count,
+        ...filterPayload,
+      },
     });
     return {
       messages: messagesPayload.messages.map((message) => {
