@@ -123,4 +123,22 @@ export class Messages {
       parseResponseAsJson: false,
     });
   }
+
+  public async deleteMany(messageIds: string[]): Promise<number> {
+    const result = (await this.http.request({
+      method: "DELETE",
+      path: ["v2", "messages"],
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ messageIds }),
+    })) as { cancelled: number };
+    return result.cancelled;
+  }
+
+  public async deleteAll(): Promise<number> {
+    const result = (await this.http.request({
+      method: "DELETE",
+      path: ["v2", "messages"],
+    })) as { cancelled: number };
+    return result.cancelled;
+  }
 }
