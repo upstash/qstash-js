@@ -2,7 +2,32 @@ import type { Requester } from "./http";
 import type { Message } from "./messages";
 
 type DlqMessage = Message & {
+  /**
+   * The unique id within the DLQ
+   */
   dlqId: string;
+
+  /**
+   * The HTTP status code of the last failed delivery attempt
+   */
+  responseStatus?: number;
+
+  /**
+   * The response headers of the last failed delivery attempt
+   */
+  responseHeader?: Record<string, string[]>;
+
+  /**
+   * The response body of the last failed delivery attempt if it is
+   * composed of UTF-8 characters only, `None` otherwise.
+   */
+  responseBody?: string;
+
+  /**
+   * The base64 encoded response body of the last failed delivery attempt
+   * if the response body contains non-UTF-8 characters, `None` otherwise.
+   */
+  responseBodyBase64?: string;
 };
 
 export type DlqMessagePayload = Omit<DlqMessage, "urlGroup"> & { topicName: string };
