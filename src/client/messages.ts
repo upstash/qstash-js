@@ -17,6 +17,17 @@ export type Message = {
   url: string;
 
   /**
+   * The endpoint name of the message if the endpoint is given a
+   * name within the url group.
+   */
+  endpointName?: string;
+
+  /**
+   * The api name if this message was sent to an api
+   */
+  api?: string;
+
+  /**
    * The http method used to deliver the message
    */
   method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
@@ -30,6 +41,12 @@ export type Message = {
    * The http body sent to your API
    */
   body?: string;
+
+  /**
+   * The base64 encoded body if the body contains non-UTF-8 characters,
+   * `None` otherwise.
+   */
+  bodyBase64?: string;
 
   /**
    * Maxmimum number of retries.
@@ -60,6 +77,16 @@ export type Message = {
    * The queue name if this message was sent to a queue.
    */
   queueName?: string;
+
+  /**
+   * The scheduleId of the message if the message is triggered by a schedule
+   */
+  scheduleId?: string;
+
+  /**
+   * IP address of the publisher of this message
+   */
+  callerIp?: string;
 };
 
 export type MessagePayload = Omit<Message, "urlGroup"> & { topicName: string };
@@ -95,5 +122,23 @@ export class Messages {
       path: ["v2", "messages", messageId],
       parseResponseAsJson: false,
     });
+  }
+
+  public async deleteMany(messageIds: string[]): Promise<number> {
+    const result = (await this.http.request({
+      method: "DELETE",
+      path: ["v2", "messages"],
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ messageIds }),
+    })) as { cancelled: number };
+    return result.cancelled;
+  }
+
+  public async deleteAll(): Promise<number> {
+    const result = (await this.http.request({
+      method: "DELETE",
+      path: ["v2", "messages"],
+    })) as { cancelled: number };
+    return result.cancelled;
   }
 }

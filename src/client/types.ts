@@ -9,6 +9,8 @@ export type Event = {
   url: string;
   urlGroup?: string;
   endpointName?: string;
+  header?: Record<string, string>;
+  body?: string; // base64 encoded
 };
 
 export type EventPayload = Omit<Event, "urlGroup"> & { topicName: string };
