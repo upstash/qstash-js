@@ -33,7 +33,7 @@ export class Workflow {
     this.skip = skip;
   }
 
-  public async step<TResult>(
+  public async run<TResult>(
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     stepName: string,
     stepFunction: StepFunction<TResult>
