@@ -4,14 +4,14 @@ import { internalHeader, workflowIdHeader } from "./types";
 import type { Client } from "../client";
 
 export class Workflow {
-  private client: Client;
-  private url: string;
-  private stepCount = 0;
-  private workflowId: string;
-  private steps: Step[];
-  private skip;
+  protected client: Client;
+  protected url: string;
+  protected stepCount = 0;
+  protected workflowId: string;
+  protected steps: Step[];
+  protected skip;
   // to accumulate steps in Promise.all
-  private pendingSteps: Step[] = [];
+  protected pendingSteps: Step[] = [];
 
   constructor({
     client,
@@ -31,6 +31,10 @@ export class Workflow {
     this.workflowId = workflowId;
     this.steps = steps;
     this.skip = skip;
+  }
+
+  public requestPayload() {
+    return this.steps[0].out;
   }
 
   public async run<TResult>(
@@ -106,6 +110,8 @@ export class Workflow {
         break;
       }
       case "last": {
+        // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+        this.stepCount += stepFunctions.length * 2 - 1;
         const sortedSteps = this.steps.sort((step, stepOther) => step.stepId - stepOther.stepId);
         return sortedSteps
           .filter((step) => step.stepId >= this.stepCount)
@@ -129,7 +135,7 @@ export class Workflow {
    *    qstash will call again with the full result. In this case, parallel step will
    *    return the result and
    */
-  private getParallelCallState(parallelStepCount: number): PARALLEL_CALL_STATE {
+  protected getParallelCallState(parallelStepCount: number): PARALLEL_CALL_STATE {
     if (this.stepCount === this.steps.length) {
       return "first";
       // multiplying with two because we will have planSteps and resultSteps
