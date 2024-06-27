@@ -20,3 +20,5 @@ export type StepFunction<TResult> = () => Promise<TResult>;
 
 export const workflowIdHeader = "Upstash-Workflow-Id";
 export const internalHeader = "Upstash-Workflow-InternalCall";
+
+export type PARALLEL_CALL_STATE = "first" | "partial" | "discard" | "last";

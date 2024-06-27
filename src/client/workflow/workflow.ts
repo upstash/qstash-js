@@ -1,5 +1,5 @@
 import { nanoid } from "nanoid";
-import type { Step, StepFunction } from "./types";
+import type { PARALLEL_CALL_STATE, Step, StepFunction } from "./types";
 import { internalHeader, workflowIdHeader } from "./types";
 import type { Client } from "../client";
 
@@ -58,9 +58,96 @@ export class Workflow {
     return result;
   }
 
-  private addResult(result: unknown) {
+  /**
+   *
+   *
+   * @param stepName
+   * @param stepFunctions
+   */
+  public async parallel<TResults extends unknown[]>(
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    stepName: string,
+    stepFunctions: { [K in keyof TResults]: StepFunction<TResults[K]> }
+  ): Promise<TResults> {
+    this.stepCount += 1;
+    if (this.skip) {
+      return [] as unknown as TResults;
+    }
+    const parallelCallState = this.getParallelCallState(stepFunctions.length);
+
+    switch (parallelCallState) {
+      case "first": {
+        const planSteps = stepFunctions.map((stepFunction, index) => {
+          return {
+            stepId: 0,
+            concurrent: stepFunctions.length,
+            targetStep: this.stepCount + index,
+          } as Step;
+        });
+        this.addStep(planSteps);
+        break;
+      }
+      case "partial": {
+        const planStep = this.steps.at(-1);
+        if (!planStep || planStep.targetStep === 0) {
+          throw new Error(
+            `There must be a last step and it should have targetStep larger than 0. Received: ${JSON.stringify(planStep)}`
+          );
+        }
+        const stepIndex = planStep.targetStep - this.stepCount;
+        const result = await stepFunctions[stepIndex]();
+        this.addResult(result, planStep.targetStep);
+        break;
+      }
+      case "discard": {
+        break;
+      }
+      case "last": {
+        const sortedSteps = this.steps.sort((step, stepOther) => step.stepId - stepOther.stepId);
+        return sortedSteps
+          .filter((step) => step.stepId >= this.stepCount)
+          .map((step) => step.out) as TResults;
+      }
+    }
+    await this.sendPendingToQstash();
+    this.skip = true;
+    return [] as unknown as TResults;
+  }
+
+  /**
+   * Determines the parallel call state
+   *
+   * Parallel can be called in three states:
+   * 1. Called for the first time: will send the three plans to qstash one by one
+   * 2. Called with partial results: after the initial call, will be called multiple
+   *    times with each call having a unique targetStep. Corresponding target step
+   *    will be executed
+   * 3. Called with full results: After the final partial result call returns to Qstash,
+   *    qstash will call again with the full result. In this case, parallel step will
+   *    return the result and
+   */
+  private getParallelCallState(parallelStepCount: number): PARALLEL_CALL_STATE {
+    if (this.stepCount === this.steps.length) {
+      return "first";
+      // multiplying with two because we will have planSteps and resultSteps
+      // for each function running in parallel
+      // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+    } else if (this.steps.length === this.stepCount + 2 * parallelStepCount) {
+      return "last";
+    } else {
+      // last one is a plan step, return partial
+      if (this.steps.at(-1)?.stepId === 0) {
+        return "partial";
+      }
+
+      // last one is a result step, discard
+      return "discard";
+    }
+  }
+
+  private addResult(result: unknown, stepId?: number) {
     this.addStep({
-      stepId: this.stepCount,
+      stepId: stepId ?? this.stepCount,
       out: result,
       concurrent: 1,
       targetStep: 0,
@@ -70,8 +157,9 @@ export class Workflow {
   private addStep(step: Step | Step[]) {
     if (Array.isArray(step)) {
       this.pendingSteps = [...this.pendingSteps, ...step];
+    } else {
+      this.pendingSteps.push(step);
     }
-    this.pendingSteps.push(step as Step);
   }
 
   private async invokeQstash(step: Step) {
