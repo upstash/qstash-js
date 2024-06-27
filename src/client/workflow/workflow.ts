@@ -1,5 +1,5 @@
 import { nanoid } from "nanoid";
-import type { PARALLEL_CALL_STATE, Step, StepFunction } from "./types";
+import type { AsyncStepFunction, PARALLEL_CALL_STATE, Step, StepFunction } from "./types";
 import { internalHeader, workflowIdHeader } from "./types";
 import type { Client } from "../client";
 
@@ -48,7 +48,8 @@ export class Workflow {
       return this.steps[this.stepCount].out as TResult;
     }
 
-    const result = await stepFunction();
+    const rawResult = stepFunction();
+    const result = rawResult instanceof Promise ? await rawResult : rawResult;
     this.skip = true;
 
     // add result to pending and send request
@@ -67,7 +68,7 @@ export class Workflow {
   public async parallel<TResults extends unknown[]>(
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     stepName: string,
-    stepFunctions: { [K in keyof TResults]: StepFunction<TResults[K]> }
+    stepFunctions: { [K in keyof TResults]: AsyncStepFunction<TResults[K]> }
   ): Promise<TResults> {
     this.stepCount += 1;
     if (this.skip) {
@@ -95,7 +96,9 @@ export class Workflow {
           );
         }
         const stepIndex = planStep.targetStep - this.stepCount;
-        const result = await stepFunctions[stepIndex]();
+        const rawResult = stepFunctions[stepIndex]();
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        const result = rawResult instanceof Promise ? await rawResult : rawResult;
         this.addResult(result, planStep.targetStep);
         break;
       }
@@ -219,7 +222,7 @@ export class Workflow {
       ];
     } else {
       if (payload === undefined) {
-        throw new Error("only first call can have empty payload");
+        throw new Error("only first call can have an empty body");
       }
 
       steps = payload.map((rawStep) => {

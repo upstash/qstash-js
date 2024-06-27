@@ -16,7 +16,9 @@ export type ContextPayload<TOut> = {
   targetStep: number;
 };
 
-export type StepFunction<TResult> = () => Promise<TResult>;
+export type SyncStepFunction<TResult> = () => TResult;
+export type AsyncStepFunction<TResult> = () => Promise<TResult>;
+export type StepFunction<TResult> = AsyncStepFunction<TResult> | SyncStepFunction<TResult>;
 
 export const workflowIdHeader = "Upstash-Workflow-Id";
 export const internalHeader = "Upstash-Workflow-InternalCall";
