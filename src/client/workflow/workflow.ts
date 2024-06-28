@@ -144,15 +144,18 @@ export class Workflow {
    *    return the result and
    */
   protected getParallelCallState(parallelStepCount: number): PARALLEL_CALL_STATE {
-    // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-    if (this.steps.length >= this.stepCount + this.planStepCount + 2 * parallelStepCount) {
-      return "last";
-    } else if (this.steps.at(-1)?.stepId === 0) {
-      return "partial";
-    } else if (this.stepCount === this.nonPlanStepCount) {
+    const steps = this.steps.filter(
+      (step) => (step.stepId === 0 ? step.targetStep : step.stepId) >= this.stepCount
+    );
+
+    if (steps.length === 0) {
       return "first";
+      // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+    } else if (steps.length >= 2 * parallelStepCount) {
+      return "last";
+    } else if (steps.at(-1)?.targetStep) {
+      return "partial";
     } else {
-      // last one is a result step, discard
       return "discard";
     }
   }
