@@ -4,11 +4,13 @@ import { internalHeader, workflowIdHeader } from "./types";
 import type { Client } from "../client";
 
 export class Workflow {
-  protected client: Client;
-  protected url: string;
+  protected readonly client: Client;
+  protected readonly url: string;
   protected stepCount = 0;
-  protected workflowId: string;
-  protected steps: Step[];
+  protected planStepCount = 0;
+  protected readonly workflowId: string;
+  protected readonly steps: Step[];
+  protected readonly nonPlanStepCount: number;
   protected skip;
   // to accumulate steps in Promise.all
   protected pendingSteps: Step[] = [];
@@ -30,6 +32,7 @@ export class Workflow {
     this.url = url;
     this.workflowId = workflowId;
     this.steps = steps;
+    this.nonPlanStepCount = this.steps.filter((step) => !step.targetStep).length;
     this.skip = skip;
   }
 
@@ -48,8 +51,8 @@ export class Workflow {
       return;
     }
 
-    if (this.stepCount < this.steps.length) {
-      return this.steps[this.stepCount].out as TResult;
+    if (this.stepCount < this.nonPlanStepCount) {
+      return this.steps[this.stepCount + this.planStepCount].out as TResult;
     }
 
     const rawResult = stepFunction();
@@ -111,11 +114,16 @@ export class Workflow {
       }
       case "last": {
         // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-        this.stepCount += stepFunctions.length * 2 - 1;
-        const sortedSteps = this.steps.sort((step, stepOther) => step.stepId - stepOther.stepId);
-        return sortedSteps
+        const sortedSteps = this.steps.toSorted(
+          (step, stepOther) => step.stepId - stepOther.stepId
+        );
+        const concurrentResults = sortedSteps
           .filter((step) => step.stepId >= this.stepCount)
-          .map((step) => step.out) as TResults;
+          .map((step) => step.out)
+          .slice(0, stepFunctions.length) as TResults;
+        this.stepCount += stepFunctions.length - 1;
+        this.planStepCount += stepFunctions.length;
+        return concurrentResults;
       }
     }
     await this.sendPendingToQstash();
@@ -136,19 +144,14 @@ export class Workflow {
    *    return the result and
    */
   protected getParallelCallState(parallelStepCount: number): PARALLEL_CALL_STATE {
-    if (this.stepCount === this.steps.length) {
-      return "first";
-      // multiplying with two because we will have planSteps and resultSteps
-      // for each function running in parallel
-      // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-    } else if (this.steps.length === this.stepCount + 2 * parallelStepCount) {
+    // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+    if (this.steps.length >= this.stepCount + this.planStepCount + 2 * parallelStepCount) {
       return "last";
+    } else if (this.steps.at(-1)?.stepId === 0) {
+      return "partial";
+    } else if (this.stepCount === this.nonPlanStepCount) {
+      return "first";
     } else {
-      // last one is a plan step, return partial
-      if (this.steps.at(-1)?.stepId === 0) {
-        return "partial";
-      }
-
       // last one is a result step, discard
       return "discard";
     }
