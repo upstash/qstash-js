@@ -1,7 +1,8 @@
 import { nanoid } from "nanoid";
 import type { AsyncStepFunction, ParallelCallState, Step, StepFunction } from "./types";
-import { INTERNAL_HEADER, WORKFLOW_ID_HEADER } from "./constants";
+import { WORKFLOW_INTERNAL_HEADER, WORKFLOW_ID_HEADER } from "./constants";
 import type { Client } from "../client";
+import * as WorkflowParser from "./workflow-parser";
 
 export class Workflow {
   protected readonly client: Client;
@@ -144,16 +145,16 @@ export class Workflow {
    *    return the result and
    */
   protected getParallelCallState(parallelStepCount: number): ParallelCallState {
-    const steps = this.steps.filter(
+    const remainingSteps = this.steps.filter(
       (step) => (step.stepId === 0 ? step.targetStep : step.stepId) >= this.stepCount
     );
 
-    if (steps.length === 0) {
+    if (remainingSteps.length === 0) {
       return "first";
       // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-    } else if (steps.length >= 2 * parallelStepCount) {
+    } else if (remainingSteps.length >= 2 * parallelStepCount) {
       return "last";
-    } else if (steps.at(-1)?.targetStep) {
+    } else if (remainingSteps.at(-1)?.targetStep) {
       return "partial";
     } else {
       return "discard";
@@ -171,15 +172,15 @@ export class Workflow {
 
   private addStep(step: Step | Step[]) {
     if (Array.isArray(step)) {
-      this.pendingSteps = [...this.pendingSteps, ...step];
+      this.pendingSteps.push(...step);
     } else {
       this.pendingSteps.push(step);
     }
   }
 
-  private async invokeQstash(step: Step) {
+  private async submitResults(step: Step) {
     const headers: Record<string, string> = {
-      [`Upstash-Forward-${INTERNAL_HEADER}`]: "yes",
+      [`Upstash-Forward-${WORKFLOW_INTERNAL_HEADER}`]: "yes",
       "Upstash-Forward-Upstash-Workflow-Id": this.workflowId,
       "Upstash-Workflow-Id": this.workflowId,
     };
@@ -197,33 +198,26 @@ export class Workflow {
   private async sendPendingToQstash() {
     // TODO: batch request for concurrent requests
     for (const step of this.pendingSteps) {
-      await this.invokeQstash(step);
+      await this.submitResults(step);
     }
     this.pendingSteps = [];
   }
 
-  /**
-   * STATIC METHODS
-   */
-
   static async parseRequest(request: Request) {
-    const callHeader = request.headers.get(INTERNAL_HEADER);
-    const firstCall = !callHeader;
+    const callHeader = request.headers.get(WORKFLOW_INTERNAL_HEADER);
+    const isFirstInvocation = !callHeader;
 
-    const workflowId = firstCall ? `wf${nanoid()}` : request.headers.get(WORKFLOW_ID_HEADER) ?? "";
+    const workflowId = isFirstInvocation
+      ? `wf${nanoid()}`
+      : request.headers.get(WORKFLOW_ID_HEADER) ?? "";
     if (workflowId.length === 0) {
       throw new Error("Couldn't get workflow id from header");
     }
 
-    let payload: string[] | undefined;
-    try {
-      payload = (await request.json()) as string[];
-    } catch {
-      payload = undefined;
-    }
+    const payload = await WorkflowParser.parsePayload(request);
 
     let steps: Step[];
-    if (firstCall) {
+    if (isFirstInvocation) {
       steps = [
         {
           stepId: 0,
@@ -237,24 +231,28 @@ export class Workflow {
         throw new Error("only first call can have an empty body");
       }
 
-      steps = payload.map((rawStep) => {
-        return JSON.parse(JSON.parse(Buffer.from(rawStep, "base64").toString()) as string) as Step;
-      });
+      steps = WorkflowParser.generateSteps(payload);
     }
 
     return {
-      firstCall,
+      isFirstInvocation,
       workflowId,
       steps,
     };
   }
 
   static async createWorkflow(request: Request, client: Client) {
-    const { firstCall, workflowId, steps } = await Workflow.parseRequest(request);
-    const workflow = new Workflow({ client, workflowId, steps, skip: firstCall, url: request.url });
+    const { isFirstInvocation, workflowId, steps } = await Workflow.parseRequest(request);
+    const workflow = new Workflow({
+      client,
+      workflowId,
+      steps,
+      skip: isFirstInvocation,
+      url: request.url,
+    });
 
-    if (firstCall) {
-      await workflow.invokeQstash(steps[0]);
+    if (isFirstInvocation) {
+      await workflow.submitResults(steps[0]);
     }
 
     return workflow;

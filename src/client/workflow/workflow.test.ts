@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-magic-numbers */
 import { describe, expect, test } from "bun:test";
-import { INTERNAL_HEADER } from "./constants";
+import { WORKFLOW_INTERNAL_HEADER } from "./constants";
 import { Workflow } from "./workflow";
 import { Client } from "../client";
 
@@ -207,7 +207,7 @@ describe("Workflow", () => {
       const mockUrl = "https://www.mock.com/";
       const mockRequest = new Request(mockUrl, {
         headers: {
-          [INTERNAL_HEADER]: "yes",
+          [WORKFLOW_INTERNAL_HEADER]: "yes",
           "Upstash-Workflow-Id": mockId,
         },
         // base64 encoding of:
