@@ -1,6 +1,6 @@
 import { nanoid } from "nanoid";
-import type { AsyncStepFunction, PARALLEL_CALL_STATE, Step, StepFunction } from "./types";
-import { internalHeader, workflowIdHeader } from "./types";
+import type { AsyncStepFunction, ParallelCallState, Step, StepFunction } from "./types";
+import { INTERNAL_HEADER, WORKFLOW_ID_HEADER } from "./constants";
 import type { Client } from "../client";
 
 export class Workflow {
@@ -143,7 +143,7 @@ export class Workflow {
    *    qstash will call again with the full result. In this case, parallel step will
    *    return the result and
    */
-  protected getParallelCallState(parallelStepCount: number): PARALLEL_CALL_STATE {
+  protected getParallelCallState(parallelStepCount: number): ParallelCallState {
     const steps = this.steps.filter(
       (step) => (step.stepId === 0 ? step.targetStep : step.stepId) >= this.stepCount
     );
@@ -179,7 +179,7 @@ export class Workflow {
 
   private async invokeQstash(step: Step) {
     const headers: Record<string, string> = {
-      [`Upstash-Forward-${internalHeader}`]: "yes",
+      [`Upstash-Forward-${INTERNAL_HEADER}`]: "yes",
       "Upstash-Forward-Upstash-Workflow-Id": this.workflowId,
       "Upstash-Workflow-Id": this.workflowId,
     };
@@ -207,10 +207,10 @@ export class Workflow {
    */
 
   static async parseRequest(request: Request) {
-    const callHeader = request.headers.get(internalHeader);
+    const callHeader = request.headers.get(INTERNAL_HEADER);
     const firstCall = !callHeader;
 
-    const workflowId = firstCall ? `wf${nanoid()}` : request.headers.get(workflowIdHeader) ?? "";
+    const workflowId = firstCall ? `wf${nanoid()}` : request.headers.get(WORKFLOW_ID_HEADER) ?? "";
     if (workflowId.length === 0) {
       throw new Error("Couldn't get workflow id from header");
     }

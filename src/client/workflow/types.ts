@@ -20,7 +20,4 @@ export type SyncStepFunction<TResult> = () => TResult;
 export type AsyncStepFunction<TResult> = () => Promise<TResult>;
 export type StepFunction<TResult> = AsyncStepFunction<TResult> | SyncStepFunction<TResult>;
 
-export const workflowIdHeader = "Upstash-Workflow-Id";
-export const internalHeader = "Upstash-Workflow-InternalCall";
-
-export type PARALLEL_CALL_STATE = "first" | "partial" | "discard" | "last";
+export type ParallelCallState = "first" | "partial" | "discard" | "last";
