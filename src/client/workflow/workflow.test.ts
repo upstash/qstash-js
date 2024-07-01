@@ -48,8 +48,8 @@ describe("Workflow", () => {
       // in this case, we are running a parallel step for the first time since
       // this.stepCount equals this.steps.length
 
-      workflow.stepCount += 1;
-      expect(workflow.getParallelCallState(2)).toBe("first");
+      workflow.stepCount += 2;
+      expect(workflow.getParallelCallState(2, 1)).toBe("first");
     });
     test("partial request", () => {
       // in this case, we are currently running a parallel request and the last step
@@ -57,77 +57,76 @@ describe("Workflow", () => {
       workflow.steps.push({
         stepId: 0,
         concurrent: 2,
-        targetStep: 2,
+        targetStep: 1,
       });
-      expect(workflow.getParallelCallState(2)).toBe("partial");
+      expect(workflow.getParallelCallState(2, 1)).toBe("partial");
     });
     test("discarded request", () => {
       // in this case, we are currently running a parallel request and the last step
       // is NOT a plan step, meaning that we will discard the request
       workflow.steps.push({
-        stepId: 2,
+        stepId: 1,
         out: "first result",
         concurrent: 1,
         targetStep: 0,
       });
-      expect(workflow.getParallelCallState(2)).toBe("discard");
+      expect(workflow.getParallelCallState(2, 1)).toBe("discard");
     });
     test("second partial request", () => {
       // in this case, all results have been received. We will return the results
       workflow.steps.push({
         stepId: 0,
         concurrent: 2,
-        targetStep: 3,
+        targetStep: 2,
       });
-      expect(workflow.getParallelCallState(2)).toBe("partial");
+      expect(workflow.getParallelCallState(2, 1)).toBe("partial");
     });
     test("last request", () => {
       workflow.steps.push({
-        stepId: 3,
+        stepId: 2,
         out: "second result",
         concurrent: 1,
         targetStep: 0,
       });
-      expect(workflow.getParallelCallState(2)).toBe("last");
-      workflow.stepCount += 2;
+      expect(workflow.getParallelCallState(2, 1)).toBe("last");
     });
     test("second pipeline first", () => {
-      workflow.stepCount += 1;
-      expect(workflow.getParallelCallState(2)).toBe("first");
+      workflow.stepCount += 2;
+      expect(workflow.getParallelCallState(2, 3)).toBe("first");
     });
     test("second pipeline first partial", () => {
       workflow.steps.push({
         stepId: 0,
         concurrent: 2,
-        targetStep: 4,
+        targetStep: 3,
       });
-      expect(workflow.getParallelCallState(2)).toBe("partial");
+      expect(workflow.getParallelCallState(2, 3)).toBe("partial");
     });
     test("second pipeline second partial", () => {
       workflow.steps.push({
         stepId: 0,
         concurrent: 2,
-        targetStep: 5,
+        targetStep: 4,
       });
-      expect(workflow.getParallelCallState(2)).toBe("partial");
+      expect(workflow.getParallelCallState(2, 3)).toBe("partial");
     });
     test("second pipeline first result", () => {
       workflow.steps.push({
-        stepId: 4,
+        stepId: 3,
         concurrent: 1,
         out: "first result",
         targetStep: 0,
       });
-      expect(workflow.getParallelCallState(2)).toBe("discard");
+      expect(workflow.getParallelCallState(2, 3)).toBe("discard");
     });
     test("second pipeline second result", () => {
       workflow.steps.push({
-        stepId: 5,
+        stepId: 4,
         concurrent: 1,
         out: "second result",
         targetStep: 0,
       });
-      expect(workflow.getParallelCallState(2)).toBe("last");
+      expect(workflow.getParallelCallState(2, 3)).toBe("last");
     });
     test("validate steps", () => {
       expect(workflow.steps).toEqual([
@@ -139,11 +138,22 @@ describe("Workflow", () => {
         {
           stepId: 0,
           concurrent: 2,
+          targetStep: 1,
+        },
+        {
+          stepId: 1,
+          out: "first result",
+          concurrent: 1,
+          targetStep: 0,
+        },
+        {
+          stepId: 0,
+          concurrent: 2,
           targetStep: 2,
         },
         {
           stepId: 2,
-          out: "first result",
+          out: "second result",
           concurrent: 1,
           targetStep: 0,
         },
@@ -153,29 +163,18 @@ describe("Workflow", () => {
           targetStep: 3,
         },
         {
-          stepId: 3,
-          out: "second result",
-          concurrent: 1,
-          targetStep: 0,
-        },
-        {
           stepId: 0,
           concurrent: 2,
           targetStep: 4,
         },
         {
-          stepId: 0,
-          concurrent: 2,
-          targetStep: 5,
-        },
-        {
-          stepId: 4,
+          stepId: 3,
           concurrent: 1,
           out: "first result",
           targetStep: 0,
         },
         {
-          stepId: 5,
+          stepId: 4,
           concurrent: 1,
           out: "second result",
           targetStep: 0,

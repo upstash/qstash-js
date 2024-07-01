@@ -1,8 +1,9 @@
 import { nanoid } from "nanoid";
-import type { AsyncStepFunction, ParallelCallState, Step, StepFunction } from "./types";
+import type { AsyncStepFunction, ParallelCallState, Step } from "./types";
 import { WORKFLOW_INTERNAL_HEADER, WORKFLOW_ID_HEADER } from "./constants";
 import type { Client } from "../client";
 import * as WorkflowParser from "./workflow-parser";
+import { AutoExecutor } from "./auto-executor";
 
 export class Workflow {
   protected readonly client: Client;
@@ -15,6 +16,7 @@ export class Workflow {
   protected skip;
   // to accumulate steps in Promise.all
   protected pendingSteps: Step[] = [];
+  private executor: AutoExecutor;
 
   constructor({
     client,
@@ -35,6 +37,7 @@ export class Workflow {
     this.steps = steps;
     this.nonPlanStepCount = this.steps.filter((step) => !step.targetStep).length;
     this.skip = skip;
+    this.executor = new AutoExecutor(this);
   }
 
   public requestPayload() {
@@ -44,7 +47,7 @@ export class Workflow {
   public async run<TResult>(
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     stepName: string,
-    stepFunction: StepFunction<TResult>
+    stepFunction: AsyncStepFunction<TResult>
   ): Promise<TResult> {
     this.stepCount += 1;
     if (this.skip) {
@@ -52,17 +55,22 @@ export class Workflow {
       return;
     }
 
+    const result = await this.executor.addStep(stepFunction);
+
+    return result;
+  }
+
+  public async runStep<TResult>(step: AsyncStepFunction<TResult>) {
     if (this.stepCount < this.nonPlanStepCount) {
       return this.steps[this.stepCount + this.planStepCount].out as TResult;
     }
 
-    const rawResult = stepFunction();
-    const result = rawResult instanceof Promise ? await rawResult : rawResult;
-    this.skip = true;
+    const result = await step();
 
     // add result to pending and send request
     this.addResult(result);
     await this.sendPendingToQstash();
+    this.skip = true;
 
     return result;
   }
@@ -78,11 +86,8 @@ export class Workflow {
     stepName: string,
     stepFunctions: { [K in keyof TResults]: AsyncStepFunction<TResults[K]> }
   ): Promise<TResults> {
-    this.stepCount += 1;
-    if (this.skip) {
-      return [] as unknown as TResults;
-    }
-    const parallelCallState = this.getParallelCallState(stepFunctions.length);
+    const initialStepCount = this.stepCount - (stepFunctions.length - 1);
+    const parallelCallState = this.getParallelCallState(stepFunctions.length, initialStepCount);
 
     switch (parallelCallState) {
       case "first": {
@@ -90,7 +95,7 @@ export class Workflow {
           return {
             stepId: 0,
             concurrent: stepFunctions.length,
-            targetStep: this.stepCount + index,
+            targetStep: initialStepCount + index,
           } as Step;
         });
         this.addStep(planSteps);
@@ -103,7 +108,7 @@ export class Workflow {
             `There must be a last step and it should have targetStep larger than 0. Received: ${JSON.stringify(planStep)}`
           );
         }
-        const stepIndex = planStep.targetStep - this.stepCount;
+        const stepIndex = planStep.targetStep - initialStepCount;
         const rawResult = stepFunctions[stepIndex]();
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const result = rawResult instanceof Promise ? await rawResult : rawResult;
@@ -118,18 +123,20 @@ export class Workflow {
         const sortedSteps = this.steps.toSorted(
           (step, stepOther) => step.stepId - stepOther.stepId
         );
+
         const concurrentResults = sortedSteps
-          .filter((step) => step.stepId >= this.stepCount)
+          .filter((step) => step.stepId >= initialStepCount)
           .map((step) => step.out)
           .slice(0, stepFunctions.length) as TResults;
-        this.stepCount += stepFunctions.length - 1;
         this.planStepCount += stepFunctions.length;
         return concurrentResults;
       }
     }
     await this.sendPendingToQstash();
     this.skip = true;
-    return [] as unknown as TResults;
+
+    const fillValue = undefined;
+    return Array.from({ length: stepFunctions.length }).fill(fillValue) as TResults;
   }
 
   /**
@@ -144,9 +151,12 @@ export class Workflow {
    *    qstash will call again with the full result. In this case, parallel step will
    *    return the result and
    */
-  protected getParallelCallState(parallelStepCount: number): ParallelCallState {
+  protected getParallelCallState(
+    parallelStepCount: number,
+    initialStepCount: number
+  ): ParallelCallState {
     const remainingSteps = this.steps.filter(
-      (step) => (step.stepId === 0 ? step.targetStep : step.stepId) >= this.stepCount
+      (step) => (step.stepId === 0 ? step.targetStep : step.stepId) >= initialStepCount
     );
 
     if (remainingSteps.length === 0) {

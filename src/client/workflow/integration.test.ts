@@ -1,9 +1,10 @@
+/* eslint-disable unicorn/consistent-function-scoping */
 /* eslint-disable @typescript-eslint/no-magic-numbers */
-import { describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, test } from "bun:test";
 import type { PublishRequest, PublishResponse } from "../client";
 import { Client } from "../client";
 import { SpyWorkflow } from "./workflow.test";
-import type { Step, StepFunction } from "./types";
+import type { AsyncStepFunction, Step } from "./types";
 
 /**
  * Client mocking the publishJSON method by disabling sending requests
@@ -41,7 +42,7 @@ class SpyClient extends Client {
 const expectStep = async <TResult>(
   client: SpyClient,
   workflow: SpyWorkflow,
-  step: StepFunction<TResult>,
+  step: AsyncStepFunction<TResult>,
   shouldRun: boolean,
   shouldReturn: TResult,
   shouldPublish: PublishRequest[]
@@ -86,7 +87,7 @@ const expectParallel = (
 const initialCheck = (client: SpyClient, workflowId: string, initialBody: unknown) => {
   // no steps were run, so client.publishedJSON field was never flushed
   // the initial submission should be in it
-  // expect(client.publishedJSON.length).toBe(1);
+  expect(client.publishedJSON.length).toBe(1);
   expect(client.publishedJSON).toEqual([
     {
       headers: {
@@ -122,7 +123,6 @@ const runRoute = async ({
   workflowRoute,
   steps,
 }: {
-  client: SpyClient;
   initialBody: unknown;
   workflowRoute: (
     request: Request,
@@ -163,9 +163,13 @@ describe("Should handle workflow correctly", () => {
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   const client = new SpyClient({ token: process.env.QSTASH_TOKEN! });
 
+  afterEach(() => {
+    client.publishedJSON = [];
+  });
+
   test("test initial request", async () => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const testRouteEmpty = async (
+    const routeToTest = async (
       request: Request,
       expectedRunningStepId: number,
       initialBody: unknown
@@ -180,9 +184,8 @@ describe("Should handle workflow correctly", () => {
     };
 
     await runRoute({
-      client,
       initialBody: { foo: "baz" },
-      workflowRoute: testRouteEmpty,
+      workflowRoute: routeToTest,
       steps: [],
     });
   });
@@ -202,8 +205,8 @@ describe("Should handle workflow correctly", () => {
       const result1 = await expectStep(
         client,
         workflow,
-        () => {
-          return [111, workflow.requestPayload()];
+        async () => {
+          return await Promise.resolve([111, workflow.requestPayload()]);
         },
         expectedRunningStepId === 1,
         [111, workflow.requestPayload()],
@@ -226,8 +229,8 @@ describe("Should handle workflow correctly", () => {
       const result2 = await expectStep(
         client,
         workflow,
-        () => {
-          return [222, result1];
+        async () => {
+          return await Promise.resolve([222, result1]);
         },
         expectedRunningStepId === 2,
         [222, [111, workflow.requestPayload()]],
@@ -266,7 +269,6 @@ describe("Should handle workflow correctly", () => {
 
     const initialBody = { foo: "bar" };
     await runRoute({
-      client,
       initialBody: initialBody,
       workflowRoute: routeToTest,
       steps: [
@@ -328,13 +330,13 @@ describe("Should handle workflow correctly", () => {
         ]
       );
 
-      const parallelResult1 = await workflow.parallel("parallel", [
-        async () => {
+      const parallelResult1 = await Promise.all([
+        workflow.run("parallel step 1", async () => {
           return await Promise.resolve(555 - result1);
-        },
-        async () => {
+        }),
+        workflow.run("parallel step 2", async () => {
           return await Promise.resolve(666 - result1);
-        },
+        }),
       ]);
 
       switch (expectedRunningStepId) {
@@ -429,13 +431,13 @@ describe("Should handle workflow correctly", () => {
         }
       }
 
-      const parallelResult2 = await workflow.parallel("parallel", [
-        async () => {
+      const parallelResult2 = await Promise.all([
+        workflow.run("parallel step 1", async () => {
           return await Promise.resolve(parallelResult1[0] * 2);
-        },
-        async () => {
+        }),
+        workflow.run("parallel step 2", async () => {
           return await Promise.resolve(parallelResult1[1] * 2);
-        },
+        }),
       ]);
 
       switch (expectedRunningStepId) {
@@ -569,7 +571,6 @@ describe("Should handle workflow correctly", () => {
     };
 
     await runRoute({
-      client,
       initialBody: { foo: "baz" },
       workflowRoute: routeToTest,
       steps: [
