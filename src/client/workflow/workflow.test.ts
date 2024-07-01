@@ -229,7 +229,7 @@ describe("Workflow", () => {
         { stepId: 0, out: { foo: "bar" }, concurrent: 1, targetStep: 0 },
       ]);
 
-      expect(workflow.requestPayload()).toEqual({ foo: "bar" });
+      expect(workflow.requestPayload).toEqual({ foo: "bar" });
     });
   });
 });

@@ -21,6 +21,8 @@ export class Workflow<TInitialRequest = unknown> {
   protected stepCount = 0;
   protected planStepCount = 0;
 
+  public requestPayload: TInitialRequest;
+
   /**
    * Creates a workflow context which offers methods to run steps
    * in parallel and by themselves
@@ -51,14 +53,7 @@ export class Workflow<TInitialRequest = unknown> {
     this.nonPlanStepCount = this.steps.filter((step) => !step.targetStep).length;
     this.skip = skip;
     this.executor = new AutoExecutor(this);
-  }
-
-  /**
-   *
-   * @returns Initial payload passed by the user in the first request
-   */
-  public requestPayload(): TInitialRequest {
-    return this.steps[0].out as TInitialRequest;
+    this.requestPayload = this.steps[0].out as TInitialRequest;
   }
 
   /**

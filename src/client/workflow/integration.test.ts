@@ -35,9 +35,7 @@ class SpyClient extends Client {
  * @param step step to run
  * @param shouldRun whether the step should run
  * @param shouldReturn what the step should return if it runs
- * @param stepIncrement how much the stepCount should be incremented
- *   will be set to 1 when we are running a single step, but if the
- *   step is parallel, it will be 2 * concurrency
+ * @param shouldPublish JSON to be published in the step if it runs
  */
 const expectStep = async <TResult>(
   client: SpyClient,
@@ -206,10 +204,10 @@ describe("Should handle workflow correctly", () => {
         client,
         workflow,
         async () => {
-          return await Promise.resolve([111, workflow.requestPayload()]);
+          return await Promise.resolve([111, workflow.requestPayload]);
         },
         expectedRunningStepId === 1,
-        [111, workflow.requestPayload()],
+        [111, workflow.requestPayload],
         [
           {
             body: '{"stepId":1,"out":[111,{"foo":"bar"}],"concurrent":1,"targetStep":0}',
@@ -233,7 +231,7 @@ describe("Should handle workflow correctly", () => {
           return await Promise.resolve([222, result1]);
         },
         expectedRunningStepId === 2,
-        [222, [111, workflow.requestPayload()]],
+        [222, [111, workflow.requestPayload]],
         [
           {
             body: '{"stepId":2,"out":[222,[111,{"foo":"bar"}]],"concurrent":1,"targetStep":0}',
@@ -635,6 +633,116 @@ describe("Should handle workflow correctly", () => {
             [111, 222],
             [222, 444],
           ],
+          concurrent: 1,
+          targetStep: 0,
+        },
+      ],
+    });
+  });
+
+  test.only("test for loop", async () => {
+    const routeToTest = async (
+      request: Request,
+      expectedRunningStepId: number,
+      initialBody: unknown
+    ) => {
+      const workflow = await SpyWorkflow.createWorkflow<{ initialValue: number }>(request, client);
+      expect(workflow.url).toBe(request.url);
+      if (expectedRunningStepId === 0) {
+        initialCheck(client, workflow.workflowId, initialBody);
+      }
+
+      let accumulator = await expectStep(
+        client,
+        workflow,
+        async () => {
+          return await Promise.resolve(workflow.requestPayload.initialValue);
+        },
+        expectedRunningStepId === 1,
+        10,
+        [
+          {
+            body: '{"stepId":1,"out":10,"concurrent":1,"targetStep":0}',
+            delay: undefined,
+            headers: {
+              "Upstash-Forward-Upstash-Workflow-Id": workflow.workflowId,
+              "Upstash-Forward-Upstash-Workflow-InternalCall": "yes",
+              "Upstash-Workflow-Id": workflow.workflowId,
+            },
+            method: "POST",
+            notBefore: undefined,
+            url: "https://www.mock.url.com/",
+          },
+        ]
+      );
+
+      const results = [10, 20, 60];
+      for (let index = 0; index < 3; index++) {
+        accumulator = await expectStep<number>(
+          client,
+          workflow,
+          async () => {
+            return await Promise.resolve(accumulator + accumulator * index);
+          },
+          expectedRunningStepId === 2 + index,
+          results[index],
+          [
+            {
+              body: `{"stepId":${2 + index},"out":${results[index]},"concurrent":1,"targetStep":0}`,
+              delay: undefined,
+              headers: {
+                "Upstash-Forward-Upstash-Workflow-Id": workflow.workflowId,
+                "Upstash-Forward-Upstash-Workflow-InternalCall": "yes",
+                "Upstash-Workflow-Id": workflow.workflowId,
+              },
+              method: "POST",
+              notBefore: undefined,
+              url: "https://www.mock.url.com/",
+            },
+          ]
+        );
+      }
+
+      if (expectedRunningStepId === 4) {
+        expect(accumulator).toEqual(60);
+      } else {
+        expect(accumulator as unknown).toBe(undefined);
+      }
+
+      return workflow.workflowId;
+    };
+
+    await runRoute({
+      initialBody: { initialValue: 10 },
+      workflowRoute: routeToTest,
+      steps: [
+        {
+          stepId: 0,
+          out: { initialValue: 10 },
+          concurrent: 1,
+          targetStep: 0,
+        },
+        {
+          stepId: 1,
+          out: 10,
+          concurrent: 1,
+          targetStep: 0,
+        },
+        {
+          stepId: 2,
+          out: 10,
+          concurrent: 1,
+          targetStep: 0,
+        },
+        {
+          stepId: 3,
+          out: 20,
+          concurrent: 1,
+          targetStep: 0,
+        },
+        {
+          stepId: 4,
+          out: 60,
           concurrent: 1,
           targetStep: 0,
         },
