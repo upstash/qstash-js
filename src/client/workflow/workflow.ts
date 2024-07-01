@@ -4,20 +4,33 @@ import { WORKFLOW_INTERNAL_HEADER, WORKFLOW_ID_HEADER } from "./constants";
 import type { Client } from "../client";
 import * as WorkflowParser from "./workflow-parser";
 import { AutoExecutor } from "./auto-executor";
+import { QstashWorkflowError } from "../error";
 
-export class Workflow {
+export class Workflow<TInitialRequest = unknown> {
   protected readonly client: Client;
+  protected executor: AutoExecutor;
+  protected pendingSteps: Step[] = [];
+
   protected readonly url: string;
-  protected stepCount = 0;
-  protected planStepCount = 0;
-  protected readonly workflowId: string;
   protected readonly steps: Step[];
+  protected readonly workflowId: string;
   protected readonly nonPlanStepCount: number;
   protected skip;
-  // to accumulate steps in Promise.all
-  protected pendingSteps: Step[] = [];
-  private executor: AutoExecutor;
 
+  // counters which are incremented as steps are processed
+  protected stepCount = 0;
+  protected planStepCount = 0;
+
+  /**
+   * Creates a workflow context which offers methods to run steps
+   * in parallel and by themselves
+   *
+   * @param client QStash client
+   * @param url QStash backend url
+   * @param workflowId Id of the workflow
+   * @param steps steps received from QStash
+   * @param skip whether the steps in the workflow should be skipped
+   */
   constructor({
     client,
     url,
@@ -40,10 +53,47 @@ export class Workflow {
     this.executor = new AutoExecutor(this);
   }
 
-  public requestPayload() {
-    return this.steps[0].out;
+  /**
+   *
+   * @returns Initial payload passed by the user in the first request
+   */
+  public requestPayload(): TInitialRequest {
+    return this.steps[0].out as TInitialRequest;
   }
 
+  /**
+   * Executes a workflow step
+   *
+   * ```typescript
+   * const result = context.run("step 1", async () => {
+   *   return await Promise.resolve("result")
+   * })
+   * ```
+   *
+   * Can also be called in parallel and the steps will be executed
+   * simulatenously:
+   *
+   * ```typescript
+   * const [result1, result2] = await Promise.all([
+   *   context.run("step 1", async () => {
+   *     return await Promise.resolve("result1")
+   *   })
+   *   context.run("step 2", async () => {
+   *     return await Promise.resolve("result2")
+   *   })
+   * ])
+   * ```
+   *
+   * - Increments `this.stepCount` by 1.
+   * - Then, if a step was executed previously in the current run, rest of the
+   *   steps are skipped.
+   * - Adds the step to the executor
+   * - Returns the result of the step
+   *
+   * @param stepName name of the step
+   * @param stepFunction async step function to be executed
+   * @returns result of the step function
+   */
   public async run<TResult>(
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     stepName: string,
@@ -57,9 +107,19 @@ export class Workflow {
 
     const result = await this.executor.addStep(stepFunction);
 
-    return result;
+    return result as TResult;
   }
 
+  /**
+   * Executes a step:
+   * - If the step result is available in the steps, returns the result
+   * - If the result is not avaiable, runs the function
+   * - Sends the result to QStash
+   * - skips rest of the steps in the workflow in the current call
+   *
+   * @param step runs a step by itself
+   * @returns step result
+   */
   public async runStep<TResult>(step: AsyncStepFunction<TResult>) {
     if (this.stepCount < this.nonPlanStepCount) {
       return this.steps[this.stepCount + this.planStepCount].out as TResult;
@@ -76,10 +136,11 @@ export class Workflow {
   }
 
   /**
+   * Runs steps in parallel.
    *
-   *
-   * @param stepName
-   * @param stepFunctions
+   * @param stepName parallel step name
+   * @param stepFunctions list of async functions to run in parallel
+   * @returns results of the functions run in parallel
    */
   public async parallel<TResults extends unknown[]>(
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -104,7 +165,7 @@ export class Workflow {
       case "partial": {
         const planStep = this.steps.at(-1);
         if (!planStep || planStep.targetStep === 0) {
-          throw new Error(
+          throw new QstashWorkflowError(
             `There must be a last step and it should have targetStep larger than 0. Received: ${JSON.stringify(planStep)}`
           );
         }
@@ -142,14 +203,21 @@ export class Workflow {
   /**
    * Determines the parallel call state
    *
-   * Parallel can be called in three states:
-   * 1. Called for the first time: will send the three plans to qstash one by one
-   * 2. Called with partial results: after the initial call, will be called multiple
-   *    times with each call having a unique targetStep. Corresponding target step
-   *    will be executed
-   * 3. Called with full results: After the final partial result call returns to Qstash,
-   *    qstash will call again with the full result. In this case, parallel step will
-   *    return the result and
+   * First filters the steps to get the steps which are after `initialStepCount` parameter.
+   *
+   * Depending on the remaining steps, decides the parallel state:
+   * - "first": If there are no steps
+   * - "last" If there are equal to or more than `2 * parallelStepCount`. We multiply by two
+   *   because each step in a parallel execution will have 2 steps: a plan step and a result
+   *   step.
+   * - "partial": If the last step is a plan step
+   * - "discard": If the last step is not a plan step. This means that the parallel execution
+   *   is in progress (there are still steps to run) and one step has finished and submitted
+   *   its result to QStash
+   *
+   * @param parallelStepCount number of steps to run in parallel
+   * @param initialStepCount steps after the parallel invocation
+   * @returns parallel call state
    */
   protected getParallelCallState(
     parallelStepCount: number,
@@ -213,6 +281,17 @@ export class Workflow {
     this.pendingSteps = [];
   }
 
+  /**
+   * Checks request headers and body
+   * - Checks workflow header to determine whether the request is the first request
+   * - Gets the workflow id
+   * - Parses payload
+   * - Returns the steps. If it's the first invocation, steps contains the initial step.
+   *   Otherwise, steps are generated from the body.
+   *
+   * @param request Request received
+   * @returns Whether the invocation is the initial one, the workflow id and the steps
+   */
   static async parseRequest(request: Request) {
     const callHeader = request.headers.get(WORKFLOW_INTERNAL_HEADER);
     const isFirstInvocation = !callHeader;
@@ -221,7 +300,7 @@ export class Workflow {
       ? `wf${nanoid()}`
       : request.headers.get(WORKFLOW_ID_HEADER) ?? "";
     if (workflowId.length === 0) {
-      throw new Error("Couldn't get workflow id from header");
+      throw new QstashWorkflowError("Couldn't get workflow id from header");
     }
 
     const payload = await WorkflowParser.parsePayload(request);
@@ -238,7 +317,7 @@ export class Workflow {
       ];
     } else {
       if (payload === undefined) {
-        throw new Error("only first call can have an empty body");
+        throw new QstashWorkflowError("Only first call can have an empty body");
       }
 
       steps = WorkflowParser.generateSteps(payload);
@@ -251,9 +330,17 @@ export class Workflow {
     };
   }
 
-  static async createWorkflow(request: Request, client: Client) {
+  /**
+   * Creates a workflow from a request by parsing the body and checking the
+   * headers.
+   *
+   * @param request request received from the API
+   * @param client QStash client
+   * @returns
+   */
+  static async createWorkflow<TInitialRequest = unknown>(request: Request, client: Client) {
     const { isFirstInvocation, workflowId, steps } = await Workflow.parseRequest(request);
-    const workflow = new Workflow({
+    const workflow = new Workflow<TInitialRequest>({
       client,
       workflowId,
       steps,
@@ -263,6 +350,8 @@ export class Workflow {
 
     if (isFirstInvocation) {
       await workflow.submitResults(steps[0]);
+    } else {
+      // TODO: verify that request is coming from QStash
     }
 
     return workflow;

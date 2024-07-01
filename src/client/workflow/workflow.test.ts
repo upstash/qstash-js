@@ -7,7 +7,7 @@ import { Client } from "../client";
 /**
  * Workflow making the private fields public for testing
  */
-export class SpyWorkflow extends Workflow {
+export class SpyWorkflow<TInitialRequest = unknown> extends Workflow<TInitialRequest> {
   public declare client;
   public declare url;
   public declare stepCount;
@@ -16,8 +16,11 @@ export class SpyWorkflow extends Workflow {
   public declare skip;
 
   public declare getParallelCallState;
-  static async createWorkflow(request: Request, client: Client) {
-    const workflow = Workflow.createWorkflow(request, client) as unknown as SpyWorkflow;
+  static async createWorkflow<TInitialRequest>(request: Request, client: Client) {
+    const workflow = Workflow.createWorkflow<TInitialRequest>(
+      request,
+      client
+    ) as unknown as SpyWorkflow<TInitialRequest>;
     return await Promise.resolve(workflow);
   }
 }
@@ -214,7 +217,10 @@ describe("Workflow", () => {
         body: '["IntcInN0ZXBJZFwiOjAsXCJvdXRcIjp7XCJmb29cIjpcImJhclwifSxcImNvbmN1cnJlbnRcIjoxLFwidGFyZ2V0U3RlcFwiOjB9Ig=="]',
       });
 
-      const workflow = await SpyWorkflow.createWorkflow(mockRequest as unknown as Request, client);
+      const workflow = await SpyWorkflow.createWorkflow<{ foo: string }>(
+        mockRequest as unknown as Request,
+        client
+      );
 
       expect(workflow.skip).toBeFalse();
       expect(workflow.workflowId).toBe(mockId);
