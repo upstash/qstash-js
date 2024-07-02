@@ -1,13 +1,12 @@
 import type { Requester } from "../http";
-import { PROVIDER_MAP } from "./constants";
 import type {
-  ChatRequest,
   ChatCompletion,
-  PromptChatRequest,
-  ChatCompletionMessage,
-  StreamParameter,
-  StreamEnabled,
   ChatCompletionChunk,
+  ChatCompletionMessage,
+  ChatRequest,
+  PromptChatRequest,
+  StreamEnabled,
+  StreamParameter,
 } from "./types";
 
 export class Chat {
@@ -45,11 +44,7 @@ export class Chat {
   ): Promise<
     TStream extends StreamEnabled ? AsyncIterable<ChatCompletionChunk> : ChatCompletion
   > => {
-    if (
-      request.provider === "openai" ||
-      request.provider === "togetherai" ||
-      request.provider === "custom"
-    )
+    if (request.provider.owner === "openai" || request.provider.owner === "custom")
       return this.createThirdParty<TStream>(request);
 
     const body = JSON.stringify(request);
@@ -91,18 +86,13 @@ export class Chat {
   ): Promise<
     TStream extends StreamEnabled ? AsyncIterable<ChatCompletionChunk> : ChatCompletion
   > => {
-    if (request.provider === "upstash") throw new Error("Upstash is not 3rd party provider!");
+    const { baseUrl, llmToken, owner } = request.provider;
+    if (owner === "upstash") throw new Error("Upstash is not 3rd party provider!");
 
-    const llmBaseUrl =
-      request.provider === "custom" ? request.llmBaseUrl : PROVIDER_MAP[request.provider];
-
-    const llmToken = request.llmToken;
-    //@ts-expect-error We need to delete the prop, otherwise openai throws an error
-    delete request.llmToken;
-    //@ts-expect-error We need to delete the prop, otherwise openai throws an error
-    delete request.system;
     //@ts-expect-error We need to delete the prop, otherwise openai throws an error
     delete request.provider;
+    //@ts-expect-error We need to delete the prop, otherwise openai throws an error
+    delete request.system;
 
     const body = JSON.stringify(request);
 
@@ -119,7 +109,7 @@ export class Chat {
           Authorization: `Bearer ${llmToken}`,
         },
         body,
-        baseUrl: llmBaseUrl,
+        baseUrl,
       });
     }
 
@@ -131,7 +121,7 @@ export class Chat {
         Authorization: `Bearer ${llmToken}`,
       },
       body,
-      baseUrl: llmBaseUrl,
+      baseUrl,
     });
   };
 

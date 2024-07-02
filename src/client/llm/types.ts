@@ -1,3 +1,5 @@
+import type { ProviderReturnType } from "./providers";
+
 export type ChatCompletionMessage = {
   role: "system" | "assistant" | "user";
   content: string;
@@ -120,22 +122,14 @@ export type LlmProviderBaseUrl = "https://api.openai.com" | "https://api.togethe
 
 type ChatRequestProviders =
   | {
-      provider: "openai";
+      provider: ProviderReturnType;
       model: OpenAIChatModel;
-      llmToken: string;
     }
   | {
-      provider: "custom";
+      provider: ProviderReturnType;
       model: string;
-      llmToken: string;
-      llmBaseUrl: string;
     }
-  | {
-      provider: "togetherai";
-      model: string;
-      llmToken: string;
-    }
-  | { provider: "upstash"; model: ChatModel };
+  | { provider: ProviderReturnType; model: ChatModel };
 
 export type PromptChatRequest<TStream extends StreamParameter> = ChatRequestProviders &
   PromptChatRequestFields &
