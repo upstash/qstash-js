@@ -45,7 +45,11 @@ export class Chat {
   ): Promise<
     TStream extends StreamEnabled ? AsyncIterable<ChatCompletionChunk> : ChatCompletion
   > => {
-    if (request.provider === "openai" || request.provider === "togetherai")
+    if (
+      request.provider === "openai" ||
+      request.provider === "togetherai" ||
+      request.provider === "custom"
+    )
       return this.createThirdParty<TStream>(request);
 
     const body = JSON.stringify(request);
@@ -87,48 +91,48 @@ export class Chat {
   ): Promise<
     TStream extends StreamEnabled ? AsyncIterable<ChatCompletionChunk> : ChatCompletion
   > => {
-    if (request.provider === "openai" || request.provider === "togetherai") {
-      const baseUrl = PROVIDER_MAP[request.provider];
+    if (request.provider === "upstash") throw new Error("Upstash is not 3rd party provider!");
 
-      const llmToken = request.llmToken;
-      //@ts-expect-error We need to delete the prop, otherwise openai throws an error
-      delete request.llmToken;
-      //@ts-expect-error We need to delete the prop, otherwise openai throws an error
-      delete request.system;
-      //@ts-expect-error We need to delete the prop, otherwise openai throws an error
-      delete request.provider;
+    const llmBaseUrl =
+      request.provider === "custom" ? request.llmBaseUrl : PROVIDER_MAP[request.provider];
 
-      const body = JSON.stringify(request);
+    const llmToken = request.llmToken;
+    //@ts-expect-error We need to delete the prop, otherwise openai throws an error
+    delete request.llmToken;
+    //@ts-expect-error We need to delete the prop, otherwise openai throws an error
+    delete request.system;
+    //@ts-expect-error We need to delete the prop, otherwise openai throws an error
+    delete request.provider;
 
-      if ("stream" in request && request.stream) {
-        // @ts-expect-error when req.stream, we return ChatCompletion
-        return this.http.requestStream({
-          path: ["v1", "chat", "completions"],
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Connection: "keep-alive",
-            Accept: "text/event-stream",
-            "Cache-Control": "no-cache",
-            Authorization: `Bearer ${llmToken}`,
-          },
-          body,
-          baseUrl,
-        });
-      }
+    const body = JSON.stringify(request);
 
-      return this.http.request({
+    if ("stream" in request && request.stream) {
+      // @ts-expect-error when req.stream, we return ChatCompletion
+      return this.http.requestStream({
         path: ["v1", "chat", "completions"],
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Connection: "keep-alive",
+          Accept: "text/event-stream",
+          "Cache-Control": "no-cache",
           Authorization: `Bearer ${llmToken}`,
         },
         body,
-        baseUrl,
+        baseUrl: llmBaseUrl,
       });
     }
-    throw new Error("Could not find any third party provider");
+
+    return this.http.request({
+      path: ["v1", "chat", "completions"],
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${llmToken}`,
+      },
+      body,
+      baseUrl: llmBaseUrl,
+    });
   };
 
   /**

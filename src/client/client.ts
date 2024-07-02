@@ -341,6 +341,8 @@ export class Client {
     const messages = [];
     for (const message of request) {
       const headers = processHeaders(message);
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      //@ts-ignore Type mismatch TODO: should be checked later
       const headerEntries = Object.fromEntries(headers.entries());
 
       messages.push({
@@ -376,10 +378,11 @@ export class Client {
       }
       //@ts-expect-error caused by undici and bunjs type overlap
       message.headers = new Headers(message.headers);
-      //@ts-expect-error caused by undici and bunjs type overlap
-      //If needed, this allows users to directly pass their requests to any open-ai compatible 3rd party llm directly from sdk.
-      appendLLMOptions<TBody, TRequest>(message, message.headers);
 
+      //If needed, this allows users to directly pass their requests to any open-ai compatible 3rd party llm directly from sdk.
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      //@ts-ignore Type mismatch TODO: should be checked later
+      appendLLMOptions<TBody, TRequest>(message, message.headers);
       (message.headers as Headers).set("Content-Type", "application/json");
     }
 
