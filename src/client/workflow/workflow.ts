@@ -123,7 +123,7 @@ export class Workflow<TInitialRequest = unknown> {
     const result = await step();
 
     // add result to pending and send request
-    this.addResult(result);
+    this.addResult(result, this.stepCount);
     await this.sendPendingToQstash();
     this.skip = true;
 
@@ -234,9 +234,9 @@ export class Workflow<TInitialRequest = unknown> {
     }
   }
 
-  private addResult(result: unknown, stepId?: number) {
+  private addResult(result: unknown, stepId: number) {
     this.addStep({
-      stepId: stepId ?? this.stepCount,
+      stepId: stepId,
       out: result,
       concurrent: 1,
       targetStep: 0,
