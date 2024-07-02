@@ -6,7 +6,7 @@ import type { PublishRequest } from "../client";
  * This function checks the `provider` property in the request to determine which provider
  * to use and appends the appropriate options.
  *
- * @param request - The request object which may contain `provider` that hold `token` and `baseUrl`.
+ * @param request - The request object which may contain `provider` that holds `token` and `baseUrl`.
  * @param headers - The Headers object to which the authorization token will be appended.
  *
  * @template TBody - The type of the request body.
