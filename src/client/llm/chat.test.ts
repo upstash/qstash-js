@@ -3,6 +3,7 @@ import { describe, expect, test } from "bun:test";
 import { Client } from "../client";
 import { OpenAIStream, StreamingTextResponse } from "ai";
 import type { ChatCompletionChunk } from "./types";
+import { openai, upstash } from "./providers";
 
 async function checkStream(
   stream: AsyncIterable<ChatCompletionChunk>,
@@ -26,7 +27,7 @@ describe("Test Qstash chat", () => {
     "should respond to prompt",
     async () => {
       const response = await client.chat().prompt({
-        provider: "upstash",
+        provider: upstash(),
         model: "meta-llama/Meta-Llama-3-8B-Instruct",
         system: "from now on, foo is whale",
         user: "what exactly is foo?",
@@ -45,7 +46,7 @@ describe("Test Qstash chat", () => {
     "should respond to create",
     async () => {
       const response = await client.chat().create({
-        provider: "upstash",
+        provider: upstash(),
         model: "meta-llama/Meta-Llama-3-8B-Instruct",
         messages: [
           {
@@ -72,7 +73,7 @@ describe("Test Qstash chat", () => {
     "should stream prompt",
     async () => {
       const response = await client.chat().prompt({
-        provider: "upstash",
+        provider: upstash(),
         model: "meta-llama/Meta-Llama-3-8B-Instruct",
         system: "from now on, foo is whale",
         user: "what exactly is foo?",
@@ -89,7 +90,7 @@ describe("Test Qstash chat", () => {
     "should stream create",
     async () => {
       const response = await client.chat().create({
-        provider: "upstash",
+        provider: upstash(),
         model: "meta-llama/Meta-Llama-3-8B-Instruct",
         messages: [
           {
@@ -112,7 +113,7 @@ describe("Test Qstash chat", () => {
 
   test("should publish with llm api", async () => {
     const result = await client.publishJSON({
-      api: "llm",
+      provider: upstash(),
       body: {
         model: "meta-llama/Meta-Llama-3-8B-Instruct",
         messages: [
@@ -130,7 +131,7 @@ describe("Test Qstash chat", () => {
   test("should batch with llm api", async () => {
     const result = await client.batchJSON([
       {
-        api: "llm",
+        provider: upstash(),
         body: {
           model: "meta-llama/Meta-Llama-3-8B-Instruct",
           messages: [
@@ -151,7 +152,7 @@ describe("Test Qstash chat", () => {
     const queueName = "upstash-queue";
     const queue = client.queue({ queueName });
     const result = await queue.enqueueJSON({
-      api: "llm",
+      provider: upstash(),
       body: {
         model: "meta-llama/Meta-Llama-3-8B-Instruct",
         messages: [
@@ -174,9 +175,8 @@ describe("Test Qstash chat with third party LLMs", () => {
     "should respond to prompt",
     async () => {
       const response = await client.chat().prompt({
-        provider: "openai",
+        provider: openai({ token: process.env.OPENAI_API_KEY! }),
         model: "gpt-3.5-turbo",
-        llmToken: process.env.OPENAI_API_KEY!,
         system: "from now on, foo is whale",
         user: "what exactly is foo?",
         temperature: 0.5,
@@ -194,9 +194,8 @@ describe("Test Qstash chat with third party LLMs", () => {
     "should respond to create",
     async () => {
       const response = await client.chat().create({
-        provider: "openai",
+        provider: openai({ token: process.env.OPENAI_API_KEY! }),
         model: "gpt-3.5-turbo",
-        llmToken: process.env.OPENAI_API_KEY!,
         messages: [
           {
             role: "system",
@@ -222,9 +221,8 @@ describe("Test Qstash chat with third party LLMs", () => {
     "should stream prompt",
     async () => {
       const response = await client.chat().prompt({
-        provider: "openai",
+        provider: openai({ token: process.env.OPENAI_API_KEY! }),
         model: "gpt-3.5-turbo",
-        llmToken: process.env.OPENAI_API_KEY!,
         system: "from now on, foo is whale",
         user: "what exactly is foo?",
         stream: true,
@@ -240,9 +238,8 @@ describe("Test Qstash chat with third party LLMs", () => {
     "should stream create",
     async () => {
       const response = await client.chat().create({
-        provider: "openai",
+        provider: openai({ token: process.env.OPENAI_API_KEY! }),
         model: "gpt-3.5-turbo",
-        llmToken: process.env.OPENAI_API_KEY!,
         messages: [
           {
             role: "system",
@@ -264,7 +261,7 @@ describe("Test Qstash chat with third party LLMs", () => {
 
   test("should publish with llm api", async () => {
     const result = await client.publishJSON({
-      llmProvider: "openai",
+      provider: openai({ token: process.env.OPENAI_API_KEY! }),
       body: {
         model: "gpt-3.5-turbo",
         messages: [
@@ -282,7 +279,7 @@ describe("Test Qstash chat with third party LLMs", () => {
   test("should batch with llm api", async () => {
     const result = await client.batchJSON([
       {
-        llmProvider: "openai",
+        provider: openai({ token: process.env.OPENAI_API_KEY! }),
         body: {
           model: "gpt-3.5-turbo",
           messages: [
@@ -303,7 +300,7 @@ describe("Test Qstash chat with third party LLMs", () => {
     const queueName = "upstash-queue";
     const queue = client.queue({ queueName });
     const result = await queue.enqueueJSON({
-      llmProvider: "openai",
+      provider: openai({ token: process.env.OPENAI_API_KEY! }),
       body: {
         model: "gpt-3.5-turbo",
         messages: [

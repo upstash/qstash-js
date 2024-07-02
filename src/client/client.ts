@@ -1,14 +1,14 @@
 import { DLQ } from "./dlq";
 import { HttpClient, type Requester, type RetryConfig } from "./http";
+import { Chat } from "./llm/chat";
+import type { ProviderReturnType } from "./llm/providers";
+import { appendLLMOptions } from "./llm/utils";
 import { Messages } from "./messages";
 import { Queue } from "./queue";
 import { Schedules } from "./schedules";
+import type { BodyInit, Event, GetEventsPayload, HeadersInit, State } from "./types";
 import { UrlGroups } from "./url-groups";
 import { getRequestPath, prefixHeaders, processHeaders } from "./utils";
-import type { BodyInit, Event, GetEventsPayload, HeadersInit, State } from "./types";
-import { Chat } from "./llm/chat";
-import type { LlmProvider } from "./llm/types";
-import { appendLLMOptions } from "./llm/utils";
 import { Workflow } from "./workflow/workflow";
 
 type ClientConfig = {
@@ -159,7 +159,7 @@ export type PublishRequest<TBody = BodyInit> = {
       url: string;
       urlGroup?: never;
       api?: never;
-      llmProvider?: never;
+      provider?: never;
     }
   | {
       url?: never;
@@ -168,7 +168,7 @@ export type PublishRequest<TBody = BodyInit> = {
        */
       urlGroup: string;
       api?: never;
-      llmProvider?: never;
+      provider?: never;
     }
   | {
       url?: never;
@@ -177,23 +177,16 @@ export type PublishRequest<TBody = BodyInit> = {
        * The api endpoint the request should be sent to.
        */
       api: "llm";
-      llmProvider?: never;
+      provider?: never;
     }
   | {
       /**
-       * 3rd party provider url such as OpenAI: https://api.openai.com/v1/chat/completions
+       * 3rd party or different way to initialize upstash provider. Supports urls such as OpenAI: https://api.openai.com/v1/chat/completions
        */
       url?: string;
       urlGroup?: never;
       api?: never;
-      /**
-       * 3rd party provider name such as OpenAI, TogetherAI
-       */
-      llmProvider: LlmProvider;
-      /**
-       * 3rd party provider secret key
-       */
-      llmToken?: string;
+      provider: ProviderReturnType;
     }
 );
 
@@ -215,6 +208,7 @@ type EventsRequestFilter = {
   state?: State;
   url?: string;
   urlGroup?: string;
+  api?: string;
   scheduleId?: string;
   queueName?: string;
   fromDate?: number; // unix timestamp (ms)
@@ -341,6 +335,8 @@ export class Client {
     const messages = [];
     for (const message of request) {
       const headers = processHeaders(message);
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      //@ts-ignore Type mismatch TODO: should be checked later
       const headerEntries = Object.fromEntries(headers.entries());
 
       messages.push({
@@ -376,10 +372,11 @@ export class Client {
       }
       //@ts-expect-error caused by undici and bunjs type overlap
       message.headers = new Headers(message.headers);
-      //@ts-expect-error caused by undici and bunjs type overlap
-      //If needed, this allows users to directly pass their requests to any open-ai compatible 3rd party llm directly from sdk.
-      appendLLMOptions<TBody, TRequest>(message, message.headers);
 
+      //If needed, this allows users to directly pass their requests to any open-ai compatible 3rd party llm directly from sdk.
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      //@ts-ignore Type mismatch TODO: should be checked later
+      appendLLMOptions<TBody, TRequest>(message, message.headers);
       (message.headers as Headers).set("Content-Type", "application/json");
     }
 
