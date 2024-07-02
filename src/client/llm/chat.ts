@@ -1,13 +1,12 @@
 import type { Requester } from "../http";
-import { PROVIDER_MAP } from "./constants";
 import type {
-  ChatRequest,
   ChatCompletion,
-  PromptChatRequest,
-  ChatCompletionMessage,
-  StreamParameter,
-  StreamEnabled,
   ChatCompletionChunk,
+  ChatCompletionMessage,
+  ChatRequest,
+  PromptChatRequest,
+  StreamEnabled,
+  StreamParameter,
 } from "./types";
 
 export class Chat {
@@ -45,7 +44,7 @@ export class Chat {
   ): Promise<
     TStream extends StreamEnabled ? AsyncIterable<ChatCompletionChunk> : ChatCompletion
   > => {
-    if (request.provider === "openai" || request.provider === "togetherai")
+    if (request.provider.owner === "openai" || request.provider.owner === "custom")
       return this.createThirdParty<TStream>(request);
 
     const body = JSON.stringify(request);
@@ -87,48 +86,43 @@ export class Chat {
   ): Promise<
     TStream extends StreamEnabled ? AsyncIterable<ChatCompletionChunk> : ChatCompletion
   > => {
-    if (request.provider === "openai" || request.provider === "togetherai") {
-      const baseUrl = PROVIDER_MAP[request.provider];
+    const { baseUrl, token, owner } = request.provider;
+    if (owner === "upstash") throw new Error("Upstash is not 3rd party provider!");
 
-      const llmToken = request.llmToken;
-      //@ts-expect-error We need to delete the prop, otherwise openai throws an error
-      delete request.llmToken;
-      //@ts-expect-error We need to delete the prop, otherwise openai throws an error
-      delete request.system;
-      //@ts-expect-error We need to delete the prop, otherwise openai throws an error
-      delete request.provider;
+    //@ts-expect-error We need to delete the prop, otherwise openai throws an error
+    delete request.provider;
+    //@ts-expect-error We need to delete the prop, otherwise openai throws an error
+    delete request.system;
 
-      const body = JSON.stringify(request);
+    const body = JSON.stringify(request);
 
-      if ("stream" in request && request.stream) {
-        // @ts-expect-error when req.stream, we return ChatCompletion
-        return this.http.requestStream({
-          path: ["v1", "chat", "completions"],
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Connection: "keep-alive",
-            Accept: "text/event-stream",
-            "Cache-Control": "no-cache",
-            Authorization: `Bearer ${llmToken}`,
-          },
-          body,
-          baseUrl,
-        });
-      }
-
-      return this.http.request({
+    if ("stream" in request && request.stream) {
+      // @ts-expect-error when req.stream, we return ChatCompletion
+      return this.http.requestStream({
         path: ["v1", "chat", "completions"],
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${llmToken}`,
+          Connection: "keep-alive",
+          Accept: "text/event-stream",
+          "Cache-Control": "no-cache",
+          Authorization: `Bearer ${token}`,
         },
         body,
         baseUrl,
       });
     }
-    throw new Error("Could not find any third party provider");
+
+    return this.http.request({
+      path: ["v1", "chat", "completions"],
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body,
+      baseUrl,
+    });
   };
 
   /**
