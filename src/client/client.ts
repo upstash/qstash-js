@@ -158,7 +158,6 @@ export type PublishRequest<TBody = BodyInit> = {
       url: string;
       urlGroup?: never;
       api?: never;
-      provider?: never;
     }
   | {
       url?: never;
@@ -167,25 +166,14 @@ export type PublishRequest<TBody = BodyInit> = {
        */
       urlGroup: string;
       api?: never;
-      provider?: never;
     }
   | {
-      url?: never;
+      url?: string;
       urlGroup?: never;
       /**
        * The api endpoint the request should be sent to.
        */
-      api: "llm";
-      provider?: never;
-    }
-  | {
-      /**
-       * 3rd party or different way to initialize upstash provider. Supports urls such as OpenAI: https://api.openai.com/v1/chat/completions
-       */
-      url?: string;
-      urlGroup?: never;
-      api?: never;
-      provider: ProviderReturnType;
+      api: { name: "llm"; provider?: ProviderReturnType };
     }
 );
 
