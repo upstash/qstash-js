@@ -38,6 +38,7 @@ describe("Workflow", () => {
       steps: [
         {
           stepId: 0,
+          stepName: "init",
           concurrent: 0,
           targetStep: 0,
         },
@@ -59,6 +60,7 @@ describe("Workflow", () => {
       // is a plan step, meaning that we will execute the corresponding step function
       workflow.steps.push({
         stepId: 0,
+        stepName: "mock",
         concurrent: 2,
         targetStep: 1,
       });
@@ -69,6 +71,7 @@ describe("Workflow", () => {
       // is NOT a plan step, meaning that we will discard the request
       workflow.steps.push({
         stepId: 1,
+        stepName: "mock",
         out: "first result",
         concurrent: 1,
         targetStep: 0,
@@ -79,6 +82,7 @@ describe("Workflow", () => {
       // in this case, all results have been received. We will return the results
       workflow.steps.push({
         stepId: 0,
+        stepName: "mock",
         concurrent: 2,
         targetStep: 2,
       });
@@ -87,6 +91,7 @@ describe("Workflow", () => {
     test("last request", () => {
       workflow.steps.push({
         stepId: 2,
+        stepName: "mock",
         out: "second result",
         concurrent: 1,
         targetStep: 0,
@@ -100,6 +105,7 @@ describe("Workflow", () => {
     test("second pipeline first partial", () => {
       workflow.steps.push({
         stepId: 0,
+        stepName: "mock",
         concurrent: 2,
         targetStep: 3,
       });
@@ -108,6 +114,7 @@ describe("Workflow", () => {
     test("second pipeline second partial", () => {
       workflow.steps.push({
         stepId: 0,
+        stepName: "mock",
         concurrent: 2,
         targetStep: 4,
       });
@@ -116,6 +123,7 @@ describe("Workflow", () => {
     test("second pipeline first result", () => {
       workflow.steps.push({
         stepId: 3,
+        stepName: "mock",
         concurrent: 1,
         out: "first result",
         targetStep: 0,
@@ -125,6 +133,7 @@ describe("Workflow", () => {
     test("second pipeline second result", () => {
       workflow.steps.push({
         stepId: 4,
+        stepName: "mock",
         concurrent: 1,
         out: "second result",
         targetStep: 0,
@@ -135,49 +144,58 @@ describe("Workflow", () => {
       expect(workflow.steps).toEqual([
         {
           stepId: 0,
+          stepName: "init",
           concurrent: 0,
           targetStep: 0,
         },
         {
           stepId: 0,
+          stepName: "mock",
           concurrent: 2,
           targetStep: 1,
         },
         {
           stepId: 1,
+          stepName: "mock",
           out: "first result",
           concurrent: 1,
           targetStep: 0,
         },
         {
           stepId: 0,
+          stepName: "mock",
           concurrent: 2,
           targetStep: 2,
         },
         {
           stepId: 2,
+          stepName: "mock",
           out: "second result",
           concurrent: 1,
           targetStep: 0,
         },
         {
           stepId: 0,
+          stepName: "mock",
           concurrent: 2,
           targetStep: 3,
         },
         {
           stepId: 0,
+          stepName: "mock",
           concurrent: 2,
           targetStep: 4,
         },
         {
           stepId: 3,
+          stepName: "mock",
           concurrent: 1,
           out: "first result",
           targetStep: 0,
         },
         {
           stepId: 4,
+          stepName: "mock",
           concurrent: 1,
           out: "second result",
           targetStep: 0,
@@ -200,7 +218,7 @@ describe("Workflow", () => {
 
       // in initial request workflow, request payload is in out of first call
       expect(workflow.steps).toEqual([
-        { stepId: 0, out: { foo: "bar" }, concurrent: 1, targetStep: 0 },
+        { stepId: 0, stepName: "init", out: { foo: "bar" }, concurrent: 1, targetStep: 0 },
       ]);
     });
 
@@ -213,8 +231,8 @@ describe("Workflow", () => {
           "Upstash-Workflow-Id": mockId,
         },
         // base64 encoding of:
-        // "{\"stepId\":0,\"out\":{\"foo\":\"bar\"},\"concurrent\":1,\"targetStep\":0}"
-        body: '["IntcInN0ZXBJZFwiOjAsXCJvdXRcIjp7XCJmb29cIjpcImJhclwifSxcImNvbmN1cnJlbnRcIjoxLFwidGFyZ2V0U3RlcFwiOjB9Ig=="]',
+        // "{\"stepId\":0,\"stepName\":\"init\",\"out\":{\"foo\":\"bar\"},\"concurrent\":1,\"targetStep\":0}"
+        body: '["IntcInN0ZXBJZFwiOjAsXCJzdGVwTmFtZVwiOlwiaW5pdFwiLFwib3V0XCI6e1wiZm9vXCI6XCJiYXJcIn0sXCJjb25jdXJyZW50XCI6MSxcInRhcmdldFN0ZXBcIjowfSI="]',
       });
 
       const workflow = await SpyWorkflow.createWorkflow<{ foo: string }>(
@@ -226,7 +244,7 @@ describe("Workflow", () => {
       expect(workflow.workflowId).toBe(mockId);
       expect(workflow.url).toBe(mockUrl);
       expect(workflow.steps).toEqual([
-        { stepId: 0, out: { foo: "bar" }, concurrent: 1, targetStep: 0 },
+        { stepId: 0, stepName: "init", out: { foo: "bar" }, concurrent: 1, targetStep: 0 },
       ]);
 
       expect(workflow.requestPayload).toEqual({ foo: "bar" });

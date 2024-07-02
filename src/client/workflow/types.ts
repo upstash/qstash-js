@@ -1,17 +1,23 @@
-export type Step<TOut = unknown> = {
+export type Step<TResult = unknown> = {
   stepId: number;
-  out?: TOut;
+  stepName: string;
+  out?: TResult;
   sleepFor?: number;
   sleepUntil?: number;
   concurrent: number;
   targetStep: number;
 };
 
+export type StepInfo<TResult> = {
+  stepName: string;
+  stepFunction: AsyncStepFunction<TResult>;
+};
+
 /**
  * Context received from Qstash
  */
-export type ContextPayload<TOut> = {
-  steps: Step<TOut>[];
+export type ContextPayload<TResult> = {
+  steps: Step<TResult>[];
   concurrentStep: number;
   targetStep: number;
 };
