@@ -1,6 +1,6 @@
 import type { PublishRequest, PublishResponse } from "./client";
 import type { Requester } from "./http";
-import { appendLLMOptions } from "./llm/utils";
+import { appendLLMOptionsIfNeeded } from "./llm/utils";
 import { getRequestPath, prefixHeaders, processHeaders } from "./utils";
 
 export type QueueResponse = {
@@ -136,7 +136,7 @@ export class Queue {
     headers.set("Content-Type", "application/json");
 
     //If needed, this allows users to directly pass their requests to any open-ai compatible 3rd party llm directly from sdk.
-    appendLLMOptions<TBody, TRequest>(request, headers);
+    appendLLMOptionsIfNeeded<TBody, TRequest>(request, headers);
 
     const response = await this.enqueue({
       ...request,
