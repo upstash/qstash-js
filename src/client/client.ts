@@ -214,6 +214,7 @@ type EventsRequestFilter = {
   state?: State;
   url?: string;
   urlGroup?: string;
+  api?: string;
   scheduleId?: string;
   queueName?: string;
   fromDate?: number; // unix timestamp (ms)

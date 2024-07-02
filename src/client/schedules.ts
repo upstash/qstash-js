@@ -10,10 +10,12 @@ export type Schedule = {
   method: string;
   header?: Record<string, string[]>;
   body?: string;
+  bodyBase64?: string;
   retries: number;
   delay?: number;
   callback?: string;
   failureCallback?: string;
+  callerIp?: string;
   isPaused: true | undefined;
 };
 
