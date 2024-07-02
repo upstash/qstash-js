@@ -105,16 +105,14 @@ const isValid = await r.verify({
 No need for complicated setup your LLM request. We'll call LLM and schedule it for your serverless needs.
 
 ```ts
-import { Client } from "@upstash/qstash";
+import { Client, openai } from "@upstash/qstash";
 
 const c = new Client({
   token: "<QSTASH_TOKEN>",
 });
 
 const result = await client.publishJSON({
-  llmProvider: "openai", // We currently support open-ai and together-ai, but QStash will work with any OpenAI compatible API
-  llmToken: "YOUR_TOKEN",
-  url: "OPEN_AI_COMPATIBLE_BASE_URL",
+  llmProvider: openai({ token: "XXX", baseUrl: "https://api.openai.com" }),
   body: {
     model: "gpt-3.5-turbo",
     messages: [
@@ -130,11 +128,13 @@ const result = await client.publishJSON({
 
 ### Chatting with your favorite LLM
 
-You can easily start streaming Upstash, OpenAI or TogetherAI responses from your favorite framework(Next.js) or library
+You can easily start streaming Upstash or OpenAI responses from your favorite framework(Next.js) or library
 
 ```ts
+import { upstash } from "@upstash/qstash";
+
 const response = await client.chat().create({
-  provider: upstash(), // Optionally, provider: "openai({token: "XXX"})"
+  provider: upstash(), // Optionally, provider: "custom({token: "XXX", baseUrl: "https://api.openai.com"})". This will allow you to call every OpenAI compatible API out there.
   model: "meta-llama/Meta-Llama-3-8B-Instruct", // Optionally, model: "gpt-3.5-turbo",
   llmToken: process.env.OPENAI_API_KEY!,
   messages: [
