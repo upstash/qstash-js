@@ -1,14 +1,14 @@
 import { DLQ } from "./dlq";
 import { HttpClient, type Requester, type RetryConfig } from "./http";
+import { Chat } from "./llm/chat";
+import type { ProviderReturnType } from "./llm/providers";
+import { appendLLMOptions } from "./llm/utils";
 import { Messages } from "./messages";
 import { Queue } from "./queue";
 import { Schedules } from "./schedules";
+import type { BodyInit, Event, GetEventsPayload, HeadersInit, State } from "./types";
 import { UrlGroups } from "./url-groups";
 import { getRequestPath, prefixHeaders, processHeaders } from "./utils";
-import type { BodyInit, Event, GetEventsPayload, HeadersInit, State } from "./types";
-import { Chat } from "./llm/chat";
-import type { LlmProvider } from "./llm/types";
-import { appendLLMOptions } from "./llm/utils";
 
 type ClientConfig = {
   /**
@@ -158,7 +158,7 @@ export type PublishRequest<TBody = BodyInit> = {
       url: string;
       urlGroup?: never;
       api?: never;
-      llmProvider?: never;
+      provider?: never;
     }
   | {
       url?: never;
@@ -167,7 +167,7 @@ export type PublishRequest<TBody = BodyInit> = {
        */
       urlGroup: string;
       api?: never;
-      llmProvider?: never;
+      provider?: never;
     }
   | {
       url?: never;
@@ -176,23 +176,16 @@ export type PublishRequest<TBody = BodyInit> = {
        * The api endpoint the request should be sent to.
        */
       api: "llm";
-      llmProvider?: never;
+      provider?: never;
     }
   | {
       /**
-       * 3rd party provider url such as OpenAI: https://api.openai.com/v1/chat/completions
+       * 3rd party or different way to initialize upstash provider. Supports urls such as OpenAI: https://api.openai.com/v1/chat/completions
        */
       url?: string;
       urlGroup?: never;
       api?: never;
-      /**
-       * 3rd party provider name such as OpenAI, TogetherAI
-       */
-      llmProvider: LlmProvider;
-      /**
-       * 3rd party provider secret key
-       */
-      llmToken?: string;
+      provider: ProviderReturnType;
     }
 );
 

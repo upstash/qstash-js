@@ -1,14 +1,12 @@
 import type { PublishRequest } from "../client";
-import { PROVIDER_MAP } from "./constants";
 
 /**
  * Appends necessary LLM (Language Model) options such as the required token and authorization header to the request.
  *
- * This function checks the `llmProvider` property in the request to determine which provider (OpenAI or TogetherAI)
- * to use and appends the appropriate options. By default, it checks environment variables for API keys if they are not
- * provided in the request. The function also sets the request URL if it is not already specified.
+ * This function checks the `provider` property in the request to determine which provider
+ * to use and appends the appropriate options.
  *
- * @param request - The request object which may contain `llmProvider`, `llmToken`, and `url`.
+ * @param request - The request object which may contain `provider` that holds `token` and `baseUrl`.
  * @param headers - The Headers object to which the authorization token will be appended.
  *
  * @template TBody - The type of the request body.
@@ -18,18 +16,20 @@ export function appendLLMOptions<
   TBody = unknown,
   TRequest extends PublishRequest<TBody> = PublishRequest<TBody>,
 >(request: TRequest, headers: Headers) {
-  if ("llmProvider" in request) {
-    const llmProvider = request.llmProvider;
+  // If the provider owner is "upstash", switch request API to "llm" and exit the function.
+  if (request.provider?.owner === "upstash") {
+    request.api = "llm";
+    return;
+  }
 
-    if (llmProvider === "openai") {
-      const token = process.env.OPENAI_API_KEY ?? request.llmToken;
-      request.url = request.url ?? `${PROVIDER_MAP[llmProvider]}/v1/chat/completion`;
-      headers.set("Authorization", `Bearer ${token}`);
-    }
-    if (llmProvider === "togetherai") {
-      const token = process.env.TOGETHER_API_KEY ?? request.llmToken;
-      request.url = request.url ?? `${PROVIDER_MAP[llmProvider]}/v1/chat/completion`;
-      headers.set("Authorization", `Bearer ${token}`);
-    }
+  // Append mandatory fields for calling 3rd party providers
+  if ("provider" in request) {
+    const provider = request.provider;
+
+    if (!provider?.baseUrl) throw new Error("baseUrl cannot be empty or undefined!");
+    if (!provider.token) throw new Error("token cannot be empty or undefined!");
+
+    request.url = `${provider.baseUrl}/v1/chat/completion`;
+    headers.set("Authorization", `Bearer ${provider.token}`);
   }
 }
