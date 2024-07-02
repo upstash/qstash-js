@@ -112,7 +112,7 @@ const c = new Client({
 });
 
 const result = await client.publishJSON({
-  llmProvider: openai({ token: "XXX", baseUrl: "https://api.openai.com" }),
+  provider: openai({ token: "XXX", baseUrl: "https://api.openai.com" }),
   body: {
     model: "gpt-3.5-turbo",
     messages: [
@@ -136,7 +136,6 @@ import { upstash } from "@upstash/qstash";
 const response = await client.chat().create({
   provider: upstash(), // Optionally, provider: "custom({token: "XXX", baseUrl: "https://api.openai.com"})". This will allow you to call every OpenAI compatible API out there.
   model: "meta-llama/Meta-Llama-3-8B-Instruct", // Optionally, model: "gpt-3.5-turbo",
-  llmToken: process.env.OPENAI_API_KEY!,
   messages: [
     {
       role: "system",
