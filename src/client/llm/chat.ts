@@ -86,7 +86,7 @@ export class Chat {
   ): Promise<
     TStream extends StreamEnabled ? AsyncIterable<ChatCompletionChunk> : ChatCompletion
   > => {
-    const { baseUrl, llmToken, owner } = request.provider;
+    const { baseUrl, token, owner } = request.provider;
     if (owner === "upstash") throw new Error("Upstash is not 3rd party provider!");
 
     //@ts-expect-error We need to delete the prop, otherwise openai throws an error
@@ -106,7 +106,7 @@ export class Chat {
           Connection: "keep-alive",
           Accept: "text/event-stream",
           "Cache-Control": "no-cache",
-          Authorization: `Bearer ${llmToken}`,
+          Authorization: `Bearer ${token}`,
         },
         body,
         baseUrl,
@@ -118,7 +118,7 @@ export class Chat {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${llmToken}`,
+        Authorization: `Bearer ${token}`,
       },
       body,
       baseUrl,

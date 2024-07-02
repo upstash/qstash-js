@@ -175,7 +175,7 @@ describe("Test Qstash chat with third party LLMs", () => {
     "should respond to prompt",
     async () => {
       const response = await client.chat().prompt({
-        provider: openai({ llmToken: process.env.OPENAI_API_KEY! }),
+        provider: openai({ token: process.env.OPENAI_API_KEY! }),
         model: "gpt-3.5-turbo",
         system: "from now on, foo is whale",
         user: "what exactly is foo?",
@@ -194,7 +194,7 @@ describe("Test Qstash chat with third party LLMs", () => {
     "should respond to create",
     async () => {
       const response = await client.chat().create({
-        provider: openai({ llmToken: process.env.OPENAI_API_KEY! }),
+        provider: openai({ token: process.env.OPENAI_API_KEY! }),
         model: "gpt-3.5-turbo",
         messages: [
           {
@@ -221,7 +221,7 @@ describe("Test Qstash chat with third party LLMs", () => {
     "should stream prompt",
     async () => {
       const response = await client.chat().prompt({
-        provider: openai({ llmToken: process.env.OPENAI_API_KEY! }),
+        provider: openai({ token: process.env.OPENAI_API_KEY! }),
         model: "gpt-3.5-turbo",
         system: "from now on, foo is whale",
         user: "what exactly is foo?",
@@ -238,7 +238,7 @@ describe("Test Qstash chat with third party LLMs", () => {
     "should stream create",
     async () => {
       const response = await client.chat().create({
-        provider: openai({ llmToken: process.env.OPENAI_API_KEY! }),
+        provider: openai({ token: process.env.OPENAI_API_KEY! }),
         model: "gpt-3.5-turbo",
         messages: [
           {

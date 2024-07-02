@@ -1,38 +1,38 @@
 export type ProviderReturnType = {
   owner: "upstash" | "openai" | "custom";
   baseUrl: string;
-  llmToken: string;
+  token: string;
 };
 
 const upstash = (): {
   owner: "upstash";
   baseUrl: "https://qstash.upstash.io";
-  llmToken: string;
+  token: string;
 } => {
   if (!process.env.QSTASH_TOKEN) throw new Error("QSTASH_TOKEN cannot be empty or undefined!");
   return {
     owner: "upstash",
     baseUrl: "https://qstash.upstash.io",
-    llmToken: process.env.QSTASH_TOKEN,
+    token: process.env.QSTASH_TOKEN,
   };
 };
 
 const openai = ({
-  llmToken,
+  token,
 }: {
-  llmToken: string;
-}): { owner: "openai"; baseUrl: "https://api.openai.com"; llmToken: string } => {
-  return { llmToken, owner: "openai", baseUrl: "https://api.openai.com" };
+  token: string;
+}): { owner: "openai"; baseUrl: "https://api.openai.com"; token: string } => {
+  return { token: token, owner: "openai", baseUrl: "https://api.openai.com" };
 };
 
 const custom = ({
   baseUrl,
-  llmToken,
+  token,
 }: {
-  llmToken: string;
+  token: string;
   baseUrl: string;
-}): { owner: "custom"; baseUrl: string; llmToken: string } => {
-  return { llmToken, owner: "custom", baseUrl };
+}): { owner: "custom"; baseUrl: string; token: string } => {
+  return { token, owner: "custom", baseUrl };
 };
 
 export { custom, openai, upstash };
