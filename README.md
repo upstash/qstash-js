@@ -2,8 +2,8 @@
 
 ![npm (scoped)](https://img.shields.io/npm/v/@upstash/qstash)
 
-> [!NOTE] > **This project is in GA Stage.**
->
+> [!NOTE]
+> **This project is in GA Stage.**
 > The Upstash Professional Support fully covers this project. It receives regular updates, and bug fixes.
 > The Upstash team is committed to maintaining and improving its functionality.
 
@@ -42,7 +42,7 @@ npm install @upstash/qstash
 
 ### Get your authorization token
 
-Go to [upstash](https://console.upstash.com/qstash) and copy the token.
+Go to [Upstash Console](https://console.upstash.com/qstash) and copy the QSTASH_TOKEN.
 
 ## Basic Usage:
 
