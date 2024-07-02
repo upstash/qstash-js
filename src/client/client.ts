@@ -10,6 +10,7 @@ import type { BodyInit, Event, GetEventsPayload, HeadersInit, State } from "./ty
 import { UrlGroups } from "./url-groups";
 import { getRequestPath, prefixHeaders, processHeaders } from "./utils";
 import { Workflow } from "./workflow/workflow";
+import { serve } from "./workflow/serve";
 
 type ClientConfig = {
   /**
@@ -439,6 +440,13 @@ export class Client {
 
   public async workflow(request: Request) {
     return await Workflow.createWorkflow(request, this);
+  }
+
+  public serve<TPayload = unknown>(
+    routeFunction: (context: Workflow<TPayload>) => Promise<void>,
+    onFinish: (workflowId: string) => unknown
+  ) {
+    return serve<TPayload>({ client: this, routeFunction, onFinish });
   }
 }
 

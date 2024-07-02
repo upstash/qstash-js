@@ -13,7 +13,6 @@ export class Workflow<TInitialRequest = unknown> {
 
   protected readonly url: string;
   protected readonly steps: Step[];
-  protected readonly workflowId: string;
   protected readonly nonPlanStepCount: number;
   protected skip;
 
@@ -21,7 +20,8 @@ export class Workflow<TInitialRequest = unknown> {
   protected stepCount = 0;
   protected planStepCount = 0;
 
-  public requestPayload: TInitialRequest;
+  public readonly workflowId: string;
+  public readonly requestPayload: TInitialRequest;
 
   /**
    * Creates a workflow context which offers methods to run steps
