@@ -10,6 +10,7 @@ import type { BodyInit, Event, GetEventsPayload, HeadersInit, State } from "./ty
 import { UrlGroups } from "./url-groups";
 import { getRequestPath, prefixHeaders, processHeaders } from "./utils";
 import { Workflow } from "./workflow/workflow";
+import type { Receiver } from "../receiver";
 
 type ClientConfig = {
   /**
@@ -437,8 +438,8 @@ export class Client {
     };
   }
 
-  public async workflow(request: Request) {
-    return await Workflow.createWorkflow(request, this);
+  public async workflow(request: Request, receiver?: Receiver) {
+    return await Workflow.createWorkflow(request, this, receiver);
   }
 }
 

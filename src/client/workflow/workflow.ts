@@ -5,6 +5,7 @@ import type { Client } from "../client";
 import * as WorkflowParser from "./workflow-parser";
 import { AutoExecutor } from "./auto-executor";
 import { QstashWorkflowError } from "../error";
+import { SignatureError, type Receiver } from "../../receiver";
 
 export class Workflow<TInitialRequest = unknown> {
   protected readonly client: Client;
@@ -285,9 +286,10 @@ export class Workflow<TInitialRequest = unknown> {
    *   Otherwise, steps are generated from the body.
    *
    * @param request Request received
+   * @param receiver Receiver to validate requests. Optional
    * @returns Whether the invocation is the initial one, the workflow id and the steps
    */
-  static async parseRequest(request: Request) {
+  static async parseRequest(request: Request, receiver?: Receiver) {
     const callHeader = request.headers.get(WORKFLOW_INTERNAL_HEADER);
     const isFirstInvocation = !callHeader;
 
@@ -314,6 +316,18 @@ export class Workflow<TInitialRequest = unknown> {
       if (payload === undefined) {
         throw new QstashWorkflowError("Only first call can have an empty body");
       }
+      if (receiver) {
+        const isValid = await receiver.verify({
+          signature: request.headers.get("upstash-signature") ?? "",
+          body: JSON.stringify(payload),
+          url: request.url,
+        });
+        if (!isValid) {
+          throw new SignatureError("Not allowed");
+        }
+      } else {
+        console.warn("Warning: QStash Workflow wasn't passed a receiver to verify the requests.");
+      }
 
       steps = WorkflowParser.generateSteps(payload);
     }
@@ -331,10 +345,15 @@ export class Workflow<TInitialRequest = unknown> {
    *
    * @param request request received from the API
    * @param client QStash client
+   * @param receiver Receiver to validate requests. Optional
    * @returns
    */
-  static async createWorkflow<TInitialRequest = unknown>(request: Request, client: Client) {
-    const { isFirstInvocation, workflowId, steps } = await Workflow.parseRequest(request);
+  static async createWorkflow<TInitialRequest = unknown>(
+    request: Request,
+    client: Client,
+    receiver?: Receiver
+  ) {
+    const { isFirstInvocation, workflowId, steps } = await Workflow.parseRequest(request, receiver);
     const workflow = new Workflow<TInitialRequest>({
       client,
       workflowId,
@@ -345,8 +364,6 @@ export class Workflow<TInitialRequest = unknown> {
 
     if (isFirstInvocation) {
       await workflow.submitResults(steps[0]);
-    } else {
-      // TODO: verify that request is coming from QStash
     }
 
     return workflow;

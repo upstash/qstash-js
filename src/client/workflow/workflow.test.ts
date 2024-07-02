@@ -3,6 +3,7 @@ import { describe, expect, test } from "bun:test";
 import { WORKFLOW_INTERNAL_HEADER } from "./constants";
 import { Workflow } from "./workflow";
 import { Client } from "../client";
+import { Receiver } from "../../receiver";
 
 /**
  * Workflow making the private fields public for testing
@@ -230,6 +231,74 @@ describe("Workflow", () => {
       ]);
 
       expect(workflow.requestPayload).toEqual({ foo: "bar" });
+    });
+  });
+});
+
+describe.only("Verify Workflow Request", () => {
+  const mockId = "wf007";
+  const mockUrl = "https://www.mock.com/";
+
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+  const client = new Client({ token: process.env.QSTASH_TOKEN! });
+  const receiver = new Receiver({
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    currentSigningKey: process.env.QSTASH_CURRENT_SIGNING_KEY!,
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    nextSigningKey: process.env.QSTASH_Next_SIGNING_KEY!,
+  });
+
+  describe("first request", () => {
+    test("should accept with no receiver", async () => {
+      const mockRequest = new Request(mockUrl, {
+        headers: {},
+        body: '{"foo": "bar"}',
+      });
+      await Workflow.createWorkflow(mockRequest, client);
+    });
+    test("should accept with receiver", async () => {
+      const mockRequest = new Request(mockUrl, {
+        headers: {},
+        body: '{"foo": "bar"}',
+      });
+      await Workflow.createWorkflow(mockRequest, client, receiver);
+    });
+  });
+
+  describe("other requests", () => {
+    test("should accept with no receiver", async () => {
+      const mockRequest = new Request(mockUrl, {
+        headers: {
+          [WORKFLOW_INTERNAL_HEADER]: "yes",
+          "Upstash-Workflow-Id": mockId,
+        },
+        // base64 encoding of:
+        // "{\"stepId\":0,\"out\":{\"foo\":\"bar\"},\"concurrent\":1,\"targetStep\":0}"
+        body: '["IntcInN0ZXBJZFwiOjAsXCJvdXRcIjp7XCJmb29cIjpcImJhclwifSxcImNvbmN1cnJlbnRcIjoxLFwidGFyZ2V0U3RlcFwiOjB9Ig=="]',
+      });
+      await Workflow.createWorkflow(mockRequest, client);
+    });
+    test("should reject with receiver", async () => {
+      const mockRequest = new Request(mockUrl, {
+        headers: {
+          [WORKFLOW_INTERNAL_HEADER]: "yes",
+          "Upstash-Workflow-Id": mockId,
+        },
+        // base64 encoding of:
+        // "{\"stepId\":0,\"out\":{\"foo\":\"bar\"},\"concurrent\":1,\"targetStep\":0}"
+        body: '["IntcInN0ZXBJZFwiOjAsXCJvdXRcIjp7XCJmb29cIjpcImJhclwifSxcImNvbmN1cnJlbnRcIjoxLFwidGFyZ2V0U3RlcFwiOjB9Ig=="]',
+      });
+      try {
+        await Workflow.createWorkflow(mockRequest, client, receiver);
+      } catch (error) {
+        if (error instanceof Error) {
+          expect(error.name).toBe("SignatureError");
+        } else {
+          throw new TypeError(
+            `Error running the test. error should have been an Error. Got ${error} instead`
+          );
+        }
+      }
     });
   });
 });
