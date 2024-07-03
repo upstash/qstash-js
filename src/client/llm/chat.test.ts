@@ -113,7 +113,7 @@ describe("Test Qstash chat", () => {
 
   test("should publish with llm api", async () => {
     const result = await client.publishJSON({
-      provider: upstash(),
+      api: { name: "llm", provider: upstash() },
       body: {
         model: "meta-llama/Meta-Llama-3-8B-Instruct",
         messages: [
@@ -131,7 +131,7 @@ describe("Test Qstash chat", () => {
   test("should batch with llm api", async () => {
     const result = await client.batchJSON([
       {
-        provider: upstash(),
+        api: { name: "llm", provider: upstash() },
         body: {
           model: "meta-llama/Meta-Llama-3-8B-Instruct",
           messages: [
@@ -152,7 +152,7 @@ describe("Test Qstash chat", () => {
     const queueName = "upstash-queue";
     const queue = client.queue({ queueName });
     const result = await queue.enqueueJSON({
-      provider: upstash(),
+      api: { name: "llm", provider: upstash() },
       body: {
         model: "meta-llama/Meta-Llama-3-8B-Instruct",
         messages: [
@@ -261,7 +261,7 @@ describe("Test Qstash chat with third party LLMs", () => {
 
   test("should publish with llm api", async () => {
     const result = await client.publishJSON({
-      provider: openai({ token: process.env.OPENAI_API_KEY! }),
+      api: { name: "llm", provider: openai({ token: process.env.OPENAI_API_KEY! }) },
       body: {
         model: "gpt-3.5-turbo",
         messages: [
@@ -279,7 +279,7 @@ describe("Test Qstash chat with third party LLMs", () => {
   test("should batch with llm api", async () => {
     const result = await client.batchJSON([
       {
-        provider: openai({ token: process.env.OPENAI_API_KEY! }),
+        api: { name: "llm", provider: openai({ token: process.env.OPENAI_API_KEY! }) },
         body: {
           model: "gpt-3.5-turbo",
           messages: [
@@ -300,7 +300,7 @@ describe("Test Qstash chat with third party LLMs", () => {
     const queueName = "upstash-queue";
     const queue = client.queue({ queueName });
     const result = await queue.enqueueJSON({
-      provider: openai({ token: process.env.OPENAI_API_KEY! }),
+      api: { name: "llm", provider: openai({ token: process.env.OPENAI_API_KEY! }) },
       body: {
         model: "gpt-3.5-turbo",
         messages: [

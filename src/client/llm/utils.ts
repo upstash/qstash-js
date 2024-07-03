@@ -12,19 +12,19 @@ import type { PublishRequest } from "../client";
  * @template TBody - The type of the request body.
  * @template TRequest - The type of the publish request extending `PublishRequest`.
  */
-export function appendLLMOptions<
+export function appendLLMOptionsIfNeeded<
   TBody = unknown,
   TRequest extends PublishRequest<TBody> = PublishRequest<TBody>,
 >(request: TRequest, headers: Headers) {
-  // If the provider owner is "upstash", switch request API to "llm" and exit the function.
-  if (request.provider?.owner === "upstash") {
-    request.api = "llm";
+  //If the provider owner is "upstash", switch request API to "llm" and exit the function.
+  if (request.api?.provider?.owner === "upstash") {
+    request.api = { name: "llm" };
     return;
   }
 
   // Append mandatory fields for calling 3rd party providers
-  if ("provider" in request) {
-    const provider = request.provider;
+  if (request.api && "provider" in request.api) {
+    const provider = request.api.provider;
 
     if (!provider?.baseUrl) throw new Error("baseUrl cannot be empty or undefined!");
     if (!provider.token) throw new Error("token cannot be empty or undefined!");
