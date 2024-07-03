@@ -9,11 +9,10 @@ const upstash = (): {
   baseUrl: "https://qstash.upstash.io/llm";
   token: string;
 } => {
-  if (!process.env.QSTASH_TOKEN) throw new Error("QSTASH_TOKEN cannot be empty or undefined!");
   return {
     owner: "upstash",
     baseUrl: "https://qstash.upstash.io/llm",
-    token: process.env.QSTASH_TOKEN,
+    token: "",
   };
 };
 
@@ -32,7 +31,11 @@ const custom = ({
   token: string;
   baseUrl: string;
 }): { owner: "custom"; baseUrl: string; token: string } => {
-  return { token, owner: "custom", baseUrl };
+  const trimmedBaseUrl = baseUrl.replace(/\/(v1\/)?chat\/completions$/, ""); // Will trim /v1/chat/completions and /chat/completions
+  return {
+    token,
+    owner: "custom",
+    baseUrl: trimmedBaseUrl,
+  };
 };
-
 export { custom, openai, upstash };

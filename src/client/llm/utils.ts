@@ -29,7 +29,7 @@ export function appendLLMOptionsIfNeeded<
     if (!provider?.baseUrl) throw new Error("baseUrl cannot be empty or undefined!");
     if (!provider.token) throw new Error("token cannot be empty or undefined!");
 
-    request.url = `${provider.baseUrl}/v1/chat/completion`;
+    request.url = `${provider.baseUrl}/v1/chat/completions`;
     headers.set("Authorization", `Bearer ${provider.token}`);
   }
 }

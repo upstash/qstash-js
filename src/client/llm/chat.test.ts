@@ -259,7 +259,7 @@ describe("Test Qstash chat with third party LLMs", () => {
     { timeout: 30_000, retry: 3 }
   );
 
-  test("should publish with llm api", async () => {
+  test("should publish with llm api - todo", async () => {
     const result = await client.publishJSON({
       api: { name: "llm", provider: openai({ token: process.env.OPENAI_API_KEY! }) },
       body: {
