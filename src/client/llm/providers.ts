@@ -9,11 +9,10 @@ const upstash = (): {
   baseUrl: "https://qstash.upstash.io/llm";
   token: string;
 } => {
-  if (!process.env.QSTASH_TOKEN) throw new Error("QSTASH_TOKEN cannot be empty or undefined!");
   return {
     owner: "upstash",
     baseUrl: "https://qstash.upstash.io/llm",
-    token: process.env.QSTASH_TOKEN,
+    token: "",
   };
 };
 
