@@ -31,12 +31,12 @@ export type StepFunction<TResult> = AsyncStepFunction<TResult> | SyncStepFunctio
 
 export type ParallelCallState = "first" | "partial" | "discard" | "last";
 
-export type WorkflowServeParameters<TPayload> = {
+export type WorkflowServeParameters<TPayload, TResponse extends Response = Response> = {
   routeFunction: (context: WorkflowContext<TPayload>) => Promise<void>;
-  options?: WorkflowServeOptions;
+  options?: WorkflowServeOptions<TResponse>;
 };
 
-export type WorkflowServeOptions = {
+export type WorkflowServeOptions<TResponse extends Response = Response> = {
   client?: Client;
-  onFinish?: (workflowId: string) => Response;
+  onFinish?: (workflowId: string) => TResponse;
 };

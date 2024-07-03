@@ -5,6 +5,7 @@ export default defineConfig({
     index: "./src/index.ts",
     nextjs: "./src/nextjs.ts",
     workflow: "./src/client/workflow/index.ts",
+    "workflow-nextjs": "./src/client/workflow/frameworks/nextjs.ts",
   },
   format: ["cjs", "esm"],
   splitting: true,

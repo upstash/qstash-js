@@ -4,7 +4,9 @@ import { WorkflowContext } from "./context";
 import type { WorkflowServeOptions, WorkflowServeParameters } from "./types";
 import { Workflow } from "./workflow";
 
-const processOptions = (options?: WorkflowServeOptions) => {
+const processOptions = <TResponse extends Response = Response>(
+  options?: WorkflowServeOptions<TResponse>
+) => {
   return {
     client:
       options?.client ??
@@ -14,19 +16,24 @@ const processOptions = (options?: WorkflowServeOptions) => {
       }),
     onFinish:
       options?.onFinish ??
-      ((workflowId: string) => new Response(JSON.stringify({ workflowId }), { status: 200 })),
+      ((workflowId: string) =>
+        new Response(JSON.stringify({ workflowId }), { status: 200 }) as TResponse),
   };
 };
 
-export const serve = <TPayload>({
+export const serve = <
+  TPayload,
+  TRequest extends Request = Request,
+  TResponse extends Response = Response,
+>({
   routeFunction,
   options,
-}: WorkflowServeParameters<TPayload>): ((request: Request) => Promise<Response>) => {
+}: WorkflowServeParameters<TPayload, TResponse>): ((request: TRequest) => Promise<TResponse>) => {
   // TODO add receiver for verification
 
-  const { client, onFinish } = processOptions(options);
+  const { client, onFinish } = processOptions<TResponse>(options);
 
-  return async (request: Request) => {
+  return async (request: TRequest) => {
     const workflow = await Workflow.createWorkflow<TPayload>(request, client);
     const workflowContext = new WorkflowContext({ workflow });
     await routeFunction(workflowContext);
