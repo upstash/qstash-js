@@ -214,6 +214,7 @@ export type QueueRequest = {
 
 export class Client {
   public http: Requester;
+  private token: string;
 
   public constructor(config: ClientConfig) {
     this.http = new HttpClient({
@@ -221,6 +222,7 @@ export class Client {
       baseUrl: config.baseUrl ? config.baseUrl.replace(/\/$/, "") : "https://qstash.upstash.io",
       authorization: `Bearer ${config.token}`,
     });
+    this.token = config.token;
   }
 
   /**
@@ -274,7 +276,7 @@ export class Client {
    * Call the create or prompt methods
    */
   public chat(): Chat {
-    return new Chat(this.http);
+    return new Chat(this.http, this.token);
   }
 
   public async publish<TRequest extends PublishRequest>(

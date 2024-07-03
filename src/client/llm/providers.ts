@@ -32,7 +32,11 @@ const custom = ({
   token: string;
   baseUrl: string;
 }): { owner: "custom"; baseUrl: string; token: string } => {
-  return { token, owner: "custom", baseUrl };
+  const trimmedBaseUrl = baseUrl.replace(/\/(v1\/)?chat\/completions$/, ""); // Will trim /v1/chat/completions and /chat/completions
+  return {
+    token,
+    owner: "custom",
+    baseUrl: trimmedBaseUrl,
+  };
 };
-
 export { custom, openai, upstash };
