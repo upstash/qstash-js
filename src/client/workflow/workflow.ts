@@ -137,7 +137,8 @@ export class Workflow<TInitialRequest = unknown> {
   public async sleep(stepName: string, duration: number): Promise<void> {
     this.stepCount += 1;
 
-    if (this.skip || this.stepCount < this.nonPlanStepCount) return;
+    const isSkipped = this.skip || this.stepCount < this.nonPlanStepCount;
+    if (isSkipped) return;
     this.addStep({
       stepId: this.stepCount,
       sleepFor: duration,
@@ -155,7 +156,8 @@ export class Workflow<TInitialRequest = unknown> {
   public async sleepUntil(stepName: string, datetime: Date | string): Promise<void> {
     this.stepCount += 1;
 
-    if (this.skip || this.stepCount < this.nonPlanStepCount) return;
+    const isSkipped = this.skip || this.stepCount < this.nonPlanStepCount;
+    if (isSkipped) return;
 
     const date = typeof datetime === "string" ? new Date(datetime) : datetime;
     this.addStep({
