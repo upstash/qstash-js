@@ -24,9 +24,27 @@ export class QstashChatRatelimitError extends QstashError {
   }
 }
 
+/**
+ * Error raised during Workflow execution
+ */
 export class QstashWorkflowError extends QstashError {
   constructor(message: string) {
     super(message);
     this.name = "QstashWorkflowError";
+  }
+}
+
+/**
+ * Raised when the workflow executes a function and aborts
+ */
+export class QstashWorkflowAbort extends Error {
+  public result: unknown;
+  public stepName: string;
+
+  constructor(result: unknown, stepName: string) {
+    super("Aborting workflow after executing a step.");
+    this.name = "QstashWorkflowAbort";
+    this.result = result;
+    this.stepName = stepName;
   }
 }

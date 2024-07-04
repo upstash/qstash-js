@@ -9,6 +9,9 @@ export class AutoExecutor {
 
   private workflow: Workflow;
 
+  public stepCount = 0;
+  public planStepCount = 0;
+
   constructor(workflow: Workflow) {
     this.workflow = workflow;
   }
@@ -27,6 +30,8 @@ export class AutoExecutor {
    * @returns result of the step function
    */
   public async addStep<TResult>(StepInfo: StepInfo<TResult>) {
+    this.stepCount += 1;
+
     const functionList = this.activeFunctionList ?? [];
 
     if (!this.activeFunctionList) {
@@ -46,6 +51,9 @@ export class AutoExecutor {
 
         this.promises.set(functionList, promise);
         this.activeFunctionList = undefined;
+
+        // if there are more than 1 functions, increment the plan step count
+        this.planStepCount += functionList.length > 1 ? functionList.length : 0;
       }
       const promise = this.promises.get(functionList);
       return promise;
@@ -53,8 +61,10 @@ export class AutoExecutor {
 
     const result = await requestComplete;
     if (functionList.length === 1) {
+      // a single step run, return the result as it is
       return result as TResult;
     } else if (functionList.length > 0 && Array.isArray(result)) {
+      // a parallel run, return the result corresponding to the function run
       if (result.length !== functionList.length) {
         throw new QstashWorkflowError(
           `Unexpected parallel call result: '${result}'. Expected ${functionList.length} many items`

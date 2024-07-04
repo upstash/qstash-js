@@ -7,20 +7,19 @@ import { Client } from "../client";
 /**
  * Workflow making the private fields public for testing
  */
-export class SpyWorkflow<TInitialRequest = unknown> extends Workflow<TInitialRequest> {
+export class SpyWorkflow extends Workflow {
   public declare client;
   public declare url;
-  public declare stepCount;
   public declare workflowId;
   public declare steps;
-  public declare skip;
-
+  public declare executor;
   public declare getParallelCallState;
-  static async createWorkflow<TInitialRequest>(request: Request, client: Client) {
-    const workflow = Workflow.createWorkflow<TInitialRequest>(
-      request,
-      client
-    ) as unknown as SpyWorkflow<TInitialRequest>;
+
+  static async createWorkflow(request: Request, client: Client) {
+    const workflow = Workflow.createWorkflow(request, client) as unknown as {
+      workflow: SpyWorkflow;
+      isFirstInvocation: boolean;
+    };
     return await Promise.resolve(workflow);
   }
 }
@@ -43,16 +42,13 @@ describe("Workflow", () => {
           targetStep: 0,
         },
       ],
-      skip: false,
     });
-
-    workflow.stepCount = 0;
 
     test("first request", () => {
       // in this case, we are running a parallel step for the first time since
       // this.stepCount equals this.steps.length
 
-      workflow.stepCount += 2;
+      workflow.executor.stepCount += 2;
       expect(workflow.getParallelCallState(2, 1)).toBe("first");
     });
     test("partial request", () => {
@@ -99,7 +95,7 @@ describe("Workflow", () => {
       expect(workflow.getParallelCallState(2, 1)).toBe("last");
     });
     test("second pipeline first", () => {
-      workflow.stepCount += 2;
+      workflow.executor.stepCount += 2;
       expect(workflow.getParallelCallState(2, 3)).toBe("first");
     });
     test("second pipeline first partial", () => {
@@ -211,10 +207,10 @@ describe("Workflow", () => {
         body: '{"foo": "bar"}',
       });
 
-      const workflow = await SpyWorkflow.createWorkflow(mockRequest as unknown as Request, client);
-
-      // steps are skipped in the first run
-      expect(workflow.skip).toBeTrue();
+      const { workflow } = await SpyWorkflow.createWorkflow(
+        mockRequest as unknown as Request,
+        client
+      );
 
       // in initial request workflow, request payload is in out of first call
       expect(workflow.steps).toEqual([
@@ -235,19 +231,15 @@ describe("Workflow", () => {
         body: '["IntcInN0ZXBJZFwiOjAsXCJzdGVwTmFtZVwiOlwiaW5pdFwiLFwib3V0XCI6e1wiZm9vXCI6XCJiYXJcIn0sXCJjb25jdXJyZW50XCI6MSxcInRhcmdldFN0ZXBcIjowfSI="]',
       });
 
-      const workflow = await SpyWorkflow.createWorkflow<{ foo: string }>(
-        mockRequest as unknown as Request,
-        client
-      );
+      const { workflow } = await SpyWorkflow.createWorkflow(mockRequest, client);
 
-      expect(workflow.skip).toBeFalse();
       expect(workflow.workflowId).toBe(mockId);
       expect(workflow.url).toBe(mockUrl);
       expect(workflow.steps).toEqual([
         { stepId: 0, stepName: "init", out: { foo: "bar" }, concurrent: 1, targetStep: 0 },
       ]);
 
-      expect(workflow.requestPayload).toEqual({ foo: "bar" });
+      expect(workflow.steps[0].out).toEqual({ foo: "bar" });
     });
   });
 });

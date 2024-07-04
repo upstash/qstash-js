@@ -4,24 +4,18 @@ import { WORKFLOW_INTERNAL_HEADER, WORKFLOW_ID_HEADER } from "./constants";
 import type { Client } from "../client";
 import * as WorkflowParser from "./workflow-parser";
 import { AutoExecutor } from "./auto-executor";
-import { QstashWorkflowError } from "../error";
+import { QstashWorkflowAbort, QstashWorkflowError } from "../error";
 
-export class Workflow<TInitialRequest = unknown> {
+export class Workflow {
   protected readonly client: Client;
   protected executor: AutoExecutor;
   protected pendingSteps: Step[] = [];
 
   protected readonly url: string;
-  protected readonly steps: Step[];
   protected readonly nonPlanStepCount: number;
-  protected skip;
 
-  // counters which are incremented as steps are processed
-  protected stepCount = 0;
-  protected planStepCount = 0;
-
+  public readonly steps: Step[];
   public readonly workflowId: string;
-  public readonly requestPayload: TInitialRequest;
 
   /**
    * Creates a workflow context which offers methods to run steps
@@ -31,29 +25,24 @@ export class Workflow<TInitialRequest = unknown> {
    * @param url QStash backend url
    * @param workflowId Id of the workflow
    * @param steps steps received from QStash
-   * @param skip whether the steps in the workflow should be skipped
    */
   constructor({
     client,
     url,
     workflowId,
     steps,
-    skip = false,
   }: {
     client: Client;
     url: string;
     workflowId: string;
     steps: Step[];
-    skip: boolean;
   }) {
     this.client = client;
     this.url = url;
     this.workflowId = workflowId;
     this.steps = steps;
     this.nonPlanStepCount = this.steps.filter((step) => !step.targetStep).length;
-    this.skip = skip;
     this.executor = new AutoExecutor(this);
-    this.requestPayload = this.steps[0].out as TInitialRequest;
   }
 
   /**
@@ -93,12 +82,6 @@ export class Workflow<TInitialRequest = unknown> {
     stepName: string,
     stepFunction: AsyncStepFunction<TResult>
   ): Promise<TResult> {
-    this.stepCount += 1;
-    if (this.skip) {
-      // @ts-expect-error return undefined for skipped steps
-      return;
-    }
-
     const result = await this.executor.addStep({
       stepName,
       stepFunction,
@@ -118,14 +101,14 @@ export class Workflow<TInitialRequest = unknown> {
    * @returns step result
    */
   public async runSingle<TResult>(stepInfo: StepInfo<TResult>) {
-    if (this.stepCount < this.nonPlanStepCount) {
-      return this.steps[this.stepCount + this.planStepCount].out as TResult;
+    if (this.executor.stepCount < this.nonPlanStepCount) {
+      return this.steps[this.executor.stepCount + this.executor.planStepCount].out as TResult;
     }
 
     const result = await stepInfo.stepFunction();
 
     // add result to pending and send request
-    this.addResult(result, this.stepCount, stepInfo.stepName);
+    this.addResult(result, this.executor.stepCount, stepInfo.stepName);
     await this.sendPendingToQstash();
 
     return result;
@@ -137,12 +120,12 @@ export class Workflow<TInitialRequest = unknown> {
    * @param duration sleep duration in seconds
    */
   public async sleep(stepName: string, duration: number): Promise<void> {
-    this.stepCount += 1;
+    this.executor.stepCount += 1;
+    if (this.executor.stepCount < this.nonPlanStepCount) return;
 
-    const isSkipped = this.skip || this.stepCount < this.nonPlanStepCount;
-    if (isSkipped) return;
     this.addStep({
-      stepId: this.stepCount,
+      stepId: this.executor.stepCount,
+      stepName,
       sleepFor: duration,
       concurrent: 1,
       targetStep: 0,
@@ -155,18 +138,24 @@ export class Workflow<TInitialRequest = unknown> {
    * @param stepName
    * @param datetime Date object to sleep until
    */
-  public async sleepUntil(stepName: string, datetime: Date | string): Promise<void> {
-    this.stepCount += 1;
+  public async sleepUntil(stepName: string, datetime: Date | string | number): Promise<void> {
+    this.executor.stepCount += 1;
+    if (this.executor.stepCount < this.nonPlanStepCount) return;
 
-    const isSkipped = this.skip || this.stepCount < this.nonPlanStepCount;
-    if (isSkipped) return;
-
-    const date = typeof datetime === "string" ? new Date(datetime) : datetime;
-    this.addStep({
-      stepId: this.stepCount,
+    let time: number;
+    if (typeof datetime === "number") {
+      time = datetime;
+    } else {
+      datetime = typeof datetime === "string" ? new Date(datetime) : datetime;
       // get unix seconds
       // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-      sleepUntil: Math.round(date.getTime() / 1000),
+      time = Math.round(datetime.getTime() / 1000);
+    }
+
+    this.addStep({
+      stepId: this.executor.stepCount,
+      stepName,
+      sleepUntil: time,
       concurrent: 1,
       targetStep: 0,
     });
@@ -183,7 +172,7 @@ export class Workflow<TInitialRequest = unknown> {
   public async runParallel<TResults extends unknown[]>(parallelSteps: {
     [K in keyof TResults]: StepInfo<TResults[K]>;
   }): Promise<TResults> {
-    const initialStepCount = this.stepCount - (parallelSteps.length - 1);
+    const initialStepCount = this.executor.stepCount - (parallelSteps.length - 1);
     const parallelCallState = this.getParallelCallState(parallelSteps.length, initialStepCount);
 
     switch (parallelCallState) {
@@ -226,12 +215,10 @@ export class Workflow<TInitialRequest = unknown> {
           .filter((step) => step.stepId >= initialStepCount)
           .map((step) => step.out)
           .slice(0, parallelSteps.length) as TResults;
-        this.planStepCount += parallelSteps.length;
         return concurrentResults;
       }
     }
     await this.sendPendingToQstash();
-
     const fillValue = undefined;
     return Array.from({ length: parallelSteps.length }).fill(fillValue) as TResults;
   }
@@ -293,7 +280,7 @@ export class Workflow<TInitialRequest = unknown> {
     }
   }
 
-  private async submitResults(step: Step) {
+  public async submitResults(step: Step) {
     const headers: Record<string, string> = {
       [`Upstash-Forward-${WORKFLOW_INTERNAL_HEADER}`]: "yes",
       "Upstash-Forward-Upstash-Workflow-Id": this.workflowId,
@@ -315,8 +302,12 @@ export class Workflow<TInitialRequest = unknown> {
     for (const step of this.pendingSteps) {
       await this.submitResults(step);
     }
-    this.skip = true;
-    this.pendingSteps = [];
+
+    const error =
+      this.pendingSteps.length > 0
+        ? new QstashWorkflowAbort(this.pendingSteps[0].out, this.pendingSteps[0].stepName)
+        : new QstashWorkflowAbort("discard", "discard"); // when parallel call returns "discard"
+    throw error;
   }
 
   /**
@@ -375,24 +366,17 @@ export class Workflow<TInitialRequest = unknown> {
    *
    * @param request request received from the API
    * @param client QStash client
-   * @returns
+   * @returns workflow and whether its the first time the workflow is being called
    */
-  static async createWorkflow<TInitialRequest = unknown>(request: Request, client: Client) {
+  static async createWorkflow(request: Request, client: Client) {
     const { isFirstInvocation, workflowId, steps } = await Workflow.parseRequest(request);
-    const workflow = new Workflow<TInitialRequest>({
+    const workflow = new Workflow({
       client,
       workflowId,
       steps,
-      skip: isFirstInvocation,
       url: request.url,
     });
 
-    if (isFirstInvocation) {
-      await workflow.submitResults(steps[0]);
-    } else {
-      // TODO: verify that request is coming from QStash
-    }
-
-    return workflow;
+    return { workflow, isFirstInvocation };
   }
 }

@@ -5,6 +5,7 @@ import type { PublishRequest, PublishResponse } from "../client";
 import { Client } from "../client";
 import { SpyWorkflow } from "./workflow.test";
 import type { AsyncStepFunction, Step } from "./types";
+import { QstashWorkflowAbort } from "../error";
 
 /**
  * Client mocking the publishJSON method by disabling sending requests
@@ -46,30 +47,44 @@ const expectStep = async <TResult>(
   shouldReturn: TResult,
   shouldPublish: PublishRequest[]
 ): Promise<TResult> => {
-  const skipBefore = workflow.skip;
-  const stepCountBefore = workflow.stepCount;
+  const stepCountBefore = workflow.executor.stepCount;
 
-  const result = (await workflow.run(stepName, step)) as TResult;
+  let abortError;
+  let result;
+  try {
+    // if the result exists in the steps, it's simply returned
+    result = (await workflow.run(stepName, step)) as TResult;
+  } catch (error) {
+    // if the step is executed, QstashWorkflowAbort is thrown
+    if (error instanceof QstashWorkflowAbort) {
+      result = error.result as TResult;
+      abortError = error;
+    } else {
+      throw error;
+    }
+  }
 
-  const skipAfter = workflow.skip;
-  const stepCountAfter = workflow.stepCount;
+  const stepCountAfter = workflow.executor.stepCount;
 
   expect(stepCountAfter).toBe(stepCountBefore + 1);
 
   if (shouldRun) {
-    expect(skipBefore).toBeFalse();
-    expect(skipAfter).toBeTrue();
     expect(client.publishedJSON.length > 0).toBeTrue();
 
     expect(result).toEqual(shouldReturn);
     expect(client.publishedJSON).toEqual(shouldPublish);
     client.publishedJSON = [];
   } else {
-    expect(skipBefore === skipAfter).toBeTrue();
     expect(client.publishedJSON).toBeEmpty();
   }
 
-  return result;
+  if (abortError) {
+    // re-raise the abort error so that execution stops
+    throw abortError;
+  } else {
+    // return the result if it exists
+    return result;
+  }
 };
 
 const expectParallel = (
@@ -80,28 +95,6 @@ const expectParallel = (
 ) => {
   expect(result).toEqual(shouldReturn);
   expect(client.publishedJSON).toEqual(shouldPublish);
-  client.publishedJSON = [];
-};
-
-const initialCheck = (client: SpyClient, workflowId: string, initialBody: unknown) => {
-  // no steps were run, so client.publishedJSON field was never flushed
-  // the initial submission should be in it
-  expect(client.publishedJSON.length).toBe(1);
-  expect(client.publishedJSON).toEqual([
-    {
-      headers: {
-        "Upstash-Forward-Upstash-Workflow-InternalCall": "yes",
-        "Upstash-Forward-Upstash-Workflow-Id": workflowId,
-        "Upstash-Workflow-Id": workflowId,
-      },
-      method: "POST",
-      body: `{"stepId":0,"stepName":"init","out":${JSON.stringify(initialBody)},"concurrent":1,"targetStep":0}`,
-      url: "https://www.mock.url.com/",
-      notBefore: undefined,
-      delay: undefined,
-    },
-  ]);
-  // clear the list
   client.publishedJSON = [];
 };
 
@@ -150,7 +143,13 @@ const runRoute = async ({
       body: JSON.stringify(stepsInRequest),
     });
 
-    await workflowRoute(request, index, initialBody);
+    try {
+      await workflowRoute(request, index, initialBody);
+    } catch (error) {
+      if (!(error instanceof QstashWorkflowAbort)) {
+        throw error;
+      }
+    }
   }
 };
 
@@ -166,50 +165,29 @@ describe("Should handle workflow correctly", () => {
     client.publishedJSON = [];
   });
 
-  test("test initial request", async () => {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const routeToTest = async (
-      request: Request,
-      expectedRunningStepId: number,
-      initialBody: unknown
-    ) => {
-      const workflow = await SpyWorkflow.createWorkflow(request, client);
-      expect(workflow.url).toBe(request.url);
-      if (expectedRunningStepId === 0) {
-        initialCheck(client, workflow.workflowId, initialBody);
-      }
-
-      return workflow.workflowId;
-    };
-
-    await runRoute({
-      initialBody: { foo: "baz" },
-      workflowRoute: routeToTest,
-      steps: [],
-    });
-  });
-
   test("test consecutive requests", async () => {
     const routeToTest = async (
       request: Request,
       expectedRunningStepId: number,
       initialBody: unknown
     ) => {
-      const workflow = await SpyWorkflow.createWorkflow(request, client);
+      const { workflow } = await SpyWorkflow.createWorkflow(request, client);
       expect(workflow.url).toBe(request.url);
+      // in the first invocation, don't test anything and return
+      // `serve` method will handle the first request
       if (expectedRunningStepId === 0) {
-        initialCheck(client, workflow.workflowId, initialBody);
+        return workflow.workflowId;
       }
 
       const result1 = await expectStep(
         client,
         workflow,
         async () => {
-          return await Promise.resolve([111, workflow.requestPayload]);
+          return await Promise.resolve([111, workflow.steps[0].out]);
         },
         "step1",
         expectedRunningStepId === 1,
-        [111, workflow.requestPayload],
+        [111, initialBody],
         [
           {
             body: '{"stepId":1,"stepName":"step1","out":[111,{"foo":"bar"}],"concurrent":1,"targetStep":0}',
@@ -234,7 +212,7 @@ describe("Should handle workflow correctly", () => {
         },
         "step2",
         expectedRunningStepId === 2,
-        [222, [111, workflow.requestPayload]],
+        [222, [111, initialBody]],
         [
           {
             body: '{"stepId":2,"stepName":"step2","out":[222,[111,{"foo":"bar"}]],"concurrent":1,"targetStep":0}',
@@ -299,15 +277,13 @@ describe("Should handle workflow correctly", () => {
   });
 
   test("test parallel step", async () => {
-    const routeToTest = async (
-      request: Request,
-      expectedRunningStepId: number,
-      initialBody: unknown
-    ) => {
-      const workflow = await SpyWorkflow.createWorkflow(request, client);
+    const routeToTest = async (request: Request, expectedRunningStepId: number) => {
+      const { workflow } = await SpyWorkflow.createWorkflow(request, client);
       expect(workflow.url).toBe(request.url);
+      // in the first invocation, don't test anything and return
+      // `serve` method will handle the first request
       if (expectedRunningStepId === 0) {
-        initialCheck(client, workflow.workflowId, initialBody);
+        return workflow.workflowId;
       }
 
       const result1 = await expectStep(
@@ -335,207 +311,176 @@ describe("Should handle workflow correctly", () => {
         ]
       );
 
-      const parallelResult1 = await Promise.all([
-        workflow.run("parallel step 1", async () => {
-          return await Promise.resolve(555 - result1);
-        }),
-        workflow.run("parallel step 2", async () => {
-          return await Promise.resolve(666 - result1);
-        }),
-      ]);
-
-      switch (expectedRunningStepId) {
-        case 2: {
-          expectParallel(
-            client,
-            parallelResult1,
-            [],
-            [
-              {
-                body: '{"stepId":0,"concurrent":2,"targetStep":2}',
-                delay: undefined,
-                headers: {
-                  "Upstash-Forward-Upstash-Workflow-Id": workflow.workflowId,
-                  "Upstash-Forward-Upstash-Workflow-InternalCall": "yes",
-                  "Upstash-Workflow-Id": workflow.workflowId,
+      let parallelResult1;
+      try {
+        parallelResult1 = await Promise.all([
+          workflow.run("parallel step 1", async () => {
+            return await Promise.resolve(555 - result1);
+          }),
+          workflow.run("parallel step 2", async () => {
+            return await Promise.resolve(666 - result1);
+          }),
+        ]);
+      } catch (error) {
+        if (error instanceof QstashWorkflowAbort) {
+          parallelResult1 = undefined;
+          switch (expectedRunningStepId) {
+            case 2: {
+              expectParallel(client, parallelResult1, undefined, [
+                {
+                  body: '{"stepId":0,"stepName":"parallel step 1","concurrent":2,"targetStep":2}',
+                  delay: undefined,
+                  headers: {
+                    "Upstash-Forward-Upstash-Workflow-Id": workflow.workflowId,
+                    "Upstash-Forward-Upstash-Workflow-InternalCall": "yes",
+                    "Upstash-Workflow-Id": workflow.workflowId,
+                  },
+                  method: "POST",
+                  notBefore: undefined,
+                  url: "https://www.mock.url.com/",
                 },
-                method: "POST",
-                notBefore: undefined,
-                url: "https://www.mock.url.com/",
-              },
-              {
-                body: '{"stepId":0,"concurrent":2,"targetStep":3}',
-                delay: undefined,
-                headers: {
-                  "Upstash-Forward-Upstash-Workflow-Id": workflow.workflowId,
-                  "Upstash-Forward-Upstash-Workflow-InternalCall": "yes",
-                  "Upstash-Workflow-Id": workflow.workflowId,
+                {
+                  body: '{"stepId":0,"stepName":"parallel step 2","concurrent":2,"targetStep":3}',
+                  delay: undefined,
+                  headers: {
+                    "Upstash-Forward-Upstash-Workflow-Id": workflow.workflowId,
+                    "Upstash-Forward-Upstash-Workflow-InternalCall": "yes",
+                    "Upstash-Workflow-Id": workflow.workflowId,
+                  },
+                  method: "POST",
+                  notBefore: undefined,
+                  url: "https://www.mock.url.com/",
                 },
-                method: "POST",
-                notBefore: undefined,
-                url: "https://www.mock.url.com/",
-              },
-            ]
-          );
-          break;
-        }
-        case 3: {
-          expectParallel(
-            client,
-            parallelResult1,
-            [],
-            [
-              {
-                body: '{"stepId":2,"stepName":"parallel step 1","out":111,"concurrent":1,"targetStep":0}',
-                delay: undefined,
-                headers: {
-                  "Upstash-Forward-Upstash-Workflow-Id": workflow.workflowId,
-                  "Upstash-Forward-Upstash-Workflow-InternalCall": "yes",
-                  "Upstash-Workflow-Id": workflow.workflowId,
+              ]);
+              break;
+            }
+            case 3: {
+              expectParallel(client, parallelResult1, undefined, [
+                {
+                  body: '{"stepId":2,"stepName":"parallel step 1","out":111,"concurrent":1,"targetStep":0}',
+                  delay: undefined,
+                  headers: {
+                    "Upstash-Forward-Upstash-Workflow-Id": workflow.workflowId,
+                    "Upstash-Forward-Upstash-Workflow-InternalCall": "yes",
+                    "Upstash-Workflow-Id": workflow.workflowId,
+                  },
+                  method: "POST",
+                  notBefore: undefined,
+                  url: "https://www.mock.url.com/",
                 },
-                method: "POST",
-                notBefore: undefined,
-                url: "https://www.mock.url.com/",
-              },
-            ]
-          );
-          break;
-        }
-        case 4: {
-          expectParallel(client, parallelResult1, [], []);
-          break;
-        }
-        case 5: {
-          expectParallel(
-            client,
-            parallelResult1,
-            [],
-            [
-              {
-                body: '{"stepId":3,"stepName":"parallel step 2","out":222,"concurrent":1,"targetStep":0}',
-                delay: undefined,
-                headers: {
-                  "Upstash-Forward-Upstash-Workflow-Id": workflow.workflowId,
-                  "Upstash-Forward-Upstash-Workflow-InternalCall": "yes",
-                  "Upstash-Workflow-Id": workflow.workflowId,
+              ]);
+              break;
+            }
+            case 4: {
+              expectParallel(client, parallelResult1, undefined, []);
+              break;
+            }
+            case 5: {
+              expectParallel(client, parallelResult1, undefined, [
+                {
+                  body: '{"stepId":3,"stepName":"parallel step 2","out":222,"concurrent":1,"targetStep":0}',
+                  delay: undefined,
+                  headers: {
+                    "Upstash-Forward-Upstash-Workflow-Id": workflow.workflowId,
+                    "Upstash-Forward-Upstash-Workflow-InternalCall": "yes",
+                    "Upstash-Workflow-Id": workflow.workflowId,
+                  },
+                  method: "POST",
+                  notBefore: undefined,
+                  url: "https://www.mock.url.com/",
                 },
-                method: "POST",
-                notBefore: undefined,
-                url: "https://www.mock.url.com/",
-              },
-            ]
-          );
-          break;
-        }
-        default: {
-          if (expectedRunningStepId < 2) {
-            expectParallel(client, parallelResult1, [], []);
-          } else {
-            expectParallel(client, parallelResult1, [111, 222], []);
+              ]);
+              break;
+            }
           }
         }
+        throw error;
       }
+      expectParallel(client, parallelResult1, [111, 222], []);
 
-      const parallelResult2 = await Promise.all([
-        workflow.run("parallel step 1", async () => {
-          return await Promise.resolve(parallelResult1[0] * 2);
-        }),
-        workflow.run("parallel step 2", async () => {
-          return await Promise.resolve(parallelResult1[1] * 2);
-        }),
-      ]);
-
-      switch (expectedRunningStepId) {
-        case 6: {
-          expectParallel(
-            client,
-            parallelResult2,
-            [],
-            [
-              {
-                body: '{"stepId":0,"concurrent":2,"targetStep":4}',
-                delay: undefined,
-                headers: {
-                  "Upstash-Forward-Upstash-Workflow-Id": workflow.workflowId,
-                  "Upstash-Forward-Upstash-Workflow-InternalCall": "yes",
-                  "Upstash-Workflow-Id": workflow.workflowId,
+      let parallelResult2: unknown;
+      try {
+        parallelResult2 = await Promise.all([
+          workflow.run("parallel step 1", async () => {
+            return await Promise.resolve(parallelResult1[0] * 2);
+          }),
+          workflow.run("parallel step 2", async () => {
+            return await Promise.resolve(parallelResult1[1] * 2);
+          }),
+        ]);
+      } catch (error) {
+        if (error instanceof QstashWorkflowAbort) {
+          parallelResult2 = undefined;
+          switch (expectedRunningStepId) {
+            case 6: {
+              expectParallel(client, parallelResult2, undefined, [
+                {
+                  body: '{"stepId":0,"stepName":"parallel step 1","concurrent":2,"targetStep":4}',
+                  delay: undefined,
+                  headers: {
+                    "Upstash-Forward-Upstash-Workflow-Id": workflow.workflowId,
+                    "Upstash-Forward-Upstash-Workflow-InternalCall": "yes",
+                    "Upstash-Workflow-Id": workflow.workflowId,
+                  },
+                  method: "POST",
+                  notBefore: undefined,
+                  url: "https://www.mock.url.com/",
                 },
-                method: "POST",
-                notBefore: undefined,
-                url: "https://www.mock.url.com/",
-              },
-              {
-                body: '{"stepId":0,"concurrent":2,"targetStep":5}',
-                delay: undefined,
-                headers: {
-                  "Upstash-Forward-Upstash-Workflow-Id": workflow.workflowId,
-                  "Upstash-Forward-Upstash-Workflow-InternalCall": "yes",
-                  "Upstash-Workflow-Id": workflow.workflowId,
+                {
+                  body: '{"stepId":0,"stepName":"parallel step 2","concurrent":2,"targetStep":5}',
+                  delay: undefined,
+                  headers: {
+                    "Upstash-Forward-Upstash-Workflow-Id": workflow.workflowId,
+                    "Upstash-Forward-Upstash-Workflow-InternalCall": "yes",
+                    "Upstash-Workflow-Id": workflow.workflowId,
+                  },
+                  method: "POST",
+                  notBefore: undefined,
+                  url: "https://www.mock.url.com/",
                 },
-                method: "POST",
-                notBefore: undefined,
-                url: "https://www.mock.url.com/",
-              },
-            ]
-          );
-          break;
-        }
-        case 7: {
-          expectParallel(
-            client,
-            parallelResult2,
-            [],
-            [
-              {
-                body: '{"stepId":4,"stepName":"parallel step 1","out":222,"concurrent":1,"targetStep":0}',
-                delay: undefined,
-                headers: {
-                  "Upstash-Forward-Upstash-Workflow-Id": workflow.workflowId,
-                  "Upstash-Forward-Upstash-Workflow-InternalCall": "yes",
-                  "Upstash-Workflow-Id": workflow.workflowId,
+              ]);
+              break;
+            }
+            case 7: {
+              expectParallel(client, parallelResult2, undefined, [
+                {
+                  body: '{"stepId":4,"stepName":"parallel step 1","out":222,"concurrent":1,"targetStep":0}',
+                  delay: undefined,
+                  headers: {
+                    "Upstash-Forward-Upstash-Workflow-Id": workflow.workflowId,
+                    "Upstash-Forward-Upstash-Workflow-InternalCall": "yes",
+                    "Upstash-Workflow-Id": workflow.workflowId,
+                  },
+                  method: "POST",
+                  notBefore: undefined,
+                  url: "https://www.mock.url.com/",
                 },
-                method: "POST",
-                notBefore: undefined,
-                url: "https://www.mock.url.com/",
-              },
-            ]
-          );
-          break;
-        }
-        case 8: {
-          expectParallel(
-            client,
-            parallelResult2,
-            [],
-            [
-              {
-                body: '{"stepId":5,"stepName":"parallel step 2","out":444,"concurrent":1,"targetStep":0}',
-                delay: undefined,
-                headers: {
-                  "Upstash-Forward-Upstash-Workflow-Id": workflow.workflowId,
-                  "Upstash-Forward-Upstash-Workflow-InternalCall": "yes",
-                  "Upstash-Workflow-Id": workflow.workflowId,
+              ]);
+              break;
+            }
+            case 8: {
+              expectParallel(client, parallelResult2, undefined, [
+                {
+                  body: '{"stepId":5,"stepName":"parallel step 2","out":444,"concurrent":1,"targetStep":0}',
+                  delay: undefined,
+                  headers: {
+                    "Upstash-Forward-Upstash-Workflow-Id": workflow.workflowId,
+                    "Upstash-Forward-Upstash-Workflow-InternalCall": "yes",
+                    "Upstash-Workflow-Id": workflow.workflowId,
+                  },
+                  method: "POST",
+                  notBefore: undefined,
+                  url: "https://www.mock.url.com/",
                 },
-                method: "POST",
-                notBefore: undefined,
-                url: "https://www.mock.url.com/",
-              },
-            ]
-          );
-          break;
-        }
-        case 9: {
-          expectParallel(client, parallelResult2, [], []);
-          break;
-        }
-        default: {
-          if (expectedRunningStepId < 6) {
-            expectParallel(client, parallelResult2, [], []);
-          } else {
-            expectParallel(client, parallelResult2, [222, 444], []);
+              ]);
+              break;
+            }
           }
         }
+        throw error;
       }
+
+      expectParallel(client, parallelResult2, [222, 444], []);
 
       const resultLast = await expectStep(
         client,
@@ -660,22 +605,22 @@ describe("Should handle workflow correctly", () => {
   });
 
   test("test for loop", async () => {
-    const routeToTest = async (
-      request: Request,
-      expectedRunningStepId: number,
-      initialBody: unknown
-    ) => {
-      const workflow = await SpyWorkflow.createWorkflow<{ initialValue: number }>(request, client);
+    const routeToTest = async (request: Request, expectedRunningStepId: number) => {
+      const { workflow } = await SpyWorkflow.createWorkflow(request, client);
       expect(workflow.url).toBe(request.url);
+      // in the first invocation, don't test anything and return
+      // `serve` method will handle the first request
       if (expectedRunningStepId === 0) {
-        initialCheck(client, workflow.workflowId, initialBody);
+        return workflow.workflowId;
       }
 
       let accumulator = await expectStep(
         client,
         workflow,
         async () => {
-          return await Promise.resolve(workflow.requestPayload.initialValue);
+          return await Promise.resolve(
+            (workflow.steps[0].out as { initialValue: number }).initialValue
+          );
         },
         "stepFirst",
         expectedRunningStepId === 1,
