@@ -46,11 +46,11 @@ export const POST = serve<Invoice>({
         const [updateDb, receipt] = await Promise.all([
           context.run("updateDb", async () => {
             console.log(x, "  update db amount", charge.invoice.amount);
-            return 5
+            return charge.invoice.amount
           }),
           context.run("sendReceipt", async () => {
             console.log(x, "  send receipt", charge.invoice.email);
-            return 10
+            return charge.invoice.email
           })
         ])
         console.log("end", updateDb, receipt);

@@ -43,7 +43,7 @@ export const POST = serve<Invoice>({
       if (charge.success) {
         console.log("success");
         
-        const [updateDb, receipt] = await Promise.all([
+        const [updateDb, receipt, wait] = await Promise.all([
           context.run("updateDb", async () => {
             console.log(x, "  update db amount", charge.invoice.amount);
             return 5
@@ -54,7 +54,7 @@ export const POST = serve<Invoice>({
           }),
           context.sleep("sleep", 5)
         ])
-        console.log("end", updateDb, receipt);
+        console.log("end", updateDb, receipt, wait);
         return
       }
       await context.sleep("retrySleep", 2)

@@ -233,7 +233,11 @@ export class AutoExecutor {
   private static getResult<TResult>(lazyStepList: BaseLazyStep[], result: unknown, index: number) {
     if (lazyStepList.length === 1) {
       return result as TResult;
-    } else if (Array.isArray(result) && result.length > 1) {
+    } else if (
+      Array.isArray(result) &&
+      lazyStepList.length === result.length &&
+      index < lazyStepList.length
+    ) {
       return result[index] as TResult;
     } else {
       throw new QstashWorkflowError(
