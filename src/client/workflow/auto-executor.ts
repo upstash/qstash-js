@@ -134,7 +134,7 @@ export class AutoExecutor {
         break;
       }
       case "discard": {
-        throw new QstashWorkflowAbort("error", "error");
+        throw new QstashWorkflowAbort("discarded parallel");
       }
       case "last": {
         // eslint-disable-next-line @typescript-eslint/no-magic-numbers
@@ -217,7 +217,7 @@ export class AutoExecutor {
 
     const error =
       steps.length > 0
-        ? new QstashWorkflowAbort(steps[0].out, steps[0].stepName)
+        ? new QstashWorkflowAbort(steps[0].stepName, steps[0])
         : new QstashWorkflowError(
             `Unable to submit steps to Qstash. Provided list is empty. Current step: ${this.stepCount}`
           );

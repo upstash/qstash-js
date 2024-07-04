@@ -75,7 +75,7 @@ const expectStep = async <TResult>(
   } catch (error) {
     // if the step is executed, QstashWorkflowAbort is thrown
     if (error instanceof QstashWorkflowAbort) {
-      result = error.result as TResult;
+      result = error.stepInfo?.out as TResult;
       abortError = error;
     } else {
       throw error;
