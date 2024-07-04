@@ -3,7 +3,6 @@ import { Client } from "../client";
 import { QstashWorkflowAbort } from "../error";
 import { WorkflowContext } from "./context";
 import type { WorkflowServeOptions, WorkflowServeParameters } from "./types";
-import { Workflow } from "./workflow";
 
 /**
  * Fills the options with default values if they are not provided.
@@ -51,23 +50,20 @@ export const serve = <
   const { client, onFinish } = processOptions<TResponse>(options);
 
   return async (request: TRequest) => {
-    const { workflow, isFirstInvocation } = await Workflow.createWorkflow(request, client);
+    const { workflowContext, isFirstInvocation } =
+      await WorkflowContext.createContext<TInitialRequest>(request, client);
 
-    if (isFirstInvocation) {
-      await workflow.submitResults(workflow.steps[0]);
-    } else {
-      const workflowContext = new WorkflowContext<TInitialRequest>({
-        workflow,
-        requestPayload: workflow.steps[0].out as TInitialRequest,
-      });
-      try {
-        await routeFunction(workflowContext);
-      } catch (error) {
-        if (!(error instanceof QstashWorkflowAbort)) {
-          throw error;
-        }
+    try {
+      await (isFirstInvocation
+        ? workflowContext.run("init", () => {
+            return Promise.resolve(workflowContext.steps[0].out);
+          })
+        : routeFunction(workflowContext));
+    } catch (error) {
+      if (!(error instanceof QstashWorkflowAbort)) {
+        throw error;
       }
     }
-    return onFinish(workflow.workflowId);
+    return onFinish(workflowContext.workflowId);
   };
 };

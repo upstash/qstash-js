@@ -1,22 +1,39 @@
-import type { Workflow } from "./workflow";
-import type { AsyncStepFunction } from "./types";
+import type { AsyncStepFunction, Step } from "./types";
+import { nanoid } from "nanoid";
+import { WORKFLOW_ID_HEADER, WORKFLOW_INTERNAL_HEADER } from "./constants";
+import { QstashWorkflowError } from "../error";
+import * as WorkflowParser from "./workflow-parser";
+import type { Client } from "../client";
+import { AutoExecutor } from "./auto-executor";
 
 export class WorkflowContext<TInitialRequest = unknown> {
-  private workflow: Workflow;
-  /**
-   * Initial payload passed in the first request to the workflow
-   */
+  protected readonly executor: AutoExecutor;
+  public readonly client: Client;
+  public readonly workflowId: string;
+  public readonly steps: Step[];
+  public readonly nonPlanStepCount: number;
+  public readonly url: string;
   public readonly requestPayload: TInitialRequest;
 
   constructor({
-    workflow,
-    requestPayload,
+    client,
+    workflowId,
+    steps,
+    url,
   }: {
-    workflow: Workflow;
-    requestPayload: TInitialRequest;
+    client: Client;
+    workflowId: string;
+    steps: Step[];
+    url: string;
   }) {
-    this.workflow = workflow;
-    this.requestPayload = requestPayload;
+    this.client = client;
+    this.workflowId = workflowId;
+    this.steps = steps;
+    this.url = url;
+    this.requestPayload = steps[0].out as TInitialRequest;
+    this.nonPlanStepCount = this.steps.filter((step) => !step.targetStep).length;
+
+    this.executor = new AutoExecutor(this);
   }
 
   /**
@@ -50,7 +67,7 @@ export class WorkflowContext<TInitialRequest = unknown> {
     stepName: string,
     stepFunction: AsyncStepFunction<TResult>
   ): Promise<TResult> {
-    return this.workflow.run(stepName, stepFunction);
+    return this.executor.addFunctionStep(stepName, stepFunction);
   }
 
   /**
@@ -61,7 +78,7 @@ export class WorkflowContext<TInitialRequest = unknown> {
    * @returns
    */
   public async sleep(stepName: string, duration: number): Promise<void> {
-    return this.workflow.sleep(stepName, duration);
+    await this.executor.addSleepStep(stepName, duration);
   }
 
   /**
@@ -73,6 +90,85 @@ export class WorkflowContext<TInitialRequest = unknown> {
    * @returns
    */
   public async sleepUntil(stepName: string, datetime: Date | string | number): Promise<void> {
-    return this.workflow.sleepUntil(stepName, datetime);
+    let time: number;
+    if (typeof datetime === "number") {
+      time = datetime;
+    } else {
+      datetime = typeof datetime === "string" ? new Date(datetime) : datetime;
+      // get unix seconds
+      // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+      time = Math.round(datetime.getTime() / 1000);
+    }
+    await this.executor.addSleepUntilStep(stepName, time);
+  }
+
+  /**
+   * Checks request headers and body
+   * - Checks workflow header to determine whether the request is the first request
+   * - Gets the workflow id
+   * - Parses payload
+   * - Returns the steps. If it's the first invocation, steps contains the initial step.
+   *   Otherwise, steps are generated from the body.
+   *
+   * @param request Request received
+   * @returns Whether the invocation is the initial one, the workflow id and the steps
+   */
+  private static async parseRequest(request: Request) {
+    const callHeader = request.headers.get(WORKFLOW_INTERNAL_HEADER);
+    const isFirstInvocation = !callHeader;
+
+    const workflowId = isFirstInvocation
+      ? `wf${nanoid()}`
+      : request.headers.get(WORKFLOW_ID_HEADER) ?? "";
+    if (workflowId.length === 0) {
+      throw new QstashWorkflowError("Couldn't get workflow id from header");
+    }
+
+    const payload = await WorkflowParser.parsePayload(request);
+
+    let steps: Step[];
+    if (isFirstInvocation) {
+      steps = [
+        {
+          stepId: 0,
+          stepName: "init",
+          out: payload,
+          concurrent: 1,
+          targetStep: 0,
+        },
+      ];
+    } else {
+      if (payload === undefined) {
+        throw new QstashWorkflowError("Only first call can have an empty body");
+      }
+
+      steps = WorkflowParser.generateSteps(payload);
+    }
+
+    return {
+      isFirstInvocation,
+      workflowId,
+      steps,
+    };
+  }
+
+  /**
+   * Creates a workflow from a request by parsing the body and checking the
+   * headers.
+   *
+   * @param request request received from the API
+   * @param client QStash client
+   * @returns workflow and whether its the first time the workflow is being called
+   */
+  static async createContext<TInitialRequest = unknown>(request: Request, client: Client) {
+    const { isFirstInvocation, workflowId, steps } = await WorkflowContext.parseRequest(request);
+    const workflowContext = new WorkflowContext<TInitialRequest>({
+      client,
+      workflowId,
+      steps,
+      url: request.url,
+    });
+
+    return { workflowContext, isFirstInvocation };
   }
 }

@@ -3,9 +3,27 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import type { PublishRequest, PublishResponse } from "../client";
 import { Client } from "../client";
-import { SpyWorkflow } from "./workflow.test";
 import type { AsyncStepFunction, Step } from "./types";
 import { QstashWorkflowAbort } from "../error";
+import { WorkflowContext } from "./context";
+
+export class SpyWorkflowContext<
+  TInitialRequest = unknown,
+> extends WorkflowContext<TInitialRequest> {
+  public declare client;
+  public declare url;
+  public declare workflowId;
+  public declare steps;
+  public declare executor;
+
+  static async createContext<TInitialRequest>(request: Request, client: Client) {
+    const workflow = WorkflowContext.createContext<TInitialRequest>(request, client) as unknown as {
+      workflowContext: SpyWorkflowContext<TInitialRequest>;
+      isFirstInvocation: boolean;
+    };
+    return await Promise.resolve(workflow);
+  }
+}
 
 /**
  * Client mocking the publishJSON method by disabling sending requests
@@ -40,7 +58,7 @@ class SpyClient extends Client {
  */
 const expectStep = async <TResult>(
   client: SpyClient,
-  workflow: SpyWorkflow,
+  workflow: SpyWorkflowContext,
   step: AsyncStepFunction<TResult>,
   stepName: string,
   shouldRun: boolean,
@@ -171,7 +189,7 @@ describe("Should handle workflow correctly", () => {
       expectedRunningStepId: number,
       initialBody: unknown
     ) => {
-      const { workflow } = await SpyWorkflow.createWorkflow(request, client);
+      const { workflowContext: workflow } = await SpyWorkflowContext.createContext(request, client);
       expect(workflow.url).toBe(request.url);
       // in the first invocation, don't test anything and return
       // `serve` method will handle the first request
@@ -278,7 +296,7 @@ describe("Should handle workflow correctly", () => {
 
   test("test parallel step", async () => {
     const routeToTest = async (request: Request, expectedRunningStepId: number) => {
-      const { workflow } = await SpyWorkflow.createWorkflow(request, client);
+      const { workflowContext: workflow } = await SpyWorkflowContext.createContext(request, client);
       expect(workflow.url).toBe(request.url);
       // in the first invocation, don't test anything and return
       // `serve` method will handle the first request
@@ -528,6 +546,7 @@ describe("Should handle workflow correctly", () => {
         {
           stepId: 0,
           stepName: "init",
+          out: { foo: "baz" },
           concurrent: 1,
           targetStep: 0,
         },
@@ -606,7 +625,7 @@ describe("Should handle workflow correctly", () => {
 
   test("test for loop", async () => {
     const routeToTest = async (request: Request, expectedRunningStepId: number) => {
-      const { workflow } = await SpyWorkflow.createWorkflow(request, client);
+      const { workflowContext: workflow } = await SpyWorkflowContext.createContext(request, client);
       expect(workflow.url).toBe(request.url);
       // in the first invocation, don't test anything and return
       // `serve` method will handle the first request
