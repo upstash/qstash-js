@@ -2,7 +2,7 @@
 import { serve } from "@upstash/qstash/workflow/nextjs";
 
 const someWork = (input: string) => {
-  return `processed '${input}'`
+  return `processed '${JSON.stringify(input)}'`
 }
 
 export const POST = serve<string>({
@@ -14,9 +14,21 @@ export const POST = serve<string>({
       return output
     });
 
+    await context.sleepUntil("sleep1", (Date.now()/1000) + 3)
+
     const result2 = await context.run("step2", async () => {
       const output = someWork(result1)
       console.log("step 2 input", result1, "output", output)
-    });  
+      return output
+    });
+
+    await context.sleep("sleep2", 2)
+
+    const result3 = await context.run("step3", async () => {
+      const output = someWork(result2)
+      console.log("step 3 input", result2, "output", output)
+    });
   }
 })
+
+
