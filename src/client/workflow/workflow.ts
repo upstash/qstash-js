@@ -1,5 +1,5 @@
 import { nanoid } from "nanoid";
-import type { AsyncStepFunction, ParallelCallState, Step } from "./types";
+import type { AsyncStepFunction, ParallelCallState, StepInfo, Step } from "./types";
 import { WORKFLOW_INTERNAL_HEADER, WORKFLOW_ID_HEADER } from "./constants";
 import type { Client } from "../client";
 import * as WorkflowParser from "./workflow-parser";
@@ -90,7 +90,6 @@ export class Workflow<TInitialRequest = unknown> {
    * @returns result of the step function
    */
   public async run<TResult>(
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     stepName: string,
     stepFunction: AsyncStepFunction<TResult>
   ): Promise<TResult> {
@@ -100,7 +99,10 @@ export class Workflow<TInitialRequest = unknown> {
       return;
     }
 
-    const result = await this.executor.addStep(stepFunction);
+    const result = await this.executor.addStep({
+      stepName,
+      stepFunction,
+    });
 
     return result as TResult;
   }
@@ -115,15 +117,15 @@ export class Workflow<TInitialRequest = unknown> {
    * @param step runs a step by itself
    * @returns step result
    */
-  public async runStep<TResult>(step: AsyncStepFunction<TResult>) {
+  public async runSingle<TResult>(stepInfo: StepInfo<TResult>) {
     if (this.stepCount < this.nonPlanStepCount) {
       return this.steps[this.stepCount + this.planStepCount].out as TResult;
     }
 
-    const result = await step();
+    const result = await stepInfo.stepFunction();
 
     // add result to pending and send request
-    this.addResult(result);
+    this.addResult(result, this.stepCount, stepInfo.stepName);
     await this.sendPendingToQstash();
 
     return result;
@@ -178,20 +180,19 @@ export class Workflow<TInitialRequest = unknown> {
    * @param stepFunctions list of async functions to run in parallel
    * @returns results of the functions run in parallel
    */
-  public async parallel<TResults extends unknown[]>(
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    stepName: string,
-    stepFunctions: { [K in keyof TResults]: AsyncStepFunction<TResults[K]> }
-  ): Promise<TResults> {
-    const initialStepCount = this.stepCount - (stepFunctions.length - 1);
-    const parallelCallState = this.getParallelCallState(stepFunctions.length, initialStepCount);
+  public async runParallel<TResults extends unknown[]>(parallelSteps: {
+    [K in keyof TResults]: StepInfo<TResults[K]>;
+  }): Promise<TResults> {
+    const initialStepCount = this.stepCount - (parallelSteps.length - 1);
+    const parallelCallState = this.getParallelCallState(parallelSteps.length, initialStepCount);
 
     switch (parallelCallState) {
       case "first": {
-        const planSteps = stepFunctions.map((stepFunction, index) => {
+        const planSteps = parallelSteps.map((stepFunction, index) => {
           return {
             stepId: 0,
-            concurrent: stepFunctions.length,
+            stepName: stepFunction.stepName,
+            concurrent: parallelSteps.length,
             targetStep: initialStepCount + index,
           } as Step;
         });
@@ -206,10 +207,10 @@ export class Workflow<TInitialRequest = unknown> {
           );
         }
         const stepIndex = planStep.targetStep - initialStepCount;
-        const rawResult = stepFunctions[stepIndex]();
+        const rawResult = parallelSteps[stepIndex].stepFunction();
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const result = rawResult instanceof Promise ? await rawResult : rawResult;
-        this.addResult(result, planStep.targetStep);
+        this.addResult(result, planStep.targetStep, parallelSteps[stepIndex].stepName);
         break;
       }
       case "discard": {
@@ -224,15 +225,15 @@ export class Workflow<TInitialRequest = unknown> {
         const concurrentResults = sortedSteps
           .filter((step) => step.stepId >= initialStepCount)
           .map((step) => step.out)
-          .slice(0, stepFunctions.length) as TResults;
-        this.planStepCount += stepFunctions.length;
+          .slice(0, parallelSteps.length) as TResults;
+        this.planStepCount += parallelSteps.length;
         return concurrentResults;
       }
     }
     await this.sendPendingToQstash();
 
     const fillValue = undefined;
-    return Array.from({ length: stepFunctions.length }).fill(fillValue) as TResults;
+    return Array.from({ length: parallelSteps.length }).fill(fillValue) as TResults;
   }
 
   /**
@@ -274,9 +275,10 @@ export class Workflow<TInitialRequest = unknown> {
     }
   }
 
-  private addResult(result: unknown, stepId?: number) {
+  private addResult(result: unknown, stepId: number, stepName: string) {
     this.addStep({
-      stepId: stepId ?? this.stepCount,
+      stepId,
+      stepName,
       out: result,
       concurrent: 1,
       targetStep: 0,
@@ -346,6 +348,7 @@ export class Workflow<TInitialRequest = unknown> {
       steps = [
         {
           stepId: 0,
+          stepName: "init",
           out: payload,
           concurrent: 1,
           targetStep: 0,

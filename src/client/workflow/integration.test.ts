@@ -41,6 +41,7 @@ const expectStep = async <TResult>(
   client: SpyClient,
   workflow: SpyWorkflow,
   step: AsyncStepFunction<TResult>,
+  stepName: string,
   shouldRun: boolean,
   shouldReturn: TResult,
   shouldPublish: PublishRequest[]
@@ -48,7 +49,7 @@ const expectStep = async <TResult>(
   const skipBefore = workflow.skip;
   const stepCountBefore = workflow.stepCount;
 
-  const result = (await workflow.run("step", step)) as TResult;
+  const result = (await workflow.run(stepName, step)) as TResult;
 
   const skipAfter = workflow.skip;
   const stepCountAfter = workflow.stepCount;
@@ -94,7 +95,7 @@ const initialCheck = (client: SpyClient, workflowId: string, initialBody: unknow
         "Upstash-Workflow-Id": workflowId,
       },
       method: "POST",
-      body: `{"stepId":0,"out":${JSON.stringify(initialBody)},"concurrent":1,"targetStep":0}`,
+      body: `{"stepId":0,"stepName":"init","out":${JSON.stringify(initialBody)},"concurrent":1,"targetStep":0}`,
       url: "https://www.mock.url.com/",
       notBefore: undefined,
       delay: undefined,
@@ -206,11 +207,12 @@ describe("Should handle workflow correctly", () => {
         async () => {
           return await Promise.resolve([111, workflow.requestPayload]);
         },
+        "step1",
         expectedRunningStepId === 1,
         [111, workflow.requestPayload],
         [
           {
-            body: '{"stepId":1,"out":[111,{"foo":"bar"}],"concurrent":1,"targetStep":0}',
+            body: '{"stepId":1,"stepName":"step1","out":[111,{"foo":"bar"}],"concurrent":1,"targetStep":0}',
             delay: undefined,
             headers: {
               "Upstash-Forward-Upstash-Workflow-Id": workflow.workflowId,
@@ -230,11 +232,12 @@ describe("Should handle workflow correctly", () => {
         async () => {
           return await Promise.resolve([222, result1]);
         },
+        "step2",
         expectedRunningStepId === 2,
         [222, [111, workflow.requestPayload]],
         [
           {
-            body: '{"stepId":2,"out":[222,[111,{"foo":"bar"}]],"concurrent":1,"targetStep":0}',
+            body: '{"stepId":2,"stepName":"step2","out":[222,[111,{"foo":"bar"}]],"concurrent":1,"targetStep":0}',
             delay: undefined,
             headers: {
               "Upstash-Forward-Upstash-Workflow-Id": workflow.workflowId,
@@ -272,18 +275,21 @@ describe("Should handle workflow correctly", () => {
       steps: [
         {
           stepId: 0,
+          stepName: "init",
           out: initialBody,
           concurrent: 1,
           targetStep: 0,
         },
         {
           stepId: 1,
+          stepName: "step 1",
           out: [111, initialBody],
           concurrent: 1,
           targetStep: 0,
         },
         {
           stepId: 2,
+          stepName: "step 2",
           out: [222, [111, initialBody]],
           concurrent: 1,
           targetStep: 0,
@@ -310,11 +316,12 @@ describe("Should handle workflow correctly", () => {
         async () => {
           return await Promise.resolve(444);
         },
+        "first step",
         expectedRunningStepId === 1,
         444,
         [
           {
-            body: '{"stepId":1,"out":444,"concurrent":1,"targetStep":0}',
+            body: '{"stepId":1,"stepName":"first step","out":444,"concurrent":1,"targetStep":0}',
             delay: undefined,
             headers: {
               "Upstash-Forward-Upstash-Workflow-Id": workflow.workflowId,
@@ -379,7 +386,7 @@ describe("Should handle workflow correctly", () => {
             [],
             [
               {
-                body: '{"stepId":2,"out":111,"concurrent":1,"targetStep":0}',
+                body: '{"stepId":2,"stepName":"parallel step 1","out":111,"concurrent":1,"targetStep":0}',
                 delay: undefined,
                 headers: {
                   "Upstash-Forward-Upstash-Workflow-Id": workflow.workflowId,
@@ -405,7 +412,7 @@ describe("Should handle workflow correctly", () => {
             [],
             [
               {
-                body: '{"stepId":3,"out":222,"concurrent":1,"targetStep":0}',
+                body: '{"stepId":3,"stepName":"parallel step 2","out":222,"concurrent":1,"targetStep":0}',
                 delay: undefined,
                 headers: {
                   "Upstash-Forward-Upstash-Workflow-Id": workflow.workflowId,
@@ -480,7 +487,7 @@ describe("Should handle workflow correctly", () => {
             [],
             [
               {
-                body: '{"stepId":4,"out":222,"concurrent":1,"targetStep":0}',
+                body: '{"stepId":4,"stepName":"parallel step 1","out":222,"concurrent":1,"targetStep":0}',
                 delay: undefined,
                 headers: {
                   "Upstash-Forward-Upstash-Workflow-Id": workflow.workflowId,
@@ -502,7 +509,7 @@ describe("Should handle workflow correctly", () => {
             [],
             [
               {
-                body: '{"stepId":5,"out":444,"concurrent":1,"targetStep":0}',
+                body: '{"stepId":5,"stepName":"parallel step 2","out":444,"concurrent":1,"targetStep":0}',
                 delay: undefined,
                 headers: {
                   "Upstash-Forward-Upstash-Workflow-Id": workflow.workflowId,
@@ -536,6 +543,7 @@ describe("Should handle workflow correctly", () => {
         async () => {
           return await Promise.resolve([parallelResult1, parallelResult2]);
         },
+        "stepLast",
         expectedRunningStepId === 10,
         [
           [111, 222],
@@ -543,7 +551,7 @@ describe("Should handle workflow correctly", () => {
         ],
         [
           {
-            body: '{"stepId":6,"out":[[111,222],[222,444]],"concurrent":1,"targetStep":0}',
+            body: '{"stepId":6,"stepName":"stepLast","out":[[111,222],[222,444]],"concurrent":1,"targetStep":0}',
             delay: undefined,
             headers: {
               "Upstash-Forward-Upstash-Workflow-Id": workflow.workflowId,
@@ -574,61 +582,72 @@ describe("Should handle workflow correctly", () => {
       steps: [
         {
           stepId: 0,
+          stepName: "init",
           concurrent: 1,
           targetStep: 0,
         },
         {
           stepId: 1,
+          stepName: "mock",
           out: 444,
           concurrent: 1,
           targetStep: 0,
         },
         {
           stepId: 0,
+          stepName: "mock",
           concurrent: 2,
           targetStep: 2,
         },
         {
           stepId: 2,
+          stepName: "mock",
           out: 111,
           concurrent: 1,
           targetStep: 0,
         },
         {
           stepId: 0,
+          stepName: "mock",
           concurrent: 2,
           targetStep: 3,
         },
         {
           stepId: 3,
+          stepName: "mock",
           out: 222,
           concurrent: 1,
           targetStep: 0,
         },
         {
           stepId: 0,
+          stepName: "mock",
           concurrent: 2,
           targetStep: 4,
         },
         {
           stepId: 0,
+          stepName: "mock",
           concurrent: 2,
           targetStep: 5,
         },
         {
           stepId: 4,
+          stepName: "mock",
           concurrent: 1,
           out: 222,
           targetStep: 0,
         },
         {
           stepId: 5,
+          stepName: "mock",
           concurrent: 1,
           out: 444,
           targetStep: 0,
         },
         {
           stepId: 2,
+          stepName: "mock",
           out: [
             [111, 222],
             [222, 444],
@@ -640,7 +659,7 @@ describe("Should handle workflow correctly", () => {
     });
   });
 
-  test.only("test for loop", async () => {
+  test("test for loop", async () => {
     const routeToTest = async (
       request: Request,
       expectedRunningStepId: number,
@@ -658,11 +677,12 @@ describe("Should handle workflow correctly", () => {
         async () => {
           return await Promise.resolve(workflow.requestPayload.initialValue);
         },
+        "stepFirst",
         expectedRunningStepId === 1,
         10,
         [
           {
-            body: '{"stepId":1,"out":10,"concurrent":1,"targetStep":0}',
+            body: '{"stepId":1,"stepName":"stepFirst","out":10,"concurrent":1,"targetStep":0}',
             delay: undefined,
             headers: {
               "Upstash-Forward-Upstash-Workflow-Id": workflow.workflowId,
@@ -684,11 +704,12 @@ describe("Should handle workflow correctly", () => {
           async () => {
             return await Promise.resolve(accumulator + accumulator * index);
           },
+          `step ${index}`,
           expectedRunningStepId === 2 + index,
           results[index],
           [
             {
-              body: `{"stepId":${2 + index},"out":${results[index]},"concurrent":1,"targetStep":0}`,
+              body: `{"stepId":${2 + index},"stepName":"step ${index}","out":${results[index]},"concurrent":1,"targetStep":0}`,
               delay: undefined,
               headers: {
                 "Upstash-Forward-Upstash-Workflow-Id": workflow.workflowId,
@@ -718,23 +739,27 @@ describe("Should handle workflow correctly", () => {
       steps: [
         {
           stepId: 0,
+          stepName: "init",
           out: { initialValue: 10 },
           concurrent: 1,
           targetStep: 0,
         },
         {
+          stepName: "mock",
           stepId: 1,
           out: 10,
           concurrent: 1,
           targetStep: 0,
         },
         {
+          stepName: "mock",
           stepId: 2,
           out: 10,
           concurrent: 1,
           targetStep: 0,
         },
         {
+          stepName: "mock",
           stepId: 3,
           out: 20,
           concurrent: 1,
@@ -742,6 +767,7 @@ describe("Should handle workflow correctly", () => {
         },
         {
           stepId: 4,
+          stepName: "mock",
           out: 60,
           concurrent: 1,
           targetStep: 0,

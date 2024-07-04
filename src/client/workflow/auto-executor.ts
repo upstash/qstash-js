@@ -1,10 +1,10 @@
 import { QstashWorkflowError } from "../error";
-import type { AsyncStepFunction } from "./types";
+import type { StepInfo } from "./types";
 import type { Workflow } from "./workflow";
 
 export class AutoExecutor {
-  private promises = new WeakMap<AsyncStepFunction<unknown>[], Promise<unknown>>();
-  private activeFunctionList?: AsyncStepFunction<unknown>[];
+  private promises = new WeakMap<StepInfo<unknown>[], Promise<unknown>>();
+  private activeFunctionList?: StepInfo<unknown>[];
   private indexInCurrentList = 0;
 
   private workflow: Workflow;
@@ -26,7 +26,7 @@ export class AutoExecutor {
    * @param asyncStepFunction step function to run in parallel
    * @returns result of the step function
    */
-  public async addStep<TOut>(asyncStepFunction: AsyncStepFunction<TOut>) {
+  public async addStep<TResult>(StepInfo: StepInfo<TResult>) {
     const functionList = this.activeFunctionList ?? [];
 
     if (!this.activeFunctionList) {
@@ -34,15 +34,15 @@ export class AutoExecutor {
       this.indexInCurrentList = 0;
     }
 
-    functionList.push(asyncStepFunction);
+    functionList.push(StepInfo);
     const index = this.indexInCurrentList++;
 
     const requestComplete = this.deferExecution().then(async () => {
       if (!this.promises.has(functionList)) {
         const promise =
           functionList.length === 1
-            ? this.workflow.runStep(functionList[0])
-            : this.workflow.parallel("parallel with Promise.all", functionList);
+            ? this.workflow.runSingle(functionList[0])
+            : this.workflow.runParallel(functionList);
 
         this.promises.set(functionList, promise);
         this.activeFunctionList = undefined;
@@ -53,14 +53,14 @@ export class AutoExecutor {
 
     const result = await requestComplete;
     if (functionList.length === 1) {
-      return result as TOut;
+      return result as TResult;
     } else if (functionList.length > 0 && Array.isArray(result)) {
       if (result.length !== functionList.length) {
         throw new QstashWorkflowError(
           `Unexpected parallel call result: '${result}'. Expected ${functionList.length} many items`
         );
       }
-      return result[index] as TOut;
+      return result[index] as TResult;
     } else {
       `Unexpected parallel call result: '${result}'. Expected ${functionList.length} many items`;
     }
