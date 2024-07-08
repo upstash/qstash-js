@@ -158,6 +158,7 @@ export type PublishRequest<TBody = BodyInit> = {
       url: string;
       urlGroup?: never;
       api?: never;
+      topic?: never;
     }
   | {
       url?: never;
@@ -166,6 +167,7 @@ export type PublishRequest<TBody = BodyInit> = {
        */
       urlGroup: string;
       api?: never;
+      topic?: never;
     }
   | {
       url?: string;
@@ -174,6 +176,16 @@ export type PublishRequest<TBody = BodyInit> = {
        * The api endpoint the request should be sent to.
        */
       api: { name: "llm"; provider?: ProviderReturnType };
+      topic?: never;
+    }
+  | {
+      url?: never;
+      urlGroup?: never;
+      api: never;
+      /**
+       * Deprecated. The topic the message should be sent to. Same as urlGroup
+       */
+      topic?: string;
     }
 );
 
@@ -195,6 +207,7 @@ type EventsRequestFilter = {
   state?: State;
   url?: string;
   urlGroup?: string;
+  topicName?: string;
   api?: string;
   scheduleId?: string;
   queueName?: string;
@@ -232,6 +245,17 @@ export class Client {
    */
   public get urlGroups(): UrlGroups {
     return new UrlGroups(this.http);
+  }
+
+  /**
+   * Deprecated. Use urlGroups instead.
+   *
+   * Access the topic API.
+   *
+   * Create, read, update or delete topics.
+   */
+  public get topics(): UrlGroups {
+    return this.urlGroups;
   }
 
   /**
@@ -404,8 +428,10 @@ export class Client {
       if (typeof value === "number" && value < 0) {
         continue;
       }
-      // eslint-disable-next-line unicorn/no-typeof-undefined
-      if (typeof value !== "undefined") {
+      if (key === "urlGroup") {
+        query.topicName = value.toString();
+        // eslint-disable-next-line unicorn/no-typeof-undefined
+      } else if (typeof value !== "undefined") {
         query[key] = value.toString();
       }
     }

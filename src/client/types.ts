@@ -8,6 +8,7 @@ export type Event = {
   error?: string;
   url: string;
   urlGroup?: string;
+  topicName?: string;
   endpointName?: string;
   header?: Record<string, string>;
   body?: string; // base64 encoded

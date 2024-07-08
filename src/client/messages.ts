@@ -12,6 +12,11 @@ export type Message = {
   urlGroup?: string;
 
   /**
+   * Deprecated. The topic name if this message was sent to a urlGroup. Use urlGroup instead
+   */
+  topicName?: string;
+
+  /**
    * The url where this message is sent to.
    */
   url: string;

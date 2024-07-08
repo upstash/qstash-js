@@ -62,6 +62,8 @@ export function processHeaders(request: PublishRequest) {
   return headers;
 }
 
-export function getRequestPath(request: Pick<PublishRequest, "url" | "urlGroup" | "api">): string {
-  return request.url ?? request.urlGroup ?? `api/${request.api?.name}`;
+export function getRequestPath(
+  request: Pick<PublishRequest, "url" | "urlGroup" | "api" | "topic">
+): string {
+  return request.url ?? request.urlGroup ?? request.topic ?? `api/${request.api?.name}`;
 }
