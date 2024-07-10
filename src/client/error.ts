@@ -12,12 +12,18 @@ export class QstashError extends Error {
 
 export class QstashRatelimitError extends QstashError {
   constructor(args: RateLimit) {
-    super(`You have been ratelimited. ${JSON.stringify(args)} `);
+    super(`Exceeded burst rate limit. ${JSON.stringify(args)} `);
   }
 }
 
 export class QstashChatRatelimitError extends QstashError {
   constructor(args: ChatRateLimit) {
-    super(`You have been ratelimited. ${JSON.stringify(args)} `);
+    super(`Exceeded chat rate limit. ${JSON.stringify(args)} `);
+  }
+}
+
+export class QstashDailyRatelimitError extends QstashError {
+  constructor(args: RateLimit) {
+    super(`Exceeded daily rate limit. ${JSON.stringify(args)} `);
   }
 }
