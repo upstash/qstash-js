@@ -2,15 +2,17 @@ import type { Step } from "./types";
 
 export const parsePayload = async (request: Request) => {
   try {
-    return (await request.json()) as string[];
+    return await request.text();
   } catch {
     return;
   }
 };
 
-export const generateSteps = (payload: string[]) => {
+export const generateSteps = (rawPayload: string) => {
+  const payload = JSON.parse(rawPayload) as { messageId: string; body: string }[];
+
   const steps = payload.map((rawStep) => {
-    return JSON.parse(JSON.parse(Buffer.from(rawStep, "base64").toString()) as string) as Step;
+    return JSON.parse(JSON.parse(Buffer.from(rawStep.body, "base64").toString()) as string) as Step;
   });
   return steps;
 };

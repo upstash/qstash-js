@@ -141,7 +141,12 @@ const runRoute = async ({
   ) => Promise<string>;
   steps: Step[];
 }) => {
-  const base64encodedSteps = steps.map((step) => btoa(JSON.stringify(JSON.stringify(step))));
+  const base64encodedSteps = steps.map((step) => {
+    return {
+      body: btoa(JSON.stringify(JSON.stringify(step))),
+      messageId: "mock",
+    };
+  });
 
   // initial call with user payload
   const initialRequest = new Request("https://www.mock.url.com", {
