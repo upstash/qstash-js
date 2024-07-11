@@ -21,6 +21,7 @@ const attemptCharge = (invoice: Invoice) => {
   counter += 1;
   if (counter  === 3) {
     console.log(" charge success", invoice);
+    counter = 0
     return true;
   }
   console.log(" charge failed", invoice);
