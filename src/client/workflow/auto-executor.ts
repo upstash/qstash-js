@@ -109,7 +109,7 @@ export class AutoExecutor {
       return this.context.steps[this.stepCount + this.planStepCount].out as TResult;
     }
 
-    const resultStep = await lazyStep.getResultStep(this.stepCount);
+    const resultStep = await lazyStep.getResultStep(this.stepCount, true);
     await this.submitStepsToQstash([resultStep]);
 
     return resultStep.out as TResult;
@@ -155,7 +155,7 @@ export class AutoExecutor {
           );
         }
         const stepIndex = planStep.targetStep - initialStepCount;
-        const resultStep = await parallelSteps[stepIndex].getResultStep(planStep.targetStep);
+        const resultStep = await parallelSteps[stepIndex].getResultStep(planStep.targetStep, false);
         await this.submitStepsToQstash([resultStep]);
         break;
       }

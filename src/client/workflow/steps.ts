@@ -21,14 +21,7 @@ export abstract class BaseLazyStep<TResult = unknown> {
    * @param targetStep target step id corresponding to this step
    * @returns
    */
-  public getPlanStep(concurrent: number, targetStep: number): Step<undefined> {
-    return {
-      stepId: 0,
-      stepName: this.stepName,
-      concurrent,
-      targetStep,
-    };
-  }
+  public abstract getPlanStep(concurrent: number, targetStep: number): Step<undefined>;
 
   /**
    * result step to submit after the step executes. Used in single step executions
@@ -36,7 +29,7 @@ export abstract class BaseLazyStep<TResult = unknown> {
    *
    * @param stepId
    */
-  public abstract getResultStep(stepId: number): Promise<Step<TResult>>;
+  public abstract getResultStep(stepId: number, singleStep: boolean): Promise<Step<TResult>>;
 }
 
 /**
@@ -50,7 +43,18 @@ export class LazyFunctionStep<TResult = unknown> extends BaseLazyStep<TResult> {
     this.stepFunction = stepFunction;
   }
 
-  public async getResultStep(stepId: number): Promise<Step<TResult>> {
+  public getPlanStep(concurrent: number, targetStep: number): Step<undefined> {
+    {
+      return {
+        stepId: 0,
+        stepName: this.stepName,
+        concurrent,
+        targetStep,
+      };
+    }
+  }
+
+  public async getResultStep(stepId: number, _singleStep: boolean): Promise<Step<TResult>> {
     const result = await this.stepFunction();
 
     return {
@@ -73,11 +77,26 @@ export class LazySleepStep extends BaseLazyStep {
     super(stepName);
     this.sleep = sleep;
   }
-  public async getResultStep(stepId: number): Promise<Step> {
+
+  public getPlanStep(concurrent: number, targetStep: number): Step<undefined> {
+    {
+      return {
+        stepId: 0,
+        stepName: this.stepName,
+        sleepFor: this.sleep,
+        concurrent,
+        targetStep,
+      };
+    }
+  }
+
+  public async getResultStep(stepId: number, singleStep: boolean): Promise<Step> {
     return await Promise.resolve({
       stepId,
       stepName: this.stepName,
-      sleepFor: this.sleep,
+      // apply sleepFor if the step is running by itself. If it's running parallel,
+      // the sleepFor is already applied in the plan step
+      sleepFor: singleStep ? this.sleep : undefined,
       concurrent: 1,
       targetStep: 0,
     });
@@ -94,11 +113,26 @@ export class LazySleepUntilStep extends BaseLazyStep {
     super(stepName);
     this.sleepUntil = sleepUntil;
   }
-  public async getResultStep(stepId: number): Promise<Step> {
+
+  public getPlanStep(concurrent: number, targetStep: number): Step<undefined> {
+    {
+      return {
+        stepId: 0,
+        stepName: this.stepName,
+        sleepUntil: this.sleepUntil,
+        concurrent,
+        targetStep,
+      };
+    }
+  }
+
+  public async getResultStep(stepId: number, singleStep: boolean): Promise<Step> {
     return await Promise.resolve({
       stepId,
       stepName: this.stepName,
-      sleepUntil: this.sleepUntil,
+      // apply sleepUntil if the step is running by itself. If it's running parallel,
+      // the sleepUntil is already applied in the plan step
+      sleepUntil: singleStep ? this.sleepUntil : undefined,
       concurrent: 1,
       targetStep: 0,
     });
