@@ -3,13 +3,13 @@ import { NextResponse } from "next/server";
 import type { WorkflowServeParameters } from "../types";
 import { serve as serveBase } from "../serve";
 
-export const serve = <TPayload>({
+export const serve = <TInitialPayload>({
   routeFunction,
   options,
-}: WorkflowServeParameters<TPayload, NextResponse>): ((
+}: WorkflowServeParameters<TInitialPayload, NextResponse>): ((
   request: NextRequest
 ) => Promise<NextResponse>) => {
-  return serveBase<TPayload, NextRequest, NextResponse>({
+  return serveBase<TInitialPayload, NextRequest, NextResponse>({
     routeFunction,
     options: {
       onFinish: (workflowId: string) =>

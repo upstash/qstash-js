@@ -1,6 +1,6 @@
 import type { Step } from "./types";
 
-export const parsePayload = async (request: Request) => {
+export const getPayload = async (request: Request) => {
   try {
     return await request.text();
   } catch {
@@ -8,11 +8,29 @@ export const parsePayload = async (request: Request) => {
   }
 };
 
-export const generateSteps = (rawPayload: string) => {
-  const payload = JSON.parse(rawPayload) as { messageId: string; body: string }[];
+const decodeBase64 = (encodedString: string) => {
+  return Buffer.from(encodedString, "base64").toString();
+};
 
-  const steps = payload.map((rawStep) => {
-    return JSON.parse(JSON.parse(Buffer.from(rawStep.body, "base64").toString()) as string) as Step;
+export const parsePayload = (rawPayload: string) => {
+  const [encodedInitialPayload, ...encodedSteps] = JSON.parse(rawPayload) as {
+    messageId: string;
+    body: string;
+  }[];
+
+  const initialPayload = decodeBase64(encodedInitialPayload.body);
+  const steps = encodedSteps.map((rawStep) => {
+    return JSON.parse(JSON.parse(decodeBase64(rawStep.body)) as string) as Step;
   });
-  return steps;
+  const initialStep: Step = {
+    stepId: 0,
+    stepName: "init",
+    out: initialPayload,
+    concurrent: 1,
+    targetStep: 0,
+  };
+  return {
+    initialPayload,
+    steps: [initialStep, ...steps],
+  };
 };

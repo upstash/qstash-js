@@ -1,28 +1,35 @@
-import type { AsyncStepFunction, Step } from "./types";
+import type { AsyncStepFunction, InitialPayloadParser, Step } from "./types";
 import { nanoid } from "nanoid";
-import { WORKFLOW_ID_HEADER, WORKFLOW_INTERNAL_HEADER } from "./constants";
+import {
+  WORKFLOW_ID_HEADER,
+  WORKFLOW_INIT_HEADER,
+  WORKFLOW_PROTOCOL_VERSION,
+  WORKFLOW_PROTOCOL_VERSION_HEADER,
+} from "./constants";
 import { QstashWorkflowError } from "../error";
 import * as WorkflowParser from "./workflow-parser";
 import type { Client } from "../client";
 import { AutoExecutor } from "./auto-executor";
 
-export class WorkflowContext<TInitialRequest = unknown> {
+export class WorkflowContext<TInitialPayload = unknown> {
   protected readonly executor: AutoExecutor;
   public readonly client: Client;
   public readonly workflowId: string;
   public readonly steps: Step[];
   public readonly nonPlanStepCount: number;
   public readonly url: string;
-  public readonly requestPayload: TInitialRequest;
+  public readonly requestPayload: TInitialPayload;
 
   constructor({
     client,
     workflowId,
+    initialPayload,
     steps,
     url,
   }: {
     client: Client;
     workflowId: string;
+    initialPayload: TInitialPayload;
     steps: Step[];
     url: string;
   }) {
@@ -30,7 +37,7 @@ export class WorkflowContext<TInitialRequest = unknown> {
     this.workflowId = workflowId;
     this.steps = steps;
     this.url = url;
-    this.requestPayload = steps[0].out as TInitialRequest;
+    this.requestPayload = initialPayload;
     this.nonPlanStepCount = this.steps.filter((step) => !step.targetStep).length;
 
     this.executor = new AutoExecutor(this);
@@ -113,9 +120,14 @@ export class WorkflowContext<TInitialRequest = unknown> {
    * @param request Request received
    * @returns Whether the invocation is the initial one, the workflow id and the steps
    */
-  private static async parseRequest(request: Request) {
-    const callHeader = request.headers.get(WORKFLOW_INTERNAL_HEADER);
-    const isFirstInvocation = !callHeader;
+  private static async parseRequest(request: Request): Promise<{
+    isFirstInvocation: boolean;
+    workflowId: string;
+    initialPayload: string;
+    steps: Step[];
+  }> {
+    const versionHeader = request.headers.get(WORKFLOW_PROTOCOL_VERSION_HEADER);
+    const isFirstInvocation = !versionHeader;
 
     const workflowId = isFirstInvocation
       ? `wf${nanoid()}`
@@ -124,31 +136,35 @@ export class WorkflowContext<TInitialRequest = unknown> {
       throw new QstashWorkflowError("Couldn't get workflow id from header");
     }
 
-    const payload = await WorkflowParser.parsePayload(request);
+    const payload = await WorkflowParser.getPayload(request);
 
-    let steps: Step[];
     if (isFirstInvocation) {
-      steps = [
-        {
-          stepId: 0,
-          stepName: "init",
-          out: payload,
-          concurrent: 1,
-          targetStep: 0,
-        },
-      ];
+      return {
+        isFirstInvocation,
+        workflowId,
+        initialPayload: payload ?? "",
+        steps: [],
+      };
     } else {
-      if (payload === undefined) {
+      if (!payload) {
         throw new QstashWorkflowError("Only first call can have an empty body");
       }
+      const { initialPayload, steps } = WorkflowParser.parsePayload(payload);
 
-      steps = WorkflowParser.generateSteps(payload);
+      return {
+        isFirstInvocation,
+        workflowId,
+        initialPayload,
+        steps,
+      };
     }
+  }
 
+  public getHeaders(initHeaderValue: "true" | "false") {
     return {
-      isFirstInvocation,
-      workflowId,
-      steps,
+      [WORKFLOW_INIT_HEADER]: initHeaderValue,
+      [WORKFLOW_ID_HEADER]: this.workflowId,
+      [`Upstash-Forward-${WORKFLOW_PROTOCOL_VERSION_HEADER}`]: WORKFLOW_PROTOCOL_VERSION,
     };
   }
 
@@ -160,11 +176,18 @@ export class WorkflowContext<TInitialRequest = unknown> {
    * @param client QStash client
    * @returns workflow and whether its the first time the workflow is being called
    */
-  static async createContext<TInitialRequest = unknown>(request: Request, client: Client) {
-    const { isFirstInvocation, workflowId, steps } = await WorkflowContext.parseRequest(request);
-    const workflowContext = new WorkflowContext<TInitialRequest>({
+  static async createContext<TInitialPayload = unknown>(
+    request: Request,
+    client: Client,
+    initialPayloadParser: InitialPayloadParser<TInitialPayload>
+  ) {
+    const { isFirstInvocation, workflowId, initialPayload, steps } =
+      await WorkflowContext.parseRequest(request);
+
+    const workflowContext = new WorkflowContext<TInitialPayload>({
       client,
       workflowId,
+      initialPayload: initialPayloadParser(initialPayload),
       steps,
       url: request.url,
     });

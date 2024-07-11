@@ -1,5 +1,4 @@
 import { QstashWorkflowAbort, QstashWorkflowError } from "../error";
-import { WORKFLOW_INTERNAL_HEADER } from "./constants";
 import type { WorkflowContext } from "./context";
 import type { ParallelCallState, Step } from "./types";
 import {
@@ -192,28 +191,19 @@ export class AutoExecutor {
     }
   }
 
-  public async submitStep(step: Step) {
-    const headers: Record<string, string> = {
-      [`Upstash-Forward-${WORKFLOW_INTERNAL_HEADER}`]: "yes",
-      "Upstash-Forward-Upstash-Workflow-Id": this.context.workflowId,
-      "Upstash-Workflow-Id": this.context.workflowId,
-    };
-
-    await this.context.client.publishJSON({
-      headers: headers,
-      method: "POST",
-      body: JSON.stringify(step),
-      url: this.context.url,
-      notBefore: step.sleepUntil,
-      delay: step.sleepFor,
-    });
-  }
-
   private async submitStepsToQstash(steps: Step[]) {
-    // TODO: batch request for concurrent requests
-    for (const step of steps) {
-      await this.submitStep(step);
-    }
+    await this.context.client.batchJSON(
+      steps.map((singleStep) => {
+        return {
+          headers: this.context.getHeaders("false"),
+          method: "POST",
+          body: JSON.stringify(singleStep),
+          url: this.context.url,
+          notBefore: singleStep.sleepUntil,
+          delay: singleStep.sleepFor,
+        };
+      })
+    );
 
     const error =
       steps.length > 0

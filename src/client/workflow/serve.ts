@@ -10,8 +10,8 @@ import type { WorkflowServeOptions, WorkflowServeParameters } from "./types";
  * @param options options including the client and the onFinish
  * @returns
  */
-const processOptions = <TResponse extends Response = Response>(
-  options?: WorkflowServeOptions<TResponse>
+const processOptions = <TResponse extends Response = Response, TInitialPayload = unknown>(
+  options?: WorkflowServeOptions<TResponse, TInitialPayload>
 ) => {
   return {
     client:
@@ -24,6 +24,11 @@ const processOptions = <TResponse extends Response = Response>(
       options?.onFinish ??
       ((workflowId: string) =>
         new Response(JSON.stringify({ workflowId }), { status: 200 }) as TResponse),
+    initialPayloadParser:
+      options?.initialPayloadParser ??
+      ((initialRequest: string) => {
+        return (initialRequest ? JSON.parse(initialRequest) : undefined) as TInitialPayload;
+      }),
   };
 };
 
@@ -36,27 +41,32 @@ const processOptions = <TResponse extends Response = Response>(
  * @returns an async method consuming incoming requests and running the workflow
  */
 export const serve = <
-  TInitialRequest = unknown,
+  TInitialPayload = unknown,
   TRequest extends Request = Request,
   TResponse extends Response = Response,
 >({
   routeFunction,
   options,
-}: WorkflowServeParameters<TInitialRequest, TResponse>): ((
+}: WorkflowServeParameters<TInitialPayload, TResponse>): ((
   request: TRequest
 ) => Promise<TResponse>) => {
   // TODO add receiver for verification
 
-  const { client, onFinish } = processOptions<TResponse>(options);
+  const { client, onFinish, initialPayloadParser } = processOptions<TResponse, TInitialPayload>(
+    options
+  );
 
   return async (request: TRequest) => {
     const { workflowContext, isFirstInvocation } =
-      await WorkflowContext.createContext<TInitialRequest>(request, client);
+      await WorkflowContext.createContext<TInitialPayload>(request, client, initialPayloadParser);
 
     try {
       await (isFirstInvocation
-        ? workflowContext.run("init", () => {
-            return Promise.resolve(workflowContext.steps[0].out);
+        ? workflowContext.client.publishJSON({
+            headers: workflowContext.getHeaders("true"),
+            method: "POST",
+            body: workflowContext.requestPayload,
+            url: workflowContext.url,
           })
         : routeFunction(workflowContext));
     } catch (error) {
