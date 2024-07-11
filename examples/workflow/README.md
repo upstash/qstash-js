@@ -36,4 +36,10 @@ This will go to the parent directory, build `@upstash/qstash`, install it in the
 
 Once you have the app deployed, you can go to the deployment and call the endpoints using the form on the page. Simply enter the deployment URL and pick an endpoint.
 
+Here is an example payload you can use for invoice:
+
+```json
+{"date":123,"email":"adss","amount":10}
+```
+
 You can observe the logs at Upstash console or vercel.com to see your workflow operates.

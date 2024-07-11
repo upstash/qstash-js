@@ -47,7 +47,7 @@ export class WorkflowContext<TInitialPayload = unknown> {
    * Executes a workflow step
    *
    * ```typescript
-   * const result = context.run("step 1", async () => {
+   * const result = await context.run("step 1", async () => {
    *   return await Promise.resolve("result")
    * })
    * ```
@@ -114,8 +114,8 @@ export class WorkflowContext<TInitialPayload = unknown> {
    * - Checks workflow header to determine whether the request is the first request
    * - Gets the workflow id
    * - Parses payload
-   * - Returns the steps. If it's the first invocation, steps contains the initial step.
-   *   Otherwise, steps are generated from the body.
+   * - Returns the steps. If it's the first invocation, steps are empty.
+   *   Otherwise, steps are generated from the request body.
    *
    * @param request Request received
    * @returns Whether the invocation is the initial one, the workflow id and the steps
@@ -129,6 +129,7 @@ export class WorkflowContext<TInitialPayload = unknown> {
     const versionHeader = request.headers.get(WORKFLOW_PROTOCOL_VERSION_HEADER);
     const isFirstInvocation = !versionHeader;
 
+    // get workflow id
     const workflowId = isFirstInvocation
       ? `wf${nanoid()}`
       : request.headers.get(WORKFLOW_ID_HEADER) ?? "";
@@ -136,15 +137,18 @@ export class WorkflowContext<TInitialPayload = unknown> {
       throw new QstashWorkflowError("Couldn't get workflow id from header");
     }
 
+    // get payload as raw string
     const payload = await WorkflowParser.getPayload(request);
 
     if (isFirstInvocation) {
+      // if first invocation, return and `serve` will handle publishing the JSON to QStash
       return {
         isFirstInvocation,
         workflowId,
         initialPayload: payload ?? "",
         steps: [],
       };
+      // if not the first invocation, make sure that body is not empty and parse payload
     } else {
       if (!payload) {
         throw new QstashWorkflowError("Only first call can have an empty body");
@@ -160,6 +164,12 @@ export class WorkflowContext<TInitialPayload = unknown> {
     }
   }
 
+  /**
+   * Gets headers for calling QStash
+   *
+   * @param initHeaderValue Whether the invocation should create a new workflow
+   * @returns
+   */
   public getHeaders(initHeaderValue: "true" | "false") {
     return {
       [WORKFLOW_INIT_HEADER]: initHeaderValue,
@@ -174,6 +184,7 @@ export class WorkflowContext<TInitialPayload = unknown> {
    *
    * @param request request received from the API
    * @param client QStash client
+   * @param initialPayloadParser function to parse the initial payload
    * @returns workflow and whether its the first time the workflow is being called
    */
   static async createContext<TInitialPayload = unknown>(

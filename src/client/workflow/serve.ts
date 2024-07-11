@@ -7,12 +7,17 @@ import type { WorkflowServeOptions, WorkflowServeParameters } from "./types";
 /**
  * Fills the options with default values if they are not provided.
  *
- * @param options options including the client and the onFinish
+ * Default values for:
+ * - client: QStash client created with QSTASH_URL and QSTASH_TOKEN env vars
+ * - onFinish: returns a Response with workflowId in the body and status: 200
+ * - initialPayloadParser: calls JSON.parse if initial request body exists.
+ *
+ * @param options options including the client, onFinish and initialPayloadParser
  * @returns
  */
 const processOptions = <TResponse extends Response = Response, TInitialPayload = unknown>(
   options?: WorkflowServeOptions<TResponse, TInitialPayload>
-) => {
+): Required<WorkflowServeOptions<TResponse, TInitialPayload>> => {
   return {
     client:
       options?.client ??
@@ -37,7 +42,7 @@ const processOptions = <TResponse extends Response = Response, TInitialPayload =
  * route function as a workflow.
  *
  * @param routefunction function using WorklfowContext as parameter and running a workflow
- * @param options options including the client and the onFinish
+ * @param options options including client, onFinish and initialPayloadParser
  * @returns an async method consuming incoming requests and running the workflow
  */
 export const serve = <
@@ -62,14 +67,17 @@ export const serve = <
 
     try {
       await (isFirstInvocation
-        ? workflowContext.client.publishJSON({
+        ? // if we are running for the first time, simply call publishJSON and send the payload to QStash
+          workflowContext.client.publishJSON({
             headers: workflowContext.getHeaders("true"),
             method: "POST",
             body: workflowContext.requestPayload,
             url: workflowContext.url,
           })
-        : routeFunction(workflowContext));
+        : // if we are not running for the first time, call the route function with the context
+          routeFunction(workflowContext));
     } catch (error) {
+      // if QstashWorkflowAbort occurs, a step has executed successfully and the call can return
       if (!(error instanceof QstashWorkflowAbort)) {
         throw error;
       }
