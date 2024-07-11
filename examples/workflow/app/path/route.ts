@@ -2,7 +2,7 @@
 import { serve } from "@upstash/qstash/workflow/nextjs";
 
 const someWork = (input: string) => {
-  return `processed '${input}'`
+  return `processed '${JSON.stringify(input)}'`
 }
 
 export const POST = serve<string>({
