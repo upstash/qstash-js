@@ -42,12 +42,12 @@ const processOptions = <TResponse extends Response = Response, TInitialPayload =
 };
 
 /**
- * Creates an async method which handles incoming requests and runs the provided
+ * Creates an async method that handles incoming requests and runs the provided
  * route function as a workflow.
  *
- * @param routefunction function using WorklfowContext as parameter and running a workflow
- * @param options options including client, onFinish and initialPayloadParser
- * @returns an async method consuming incoming requests and running the workflow
+ * @param routeFunction - A function that uses WorkflowContext as a parameter and runs a workflow.
+ * @param options - Options including the client, onFinish callback, and initialPayloadParser.
+ * @returns An async method that consumes incoming requests and runs the workflow.
  */
 export const serve = <
   TInitialPayload = unknown,
@@ -59,25 +59,36 @@ export const serve = <
 }: WorkflowServeParameters<TInitialPayload, TResponse>): ((
   request: TRequest
 ) => Promise<TResponse>) => {
+  // Prepares options with defaults if they are not provided.
   const { client, onStepFinish, initialPayloadParser } = processOptions<TResponse, TInitialPayload>(
     options
   );
 
+  /**
+   * Handles the incoming request, triggering the appropriate workflow steps.
+   * Calls `triggerFirstInvocation()` if it's the first invocation.
+   * Otherwise, starts calling `triggerRouteFunction()` to execute steps in the workflow.
+   * Finally, calls `triggerWorkflowDelete()` to remove the workflow from QStash.
+   *
+   * @param request - The incoming request to handle.
+   * @returns A promise that resolves to a response.
+   */
   return async (request: TRequest) => {
     const { workflowContext, isFirstInvocation } =
       await WorkflowContext.createContext<TInitialPayload>(request, client, initialPayloadParser);
 
     const result = isFirstInvocation
       ? await triggerFirstInvocation(workflowContext)
-      : await triggerRouteFunction(
-          async () => routeFunction(workflowContext),
-          async () => triggerWorkflowDelete(workflowContext)
-        );
+      : await triggerRouteFunction({
+          onStep: async () => routeFunction(workflowContext),
+          onCleanup: async () => triggerWorkflowDelete(workflowContext),
+        });
 
     if (result.isErr()) {
       throw result.error;
     }
 
+    // Returns a Response with `workflowId` at the end of each step.
     return onStepFinish(workflowContext.workflowId);
   };
 };

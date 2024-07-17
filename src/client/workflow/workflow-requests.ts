@@ -16,12 +16,17 @@ export const triggerFirstInvocation = <TInitialPayload>(
   );
 };
 
-export const triggerRouteFunction = async (
-  routeFunction: () => Promise<void>,
-  onCleanup: () => Promise<void>
-): Promise<Ok<"workflow-finished" | "step-finished", never> | Err<never, Error>> => {
+export const triggerRouteFunction = async ({
+  onCleanup,
+  onStep,
+}: {
+  onStep: () => Promise<void>;
+  onCleanup: () => Promise<void>;
+}): Promise<Ok<"workflow-finished" | "step-finished", never> | Err<never, Error>> => {
   try {
-    await routeFunction();
+    // When onStep completes successfully, it throws an exception named `QstashWorkflowAbort`, indicating that the step has been successfully executed.
+    // This ensures that onCleanup is only called when no exception is thrown.
+    await onStep();
     await onCleanup();
     return ok("workflow-finished");
   } catch (error) {
