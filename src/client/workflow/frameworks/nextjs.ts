@@ -12,7 +12,7 @@ export const serve = <TInitialPayload>({
   return serveBase<TInitialPayload, NextRequest, NextResponse>({
     routeFunction,
     options: {
-      onFinish: (workflowId: string) =>
+      onStepFinish: (workflowId: string) =>
         new NextResponse(JSON.stringify({ workflowId }), { status: 200 }),
       ...options,
     },

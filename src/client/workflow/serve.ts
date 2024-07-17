@@ -1,8 +1,12 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { Client } from "../client";
-import { QstashWorkflowAbort } from "../error";
 import { WorkflowContext } from "./context";
 import type { WorkflowServeOptions, WorkflowServeParameters } from "./types";
+import {
+  triggerFirstInvocation,
+  triggerRouteFunction,
+  triggerWorkflowDelete,
+} from "./workflow-requests";
 
 /**
  * Fills the options with default values if they are not provided.
@@ -25,8 +29,8 @@ const processOptions = <TResponse extends Response = Response, TInitialPayload =
         baseUrl: process.env.QSTASH_URL!,
         token: process.env.QSTASH_TOKEN!,
       }),
-    onFinish:
-      options?.onFinish ??
+    onStepFinish:
+      options?.onStepFinish ??
       ((workflowId: string) =>
         new Response(JSON.stringify({ workflowId }), { status: 200 }) as TResponse),
     initialPayloadParser:
@@ -55,9 +59,7 @@ export const serve = <
 }: WorkflowServeParameters<TInitialPayload, TResponse>): ((
   request: TRequest
 ) => Promise<TResponse>) => {
-  // TODO add receiver for verification
-
-  const { client, onFinish, initialPayloadParser } = processOptions<TResponse, TInitialPayload>(
+  const { client, onStepFinish, initialPayloadParser } = processOptions<TResponse, TInitialPayload>(
     options
   );
 
@@ -65,23 +67,17 @@ export const serve = <
     const { workflowContext, isFirstInvocation } =
       await WorkflowContext.createContext<TInitialPayload>(request, client, initialPayloadParser);
 
-    try {
-      await (isFirstInvocation
-        ? // if we are running for the first time, simply call publishJSON and send the payload to QStash
-          workflowContext.client.publishJSON({
-            headers: workflowContext.getHeaders("true"),
-            method: "POST",
-            body: workflowContext.requestPayload,
-            url: workflowContext.url,
-          })
-        : // if we are not running for the first time, call the route function with the context
-          routeFunction(workflowContext));
-    } catch (error) {
-      // if QstashWorkflowAbort occurs, a step has executed successfully and the call can return
-      if (!(error instanceof QstashWorkflowAbort)) {
-        throw error;
-      }
+    const result = isFirstInvocation
+      ? await triggerFirstInvocation(workflowContext)
+      : await triggerRouteFunction(
+          async () => routeFunction(workflowContext),
+          async () => triggerWorkflowDelete(workflowContext)
+        );
+
+    if (result.isErr()) {
+      throw result.error;
     }
-    return onFinish(workflowContext.workflowId);
+
+    return onStepFinish(workflowContext.workflowId);
   };
 };

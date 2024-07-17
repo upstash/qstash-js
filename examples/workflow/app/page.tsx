@@ -1,15 +1,21 @@
 "use client"
 
+import { usePathname, useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 
 export default function Home() {
-  const [baseUrl, setBaseUrl] = useState('');
-  const [route, setRoute] = useState('');
-  const [requestBody, setRequestBody] = useState('');
+  const [baseUrl, setBaseUrl] = useState(origin);
+  const [requestBody, setRequestBody] = useState('"Upstash Rocks!"');
+  const [loading, setLoading] = useState(false);
+  const searchParams = useSearchParams();
+
+  const search = searchParams.get('function');
+  const [route, setRoute] = useState(search ?? "");
 
   const routes = ['path', 'sleep', 'sleepWithoutAwait', 'northStarSimple', 'northStar'];
 
   const handleSend = async () => {
+    setLoading(true);
     const url = `${baseUrl}/${route}`;
     try {
       const response = await fetch(url, {
@@ -22,6 +28,8 @@ export default function Home() {
       console.log('Response:', await response.json());
     } catch (error) {
       console.error('Error:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -67,9 +75,10 @@ export default function Home() {
 
         <button
           onClick={handleSend}
-          className="w-full px-4 py-2 bg-blue-500 text-white rounded-md shadow-sm hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+          disabled={loading}
+          className={`w-full px-4 py-2 text-white rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${loading ? 'bg-gray-500' : 'bg-blue-500 hover:bg-blue-600'}`}
         >
-          Send
+          {loading ? 'Sending...' : 'Send'}
         </button>
       </div>
     </div>
