@@ -1,4 +1,5 @@
 import type { ChatRateLimit, RateLimit } from "./types";
+import type { Step } from "./workflow/types";
 
 /**
  * Result of 500 Internal Server Error
@@ -24,9 +25,27 @@ export class QstashChatRatelimitError extends QstashError {
   }
 }
 
+/**
+ * Error raised during Workflow execution
+ */
 export class QstashWorkflowError extends QstashError {
   constructor(message: string) {
     super(message);
     this.name = "QstashWorkflowError";
+  }
+}
+
+/**
+ * Raised when the workflow executes a function and aborts
+ */
+export class QstashWorkflowAbort extends Error {
+  public stepInfo?: Step;
+  public stepName: string;
+
+  constructor(stepName: string, stepInfo?: Step) {
+    super("Aborting workflow after executing a step.");
+    this.name = "QstashWorkflowAbort";
+    this.stepName = stepName;
+    this.stepInfo = stepInfo;
   }
 }

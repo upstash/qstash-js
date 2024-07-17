@@ -27,9 +27,17 @@
       "import": "./nextjs.js",
       "require": "./nextjs.js"
     },
+    "./workflow": {
+      "import": "./workflow.js",
+      "require": "./workflow.js"
+    },
     "./dist/nextjs": {
       "import": "./nextjs.js",
       "require": "./nextjs.js"
+    },
+    "./workflow/nextjs": {
+      "import": "./workflow-nextjs.js",
+      "require": "./workflow-nextjs.js"
     }
   },
   "typesVersions": {
