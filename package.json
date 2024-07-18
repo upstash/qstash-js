@@ -78,7 +78,8 @@
     "tsup": "latest",
     "typescript": "^5.4.5",
     "undici-types": "^6.16.0",
-    "vitest": "latest"
+    "vitest": "latest",
+    "neverthrow": "^7.0.0"
   },
   "dependencies": {
     "crypto-js": ">=4.2.0",

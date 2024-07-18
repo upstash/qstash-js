@@ -24,12 +24,6 @@ full_url="${ngrok_url}/${path_arg}"
 # Navigate to the parent directory
 cd ../..
 
-# Install dependencies
-bun install
-
-# Build the project
-bun run build
-
 # Update the URL in the context.ts file
 if [[ "$OSTYPE" == "darwin"* ]]; then
     sed -i '' "s|this\.url = .*|this.url = '$full_url';|" src/client/workflow/context.ts
@@ -37,14 +31,40 @@ else
     sed -i "s|this\.url = .*|this.url = '$full_url';|" src/client/workflow/context.ts
 fi
 
+# Install dependencies
+bun install
+
+# Build the project
+bun run build
+
 # Navigate to the examples/workflow directory
 cd examples/workflow
 
 # Install the local package
 npm install @upstash/qstash@file:../../dist
 
-echo "Setup complete. Full URL: $ngrok_url"
+final_path=$ngrok_url?function=$path_arg
+echo "Setup complete. Full URL: $final_path"
 echo "ngrok is running. Press Ctrl+C to stop it."
 
+
+
+# Open the URL in Chrome
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    open -a "Google Chrome" "$final_path"
+elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
+    xdg-open "$final_path"
+elif [[ "$OSTYPE" == "cygwin" ]]; then
+    cygstart "$final_path"
+elif [[ "$OSTYPE" == "msys" ]]; then
+    start "$final_path"
+elif [[ "$OSTYPE" == "win32" ]]; then
+    start "$final_path"
+else
+    echo "Unsupported OS type: $OSTYPE"
+fi
+
+# Start next.js server
+npm run dev
 # Wait for ngrok to be manually stopped
 wait $NGROK_PID

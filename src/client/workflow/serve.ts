@@ -1,8 +1,12 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { Client } from "../client";
-import { QstashWorkflowAbort } from "../error";
 import { WorkflowContext } from "./context";
 import type { WorkflowServeOptions, WorkflowServeParameters } from "./types";
+import {
+  triggerFirstInvocation,
+  triggerRouteFunction,
+  triggerWorkflowDelete,
+} from "./workflow-requests";
 
 /**
  * Fills the options with default values if they are not provided.
@@ -25,8 +29,8 @@ const processOptions = <TResponse extends Response = Response, TInitialPayload =
         baseUrl: process.env.QSTASH_URL!,
         token: process.env.QSTASH_TOKEN!,
       }),
-    onFinish:
-      options?.onFinish ??
+    onStepFinish:
+      options?.onStepFinish ??
       ((workflowId: string) =>
         new Response(JSON.stringify({ workflowId }), { status: 200 }) as TResponse),
     initialPayloadParser:
@@ -38,12 +42,12 @@ const processOptions = <TResponse extends Response = Response, TInitialPayload =
 };
 
 /**
- * Creates an async method which handles incoming requests and runs the provided
+ * Creates an async method that handles incoming requests and runs the provided
  * route function as a workflow.
  *
- * @param routefunction function using WorklfowContext as parameter and running a workflow
- * @param options options including client, onFinish and initialPayloadParser
- * @returns an async method consuming incoming requests and running the workflow
+ * @param routeFunction - A function that uses WorkflowContext as a parameter and runs a workflow.
+ * @param options - Options including the client, onFinish callback, and initialPayloadParser.
+ * @returns An async method that consumes incoming requests and runs the workflow.
  */
 export const serve = <
   TInitialPayload = unknown,
@@ -55,33 +59,36 @@ export const serve = <
 }: WorkflowServeParameters<TInitialPayload, TResponse>): ((
   request: TRequest
 ) => Promise<TResponse>) => {
-  // TODO add receiver for verification
-
-  const { client, onFinish, initialPayloadParser } = processOptions<TResponse, TInitialPayload>(
+  // Prepares options with defaults if they are not provided.
+  const { client, onStepFinish, initialPayloadParser } = processOptions<TResponse, TInitialPayload>(
     options
   );
 
+  /**
+   * Handles the incoming request, triggering the appropriate workflow steps.
+   * Calls `triggerFirstInvocation()` if it's the first invocation.
+   * Otherwise, starts calling `triggerRouteFunction()` to execute steps in the workflow.
+   * Finally, calls `triggerWorkflowDelete()` to remove the workflow from QStash.
+   *
+   * @param request - The incoming request to handle.
+   * @returns A promise that resolves to a response.
+   */
   return async (request: TRequest) => {
     const { workflowContext, isFirstInvocation } =
       await WorkflowContext.createContext<TInitialPayload>(request, client, initialPayloadParser);
 
-    try {
-      await (isFirstInvocation
-        ? // if we are running for the first time, simply call publishJSON and send the payload to QStash
-          workflowContext.client.publishJSON({
-            headers: workflowContext.getHeaders("true"),
-            method: "POST",
-            body: workflowContext.requestPayload,
-            url: workflowContext.url,
-          })
-        : // if we are not running for the first time, call the route function with the context
-          routeFunction(workflowContext));
-    } catch (error) {
-      // if QstashWorkflowAbort occurs, a step has executed successfully and the call can return
-      if (!(error instanceof QstashWorkflowAbort)) {
-        throw error;
-      }
+    const result = isFirstInvocation
+      ? await triggerFirstInvocation(workflowContext)
+      : await triggerRouteFunction({
+          onStep: async () => routeFunction(workflowContext),
+          onCleanup: async () => triggerWorkflowDelete(workflowContext),
+        });
+
+    if (result.isErr()) {
+      throw result.error;
     }
-    return onFinish(workflowContext.workflowId);
+
+    // Returns a Response with `workflowId` at the end of each step.
+    return onStepFinish(workflowContext.workflowId);
   };
 };

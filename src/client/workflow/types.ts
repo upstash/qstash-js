@@ -57,7 +57,7 @@ export type WorkflowServeOptions<
    * @param workflowId
    * @returns response
    */
-  onFinish?: (workflowId: string) => TResponse;
+  onStepFinish?: (workflowId: string) => TResponse;
   /**
    * Function to parse the initial payload passed by the user
    */
