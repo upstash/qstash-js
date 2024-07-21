@@ -87,7 +87,6 @@
   },
   "dependencies": {
     "@sveltejs/kit": "^2.5.18",
-    "@upstash/qstash": "file:../../dist",
     "crypto-js": ">=4.2.0",
     "jose": "^ 5.2.3"
   }
