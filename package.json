@@ -38,6 +38,10 @@
     "./workflow/nextjs": {
       "import": "./workflow-nextjs.js",
       "require": "./workflow-nextjs.js"
+    },
+    "./workflow/sveltekit": {
+      "import": "./workflow-sveltekit.js",
+      "require": "./workflow-sveltekit.js"
     }
   },
   "typesVersions": {
@@ -73,15 +77,17 @@
     "eslint": "^8",
     "eslint-plugin-unicorn": "^51.0.1",
     "husky": "^9.0.10",
+    "neverthrow": "^7.0.0",
     "next": "^14.0.2",
     "prettier": "^3.2.5",
     "tsup": "latest",
     "typescript": "^5.4.5",
     "undici-types": "^6.16.0",
-    "vitest": "latest",
-    "neverthrow": "^7.0.0"
+    "vitest": "latest"
   },
   "dependencies": {
+    "@sveltejs/kit": "^2.5.18",
+    "@upstash/qstash": "file:../../dist",
     "crypto-js": ">=4.2.0",
     "jose": "^ 5.2.3"
   }

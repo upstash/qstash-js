@@ -6,6 +6,7 @@ export default defineConfig({
     nextjs: "./src/nextjs.ts",
     workflow: "./src/client/workflow/index.ts",
     "workflow-nextjs": "./src/client/workflow/frameworks/nextjs.ts",
+    "workflow-sveltekit": "./src/client/workflow/frameworks/sveltekit.ts",
   },
   format: ["cjs", "esm"],
   splitting: true,
