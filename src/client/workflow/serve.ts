@@ -19,7 +19,7 @@ import {
  * @param options options including the client, onFinish and initialPayloadParser
  * @returns
  */
-const processOptions = <TResponse extends Response = Response, TInitialPayload = unknown>(
+const processOptions = <TResponse = Response, TInitialPayload = unknown>(
   options?: WorkflowServeOptions<TResponse, TInitialPayload>
 ): Required<WorkflowServeOptions<TResponse, TInitialPayload>> => {
   return {
@@ -52,7 +52,7 @@ const processOptions = <TResponse extends Response = Response, TInitialPayload =
 export const serve = <
   TInitialPayload = unknown,
   TRequest extends Request = Request,
-  TResponse extends Response = Response,
+  TResponse = Response,
 >({
   routeFunction,
   options,

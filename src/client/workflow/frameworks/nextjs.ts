@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import type { WorkflowServeParameters } from "../types";
 import { serve as serveBase } from "../serve";
 
-export const serve = <TInitialPayload>({
+export const serve = <TInitialPayload = unknown>({
   routeFunction,
   options,
 }: WorkflowServeParameters<TInitialPayload, NextResponse>): ((
