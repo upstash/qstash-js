@@ -1,38 +1,30 @@
-# create-svelte
+# Qstash Workflow Examples
 
-Everything you need to build a Svelte project, powered by [`create-svelte`](https://github.com/sveltejs/kit/tree/main/packages/create-svelte).
+This project has some routes showcasing how Qstash Workflow can be used in a sveltekit project.
 
-## Creating a project
+Under the `src/routes` directory, you will find 5 folders, each corresponding to a workflow API.
 
-If you're seeing this, you've probably already done this step. Congrats!
+In each of these folders, you will find the `+server.ts` file which defines the workflow.
 
-```bash
-# create a new project in the current directory
-npm create svelte@latest
-
-# create a new project in my-app
-npm create svelte@latest my-app
+To run the app locally, first create `.env.local` file with:
+```
+cp .env.local.example .env.local
 ```
 
-## Developing
+Next, fill the values of the environment varialbes in `.env.local`. You can find the values of the env variables from the [Upstash Console](https://console.upstash.com/qstash). `QSTASH_URL` should be `https://qstash.upstash.io`
 
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
+Once you have the environment variables set, you can run the project with:
 
-```bash
+```
 npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
 ```
 
-## Building
+You can go to the deployment and call the endpoints using the form on the page. Simply enter the deployment URL and pick an endpoint.
 
-To create a production version of your app:
+Here is an example payload you can use for invoice:
 
-```bash
-npm run build
+```json
+{"date":123,"email":"adss","amount":10}
 ```
 
-You can preview the production build with `npm run preview`.
-
-> To deploy your app, you may need to install an [adapter](https://kit.svelte.dev/docs/adapters) for your target environment.
+You can observe the logs at Upstash console to see your workflow operate.

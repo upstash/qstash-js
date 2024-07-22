@@ -42,4 +42,4 @@ Here is an example payload you can use for invoice:
 {"date":123,"email":"adss","amount":10}
 ```
 
-You can observe the logs at Upstash console or vercel.com to see your workflow operates.
+You can observe the logs at Upstash console or vercel.com to see your workflow operate.
