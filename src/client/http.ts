@@ -1,5 +1,10 @@
 /* eslint-disable @typescript-eslint/no-magic-numbers */
-import { QstashError, QstashRatelimitError, QstashChatRatelimitError } from "./error";
+import {
+  QstashError,
+  QstashRatelimitError,
+  QstashChatRatelimitError,
+  QstashDailyRatelimitError,
+} from "./error";
 import type { BodyInit, HeadersInit, RequestOptions } from "./types";
 import type { ChatCompletionChunk } from "./llm/types";
 
@@ -216,6 +221,12 @@ export class HttpClient implements Requester {
           "remaining-tokens": response.headers.get("x-ratelimit-remaining-tokens"),
           "reset-requests": response.headers.get("x-ratelimit-reset-requests"),
           "reset-tokens": response.headers.get("x-ratelimit-reset-tokens"),
+        });
+      } else if (response.headers.get("RateLimit-Limit")) {
+        throw new QstashDailyRatelimitError({
+          limit: response.headers.get("RateLimit-Limit"),
+          remaining: response.headers.get("RateLimit-Remaining"),
+          reset: response.headers.get("RateLimit-Reset"),
         });
       }
 
