@@ -4,7 +4,7 @@
   import { writable } from 'svelte/store';
 
   let baseUrl = writable("http://localhost:5173");
-  let requestBody = writable('"Upstash Rocks!"');
+  let requestBody = writable('{"date":123,"email":"adss","amount":10}');
   let loading = writable(false);
   let route = writable('path');
 
