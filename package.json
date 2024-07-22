@@ -42,6 +42,10 @@
     "./workflow/sveltekit": {
       "import": "./workflow-sveltekit.js",
       "require": "./workflow-sveltekit.js"
+    },
+    "./workflow/nuxt": {
+      "import": "./workflow-nuxt.js",
+      "require": "./workflow-nuxt.js"
     }
   },
   "typesVersions": {
@@ -88,6 +92,7 @@
   "dependencies": {
     "@sveltejs/kit": "^2.5.18",
     "crypto-js": ">=4.2.0",
+    "h3": "^1.12.0",
     "jose": "^ 5.2.3"
   }
 }

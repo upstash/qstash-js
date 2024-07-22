@@ -31,9 +31,24 @@ export type StepFunction<TResult> = AsyncStepFunction<TResult> | SyncStepFunctio
 
 export type ParallelCallState = "first" | "partial" | "discard" | "last";
 
-export type WorkflowServeParameters<TInitialPayload, TResponse extends Response = Response> = {
+export type WorkflowServeParameters<TInitialPayload, TResponse = Response> = {
   routeFunction: (context: WorkflowContext<TInitialPayload>) => Promise<void>;
   options?: WorkflowServeOptions<TResponse, TInitialPayload>;
+};
+
+/**
+ * Not all frameworks use env variables like nextjs does. In this case, we need
+ * to be able to get the client explicitly.
+ *
+ * In this case, we extend the WorkflowServeParameters by requiring an explicit
+ * client parameter and removing client from options.
+ */
+export type WorkflowServeParametersWithClient<
+  TInitialPayload = unknown,
+  TResponse = Response,
+> = Pick<WorkflowServeParameters<TInitialPayload, TResponse>, "routeFunction"> & {
+  client: Client;
+  options?: Omit<WorkflowServeOptions<TResponse, TInitialPayload>, "client">;
 };
 
 /**
@@ -43,10 +58,7 @@ export type InitialPayloadParser<TInitialPayload = unknown> = (
   initialPayload: string
 ) => TInitialPayload;
 
-export type WorkflowServeOptions<
-  TResponse extends Response = Response,
-  TInitialPayload = unknown,
-> = {
+export type WorkflowServeOptions<TResponse = Response, TInitialPayload = unknown> = {
   /**
    * QStash client
    */
