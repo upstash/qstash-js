@@ -4,7 +4,7 @@ This project has some routes showcasing how Qstash Workflow can be used in a nex
 
 Under the app directory, you will find 5 folders, each corresponding to a workflow API.
 
-In each of these folders, you will find the `route.ts` file which defines the workflow and a `trigger.sh` script to trigger the endpoint.
+In each of these folders, you will find the `route.ts` file which defines the workflow.
 
 ## Deploying the Project at Vercel
 
@@ -19,14 +19,14 @@ Next, you shoud go to vercel.com, find your project and add `QSTASH_URL` and `QS
 At this point, if you are using a released `@upstash/qstash` version, you can deploy the project with `vercel --prod`. If you are going to deploy the project with an `@upstash/qstash` version which is not released yet, you can go to the branch and run:
 
 ```
-cd ../..
+cd ../../..
 
 npm install
 npm run build
 
-cd examples/workflow
+cd examples/workflow/nextjs
 
-npm install @upstash/qstash@file:../../dist
+npm install @upstash/qstash@file:../../../dist
 
 vercel build --prod
 vercel --prebuilt --prod

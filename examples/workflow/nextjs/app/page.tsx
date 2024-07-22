@@ -4,13 +4,13 @@ import { usePathname, useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 
 export default function Home() {
-  const [baseUrl, setBaseUrl] = useState(origin);
-  const [requestBody, setRequestBody] = useState('"Upstash Rocks!"');
+  const [baseUrl, setBaseUrl] = useState("http://localhost:3000");
+  const [requestBody, setRequestBody] = useState('{"date":123,"email":"adss","amount":10}');
   const [loading, setLoading] = useState(false);
   const searchParams = useSearchParams();
 
   const search = searchParams.get('function');
-  const [route, setRoute] = useState(search ?? "");
+  const [route, setRoute] = useState(search ?? "path");
 
   const routes = ['path', 'sleep', 'sleepWithoutAwait', 'northStarSimple', 'northStar'];
 
