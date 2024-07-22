@@ -1,4 +1,4 @@
-# Qstash Workflow Examples
+# Qstash Workflow Nextjs Example
 
 This project has some routes showcasing how Qstash Workflow can be used in a nextjs project.
 

@@ -1,4 +1,4 @@
-# Qstash Workflow Examples
+# Qstash Workflow Sveltekit Example
 
 This project has some routes showcasing how Qstash Workflow can be used in a sveltekit project.
 

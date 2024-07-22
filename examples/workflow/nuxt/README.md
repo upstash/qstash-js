@@ -1,75 +1,45 @@
-# Nuxt 3 Minimal Starter
+# Qstash Workflow Nuxt Example
 
-Look at the [Nuxt 3 documentation](https://nuxt.com/docs/getting-started/introduction) to learn more.
+This project has some routes showcasing how Qstash Workflow can be used in a nuxt project.
 
-## Setup
+Under the `server/api` directory, you will find 5 files, each corresponding to a workflow API.
 
-Make sure to install the dependencies:
+To run the app locally, first set the environment variables `QSTASH_URL` and `QSTASH_TOKEN`. You can find the values of the env variables from the [Upstash Console](https://console.upstash.com/qstash). `QSTASH_URL` should be `https://qstash.upstash.io`.
 
-```bash
-# npm
-npm install
+> [!WARNING]
+> When adding workflow to your own app, don't forget to add `QSTASH_URL` and `QSTASH_TOKEN` to `nuxt.config.ts`:
+> 
+> ```diff
+> // nuxt.config.ts
+> export default defineNuxtConfig({
+>   compatibilityDate: '2024-04-03',
+>   devtools: { enabled: true },
+> + runtimeConfig: {
+> +   QSTASH_URL: process.env.QSTASH_URL,
+> +   QSTASH_TOKEN: process.env.QSTASH_TOKEN,
+> + },
+>   css: ['~/assets/css/main.css'],
+>   postcss: {
+>     plugins: {
+>       tailwindcss: {},
+>       autoprefixer: {},
+>     },
+>   },
+> })
+> ```
 
-# pnpm
-pnpm install
+Once you have the environment variables set, you can run the project with:
 
-# yarn
-yarn install
-
-# bun
-bun install
 ```
-
-## Development Server
-
-Start the development server on `http://localhost:3000`:
-
-```bash
-# npm
 npm run dev
-
-# pnpm
-pnpm run dev
-
-# yarn
-yarn dev
-
-# bun
-bun run dev
 ```
 
-## Production
+You can go to the deployment and call the endpoints using the form on the page. Simply enter the deployment URL and pick an endpoint.
 
-Build the application for production:
+Here is an example payload you can use for invoice:
 
-```bash
-# npm
-npm run build
-
-# pnpm
-pnpm run build
-
-# yarn
-yarn build
-
-# bun
-bun run build
+```json
+{"date":123,"email":"adss","amount":10}
 ```
 
-Locally preview production build:
-
-```bash
-# npm
-npm run preview
-
-# pnpm
-pnpm run preview
-
-# yarn
-yarn preview
-
-# bun
-bun run preview
-```
-
-Check out the [deployment documentation](https://nuxt.com/docs/getting-started/deployment) for more information.
+You can observe the logs at Upstash console to see your workflow operate.
