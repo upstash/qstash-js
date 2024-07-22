@@ -46,7 +46,7 @@ export type WorkflowServeParameters<TInitialPayload, TResponse = Response> = {
 export type WorkflowServeParametersWithClient<
   TInitialPayload = unknown,
   TResponse = Response,
-> = Pick<WorkflowServeParameters<TInitialPayload>, "routeFunction"> & {
+> = Pick<WorkflowServeParameters<TInitialPayload, TResponse>, "routeFunction"> & {
   client: Client;
   options?: Omit<WorkflowServeOptions<TResponse, TInitialPayload>, "client">;
 };
