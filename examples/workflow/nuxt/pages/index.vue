@@ -49,7 +49,7 @@
 import { ref } from 'vue';
 
 const baseUrl = ref('http://localhost:3000');
-const requestBody = ref('{"date":123,"email":"adss","amount":10}');
+const requestBody = ref('{"date":123,"email":"my@mail.com","amount":10}');
 const loading = ref(false);
 const route = ref('path');
 const routes = ['path', 'sleep', 'sleepWithoutAwait', 'northStarSimple', 'northStar'];

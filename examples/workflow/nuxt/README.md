@@ -39,7 +39,7 @@ You can go to the deployment and call the endpoints using the form on the page. 
 Here is an example payload you can use for invoice:
 
 ```json
-{"date":123,"email":"adss","amount":10}
+{"date":123,"email":"my@mail.com","amount":10}
 ```
 
 You can observe the logs at Upstash console to see your workflow operate.

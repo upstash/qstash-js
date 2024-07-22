@@ -5,7 +5,7 @@ import { useState } from 'react';
 
 export default function Home() {
   const [baseUrl, setBaseUrl] = useState("http://localhost:3000");
-  const [requestBody, setRequestBody] = useState('{"date":123,"email":"adss","amount":10}');
+  const [requestBody, setRequestBody] = useState('{"date":123,"email":"my@mail.com","amount":10}');
   const [loading, setLoading] = useState(false);
   const searchParams = useSearchParams();
 
