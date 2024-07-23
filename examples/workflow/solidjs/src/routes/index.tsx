@@ -1,4 +1,3 @@
-// src/components/LandingPage.tsx
 import { createSignal } from 'solid-js';
 
 const LandingPage = () => {

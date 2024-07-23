@@ -21,7 +21,7 @@ export const serve = <TInitialPayload = unknown>({
     if (method?.toUpperCase() !== "POST") {
       return {
         status: 405,
-        body: "Only POST requests are allowed",
+        body: "Only POST requests are allowed in worklfows",
       };
     }
 

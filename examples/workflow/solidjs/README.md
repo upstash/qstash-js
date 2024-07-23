@@ -1,34 +1,23 @@
-## Usage
+# Qstash Workflow Solid.js Example
 
-Those templates dependencies are maintained via [pnpm](https://pnpm.io) via `pnpm up -Lri`.
+This project has some routes showcasing how Qstash Workflow can be used in a Solid.js project.
 
-This is the reason you see a `pnpm-lock.yaml`. That being said, any package manager will work. This file can be safely be removed once you clone a template.
+Under the `src/routes` directory, you will find 6 files. `index.tsx` is the landing page. Rest are the routes corresponding to a workflow API.
 
-```bash
-$ npm install # or pnpm install or yarn install
+To run the app locally, first set the environment variables `QSTASH_URL` and `QSTASH_TOKEN`. You can find the values of the env variables from the [Upstash Console](https://console.upstash.com/qstash). `QSTASH_URL` should be `https://qstash.upstash.io`. 
+
+Once you have the environment variables set, you can run the project with:
+
+```
+npm run dev
 ```
 
-### Learn more on the [Solid Website](https://solidjs.com) and come chat with us on our [Discord](https://discord.com/invite/solidjs)
+You can go to the deployment and call the endpoints using the form on the page. Simply enter the deployment URL and pick an endpoint.
 
-## Available Scripts
+Here is an example payload you can use for invoice:
 
-In the project directory, you can run:
+```json
+{"date":123,"email":"my@mail.com","amount":10}
+```
 
-### `npm run dev` or `npm start`
-
-Runs the app in the development mode.<br>
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
-
-The page will reload if you make edits.<br>
-
-### `npm run build`
-
-Builds the app for production to the `dist` folder.<br>
-It correctly bundles Solid in production mode and optimizes the build for the best performance.
-
-The build is minified and the filenames include the hashes.<br>
-Your app is ready to be deployed!
-
-## Deployment
-
-You can deploy the `dist` folder to any static host provider (netlify, surge, now, etc.)
+You can observe the logs at Upstash console to see your workflow operate.

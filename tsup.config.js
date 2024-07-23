@@ -8,6 +8,7 @@ export default defineConfig({
     "workflow-nextjs": "./src/client/workflow/frameworks/nextjs.ts",
     "workflow-sveltekit": "./src/client/workflow/frameworks/sveltekit.ts",
     "workflow-nuxt": "./src/client/workflow/frameworks/nuxt.ts",
+    "workflow-solidjs": "./src/client/workflow/frameworks/solidjs.ts",
   },
   format: ["cjs", "esm"],
   splitting: true,
