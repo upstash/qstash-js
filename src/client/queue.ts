@@ -9,7 +9,7 @@ export type QueueResponse = {
   name: string;
   parallelism: number;
   lag: number;
-  paused?: boolean;
+  paused: boolean;
 };
 
 export type UpsertQueueRequest = {

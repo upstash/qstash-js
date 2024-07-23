@@ -16,7 +16,7 @@ export type Schedule = {
   callback?: string;
   failureCallback?: string;
   callerIp?: string;
-  isPaused: true | undefined;
+  isPaused: boolean;
 };
 
 export type CreateScheduleRequest = {
