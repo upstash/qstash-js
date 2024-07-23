@@ -39,7 +39,7 @@ Once you have the app deployed, you can go to the deployment and call the endpoi
 Here is an example payload you can use for invoice:
 
 ```json
-{"date":123,"email":"adss","amount":10}
+{"date":123,"email":"my@mail.com","amount":10}
 ```
 
 You can observe the logs at Upstash console or vercel.com to see your workflow operate.
