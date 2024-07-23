@@ -9,7 +9,7 @@ import type { AsyncStepFunction, Step, StepType } from "./types";
  */
 export abstract class BaseLazyStep<TResult = unknown> {
   public readonly stepName;
-  public stepType!: StepType; // will be set in the subclasses
+  public abstract readonly stepType: StepType; // will be set in the subclasses
   constructor(stepName: string) {
     this.stepName = stepName;
   }
@@ -38,11 +38,11 @@ export abstract class BaseLazyStep<TResult = unknown> {
  */
 export class LazyFunctionStep<TResult = unknown> extends BaseLazyStep<TResult> {
   private readonly stepFunction: AsyncStepFunction<TResult>;
+  stepType: StepType = "Run";
 
   constructor(stepName: string, stepFunction: AsyncStepFunction<TResult>) {
     super(stepName);
     this.stepFunction = stepFunction;
-    this.stepType = "Run";
   }
 
   public getPlanStep(concurrent: number, targetStep: number): Step<undefined> {
@@ -76,11 +76,11 @@ export class LazyFunctionStep<TResult = unknown> extends BaseLazyStep<TResult> {
  */
 export class LazySleepStep extends BaseLazyStep {
   private readonly sleep: number;
+  stepType: StepType = "SleepFor";
 
   constructor(stepName: string, sleep: number) {
     super(stepName);
     this.sleep = sleep;
-    this.stepType = "SleepFor";
   }
 
   public getPlanStep(concurrent: number, targetStep: number): Step<undefined> {
@@ -115,11 +115,11 @@ export class LazySleepStep extends BaseLazyStep {
  */
 export class LazySleepUntilStep extends BaseLazyStep {
   private readonly sleepUntil: number;
+  stepType: StepType = "SleepUntil";
 
   constructor(stepName: string, sleepUntil: number) {
     super(stepName);
     this.sleepUntil = sleepUntil;
-    this.stepType = "SleepUntil";
   }
 
   public getPlanStep(concurrent: number, targetStep: number): Step<undefined> {
