@@ -106,7 +106,9 @@ export class AutoExecutor {
    */
   private async runSingle<TResult>(lazyStep: BaseLazyStep<TResult>) {
     if (this.stepCount < this.context.nonPlanStepCount) {
-      return this.context.steps[this.stepCount + this.planStepCount].out as TResult;
+      const step = this.context.steps[this.stepCount + this.planStepCount];
+      validateStep(lazyStep, step);
+      return step.out as TResult;
     }
 
     const resultStep = await lazyStep.getResultStep(this.stepCount, true);
@@ -126,8 +128,23 @@ export class AutoExecutor {
     [K in keyof TResults]: BaseLazyStep<TResults[K]>;
   }): Promise<TResults> {
     // get the step count before the parallel steps were added + 1
+    // so if there are two initial steps followed by a parallel step,
+    // initialStepCount would be 3.
     const initialStepCount = this.stepCount - (parallelSteps.length - 1);
     const parallelCallState = this.getParallelCallState(parallelSteps.length, initialStepCount);
+
+    const sortedSteps = sortSteps(this.context.steps);
+
+    // get the expected concurrency. Will be undefined in the `first` case.
+    const plannedParallelStepCount = sortedSteps[initialStepCount + this.planStepCount]?.concurrent;
+
+    if (parallelCallState !== "first" && plannedParallelStepCount !== parallelSteps.length) {
+      // user has added/removed a parallel step
+      throw new QstashWorkflowError(
+        `Incompatible number of parallel steps when call state was '${parallelCallState}'.` +
+          ` Expected ${parallelSteps.length}, got ${plannedParallelStepCount} from the request.`
+      );
+    }
 
     switch (parallelCallState) {
       case "first": {
@@ -151,12 +168,35 @@ export class AutoExecutor {
         const planStep = this.context.steps.at(-1);
         if (!planStep || planStep.targetStep === 0) {
           throw new QstashWorkflowError(
-            `There must be a last step and it should have targetStep larger than 0. Received: ${JSON.stringify(planStep)}`
+            `There must be a last step and it should have targetStep larger than 0.` +
+              `Received: ${JSON.stringify(planStep)}`
           );
         }
         const stepIndex = planStep.targetStep - initialStepCount;
-        const resultStep = await parallelSteps[stepIndex].getResultStep(planStep.targetStep, false);
-        await this.submitStepsToQstash([resultStep]);
+
+        // even though we check for differences in the `last` case, we still need to check
+        // here because it's not possible to detect name/type changes in sleep/sleepUntil
+        // steps if we don't check here. This is because we wait after submitting the plan
+        // step which has the _original step_ name/type but use the 'changed' step name/type
+        // when submitting the _result step_.
+
+        // So in the 'last' case it's not possible to detect step name/type changes for
+        // sleep/sleepUntil. It's only possible here:
+        validateStep(parallelSteps[stepIndex], planStep);
+        try {
+          const resultStep = await parallelSteps[stepIndex].getResultStep(
+            planStep.targetStep,
+            false
+          );
+          await this.submitStepsToQstash([resultStep]);
+        } catch (error) {
+          if (error instanceof QstashWorkflowAbort) {
+            throw error;
+          }
+          throw new QstashWorkflowError(
+            `Error submitting steps to qstash in partial parallel step execution: ${error}`
+          );
+        }
         break;
       }
       case "discard": {
@@ -173,17 +213,17 @@ export class AutoExecutor {
       case "last": {
         /**
          * All steps of the parallel execution have finished.
+         *
+         * validate the results and return them
          */
-        // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-        const sortedSteps = this.context.steps.toSorted(
-          (step, stepOther) => step.stepId - stepOther.stepId
-        );
 
-        const concurrentResults = sortedSteps
-          .filter((step) => step.stepId >= initialStepCount)
-          .map((step) => step.out)
-          .slice(0, parallelSteps.length) as TResults;
-        return concurrentResults;
+        const parallelResultSteps = sortedSteps
+          .filter((step) => step.stepId >= initialStepCount) // filter out plan steps
+          .slice(0, parallelSteps.length); // get the result steps of parallel run
+
+        validateParallelSteps(parallelSteps, parallelResultSteps);
+
+        return parallelResultSteps.map((step) => step.out) as TResults;
       }
     }
     const fillValue = undefined;
@@ -307,3 +347,75 @@ export class AutoExecutor {
     await Promise.resolve();
   }
 }
+
+/**
+ * Given a BaseLazyStep which is created during execution and a Step parsed
+ * from the incoming request; compare the step names and types to make sure
+ * that they are the same.
+ *
+ * Raises `QstashWorkflowError` if there is a difference.
+ *
+ * @param lazyStep lazy step created during execution
+ * @param stepFromRequest step parsed from incoming request
+ */
+const validateStep = (lazyStep: BaseLazyStep, stepFromRequest: Step): void => {
+  // check step name
+  if (lazyStep.stepName !== stepFromRequest.stepName) {
+    throw new QstashWorkflowError(
+      `Incompatible step name. Expected ${lazyStep.stepName},` +
+        ` got ${stepFromRequest.stepName} from the request`
+    );
+  }
+  // check type name
+  if (lazyStep.stepType !== stepFromRequest.stepType) {
+    throw new QstashWorkflowError(
+      `Incompatible step type. Expected ${lazyStep.stepType},` +
+        ` got ${stepFromRequest.stepType} from the request`
+    );
+  }
+};
+
+/**
+ * validates that each lazy step and step from request has the same step
+ * name and type using `validateStep` method.
+ *
+ * If there is a difference, raises `QstashWorkflowError` with information
+ * about the difference.
+ *
+ * @param lazySteps list of lazy steps created during parallel execution
+ * @param stepsFromRequest list of steps corresponding to the parallel execution
+ */
+const validateParallelSteps = (lazySteps: BaseLazyStep[], stepsFromRequest: Step[]): void => {
+  try {
+    for (const [index, stepFromRequest] of stepsFromRequest.entries()) {
+      validateStep(lazySteps[index], stepFromRequest);
+    }
+  } catch (error) {
+    if (error instanceof QstashWorkflowError) {
+      const lazyStepNames = lazySteps.map((lazyStep) => lazyStep.stepName);
+      const lazyStepTypes = lazySteps.map((lazyStep) => lazyStep.stepType);
+      const requestStepNames = stepsFromRequest.map((step) => step.stepName);
+      const requestStepTypes = stepsFromRequest.map((step) => step.stepType);
+      throw new QstashWorkflowError(
+        `Incompatible steps detected in parallel execution: ${error.message}` +
+          `\n  > Step Names from the request: ${requestStepNames}` +
+          `\n    Step Types from the request: ${requestStepTypes}` +
+          `\n  > Step Names expected: ${lazyStepNames}` +
+          `\n    Step Types expected: ${lazyStepTypes}`
+      );
+    }
+    throw error;
+  }
+};
+
+/**
+ * Given a set of steps, sorts them according to their `stepId`s. For plan steps,
+ * `targetStep` field is used
+ *
+ * @param steps list of steps
+ * @returns sorted steps
+ */
+const sortSteps = (steps: Step[]): Step[] => {
+  const getStepId = (step: Step) => (step.stepId === 0 ? step.targetStep : step.stepId);
+  return steps.toSorted((step, stepOther) => getStepId(step) - getStepId(stepOther));
+};

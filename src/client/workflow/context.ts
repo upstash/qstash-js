@@ -129,6 +129,14 @@ export class WorkflowContext<TInitialPayload = unknown> {
     const versionHeader = request.headers.get(WORKFLOW_PROTOCOL_VERSION_HEADER);
     const isFirstInvocation = !versionHeader;
 
+    // if it's not the first invocation, verify that the workflow protocal version is correct
+    if (!isFirstInvocation && versionHeader !== WORKFLOW_PROTOCOL_VERSION) {
+      throw new QstashWorkflowError(
+        `Incompatible workflow sdk protocol version. Expected ${WORKFLOW_PROTOCOL_VERSION},` +
+          ` got ${versionHeader} from the request.`
+      );
+    }
+
     // get workflow id
     const workflowId = isFirstInvocation
       ? `wf${nanoid()}`
