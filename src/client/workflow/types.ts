@@ -1,9 +1,12 @@
 import type { Client } from "../client";
 import type { WorkflowContext } from "./context";
 
+export type StepType = "Initial" | "Run" | "SleepFor" | "SleepUntil";
+
 export type Step<TResult = unknown> = {
   stepId: number;
   stepName: string;
+  stepType: StepType;
   out?: TResult;
   sleepFor?: number;
   sleepUntil?: number;

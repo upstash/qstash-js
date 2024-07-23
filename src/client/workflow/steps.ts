@@ -1,4 +1,4 @@
-import type { AsyncStepFunction, Step } from "./types";
+import type { AsyncStepFunction, Step, StepType } from "./types";
 
 /**
  * Base class outlining steps. Basically, each step kind (run/sleep/sleepUntil)
@@ -9,6 +9,7 @@ import type { AsyncStepFunction, Step } from "./types";
  */
 export abstract class BaseLazyStep<TResult = unknown> {
   public readonly stepName;
+  public stepType!: StepType; // will be set in the subclasses
   constructor(stepName: string) {
     this.stepName = stepName;
   }
@@ -41,6 +42,7 @@ export class LazyFunctionStep<TResult = unknown> extends BaseLazyStep<TResult> {
   constructor(stepName: string, stepFunction: AsyncStepFunction<TResult>) {
     super(stepName);
     this.stepFunction = stepFunction;
+    this.stepType = "Run";
   }
 
   public getPlanStep(concurrent: number, targetStep: number): Step<undefined> {
@@ -48,6 +50,7 @@ export class LazyFunctionStep<TResult = unknown> extends BaseLazyStep<TResult> {
       return {
         stepId: 0,
         stepName: this.stepName,
+        stepType: this.stepType,
         concurrent,
         targetStep,
       };
@@ -60,6 +63,7 @@ export class LazyFunctionStep<TResult = unknown> extends BaseLazyStep<TResult> {
     return {
       stepId,
       stepName: this.stepName,
+      stepType: this.stepType,
       out: result,
       concurrent: 1,
       targetStep: 0,
@@ -76,6 +80,7 @@ export class LazySleepStep extends BaseLazyStep {
   constructor(stepName: string, sleep: number) {
     super(stepName);
     this.sleep = sleep;
+    this.stepType = "SleepFor";
   }
 
   public getPlanStep(concurrent: number, targetStep: number): Step<undefined> {
@@ -83,6 +88,7 @@ export class LazySleepStep extends BaseLazyStep {
       return {
         stepId: 0,
         stepName: this.stepName,
+        stepType: this.stepType,
         sleepFor: this.sleep,
         concurrent,
         targetStep,
@@ -94,6 +100,7 @@ export class LazySleepStep extends BaseLazyStep {
     return await Promise.resolve({
       stepId,
       stepName: this.stepName,
+      stepType: this.stepType,
       // apply sleepFor if the step is running by itself. If it's running parallel,
       // the sleepFor is already applied in the plan step
       sleepFor: singleStep ? this.sleep : undefined,
@@ -112,6 +119,7 @@ export class LazySleepUntilStep extends BaseLazyStep {
   constructor(stepName: string, sleepUntil: number) {
     super(stepName);
     this.sleepUntil = sleepUntil;
+    this.stepType = "SleepUntil";
   }
 
   public getPlanStep(concurrent: number, targetStep: number): Step<undefined> {
@@ -119,6 +127,7 @@ export class LazySleepUntilStep extends BaseLazyStep {
       return {
         stepId: 0,
         stepName: this.stepName,
+        stepType: this.stepType,
         sleepUntil: this.sleepUntil,
         concurrent,
         targetStep,
@@ -130,6 +139,7 @@ export class LazySleepUntilStep extends BaseLazyStep {
     return await Promise.resolve({
       stepId,
       stepName: this.stepName,
+      stepType: this.stepType,
       // apply sleepUntil if the step is running by itself. If it's running parallel,
       // the sleepUntil is already applied in the plan step
       sleepUntil: singleStep ? this.sleepUntil : undefined,
