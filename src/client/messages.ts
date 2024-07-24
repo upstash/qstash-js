@@ -1,4 +1,5 @@
 import type { Requester } from "./http";
+import type { HTTPMethods } from "./types";
 
 export type Message = {
   /**
@@ -35,7 +36,7 @@ export type Message = {
   /**
    * The http method used to deliver the message
    */
-  method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
+  method?: HTTPMethods;
 
   /**
    * The http headers sent along with the message to your API.

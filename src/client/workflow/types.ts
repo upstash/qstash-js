@@ -1,9 +1,11 @@
 import type { Client } from "../client";
+import type { HTTPMethods } from "../types";
 import type { WorkflowContext } from "./context";
 
-export type StepType = "Initial" | "Run" | "SleepFor" | "SleepUntil";
+export const StepTypes = ["Initial", "Run", "SleepFor", "SleepUntil", "Call"] as const;
+export type StepType = (typeof StepTypes)[number];
 
-export type Step<TResult = unknown> = {
+export type Step<TResult = unknown, TBody = unknown> = {
   stepId: number;
   stepName: string;
   stepType: StepType;
@@ -12,6 +14,10 @@ export type Step<TResult = unknown> = {
   sleepUntil?: number;
   concurrent: number;
   targetStep: number;
+  callUrl?: string;
+  callMethod?: HTTPMethods;
+  callBody?: TBody;
+  callHeaders?: Record<string, string>;
 };
 
 export type StepInfo<TResult> = {

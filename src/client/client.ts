@@ -6,7 +6,7 @@ import { appendLLMOptionsIfNeeded } from "./llm/utils";
 import { Messages } from "./messages";
 import { Queue } from "./queue";
 import { Schedules } from "./schedules";
-import type { BodyInit, Event, GetEventsPayload, HeadersInit, State } from "./types";
+import type { BodyInit, Event, GetEventsPayload, HeadersInit, HTTPMethods, State } from "./types";
 import { UrlGroups } from "./url-groups";
 import { getRequestPath, prefixHeaders, processHeaders } from "./utils";
 
@@ -137,7 +137,7 @@ export type PublishRequest<TBody = BodyInit> = {
    *
    * @default `POST`
    */
-  method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
+  method?: HTTPMethods;
 
   /**
    * The HTTP timeout value to use while calling the destination URL.

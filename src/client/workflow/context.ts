@@ -1,15 +1,15 @@
-import type { AsyncStepFunction, InitialPayloadParser, Step } from "./types";
-import { nanoid } from "nanoid";
+import { type AsyncStepFunction, type Step } from "./types";
 import {
+  DEFAULT_CONTENT_TYPE,
   WORKFLOW_ID_HEADER,
   WORKFLOW_INIT_HEADER,
   WORKFLOW_PROTOCOL_VERSION,
   WORKFLOW_PROTOCOL_VERSION_HEADER,
 } from "./constants";
-import { QstashWorkflowError } from "../error";
-import * as WorkflowParser from "./workflow-parser";
 import type { Client } from "../client";
 import { AutoExecutor } from "./auto-executor";
+import { LazyCallStep, LazyFunctionStep, LazySleepStep, LazySleepUntilStep } from "./steps";
+import type { HTTPMethods } from "../types";
 
 export class WorkflowContext<TInitialPayload = unknown> {
   protected readonly executor: AutoExecutor;
@@ -74,7 +74,7 @@ export class WorkflowContext<TInitialPayload = unknown> {
     stepName: string,
     stepFunction: AsyncStepFunction<TResult>
   ): Promise<TResult> {
-    return this.executor.addFunctionStep(stepName, stepFunction);
+    return this.executor.addStep<TResult>(new LazyFunctionStep(stepName, stepFunction));
   }
 
   /**
@@ -85,7 +85,7 @@ export class WorkflowContext<TInitialPayload = unknown> {
    * @returns
    */
   public async sleep(stepName: string, duration: number): Promise<void> {
-    await this.executor.addSleepStep(stepName, duration);
+    await this.executor.addStep(new LazySleepStep(stepName, duration));
   }
 
   /**
@@ -106,70 +106,19 @@ export class WorkflowContext<TInitialPayload = unknown> {
       // eslint-disable-next-line @typescript-eslint/no-magic-numbers
       time = Math.round(datetime.getTime() / 1000);
     }
-    await this.executor.addSleepUntilStep(stepName, time);
+    await this.executor.addStep(new LazySleepUntilStep(stepName, time));
   }
 
-  /**
-   * Checks request headers and body
-   * - Checks workflow header to determine whether the request is the first request
-   * - Gets the workflow id
-   * - Parses payload
-   * - Returns the steps. If it's the first invocation, steps are empty.
-   *   Otherwise, steps are generated from the request body.
-   *
-   * @param request Request received
-   * @returns Whether the invocation is the initial one, the workflow id and the steps
-   */
-  private static async parseRequest(request: Request): Promise<{
-    isFirstInvocation: boolean;
-    workflowId: string;
-    initialPayload: string;
-    steps: Step[];
-  }> {
-    const versionHeader = request.headers.get(WORKFLOW_PROTOCOL_VERSION_HEADER);
-    const isFirstInvocation = !versionHeader;
-
-    // if it's not the first invocation, verify that the workflow protocal version is correct
-    if (!isFirstInvocation && versionHeader !== WORKFLOW_PROTOCOL_VERSION) {
-      throw new QstashWorkflowError(
-        `Incompatible workflow sdk protocol version. Expected ${WORKFLOW_PROTOCOL_VERSION},` +
-          ` got ${versionHeader} from the request.`
-      );
-    }
-
-    // get workflow id
-    const workflowId = isFirstInvocation
-      ? `wf${nanoid()}`
-      : request.headers.get(WORKFLOW_ID_HEADER) ?? "";
-    if (workflowId.length === 0) {
-      throw new QstashWorkflowError("Couldn't get workflow id from header");
-    }
-
-    // get payload as raw string
-    const payload = await WorkflowParser.getPayload(request);
-
-    if (isFirstInvocation) {
-      // if first invocation, return and `serve` will handle publishing the JSON to QStash
-      return {
-        isFirstInvocation,
-        workflowId,
-        initialPayload: payload ?? "",
-        steps: [],
-      };
-      // if not the first invocation, make sure that body is not empty and parse payload
-    } else {
-      if (!payload) {
-        throw new QstashWorkflowError("Only first call can have an empty body");
-      }
-      const { initialPayload, steps } = WorkflowParser.parsePayload(payload);
-
-      return {
-        isFirstInvocation,
-        workflowId,
-        initialPayload,
-        steps,
-      };
-    }
+  public async call<TResult = unknown, TBody = unknown>(
+    stepName: string,
+    url: string,
+    method: HTTPMethods,
+    body?: TBody,
+    headers?: Record<string, string>
+  ) {
+    return await this.executor.addStep(
+      new LazyCallStep<TResult>(stepName, url, method, body, headers ?? {})
+    );
   }
 
   /**
@@ -178,39 +127,41 @@ export class WorkflowContext<TInitialPayload = unknown> {
    * @param initHeaderValue Whether the invocation should create a new workflow
    * @returns
    */
-  public getHeaders(initHeaderValue: "true" | "false") {
-    return {
+  public getHeaders(initHeaderValue: "true" | "false", step?: Step, contentType?: string) {
+    let baseHeaders: Record<string, string> = {
       [WORKFLOW_INIT_HEADER]: initHeaderValue,
       [WORKFLOW_ID_HEADER]: this.workflowId,
       [`Upstash-Forward-${WORKFLOW_PROTOCOL_VERSION_HEADER}`]: WORKFLOW_PROTOCOL_VERSION,
     };
-  }
 
-  /**
-   * Creates a workflow from a request by parsing the body and checking the
-   * headers.
-   *
-   * @param request request received from the API
-   * @param client QStash client
-   * @param initialPayloadParser function to parse the initial payload
-   * @returns workflow and whether its the first time the workflow is being called
-   */
-  static async createContext<TInitialPayload = unknown>(
-    request: Request,
-    client: Client,
-    initialPayloadParser: InitialPayloadParser<TInitialPayload>
-  ) {
-    const { isFirstInvocation, workflowId, initialPayload, steps } =
-      await WorkflowContext.parseRequest(request);
+    if (step?.callHeaders && step.callMethod) {
+      const forwardedHeaders = Object.fromEntries(
+        Object.entries(step.callHeaders).map(([header, value]) => [
+          `Upstash-Forward-${header}`,
+          value,
+        ])
+      );
+      baseHeaders = {
+        ...baseHeaders,
+        "Upstash-Callback": this.url,
+        "Upstash-Callback-Workflow-Id": this.workflowId,
+        "Upstash-Callback-Workflow-CallType": "fromCallback",
+        "Upstash-Callback-Workflow-Init": "false",
 
-    const workflowContext = new WorkflowContext<TInitialPayload>({
-      client,
-      workflowId,
-      initialPayload: initialPayloadParser(initialPayload),
-      steps,
-      url: request.url,
-    });
+        "Upstash-Callback-Forward-Upstash-Workflow-Callback": "true",
+        "Upstash-Callback-Forward-Upstash-Workflow-StepId": step.stepId.toString(),
+        "Upstash-Callback-Forward-Upstash-Workflow-StepName": step.stepName,
+        "Upstash-Callback-Forward-Upstash-Workflow-StepType": step.stepType,
+        "Upstash-Callback-Forward-Upstash-Workflow-Concurrent": step.concurrent.toString(),
+        "Upstash-Callback-Forward-Upstash-Workflow-ContentType":
+          contentType ?? DEFAULT_CONTENT_TYPE,
+        // "Upstash-Workflow-Id": this.workflowId,
+        "Upstash-Workflow-CallType": "toCallback",
+        // upstashHeader.Set(InitHeader, "false")
+        ...forwardedHeaders,
+      };
+    }
 
-    return { workflowContext, isFirstInvocation };
+    return baseHeaders;
   }
 }

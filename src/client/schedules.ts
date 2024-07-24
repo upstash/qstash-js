@@ -1,6 +1,6 @@
 import { prefixHeaders } from "./utils";
 import type { Requester } from "./http";
-import type { BodyInit, HeadersInit } from "./types";
+import type { BodyInit, HeadersInit, HTTPMethods } from "./types";
 
 export type Schedule = {
   scheduleId: string;
@@ -85,7 +85,7 @@ export type CreateScheduleRequest = {
    *
    * @default `POST`
    */
-  method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
+  method?: HTTPMethods;
 
   /**
    * Specify a cron expression to repeatedly send this message to the destination.
