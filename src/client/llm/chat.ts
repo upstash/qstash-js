@@ -11,9 +11,11 @@ import type {
 
 export class Chat {
   private http: Requester;
+  private token: string;
 
-  constructor(http: Requester) {
+  constructor(http: Requester, token: string) {
     this.http = http;
+    this.token = token;
   }
 
   private static toChatRequest<TStream extends StreamParameter>(
@@ -44,11 +46,11 @@ export class Chat {
   ): Promise<
     TStream extends StreamEnabled ? AsyncIterable<ChatCompletionChunk> : ChatCompletion
   > => {
-    if (request.provider.owner === "openai" || request.provider.owner === "custom")
-      return this.createThirdParty<TStream>(request);
+    // This section calls any non-Upstash LLM
+    if (request.provider.owner != "upstash") return this.createThirdParty<TStream>(request);
 
+    // This section calls Upstash LLM
     const body = JSON.stringify(request);
-
     if ("stream" in request && request.stream) {
       // @ts-expect-error when req.stream, we return ChatCompletion
       return this.http.requestStream({
@@ -59,16 +61,17 @@ export class Chat {
           Connection: "keep-alive",
           Accept: "text/event-stream",
           "Cache-Control": "no-cache",
+          Authorization: `Bearer ${this.token}`,
         },
-        body: body,
+        body,
       });
     }
 
     return this.http.request({
       path: ["llm", "v1", "chat", "completions"],
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: body,
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${this.token}` },
+      body,
     });
   };
 

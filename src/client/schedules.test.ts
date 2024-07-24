@@ -92,7 +92,7 @@ describe("Schedules", () => {
 
     expect(getResult.scheduleId).toBe(createResult.scheduleId);
     expect(getResult.cron).toBe("1 1 1 1 1");
-    expect(getResult.isPaused).toBeUndefined();
+    expect(getResult.isPaused).toBeFalse();
 
     await client.schedules.pause({ schedule: createResult.scheduleId });
 
@@ -102,6 +102,6 @@ describe("Schedules", () => {
     await client.schedules.resume({ schedule: createResult.scheduleId });
 
     getResult = await client.schedules.get(createResult.scheduleId);
-    expect(getResult.isPaused).toBeUndefined();
+    expect(getResult.isPaused).toBeFalse();
   });
 });
