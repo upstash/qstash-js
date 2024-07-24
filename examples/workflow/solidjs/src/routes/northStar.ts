@@ -59,7 +59,7 @@ export const POST = serve<Invoice>({
       await context.sleep("retrySleep", 2)
     }
     await context.run("paymentFailed", async () => {
-      console.log(`northStarSimple field permenantly with input ${JSON.stringify(context.requestPayload)}`);
+      console.log(`northStarSimple failed permenantly with input ${JSON.stringify(context.requestPayload)}`);
       return true
     })
   }
