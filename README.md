@@ -112,7 +112,7 @@ const c = new Client({
 });
 
 const result = await client.publishJSON({
-  provider: openai({ token: "XXX", baseUrl: "https://api.openai.com" }),
+  api: { name: "llm", provider: openai({ token: process.env.OPENAI_API_KEY! }) },
   body: {
     model: "gpt-3.5-turbo",
     messages: [

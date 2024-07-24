@@ -2,7 +2,7 @@ import { DLQ } from "./dlq";
 import { HttpClient, type Requester, type RetryConfig } from "./http";
 import { Chat } from "./llm/chat";
 import type { ProviderReturnType } from "./llm/providers";
-import { appendLLMOptions } from "./llm/utils";
+import { appendLLMOptionsIfNeeded } from "./llm/utils";
 import { Messages } from "./messages";
 import { Queue } from "./queue";
 import { Schedules } from "./schedules";
@@ -158,7 +158,7 @@ export type PublishRequest<TBody = BodyInit> = {
       url: string;
       urlGroup?: never;
       api?: never;
-      provider?: never;
+      topic?: never;
     }
   | {
       url?: never;
@@ -167,25 +167,25 @@ export type PublishRequest<TBody = BodyInit> = {
        */
       urlGroup: string;
       api?: never;
-      provider?: never;
+      topic?: never;
     }
   | {
-      url?: never;
+      url?: string;
       urlGroup?: never;
       /**
        * The api endpoint the request should be sent to.
        */
-      api: "llm";
-      provider?: never;
+      api: { name: "llm"; provider?: ProviderReturnType };
+      topic?: never;
     }
   | {
-      /**
-       * 3rd party or different way to initialize upstash provider. Supports urls such as OpenAI: https://api.openai.com/v1/chat/completions
-       */
-      url?: string;
+      url?: never;
       urlGroup?: never;
-      api?: never;
-      provider: ProviderReturnType;
+      api: never;
+      /**
+       * Deprecated. The topic the message should be sent to. Same as urlGroup
+       */
+      topic?: string;
     }
 );
 
@@ -207,6 +207,7 @@ type EventsRequestFilter = {
   state?: State;
   url?: string;
   urlGroup?: string;
+  topicName?: string;
   api?: string;
   scheduleId?: string;
   queueName?: string;
@@ -226,6 +227,7 @@ export type QueueRequest = {
 
 export class Client {
   public http: Requester;
+  private token: string;
 
   public constructor(config: ClientConfig) {
     this.http = new HttpClient({
@@ -233,6 +235,7 @@ export class Client {
       baseUrl: config.baseUrl ? config.baseUrl.replace(/\/$/, "") : "https://qstash.upstash.io",
       authorization: `Bearer ${config.token}`,
     });
+    this.token = config.token;
   }
 
   /**
@@ -242,6 +245,17 @@ export class Client {
    */
   public get urlGroups(): UrlGroups {
     return new UrlGroups(this.http);
+  }
+
+  /**
+   * Deprecated. Use urlGroups instead.
+   *
+   * Access the topic API.
+   *
+   * Create, read, update or delete topics.
+   */
+  public get topics(): UrlGroups {
+    return this.urlGroups;
   }
 
   /**
@@ -286,7 +300,7 @@ export class Client {
    * Call the create or prompt methods
    */
   public chat(): Chat {
-    return new Chat(this.http);
+    return new Chat(this.http, this.token);
   }
 
   public async publish<TRequest extends PublishRequest>(
@@ -315,7 +329,7 @@ export class Client {
     headers.set("Content-Type", "application/json");
 
     //If needed, this allows users to directly pass their requests to any open-ai compatible 3rd party llm directly from sdk.
-    appendLLMOptions<TBody, TRequest>(request, headers);
+    appendLLMOptionsIfNeeded<TBody, TRequest>(request, headers);
 
     // @ts-expect-error it's just internal
     const response = await this.publish<TRequest>({
@@ -375,7 +389,7 @@ export class Client {
       //If needed, this allows users to directly pass their requests to any open-ai compatible 3rd party llm directly from sdk.
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       //@ts-ignore Type mismatch TODO: should be checked later
-      appendLLMOptions<TBody, TRequest>(message, message.headers);
+      appendLLMOptionsIfNeeded<TBody, TRequest>(message, message.headers);
       (message.headers as Headers).set("Content-Type", "application/json");
     }
 
@@ -414,8 +428,10 @@ export class Client {
       if (typeof value === "number" && value < 0) {
         continue;
       }
-      // eslint-disable-next-line unicorn/no-typeof-undefined
-      if (typeof value !== "undefined") {
+      if (key === "urlGroup") {
+        query.topicName = value.toString();
+        // eslint-disable-next-line unicorn/no-typeof-undefined
+      } else if (typeof value !== "undefined") {
         query[key] = value.toString();
       }
     }
