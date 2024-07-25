@@ -2,7 +2,7 @@ import { DLQ } from "./dlq";
 import { HttpClient, type Requester, type RetryConfig } from "./http";
 import { Chat } from "./llm/chat";
 import type { ProviderReturnType } from "./llm/providers";
-import { appendLLMOptionsIfNeeded } from "./llm/utils";
+import { appendLLMOptionsIfNeeded, ensureCallbackPresent } from "./llm/utils";
 import { Messages } from "./messages";
 import { Queue } from "./queue";
 import { Schedules } from "./schedules";
@@ -115,15 +115,6 @@ export type PublishRequest<TBody = BodyInit> = {
   retries?: number;
 
   /**
-   * Use a callback url to forward the response of your destination server to your callback url.
-   *
-   * The callback url must be publicly accessible
-   *
-   * @default undefined
-   */
-  callback?: string;
-
-  /**
    * Use a failure callback url to handle messages that could not be delivered.
    *
    * The failure callback url must be publicly accessible
@@ -159,6 +150,14 @@ export type PublishRequest<TBody = BodyInit> = {
       urlGroup?: never;
       api?: never;
       topic?: never;
+      /**
+       * Use a callback url to forward the response of your destination server to your callback url.
+       *
+       * The callback url must be publicly accessible
+       *
+       * @default undefined
+       */
+      callback?: string;
     }
   | {
       url?: never;
@@ -168,6 +167,14 @@ export type PublishRequest<TBody = BodyInit> = {
       urlGroup: string;
       api?: never;
       topic?: never;
+      /**
+       * Use a callback url to forward the response of your destination server to your callback url.
+       *
+       * The callback url must be publicly accessible
+       *
+       * @default undefined
+       */
+      callback?: string;
     }
   | {
       url?: string;
@@ -176,6 +183,14 @@ export type PublishRequest<TBody = BodyInit> = {
        * The api endpoint the request should be sent to.
        */
       api: { name: "llm"; provider?: ProviderReturnType };
+      /**
+       * Use a callback url to forward the response of your destination server to your callback url.
+       *
+       * The callback url must be publicly accessible
+       *
+       * @default undefined
+       */
+      callback: string;
       topic?: never;
     }
   | {
@@ -186,6 +201,14 @@ export type PublishRequest<TBody = BodyInit> = {
        * Deprecated. The topic the message should be sent to. Same as urlGroup
        */
       topic?: string;
+      /**
+       * Use a callback url to forward the response of your destination server to your callback url.
+       *
+       * The callback url must be publicly accessible
+       *
+       * @default undefined
+       */
+      callback?: string;
     }
 );
 
@@ -328,6 +351,8 @@ export class Client {
     const headers = prefixHeaders(new Headers(request.headers));
     headers.set("Content-Type", "application/json");
 
+    // Using LLMs without callbacks is meaningless, that's why we check before going further.
+    ensureCallbackPresent<TBody>(request);
     //If needed, this allows users to directly pass their requests to any open-ai compatible 3rd party llm directly from sdk.
     appendLLMOptionsIfNeeded<TBody, TRequest>(request, headers);
 
@@ -386,6 +411,8 @@ export class Client {
       //@ts-expect-error caused by undici and bunjs type overlap
       message.headers = new Headers(message.headers);
 
+      // Using LLMs without callbacks is meaningless, that's why we check before going further.
+      ensureCallbackPresent<TBody>(message);
       //If needed, this allows users to directly pass their requests to any open-ai compatible 3rd party llm directly from sdk.
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       //@ts-ignore Type mismatch TODO: should be checked later
