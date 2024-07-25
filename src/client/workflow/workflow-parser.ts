@@ -50,6 +50,7 @@ export const parsePayload = (rawPayload: string) => {
   const initialStep: Step = {
     stepId: 0,
     stepName: "init",
+    stepType: "Initial",
     out: initialPayload,
     concurrent: 1,
     targetStep: 0,
