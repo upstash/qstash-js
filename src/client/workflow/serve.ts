@@ -4,7 +4,7 @@ import { WorkflowContext } from "./context";
 import type { WorkflowServeOptions, WorkflowServeParameters } from "./types";
 import { parseRequest, validateRequest } from "./workflow-parser";
 import {
-  handleCallReturn,
+  handleThirdPartyCallResult,
   triggerFirstInvocation,
   triggerRouteFunction,
   triggerWorkflowDelete,
@@ -76,7 +76,7 @@ export const serve = <
    * @returns A promise that resolves to a response.
    */
   return async (request: TRequest) => {
-    const callReturnCheck = await handleCallReturn(request, client);
+    const callReturnCheck = await handleThirdPartyCallResult(request, client);
 
     if (callReturnCheck.isErr()) {
       throw callReturnCheck.error;

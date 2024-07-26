@@ -80,11 +80,20 @@ export const recreateUserHeaders = (headers: Headers): Headers => {
  *
  * Otherwise, does nothing.
  *
+ * ### How third party calls work
+ *
+ * In third party calls, we publish a message to the third party API.
+ * the result is then returned back to the workflow endpoint.
+ *
+ * Whenever the workflow endpoint receives a request, we first check
+ * if the incoming request is a third party call result coming from QStash.
+ * If so, we send back the result to QStash as a result step.
+ *
  * @param request Incoming request
  * @param client qstash client
  * @returns
  */
-export const handleCallReturn = async (
+export const handleThirdPartyCallResult = async (
   request: Request,
   client: Client
 ): Promise<

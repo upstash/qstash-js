@@ -256,17 +256,30 @@ export class AutoExecutor {
 
     await this.context.client.batchJSON(
       steps.map((singleStep) => {
-        const headers = singleStep.callHeaders;
-        const contentType = headers ? headers["Content-Type"] : undefined;
-        return {
-          headers: this.context.getHeaders("false", singleStep, contentType),
-          // if the call parameters are set, they overwrite defaults
-          method: singleStep.callMethod ?? "POST",
-          body: singleStep.callBody ?? singleStep,
-          url: singleStep.callUrl ?? this.context.url,
-          notBefore: singleStep.sleepUntil,
-          delay: singleStep.sleepFor,
-        };
+        return singleStep.callUrl
+          ? // if the step is a third party call, we call the third party
+            // url (singleStep.callUrl) and pass information about the workflow
+            // in the headers (handled in getHeaders). QStash makes the request
+            // to callUrl and returns the result to Workflow endpoint.
+            // handleThirdPartyCallResult method sends the result of the third
+            // party call to QStash.
+            {
+              headers: this.context.getHeaders("false", singleStep),
+              method: singleStep.callMethod,
+              body: singleStep.callBody,
+              url: singleStep.callUrl,
+            }
+          : // if the step is not a third party call, we use workflow
+            // endpoint (context.url) as URL when calling QStash. QStash
+            // calls us back with the updated steps list.
+            {
+              headers: this.context.getHeaders("false", singleStep),
+              method: "POST",
+              body: singleStep,
+              url: this.context.url,
+              notBefore: singleStep.sleepUntil,
+              delay: singleStep.sleepFor,
+            };
       })
     );
 

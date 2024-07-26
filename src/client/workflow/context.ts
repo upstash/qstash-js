@@ -127,20 +127,23 @@ export class WorkflowContext<TInitialPayload = unknown> {
    * @param initHeaderValue Whether the invocation should create a new workflow
    * @returns
    */
-  public getHeaders(initHeaderValue: "true" | "false", step?: Step, contentType?: string) {
+  public getHeaders(initHeaderValue: "true" | "false", step?: Step) {
     let baseHeaders: Record<string, string> = {
       [WORKFLOW_INIT_HEADER]: initHeaderValue,
       [WORKFLOW_ID_HEADER]: this.workflowId,
       [`Upstash-Forward-${WORKFLOW_PROTOCOL_VERSION_HEADER}`]: WORKFLOW_PROTOCOL_VERSION,
     };
 
-    if (step?.callHeaders && step.callMethod) {
+    if (step?.callUrl) {
       const forwardedHeaders = Object.fromEntries(
         Object.entries(step.callHeaders).map(([header, value]) => [
           `Upstash-Forward-${header}`,
           value,
         ])
       );
+
+      const contentType = step.callHeaders["Content-Type"] as string | undefined;
+
       baseHeaders = {
         ...baseHeaders,
         "Upstash-Callback": this.url,
