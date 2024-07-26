@@ -2,6 +2,7 @@ import { QstashWorkflowAbort, QstashWorkflowError } from "../error";
 import type { WorkflowContext } from "./context";
 import type { ParallelCallState, Step } from "./types";
 import { type BaseLazyStep } from "./steps";
+import { getHeaders } from "./workflow-requests";
 
 export class AutoExecutor {
   private context: WorkflowContext;
@@ -264,7 +265,7 @@ export class AutoExecutor {
             // handleThirdPartyCallResult method sends the result of the third
             // party call to QStash.
             {
-              headers: this.context.getHeaders("false", singleStep),
+              headers: getHeaders("false", this.context.workflowId, this.context.url, singleStep),
               method: singleStep.callMethod,
               body: singleStep.callBody,
               url: singleStep.callUrl,
@@ -273,7 +274,7 @@ export class AutoExecutor {
             // endpoint (context.url) as URL when calling QStash. QStash
             // calls us back with the updated steps list.
             {
-              headers: this.context.getHeaders("false", singleStep),
+              headers: getHeaders("false", this.context.workflowId, this.context.url, singleStep),
               method: "POST",
               body: singleStep,
               url: this.context.url,

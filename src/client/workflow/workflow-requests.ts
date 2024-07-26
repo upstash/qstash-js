@@ -4,6 +4,7 @@ import { QstashWorkflowAbort, QstashWorkflowError } from "../error";
 import type { WorkflowContext } from "./context";
 import type { Client } from "../client";
 import {
+  DEFAULT_CONTENT_TYPE,
   WORKFLOW_ID_HEADER,
   WORKFLOW_INIT_HEADER,
   WORKFLOW_PROTOCOL_VERSION,
@@ -17,7 +18,7 @@ export const triggerFirstInvocation = <TInitialPayload>(
 ) => {
   return fromSafePromise(
     workflowContext.client.publishJSON({
-      headers: workflowContext.getHeaders("true"),
+      headers: getHeaders("true", workflowContext.workflowId, workflowContext.url),
       method: "POST",
       body: workflowContext.requestPayload,
       url: workflowContext.url,
@@ -177,4 +178,57 @@ export const handleThirdPartyCallResult = async (
       )
     );
   }
+};
+
+/**
+ * Gets headers for calling QStash
+ *
+ * @param initHeaderValue Whether the invocation should create a new workflow
+ * @param workflowId id of the workflow
+ * @param workflowUrl url of the workflow endpoint
+ * @param step step to get headers for. If the step is a third party call step, more
+ *       headers are added.
+ * @returns headers to submit
+ */
+export const getHeaders = (
+  initHeaderValue: "true" | "false",
+  workflowId: string,
+  workflowUrl: string,
+  step?: Step
+): Record<string, string> => {
+  const baseHeaders: Record<string, string> = {
+    [WORKFLOW_INIT_HEADER]: initHeaderValue,
+    [WORKFLOW_ID_HEADER]: workflowId,
+    [`Upstash-Forward-${WORKFLOW_PROTOCOL_VERSION_HEADER}`]: WORKFLOW_PROTOCOL_VERSION,
+  };
+
+  if (step?.callUrl) {
+    const forwardedHeaders = Object.fromEntries(
+      Object.entries(step.callHeaders).map(([header, value]) => [
+        `Upstash-Forward-${header}`,
+        value,
+      ])
+    );
+
+    const contentType = step.callHeaders["Content-Type"] as string | undefined;
+
+    return {
+      ...baseHeaders,
+      ...forwardedHeaders,
+      "Upstash-Callback": workflowUrl,
+      "Upstash-Callback-Workflow-Id": workflowId,
+      "Upstash-Callback-Workflow-CallType": "fromCallback",
+      "Upstash-Callback-Workflow-Init": "false",
+
+      "Upstash-Callback-Forward-Upstash-Workflow-Callback": "true",
+      "Upstash-Callback-Forward-Upstash-Workflow-StepId": step.stepId.toString(),
+      "Upstash-Callback-Forward-Upstash-Workflow-StepName": step.stepName,
+      "Upstash-Callback-Forward-Upstash-Workflow-StepType": step.stepType,
+      "Upstash-Callback-Forward-Upstash-Workflow-Concurrent": step.concurrent.toString(),
+      "Upstash-Callback-Forward-Upstash-Workflow-ContentType": contentType ?? DEFAULT_CONTENT_TYPE,
+      "Upstash-Workflow-CallType": "toCallback",
+    };
+  }
+
+  return baseHeaders;
 };

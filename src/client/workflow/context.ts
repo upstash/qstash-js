@@ -1,11 +1,4 @@
 import { type AsyncStepFunction, type Step } from "./types";
-import {
-  DEFAULT_CONTENT_TYPE,
-  WORKFLOW_ID_HEADER,
-  WORKFLOW_INIT_HEADER,
-  WORKFLOW_PROTOCOL_VERSION,
-  WORKFLOW_PROTOCOL_VERSION_HEADER,
-} from "./constants";
 import type { Client } from "../client";
 import { AutoExecutor } from "./auto-executor";
 import { LazyCallStep, LazyFunctionStep, LazySleepStep, LazySleepUntilStep } from "./steps";
@@ -119,52 +112,5 @@ export class WorkflowContext<TInitialPayload = unknown> {
     return await this.executor.addStep(
       new LazyCallStep<TResult>(stepName, url, method, body, headers ?? {})
     );
-  }
-
-  /**
-   * Gets headers for calling QStash
-   *
-   * @param initHeaderValue Whether the invocation should create a new workflow
-   * @returns
-   */
-  public getHeaders(initHeaderValue: "true" | "false", step?: Step) {
-    let baseHeaders: Record<string, string> = {
-      [WORKFLOW_INIT_HEADER]: initHeaderValue,
-      [WORKFLOW_ID_HEADER]: this.workflowId,
-      [`Upstash-Forward-${WORKFLOW_PROTOCOL_VERSION_HEADER}`]: WORKFLOW_PROTOCOL_VERSION,
-    };
-
-    if (step?.callUrl) {
-      const forwardedHeaders = Object.fromEntries(
-        Object.entries(step.callHeaders).map(([header, value]) => [
-          `Upstash-Forward-${header}`,
-          value,
-        ])
-      );
-
-      const contentType = step.callHeaders["Content-Type"] as string | undefined;
-
-      baseHeaders = {
-        ...baseHeaders,
-        "Upstash-Callback": this.url,
-        "Upstash-Callback-Workflow-Id": this.workflowId,
-        "Upstash-Callback-Workflow-CallType": "fromCallback",
-        "Upstash-Callback-Workflow-Init": "false",
-
-        "Upstash-Callback-Forward-Upstash-Workflow-Callback": "true",
-        "Upstash-Callback-Forward-Upstash-Workflow-StepId": step.stepId.toString(),
-        "Upstash-Callback-Forward-Upstash-Workflow-StepName": step.stepName,
-        "Upstash-Callback-Forward-Upstash-Workflow-StepType": step.stepType,
-        "Upstash-Callback-Forward-Upstash-Workflow-Concurrent": step.concurrent.toString(),
-        "Upstash-Callback-Forward-Upstash-Workflow-ContentType":
-          contentType ?? DEFAULT_CONTENT_TYPE,
-        // "Upstash-Workflow-Id": this.workflowId,
-        "Upstash-Workflow-CallType": "toCallback",
-        // upstashHeader.Set(InitHeader, "false")
-        ...forwardedHeaders,
-      };
-    }
-
-    return baseHeaders;
   }
 }
