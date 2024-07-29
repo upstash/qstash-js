@@ -18,6 +18,7 @@ import {
   WORKFLOW_INIT_HEADER,
   WORKFLOW_PROTOCOL_VERSION,
   WORKFLOW_PROTOCOL_VERSION_HEADER,
+  WORKFLOW_URL_HEADER,
 } from "./constants";
 
 const MOCK_SERVER_PORT = 8080;
@@ -148,6 +149,7 @@ describe("Workflow Requests", () => {
       client: new Client({ baseUrl: MOCK_SERVER_URL, token }),
       workflowId: workflowId,
       initialPayload: undefined,
+      headers: new Headers({}) as Headers,
       steps: [],
       url: WORKFLOW_ENDPOINT,
     });
@@ -312,6 +314,7 @@ describe("Workflow Requests", () => {
         headers: new Headers({
           [WORKFLOW_INIT_HEADER]: "false",
           [WORKFLOW_ID_HEADER]: workflowId,
+          [WORKFLOW_URL_HEADER]: WORKFLOW_ENDPOINT,
           [`Upstash-Forward-${WORKFLOW_PROTOCOL_VERSION_HEADER}`]: WORKFLOW_PROTOCOL_VERSION,
         }),
       });
@@ -346,6 +349,7 @@ describe("Workflow Requests", () => {
       expect(headers).toEqual({
         [WORKFLOW_INIT_HEADER]: "true",
         [WORKFLOW_ID_HEADER]: workflowId,
+        [WORKFLOW_URL_HEADER]: WORKFLOW_ENDPOINT,
         [`Upstash-Forward-${WORKFLOW_PROTOCOL_VERSION_HEADER}`]: WORKFLOW_PROTOCOL_VERSION,
       });
     });
@@ -355,7 +359,7 @@ describe("Workflow Requests", () => {
       const stepName = "some step";
       const stepType: StepType = "Run";
 
-      const headers = getHeaders("false", workflowId, WORKFLOW_ENDPOINT, {
+      const headers = getHeaders("false", workflowId, WORKFLOW_ENDPOINT, undefined, {
         stepId,
         stepName,
         stepType: stepType,
@@ -365,6 +369,7 @@ describe("Workflow Requests", () => {
       expect(headers).toEqual({
         [WORKFLOW_INIT_HEADER]: "false",
         [WORKFLOW_ID_HEADER]: workflowId,
+        [WORKFLOW_URL_HEADER]: WORKFLOW_ENDPOINT,
         [`Upstash-Forward-${WORKFLOW_PROTOCOL_VERSION_HEADER}`]: WORKFLOW_PROTOCOL_VERSION,
       });
     });
@@ -380,7 +385,7 @@ describe("Workflow Requests", () => {
       };
       const callBody = undefined;
 
-      const headers = getHeaders("false", workflowId, WORKFLOW_ENDPOINT, {
+      const headers = getHeaders("false", workflowId, WORKFLOW_ENDPOINT, undefined, {
         stepId,
         stepName,
         stepType: stepType,
@@ -394,6 +399,7 @@ describe("Workflow Requests", () => {
       expect(headers).toEqual({
         [WORKFLOW_INIT_HEADER]: "false",
         [WORKFLOW_ID_HEADER]: workflowId,
+        [WORKFLOW_URL_HEADER]: WORKFLOW_ENDPOINT,
         [`Upstash-Forward-${WORKFLOW_PROTOCOL_VERSION_HEADER}`]: WORKFLOW_PROTOCOL_VERSION,
 
         "Upstash-Callback": WORKFLOW_ENDPOINT,

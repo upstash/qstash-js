@@ -12,17 +12,20 @@ export class WorkflowContext<TInitialPayload = unknown> {
   public readonly nonPlanStepCount: number;
   public readonly url: string;
   public readonly requestPayload: TInitialPayload;
+  public readonly headers: Headers;
 
   constructor({
     client,
     workflowId,
     initialPayload,
+    headers,
     steps,
     url,
   }: {
     client: Client;
     workflowId: string;
     initialPayload: TInitialPayload;
+    headers: Headers;
     steps: Step[];
     url: string;
   }) {
@@ -31,6 +34,7 @@ export class WorkflowContext<TInitialPayload = unknown> {
     this.steps = steps;
     this.url = url;
     this.requestPayload = initialPayload;
+    this.headers = headers;
     this.nonPlanStepCount = this.steps.filter((step) => !step.targetStep).length;
 
     this.executor = new AutoExecutor(this);

@@ -5,6 +5,7 @@ import type { WorkflowServeOptions, WorkflowServeParameters } from "./types";
 import { parseRequest, validateRequest } from "./workflow-parser";
 import {
   handleThirdPartyCallResult,
+  recreateUserHeaders,
   triggerFirstInvocation,
   triggerRouteFunction,
   triggerWorkflowDelete,
@@ -88,6 +89,7 @@ export const serve = <
         client,
         workflowId,
         initialPayload: initialPayloadParser(initialPayload),
+        headers: recreateUserHeaders(request.headers as Headers),
         steps,
         url: request.url,
       });
