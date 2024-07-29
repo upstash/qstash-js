@@ -11,9 +11,11 @@ import type {
 
 export class Chat {
   private http: Requester;
+  private token: string;
 
-  constructor(http: Requester) {
+  constructor(http: Requester, token: string) {
     this.http = http;
+    this.token = token;
   }
 
   private static toChatRequest<TStream extends StreamParameter>(
@@ -59,6 +61,7 @@ export class Chat {
           Connection: "keep-alive",
           Accept: "text/event-stream",
           "Cache-Control": "no-cache",
+          Authorization: `Bearer ${this.token}`,
         },
         body,
       });
@@ -67,7 +70,7 @@ export class Chat {
     return this.http.request({
       path: ["llm", "v1", "chat", "completions"],
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${this.token}` },
       body,
     });
   };
@@ -106,6 +109,7 @@ export class Chat {
           Connection: "keep-alive",
           Accept: "text/event-stream",
           "Cache-Control": "no-cache",
+          Authorization: `Bearer ${token}`,
         },
         body,
         baseUrl,
