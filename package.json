@@ -30,6 +30,10 @@
     "./dist/nextjs": {
       "import": "./nextjs.js",
       "require": "./nextjs.js"
+    },
+    "./nuxt": {
+      "import": "./nuxt.js",
+      "require": "./nuxt.js"
     }
   },
   "typesVersions": {
