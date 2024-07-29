@@ -41,6 +41,7 @@ const processOptions = <TResponse = Response, TInitialPayload = unknown>(
       ((initialRequest: string) => {
         return (initialRequest ? JSON.parse(initialRequest) : undefined) as TInitialPayload;
       }),
+    url: options?.url ?? "",
   };
 };
 
@@ -63,9 +64,10 @@ export const serve = <
   request: TRequest
 ) => Promise<TResponse>) => {
   // Prepares options with defaults if they are not provided.
-  const { client, onStepFinish, initialPayloadParser } = processOptions<TResponse, TInitialPayload>(
-    options
-  );
+  const { client, onStepFinish, initialPayloadParser, url } = processOptions<
+    TResponse,
+    TInitialPayload
+  >(options);
 
   /**
    * Handles the incoming request, triggering the appropriate workflow steps.
@@ -91,7 +93,7 @@ export const serve = <
         initialPayload: initialPayloadParser(initialPayload),
         headers: recreateUserHeaders(request.headers as Headers),
         steps,
-        url: request.url,
+        url: url || request.url,
       });
 
       const result = isFirstInvocation
