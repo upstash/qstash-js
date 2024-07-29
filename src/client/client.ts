@@ -250,15 +250,17 @@ export type QueueRequest = {
 
 export class Client {
   public http: Requester;
-  private token: string;
-
-  public constructor(config: ClientConfig) {
-    this.http = new HttpClient({
-      retry: config.retry,
-      baseUrl: config.baseUrl ? config.baseUrl.replace(/\/$/, "") : "https://qstash.upstash.io",
-      authorization: `Bearer ${config.token}`,
-    });
-    this.token = config.token;
+  public constructor(configOrRequester: ClientConfig | Requester) {
+    this.http =
+      "request" in configOrRequester
+        ? configOrRequester
+        : new HttpClient({
+            retry: configOrRequester.retry,
+            baseUrl: configOrRequester.baseUrl
+              ? configOrRequester.baseUrl.replace(/\/$/, "")
+              : "https://qstash.upstash.io",
+            authorization: `Bearer ${configOrRequester.token}`,
+          });
   }
 
   /**
@@ -323,7 +325,7 @@ export class Client {
    * Call the create or prompt methods
    */
   public chat(): Chat {
-    return new Chat(this.http, this.token);
+    return new Chat(this.http);
   }
 
   public async publish<TRequest extends PublishRequest>(
