@@ -1,7 +1,8 @@
 import { QstashWorkflowAbort, QstashWorkflowError } from "../error";
 import type { WorkflowContext } from "./context";
-import type { AsyncStepFunction, ParallelCallState, Step } from "./types";
-import { LazyFunctionStep, LazySleepStep, LazySleepUntilStep, type BaseLazyStep } from "./steps";
+import type { ParallelCallState, Step } from "./types";
+import { type BaseLazyStep } from "./steps";
+import { getHeaders } from "./workflow-requests";
 
 export class AutoExecutor {
   private context: WorkflowContext;
@@ -17,42 +18,6 @@ export class AutoExecutor {
   }
 
   /**
-   * Adds a sleep step
-   *
-   * @param stepName
-   * @param sleep duration to sleep in seconds
-   * @returns
-   */
-  public async addSleepStep(stepName: string, sleep: number) {
-    return await this.addStep(new LazySleepStep(stepName, sleep));
-  }
-
-  /**
-   * Adds a sleepUntil step
-   *
-   * @param stepName
-   * @param sleepUntil unix timestamp to wait until (in seconds)
-   * @returns
-   */
-  public async addSleepUntilStep(stepName: string, sleepUntil: number) {
-    return await this.addStep(new LazySleepUntilStep(stepName, sleepUntil));
-  }
-
-  /**
-   * Adds an execution step
-   *
-   * @param stepName
-   * @param stepFunction function to execute
-   * @returns
-   */
-  public async addFunctionStep<TResult>(
-    stepName: string,
-    stepFunction: AsyncStepFunction<TResult>
-  ) {
-    return await this.addStep<TResult>(new LazyFunctionStep(stepName, stepFunction));
-  }
-
-  /**
    * Adds the step function to the list of step functions to run in
    * parallel. After adding the function, defers the execution, so
    * that if there is another step function to be added, it's also
@@ -65,7 +30,7 @@ export class AutoExecutor {
    * @param stepInfo step plan to add
    * @returns result of the step function
    */
-  private async addStep<TResult>(stepInfo: BaseLazyStep<TResult>) {
+  public async addStep<TResult>(stepInfo: BaseLazyStep<TResult>) {
     this.stepCount += 1;
 
     const lazyStepList = this.activeLazyStepList ?? [];
@@ -292,14 +257,30 @@ export class AutoExecutor {
 
     await this.context.client.batchJSON(
       steps.map((singleStep) => {
-        return {
-          headers: this.context.getHeaders("false"),
-          method: "POST",
-          body: JSON.stringify(singleStep),
-          url: this.context.url,
-          notBefore: singleStep.sleepUntil,
-          delay: singleStep.sleepFor,
-        };
+        return singleStep.callUrl
+          ? // if the step is a third party call, we call the third party
+            // url (singleStep.callUrl) and pass information about the workflow
+            // in the headers (handled in getHeaders). QStash makes the request
+            // to callUrl and returns the result to Workflow endpoint.
+            // handleThirdPartyCallResult method sends the result of the third
+            // party call to QStash.
+            {
+              headers: getHeaders("false", this.context.workflowId, this.context.url, singleStep),
+              method: singleStep.callMethod,
+              body: singleStep.callBody,
+              url: singleStep.callUrl,
+            }
+          : // if the step is not a third party call, we use workflow
+            // endpoint (context.url) as URL when calling QStash. QStash
+            // calls us back with the updated steps list.
+            {
+              headers: getHeaders("false", this.context.workflowId, this.context.url, singleStep),
+              method: "POST",
+              body: singleStep,
+              url: this.context.url,
+              notBefore: singleStep.sleepUntil,
+              delay: singleStep.sleepFor,
+            };
       })
     );
 

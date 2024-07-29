@@ -12,7 +12,7 @@ export default function Home() {
   const search = searchParams.get('function');
   const [route, setRoute] = useState(search ?? "path");
 
-  const routes = ['path', 'sleep', 'sleepWithoutAwait', 'northStarSimple', 'northStar'];
+  const routes = ['path', 'sleep', 'sleepWithoutAwait', 'northStarSimple', 'northStar', 'call'];
 
   const handleSend = async () => {
     setLoading(true);

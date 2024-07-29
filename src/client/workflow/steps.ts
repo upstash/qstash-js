@@ -1,3 +1,4 @@
+import type { HTTPMethods } from "../types";
 import type { AsyncStepFunction, Step, StepType } from "./types";
 
 /**
@@ -145,6 +146,54 @@ export class LazySleepUntilStep extends BaseLazyStep {
       sleepUntil: singleStep ? this.sleepUntil : undefined,
       concurrent: 1,
       targetStep: 0,
+    });
+  }
+}
+
+export class LazyCallStep<TResult = unknown, TBody = unknown> extends BaseLazyStep<TResult> {
+  private readonly url: string;
+  private readonly method: HTTPMethods;
+  private readonly body: TBody;
+  private readonly headers: Record<string, string>;
+  stepType: StepType = "Call";
+
+  constructor(
+    stepName: string,
+    url: string,
+    method: HTTPMethods,
+    body: TBody,
+    headers: Record<string, string>
+  ) {
+    super(stepName);
+    this.url = url;
+    this.method = method;
+    this.body = body;
+    this.headers = headers;
+  }
+
+  public getPlanStep(concurrent: number, targetStep: number): Step<undefined> {
+    {
+      return {
+        stepId: 0,
+        stepName: this.stepName,
+        stepType: this.stepType,
+        concurrent,
+        targetStep,
+      };
+    }
+  }
+
+  public async getResultStep(stepId: number): Promise<Step<TResult>> {
+    return await Promise.resolve({
+      stepId,
+      stepName: this.stepName,
+      stepType: this.stepType,
+      concurrent: 1,
+      targetStep: 0,
+      callUrl: this.url,
+      callMethod: this.method,
+      callBody: this.body,
+      callHeaders: this.headers,
     });
   }
 }

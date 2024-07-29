@@ -2,7 +2,9 @@
 import { Client } from "../client";
 import { WorkflowContext } from "./context";
 import type { WorkflowServeOptions, WorkflowServeParameters } from "./types";
+import { parseRequest, validateRequest } from "./workflow-parser";
 import {
+  handleThirdPartyCallResult,
   triggerFirstInvocation,
   triggerRouteFunction,
   triggerWorkflowDelete,
@@ -74,21 +76,38 @@ export const serve = <
    * @returns A promise that resolves to a response.
    */
   return async (request: TRequest) => {
-    const { workflowContext, isFirstInvocation } =
-      await WorkflowContext.createContext<TInitialPayload>(request, client, initialPayloadParser);
+    const callReturnCheck = await handleThirdPartyCallResult(request, client);
 
-    const result = isFirstInvocation
-      ? await triggerFirstInvocation(workflowContext)
-      : await triggerRouteFunction({
-          onStep: async () => routeFunction(workflowContext),
-          onCleanup: async () => triggerWorkflowDelete(workflowContext),
-        });
+    if (callReturnCheck.isErr()) {
+      throw callReturnCheck.error;
+    } else if (callReturnCheck.value === "continue-workflow") {
+      const { isFirstInvocation, workflowId } = validateRequest(request);
+      const { initialPayload, steps } = await parseRequest(request, isFirstInvocation);
 
-    if (result.isErr()) {
-      throw result.error;
+      const workflowContext = new WorkflowContext<TInitialPayload>({
+        client,
+        workflowId,
+        initialPayload: initialPayloadParser(initialPayload),
+        steps,
+        url: request.url,
+      });
+
+      const result = isFirstInvocation
+        ? await triggerFirstInvocation(workflowContext)
+        : await triggerRouteFunction({
+            onStep: async () => routeFunction(workflowContext),
+            onCleanup: async () => triggerWorkflowDelete(workflowContext),
+          });
+
+      if (result.isErr()) {
+        throw result.error;
+      }
+
+      // Returns a Response with `workflowId` at the end of each step.
+      return onStepFinish(workflowContext.workflowId);
     }
 
-    // Returns a Response with `workflowId` at the end of each step.
-    return onStepFinish(workflowContext.workflowId);
+    // response to QStash in call cases
+    return onStepFinish("no-workflow-id");
   };
 };
