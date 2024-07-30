@@ -1,6 +1,7 @@
 import type { Client } from "../client";
 import type { HTTPMethods } from "../types";
 import type { WorkflowContext } from "./context";
+import type { WorkflowLogger } from "./logger";
 
 export const StepTypes = ["Initial", "Run", "SleepFor", "SleepUntil", "Call"] as const;
 export type StepType = (typeof StepTypes)[number];
@@ -119,4 +120,8 @@ export type WorkflowServeOptions<TResponse = Response, TInitialPayload = unknown
    * If not set, url will be inferred from the request.
    */
   url?: string;
+  /**
+   * Verbose mode
+   */
+  verbose?: boolean | WorkflowLogger;
 };

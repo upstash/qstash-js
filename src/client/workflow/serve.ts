@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { Client } from "../client";
 import { WorkflowContext } from "./context";
+import { WorkflowLogger } from "./logger";
 import type { WorkflowServeOptions, WorkflowServeParameters } from "./types";
 import { parseRequest, validateRequest } from "./workflow-parser";
 import {
@@ -42,6 +43,7 @@ const processOptions = <TResponse = Response, TInitialPayload = unknown>(
         return (initialRequest ? JSON.parse(initialRequest) : undefined) as TInitialPayload;
       }),
     url: options?.url ?? "",
+    verbose: options?.verbose ?? false,
   };
 };
 
@@ -64,10 +66,12 @@ export const serve = <
   request: TRequest
 ) => Promise<TResponse>) => {
   // Prepares options with defaults if they are not provided.
-  const { client, onStepFinish, initialPayloadParser, url } = processOptions<
+  const { client, onStepFinish, initialPayloadParser, url, verbose } = processOptions<
     TResponse,
     TInitialPayload
   >(options);
+
+  const debug = WorkflowLogger.getLogger(verbose);
 
   /**
    * Handles the incoming request, triggering the appropriate workflow steps.
@@ -79,9 +83,11 @@ export const serve = <
    * @returns A promise that resolves to a response.
    */
   return async (request: TRequest) => {
-    const callReturnCheck = await handleThirdPartyCallResult(request, client);
+    await debug?.log("INFO", "ENDPOINT_START");
+    const callReturnCheck = await handleThirdPartyCallResult(request, client, debug);
 
     if (callReturnCheck.isErr()) {
+      await debug?.log("ERROR", "SUBMIT_THIRD_PARTY_RESULT", { error: callReturnCheck.error });
       throw callReturnCheck.error;
     } else if (callReturnCheck.value === "continue-workflow") {
       const { isFirstInvocation, workflowId } = validateRequest(request);
@@ -94,24 +100,30 @@ export const serve = <
         headers: recreateUserHeaders(request.headers as Headers),
         steps,
         url: url || request.url,
+        debug,
       });
 
       const result = isFirstInvocation
-        ? await triggerFirstInvocation(workflowContext)
+        ? await triggerFirstInvocation(workflowContext, debug)
         : await triggerRouteFunction({
             onStep: async () => routeFunction(workflowContext),
-            onCleanup: async () => triggerWorkflowDelete(workflowContext),
+            onCleanup: async () => {
+              await triggerWorkflowDelete(workflowContext, debug);
+            },
           });
 
       if (result.isErr()) {
+        await debug?.log("ERROR", "ERROR", { error: result.error });
         throw result.error;
       }
 
       // Returns a Response with `workflowId` at the end of each step.
+      await debug?.log("INFO", "RESPONSE_WORKFLOW", { workflowId: workflowContext.workflowId });
       return onStepFinish(workflowContext.workflowId);
     }
 
     // response to QStash in call cases
+    await debug?.log("INFO", "RESPONSE_DEFAULT");
     return onStepFinish("no-workflow-id");
   };
 };

@@ -3,9 +3,11 @@ import type { Client } from "../client";
 import { AutoExecutor } from "./auto-executor";
 import { LazyCallStep, LazyFunctionStep, LazySleepStep, LazySleepUntilStep } from "./steps";
 import type { HTTPMethods } from "../types";
+import type { WorkflowLogger } from "./logger";
 
 export class WorkflowContext<TInitialPayload = unknown> {
   protected readonly executor: AutoExecutor;
+
   public readonly client: Client;
   public readonly workflowId: string;
   public readonly steps: Step[];
@@ -21,6 +23,7 @@ export class WorkflowContext<TInitialPayload = unknown> {
     headers,
     steps,
     url,
+    debug,
   }: {
     client: Client;
     workflowId: string;
@@ -28,6 +31,7 @@ export class WorkflowContext<TInitialPayload = unknown> {
     headers: Headers;
     steps: Step[];
     url: string;
+    debug?: WorkflowLogger;
   }) {
     this.client = client;
     this.workflowId = workflowId;
@@ -37,7 +41,7 @@ export class WorkflowContext<TInitialPayload = unknown> {
     this.headers = headers;
     this.nonPlanStepCount = this.steps.filter((step) => !step.targetStep).length;
 
-    this.executor = new AutoExecutor(this);
+    this.executor = new AutoExecutor(this, debug);
   }
 
   /**

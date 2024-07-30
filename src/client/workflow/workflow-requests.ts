@@ -13,18 +13,26 @@ import {
 } from "./constants";
 import type { Step, StepType } from "./types";
 import { StepTypes } from "./types";
+import type { WorkflowLogger } from "./logger";
 
-export const triggerFirstInvocation = <TInitialPayload>(
-  workflowContext: WorkflowContext<TInitialPayload>
+export const triggerFirstInvocation = async <TInitialPayload>(
+  workflowContext: WorkflowContext<TInitialPayload>,
+  debug?: WorkflowLogger
 ) => {
+  const headers = getHeaders(
+    "true",
+    workflowContext.workflowId,
+    workflowContext.url,
+    workflowContext.headers
+  );
+  await debug?.log("INFO", "SUBMIT_FIRST_INVOCATION", {
+    headers,
+    requestPayload: workflowContext.requestPayload,
+    url: workflowContext.url,
+  });
   return fromSafePromise(
     workflowContext.client.publishJSON({
-      headers: getHeaders(
-        "true",
-        workflowContext.workflowId,
-        workflowContext.url,
-        workflowContext.headers
-      ),
+      headers,
       method: "POST",
       body: workflowContext.requestPayload,
       url: workflowContext.url,
@@ -53,13 +61,18 @@ export const triggerRouteFunction = async ({
 
 export const triggerWorkflowDelete = async <TInitialPayload>(
   workflowContext: WorkflowContext<TInitialPayload>,
+  debug?: WorkflowLogger,
   cancel = false
 ) => {
-  await workflowContext.client.http.request({
+  await debug?.log("INFO", "SUBMIT_CLEANUP", {
+    deletedWorkflowId: workflowContext.workflowId,
+  });
+  const result = await workflowContext.client.http.request({
     path: ["v2", "workflows", `${workflowContext.workflowId}?cancel=${cancel}`],
     method: "DELETE",
     parseResponseAsJson: false,
   });
+  await debug?.log("INFO", "SUBMIT_CLEANUP", result);
 };
 
 /**
@@ -102,7 +115,8 @@ export const recreateUserHeaders = (headers: Headers): Headers => {
  */
 export const handleThirdPartyCallResult = async (
   request: Request,
-  client: Client
+  client: Client,
+  debug?: WorkflowLogger
 ): Promise<
   Ok<"is-call-return" | "continue-workflow" | "call-will-retry", never> | Err<never, Error>
 > => {
@@ -115,6 +129,7 @@ export const handleThirdPartyCallResult = async (
 
       // eslint-disable-next-line @typescript-eslint/no-magic-numbers
       if (!(callbackMessage.status >= 200 && callbackMessage.status < 300)) {
+        await debug?.log("WARN", "SUBMIT_THIRD_PARTY_RESULT", callbackMessage);
         // this callback will be retried by the qstash, we just ignore it
         return ok("call-will-retry");
       }
@@ -165,11 +180,21 @@ export const handleThirdPartyCallResult = async (
         targetStep: 0,
       };
 
-      await client.publishJSON({
+      await debug?.log("INFO", "SUBMIT_THIRD_PARTY_RESULT", {
+        step: callResultStep,
+        headers: userHeaders,
+        url: request.url,
+      });
+
+      const result = await client.publishJSON({
         headers: userHeaders,
         method: "POST",
         body: callResultStep,
         url: request.url,
+      });
+
+      await debug?.log("INFO", "SUBMIT_THIRD_PARTY_RESULT", {
+        messageId: result.messageId,
       });
 
       return ok("is-call-return");

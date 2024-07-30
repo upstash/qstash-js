@@ -3,18 +3,21 @@ import type { WorkflowContext } from "./context";
 import type { ParallelCallState, Step } from "./types";
 import { type BaseLazyStep } from "./steps";
 import { getHeaders } from "./workflow-requests";
+import type { WorkflowLogger } from "./logger";
 
 export class AutoExecutor {
   private context: WorkflowContext;
   private promises = new WeakMap<BaseLazyStep[], Promise<unknown>>();
   private activeLazyStepList?: BaseLazyStep[];
+  private debug?: WorkflowLogger;
 
   private indexInCurrentList = 0;
   public stepCount = 0;
   public planStepCount = 0;
 
-  constructor(context: WorkflowContext) {
+  constructor(context: WorkflowContext, debug?: WorkflowLogger) {
     this.context = context;
+    this.debug = debug;
   }
 
   /**
@@ -73,10 +76,21 @@ export class AutoExecutor {
     if (this.stepCount < this.context.nonPlanStepCount) {
       const step = this.context.steps[this.stepCount + this.planStepCount];
       validateStep(lazyStep, step);
+      await this.debug?.log("INFO", "RUN_SINGLE", {
+        fromRequest: true,
+        step,
+        stepCount: this.stepCount,
+      });
       return step.out as TResult;
     }
 
     const resultStep = await lazyStep.getResultStep(this.stepCount, true);
+
+    await this.debug?.log("INFO", "RUN_SINGLE", {
+      fromRequest: false,
+      step: resultStep,
+      stepCount: this.stepCount,
+    });
     await this.submitStepsToQstash([resultStep]);
 
     return resultStep.out as TResult;
@@ -110,6 +124,14 @@ export class AutoExecutor {
           ` Expected ${parallelSteps.length}, got ${plannedParallelStepCount} from the request.`
       );
     }
+
+    await this.debug?.log("INFO", "RUN_PARALLEL", {
+      parallelCallState,
+      initialStepCount,
+      plannedParallelStepCount,
+      stepCount: this.stepCount,
+      planStepCount: this.planStepCount,
+    });
 
     switch (parallelCallState) {
       case "first": {
@@ -255,7 +277,9 @@ export class AutoExecutor {
       );
     }
 
-    await this.context.client.batchJSON(
+    await this.debug?.log("INFO", "SUBMIT_STEP", { length: steps.length, steps });
+
+    const result = await this.context.client.batchJSON(
       steps.map((singleStep) => {
         const headers = getHeaders(
           "false",
@@ -290,6 +314,14 @@ export class AutoExecutor {
             };
       })
     );
+
+    await this.debug?.log("INFO", "SUBMIT_STEP", {
+      messageIds: result.map((message) => {
+        return {
+          message: message.messageId,
+        };
+      }),
+    });
 
     // if the steps are sent successfully, abort to stop the current request
     throw new QstashWorkflowAbort(steps[0].stepName, steps[0]);
