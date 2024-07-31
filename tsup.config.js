@@ -5,6 +5,7 @@ export default defineConfig({
     index: "./src/index.ts",
     nextjs: "./platforms/nextjs.ts",
     nuxt: "./platforms/nuxt.ts",
+    svelte: "./platforms/svelte.ts",
   },
   format: ["cjs", "esm"],
   splitting: true,

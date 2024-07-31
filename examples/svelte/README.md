@@ -1,8 +1,8 @@
-# QStash Nuxt Example
+# QStash Svelte Example
 
-This example highlights how one can define an endpoint in Nuxt and make sure that only the requests coming from QStash are accepted.
+This example highlights how one can define an endpoint in Svelte and make sure that only the requests coming from QStash are accepted.
 
-To see how the endpoint is defined, see the `server/api/endpoint.ts` file.
+To see how the endpoint is defined, see the `src/routes/api/+server.ts` file.
 
 ## Local Development
 
@@ -20,25 +20,18 @@ Next, run the app with:
 npm run dev
 ```
 
-Once you have the app deployed, you can try going to our endpoint at http://localhost:3000/api/endpoint and see that it returns what we expect:
-
-```
-{
-  "status": 403,
-  "body": "`Upstash-Signature` header is missing"
-}
-```
+Once you have the app deployed, you can go to http://localhost:5173 and send a request to our endpoint (http://localhost:5173/api). Our request will be denied and the result will be `'Upstash-Signature' header is missing`.
 
 To check that requests coming from QStash are accepted, we first start a local tunnel with ngrok:
 
 ```
-ngrok http http://localhost:3000
+ngrok http http://localhost:5173
 ```
 
 Then, we publish a message at QStash to the ngrok endpoint (replace `NGROK_URL` and `QSTASH_TOKEN` with your own values.):
 
 ```
-curl -X POST "https://qstash.upstash.io/v2/publish/<NGROK_URL>" \
+curl -X POST "https://qstash.upstash.io/v2/publish/<NGROK_URL>/api" \
   -H "Authorization: Bearer <QSTASH_TOKEN>" \
   -H "Content-Type: application/json" \
   -H "Upstash-Method: POST" \
@@ -46,3 +39,5 @@ curl -X POST "https://qstash.upstash.io/v2/publish/<NGROK_URL>" \
   -H "Upstash-Forward-Custom-Header: custom-value" \
   -d '{"message":"Hello, World!"}'
 ```
+
+Check the Events from QStash dashboard at Upstash Console to see that the request was completed successfully.
