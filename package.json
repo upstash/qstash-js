@@ -30,6 +30,10 @@
     "./dist/nextjs": {
       "import": "./nextjs.js",
       "require": "./nextjs.js"
+    },
+    "./nuxt": {
+      "import": "./nuxt.js",
+      "require": "./nuxt.js"
     }
   },
   "typesVersions": {
@@ -74,6 +78,7 @@
   },
   "dependencies": {
     "crypto-js": ">=4.2.0",
+    "h3": "^1.12.0",
     "jose": "^ 5.2.3"
   }
 }
