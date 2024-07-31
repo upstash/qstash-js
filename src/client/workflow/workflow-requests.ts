@@ -9,6 +9,7 @@ import {
   WORKFLOW_INIT_HEADER,
   WORKFLOW_PROTOCOL_VERSION,
   WORKFLOW_PROTOCOL_VERSION_HEADER,
+  WORKFLOW_URL_HEADER,
 } from "./constants";
 import type { Step, StepType } from "./types";
 import { StepTypes } from "./types";
@@ -18,7 +19,12 @@ export const triggerFirstInvocation = <TInitialPayload>(
 ) => {
   return fromSafePromise(
     workflowContext.client.publishJSON({
-      headers: getHeaders("true", workflowContext.workflowId, workflowContext.url),
+      headers: getHeaders(
+        "true",
+        workflowContext.workflowId,
+        workflowContext.url,
+        workflowContext.headers
+      ),
       method: "POST",
       body: workflowContext.requestPayload,
       url: workflowContext.url,
@@ -194,13 +200,22 @@ export const getHeaders = (
   initHeaderValue: "true" | "false",
   workflowId: string,
   workflowUrl: string,
+  userHeaders?: Headers,
   step?: Step
 ): Record<string, string> => {
   const baseHeaders: Record<string, string> = {
     [WORKFLOW_INIT_HEADER]: initHeaderValue,
     [WORKFLOW_ID_HEADER]: workflowId,
+    [WORKFLOW_URL_HEADER]: workflowUrl,
     [`Upstash-Forward-${WORKFLOW_PROTOCOL_VERSION_HEADER}`]: WORKFLOW_PROTOCOL_VERSION,
   };
+
+  if (userHeaders) {
+    for (const header of userHeaders.keys()) {
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      baseHeaders[`Upstash-Forward-${header}`] = userHeaders.get(header)!;
+    }
+  }
 
   if (step?.callUrl) {
     const forwardedHeaders = Object.fromEntries(

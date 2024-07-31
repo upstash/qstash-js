@@ -113,4 +113,10 @@ export type WorkflowServeOptions<TResponse = Response, TInitialPayload = unknown
    * Function to parse the initial payload passed by the user
    */
   initialPayloadParser?: InitialPayloadParser<TInitialPayload>;
+  /**
+   * Url of the endpoint where the workflow is set up.
+   *
+   * If not set, url will be inferred from the request.
+   */
+  url?: string;
 };
