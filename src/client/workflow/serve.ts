@@ -40,7 +40,23 @@ const processOptions = <TResponse = Response, TInitialPayload = unknown>(
     initialPayloadParser:
       options?.initialPayloadParser ??
       ((initialRequest: string) => {
-        return (initialRequest ? JSON.parse(initialRequest) : undefined) as TInitialPayload;
+        // if there is no payload, simply return undefined
+        if (!initialRequest) {
+          return undefined as TInitialPayload;
+        }
+
+        // try to parse the payload
+        try {
+          return JSON.parse(initialRequest) as TInitialPayload;
+        } catch (error) {
+          // if you get an error when parsing, return it as it is
+          // needed in plain string case.
+          if (error instanceof SyntaxError) {
+            return initialRequest as TInitialPayload;
+          }
+          // if not JSON.parse error, throw error
+          throw error;
+        }
       }),
     url: options?.url ?? "",
     verbose: options?.verbose ?? false,

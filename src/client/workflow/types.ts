@@ -65,6 +65,12 @@ export type Step<TResult = unknown, TBody = unknown> = {
   targetStep: number;
 } & (ThirdPartyCallFields<TBody> | { [P in keyof ThirdPartyCallFields]?: never });
 
+export type RawStep = {
+  messageId: string;
+  body: string; // body is a base64 encoded step or payload
+  callType: "step" | "toCallback" | "fromCallback";
+};
+
 export type SyncStepFunction<TResult> = () => TResult;
 export type AsyncStepFunction<TResult> = () => Promise<TResult>;
 export type StepFunction<TResult> = AsyncStepFunction<TResult> | SyncStepFunction<TResult>;

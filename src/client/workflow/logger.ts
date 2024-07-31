@@ -1,4 +1,4 @@
-const LOG_LEVELS = ["DEBUG", "INFO", "WARN", "ERROR"] as const;
+const LOG_LEVELS = ["DEBUG", "INFO", "SUBMIT", "WARN", "ERROR"] as const;
 type LogLevel = (typeof LOG_LEVELS)[number];
 type ChatLogEntry = {
   timestamp: number;
@@ -62,8 +62,7 @@ export class WorkflowLogger {
   }
 
   private shouldLog(level: LogLevel): boolean {
-    const levels: LogLevel[] = ["DEBUG", "INFO", "WARN", "ERROR"];
-    return levels.indexOf(level) >= levels.indexOf(this.options.logLevel);
+    return LOG_LEVELS.indexOf(level) >= LOG_LEVELS.indexOf(this.options.logLevel);
   }
 
   public static getLogger(verbose: boolean | WorkflowLogger) {

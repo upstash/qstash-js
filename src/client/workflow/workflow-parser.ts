@@ -4,7 +4,7 @@ import {
   WORKFLOW_PROTOCOL_VERSION,
   WORKFLOW_PROTOCOL_VERSION_HEADER,
 } from "./constants";
-import type { Step } from "./types";
+import type { RawStep, Step } from "./types";
 import { nanoid } from "nanoid";
 
 /**
@@ -45,11 +45,7 @@ const decodeBase64 = (encodedString: string) => {
  * @returns intiial payload and list of steps
  */
 const parsePayload = (rawPayload: string) => {
-  const [encodedInitialPayload, ...encodedSteps] = JSON.parse(rawPayload) as {
-    messageId: string;
-    body: string;
-    callType: "step" | "toCallback" | "fromCallback";
-  }[];
+  const [encodedInitialPayload, ...encodedSteps] = JSON.parse(rawPayload) as RawStep[];
 
   const stepsToDecode = encodedSteps.filter((step) => step.callType === "step");
 

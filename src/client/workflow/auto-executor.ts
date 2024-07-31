@@ -72,7 +72,7 @@ export class AutoExecutor {
    * @param lazyStep lazy step to execute
    * @returns step result
    */
-  private async runSingle<TResult>(lazyStep: BaseLazyStep<TResult>) {
+  protected async runSingle<TResult>(lazyStep: BaseLazyStep<TResult>) {
     if (this.stepCount < this.context.nonPlanStepCount) {
       const step = this.context.steps[this.stepCount + this.planStepCount];
       validateStep(lazyStep, step);
@@ -103,7 +103,7 @@ export class AutoExecutor {
    * @param stepFunctions list of async functions to run in parallel
    * @returns results of the functions run in parallel
    */
-  private async runParallel<TResults extends unknown[]>(parallelSteps: {
+  protected async runParallel<TResults extends unknown[]>(parallelSteps: {
     [K in keyof TResults]: BaseLazyStep<TResults[K]>;
   }): Promise<TResults> {
     // get the step count before the parallel steps were added + 1
@@ -277,7 +277,7 @@ export class AutoExecutor {
       );
     }
 
-    await this.debug?.log("INFO", "SUBMIT_STEP", { length: steps.length, steps });
+    await this.debug?.log("SUBMIT", "SUBMIT_STEP", { length: steps.length, steps });
 
     const result = await this.context.client.batchJSON(
       steps.map((singleStep) => {

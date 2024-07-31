@@ -25,7 +25,7 @@ export const triggerFirstInvocation = async <TInitialPayload>(
     workflowContext.url,
     workflowContext.headers
   );
-  await debug?.log("INFO", "SUBMIT_FIRST_INVOCATION", {
+  await debug?.log("SUBMIT", "SUBMIT_FIRST_INVOCATION", {
     headers,
     requestPayload: workflowContext.requestPayload,
     url: workflowContext.url,
@@ -64,7 +64,7 @@ export const triggerWorkflowDelete = async <TInitialPayload>(
   debug?: WorkflowLogger,
   cancel = false
 ) => {
-  await debug?.log("INFO", "SUBMIT_CLEANUP", {
+  await debug?.log("SUBMIT", "SUBMIT_CLEANUP", {
     deletedWorkflowId: workflowContext.workflowId,
   });
   const result = await workflowContext.client.http.request({
@@ -72,7 +72,7 @@ export const triggerWorkflowDelete = async <TInitialPayload>(
     method: "DELETE",
     parseResponseAsJson: false,
   });
-  await debug?.log("INFO", "SUBMIT_CLEANUP", result);
+  await debug?.log("SUBMIT", "SUBMIT_CLEANUP", result);
 };
 
 /**
@@ -163,13 +163,8 @@ export const handleThirdPartyCallResult = async (
         );
       }
 
-      request.headers.append("Content-Type", contentType);
-      request.headers.append(WORKFLOW_INIT_HEADER, "false");
-      request.headers.append(
-        `Upstash-Forward-${WORKFLOW_PROTOCOL_VERSION_HEADER}`,
-        WORKFLOW_PROTOCOL_VERSION
-      );
       const userHeaders = recreateUserHeaders(request.headers as Headers);
+      const requestHeaders = getHeaders("false", workflowId, request.url, userHeaders);
 
       const callResultStep: Step = {
         stepId: Number(stepIdString),
@@ -180,20 +175,20 @@ export const handleThirdPartyCallResult = async (
         targetStep: 0,
       };
 
-      await debug?.log("INFO", "SUBMIT_THIRD_PARTY_RESULT", {
+      await debug?.log("SUBMIT", "SUBMIT_THIRD_PARTY_RESULT", {
         step: callResultStep,
-        headers: userHeaders,
+        headers: requestHeaders,
         url: request.url,
       });
 
       const result = await client.publishJSON({
-        headers: userHeaders,
+        headers: requestHeaders,
         method: "POST",
         body: callResultStep,
         url: request.url,
       });
 
-      await debug?.log("INFO", "SUBMIT_THIRD_PARTY_RESULT", {
+      await debug?.log("SUBMIT", "SUBMIT_THIRD_PARTY_RESULT", {
         messageId: result.messageId,
       });
 
@@ -239,10 +234,14 @@ export const getHeaders = (
     for (const header of userHeaders.keys()) {
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       baseHeaders[`Upstash-Forward-${header}`] = userHeaders.get(header)!;
+      if (step?.callHeaders) {
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        baseHeaders[`Upstash-Callback-Forward-${header}`] = userHeaders.get(header)!;
+      }
     }
   }
 
-  if (step?.callUrl) {
+  if (step?.callHeaders) {
     const forwardedHeaders = Object.fromEntries(
       Object.entries(step.callHeaders).map(([header, value]) => [
         `Upstash-Forward-${header}`,
@@ -259,6 +258,7 @@ export const getHeaders = (
       "Upstash-Callback-Workflow-Id": workflowId,
       "Upstash-Callback-Workflow-CallType": "fromCallback",
       "Upstash-Callback-Workflow-Init": "false",
+      "Upstash-Callback-Workflow-Url": workflowUrl,
 
       "Upstash-Callback-Forward-Upstash-Workflow-Callback": "true",
       "Upstash-Callback-Forward-Upstash-Workflow-StepId": step.stepId.toString(),
