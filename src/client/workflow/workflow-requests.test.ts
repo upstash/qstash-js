@@ -1,5 +1,4 @@
-import { describe, expect, test } from "bun:test";
-import { serve } from "bun";
+import { describe, expect, spyOn, test } from "bun:test";
 import { nanoid } from "nanoid";
 
 import {
@@ -20,9 +19,11 @@ import {
   WORKFLOW_PROTOCOL_VERSION_HEADER,
   WORKFLOW_URL_HEADER,
 } from "./constants";
+import { serve } from "bun";
 
-const MOCK_SERVER_PORT = 8080;
-const MOCK_SERVER_URL = `http://localhost:${MOCK_SERVER_PORT}`;
+const MOCK_QSTASH_SERVER_PORT = 8080;
+const MOCK_QSTASH_SERVER_URL = `http://localhost:${MOCK_QSTASH_SERVER_PORT}`;
+const MOCK_SERVER_URL = "https://requestcatcher.com/";
 const WORKFLOW_ENDPOINT = "https://www.my-website.com/api";
 /**
  * Create a HTTP client to mock QStash. We pass the URL of the mock server
@@ -75,7 +76,7 @@ const mockQstashServer = async ({
       }
       return new Response(JSON.stringify(responseBody), { status: responseStatus });
     },
-    port: MOCK_SERVER_PORT,
+    port: MOCK_QSTASH_SERVER_PORT,
   });
 
   try {
@@ -154,18 +155,13 @@ describe("Workflow Requests", () => {
       url: WORKFLOW_ENDPOINT,
     });
 
-    await mockQstashServer({
-      execute: async () => {
-        await triggerWorkflowDelete(context);
-      },
-      responseBody: "deleted",
-      responseStatus: 200,
-      requestFields: {
-        method: "DELETE",
-        url: `${MOCK_SERVER_URL}/v2/workflows/${workflowId}?cancel=false`,
-        token,
-        body: undefined,
-      },
+    const spy = spyOn(context.client.http, "request");
+    await triggerWorkflowDelete(context);
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(spy).toHaveBeenLastCalledWith({
+      path: ["v2", "workflows", `${workflowId}?cancel=false`],
+      method: "DELETE",
+      parseResponseAsJson: false,
     });
   });
 
@@ -192,7 +188,7 @@ describe("Workflow Requests", () => {
 
       // create client
       const token = "myToken";
-      const client = new Client({ baseUrl: MOCK_SERVER_URL, token });
+      const client = new Client({ baseUrl: MOCK_QSTASH_SERVER_URL, token });
 
       // create the request which will be received by the serve method:
       const request = new Request(WORKFLOW_ENDPOINT, {
@@ -221,7 +217,7 @@ describe("Workflow Requests", () => {
         responseStatus: 200,
         requestFields: {
           method: "POST",
-          url: `${MOCK_SERVER_URL}/v2/publish/${WORKFLOW_ENDPOINT}`,
+          url: `${MOCK_QSTASH_SERVER_URL}/v2/publish/${WORKFLOW_ENDPOINT}`,
           token,
           body: {
             stepId: 3,
@@ -268,19 +264,12 @@ describe("Workflow Requests", () => {
         }),
       });
 
-      // create mock server and run the code
-      await mockQstashServer({
-        execute: async () => {
-          const result = await handleThirdPartyCallResult(request, client);
-          expect(result.isOk());
-          // @ts-expect-error value will be set since stepFinish isOk
-          expect(result.value).toBe("call-will-retry");
-        },
-        responseBody: { messageId: "msgId" },
-        responseStatus: 200,
-        // we pass requestFields: undefined to indicate that QStash shouldn't be called
-        requestFields: undefined,
-      });
+      const spy = spyOn(client, "publishJSON");
+      const result = await handleThirdPartyCallResult(request, client);
+      expect(result.isOk()).toBeTrue();
+      // @ts-expect-error value will be set since stepFinish isOk
+      expect(result.value).toBe("call-will-retry");
+      expect(spy).toHaveBeenCalledTimes(0);
     });
 
     test("continue-workflow case (no request to QStash)", async () => {
@@ -319,26 +308,19 @@ describe("Workflow Requests", () => {
         }),
       });
 
-      // create mock server and run the code
-      await mockQstashServer({
-        execute: async () => {
-          // first call
-          const initialResult = await handleThirdPartyCallResult(initialRequest, client);
-          expect(initialResult.isOk());
-          // @ts-expect-error value will be set since stepFinish isOk
-          expect(initialResult.value).toBe("continue-workflow");
+      const spy = spyOn(client, "publishJSON");
+      const initialResult = await handleThirdPartyCallResult(initialRequest, client);
+      expect(initialResult.isOk());
+      // @ts-expect-error value will be set since stepFinish isOk
+      expect(initialResult.value).toBe("continue-workflow");
+      expect(spy).toHaveBeenCalledTimes(0);
 
-          // second call
-          const result = await handleThirdPartyCallResult(workflowRequest, client);
-          expect(result.isOk());
-          // @ts-expect-error value will be set since stepFinish isOk
-          expect(result.value).toBe("continue-workflow");
-        },
-        responseBody: { messageId: "msgId" },
-        responseStatus: 200,
-        // we pass requestFields: undefined to indicate that QStash shouldn't be called
-        requestFields: undefined,
-      });
+      // second call
+      const result = await handleThirdPartyCallResult(workflowRequest, client);
+      expect(result.isOk()).toBeTrue();
+      // @ts-expect-error value will be set since stepFinish isOk
+      expect(result.value).toBe("continue-workflow");
+      expect(spy).toHaveBeenCalledTimes(0);
     });
   });
 
