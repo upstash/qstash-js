@@ -42,6 +42,11 @@
       "types": "./svelte.d.ts",
       "import": "./svelte.mjs",
       "require": "./svelte.js"
+    },
+    "./solidjs": {
+      "types": "./solidjs.d.ts",
+      "import": "./solidjs.mjs",
+      "require": "./solidjs.js"
     }
   },
   "typesVersions": {
@@ -85,6 +90,7 @@
     "vitest": "latest"
   },
   "dependencies": {
+    "@solidjs/start": "^1.0.6",
     "@sveltejs/kit": "^2.5.18",
     "crypto-js": ">=4.2.0",
     "h3": "^1.12.0",
