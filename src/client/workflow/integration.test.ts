@@ -17,18 +17,32 @@
  *
  * ## With Local QStash Server
  *
- * To run the tests, you can locally run the QStash server at localhost:8000.
+ * To run the tests, you can locally run the QStash server at localhost:8000. Don't
+ * forget to set the QSTASH_TOKEN and QSTASH_URL environemnt variables after
+ * starting the server.
  *
  * ## With Ngrok
  *
- * alternative to running QStash locally is to expose the localhost endpoints
- * with local tunneling using Ngrok. The following ports should be exposed to
- * the internet:
- * - localhost:3000 (for LOCAL_WORKFLOW_URL)
- * - localhost:3001 (for LOCAL_THIRD_PARTY_URL)
+ * Alternative to running QStash locally is to expose the localhost endpoints
+ * with local tunneling using Ngrok. To make this easier, we have added a bash
+ * script `integration.sh`. To run the script, first get your ngrok token from
+ * https://dashboard.ngrok.com/get-started/your-authtoken and update the
+ * `integration.yml` file with your token. Afterwards, run the bash script with:
  *
- * Then, you should set the values of LOCAL_WORKFLOW_UR and LOCAL_THIRD_PARTY_URL
- * with the Ngrok endpoints
+ * ```sh
+ * bash integration.sh <QSTASH_URL> <QSTASH_TOKEN>
+ * ```
+ *
+ * You can find the values of these variables from Upstash console.
+ *
+ * The script will:
+ * - start a Ngrok local tunnel, exposing ports 3000 and 3001
+ * - update the integration test by disabling skip and updating the
+ *   URLs with the ones from Ngrok tunnel
+ * - run the tests
+ *
+ * You may want to increase the `waitFor` and `timeout` parameters of the tests
+ * because network takes some time.
  */
 /* eslint-disable @typescript-eslint/require-await */
 /* eslint-disable no-console */
@@ -45,8 +59,6 @@ const WORKFLOW_PORT = "3000";
 const THIRD_PARTY_PORT = "3001";
 const LOCAL_WORKFLOW_URL = `http://localhost:${WORKFLOW_PORT}`;
 const LOCAL_THIRD_PARTY_URL = `http://localhost:${THIRD_PARTY_PORT}`;
-const NGROK_WORKFLOW_URL: string | undefined = undefined;
-const WORKFLOW_URL = NGROK_WORKFLOW_URL ?? LOCAL_WORKFLOW_URL;
 
 const someWork = (input: string) => {
   return `processed '${input}'`;
@@ -107,8 +119,8 @@ const testEndpoint = async <TInitialPayload = unknown>({
     routeFunction,
     options: {
       client,
-      url: WORKFLOW_URL,
-      verbose: false,
+      url: LOCAL_WORKFLOW_URL,
+      verbose: true,
     },
   });
 
@@ -126,7 +138,7 @@ const testEndpoint = async <TInitialPayload = unknown>({
       ? initialPayload
       : JSON.stringify(initialPayload)
     : undefined;
-  await fetch(WORKFLOW_URL, {
+  await fetch(`http://localhost:${WORKFLOW_PORT}`, {
     method: "POST",
     body,
     headers: {
