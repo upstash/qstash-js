@@ -1,5 +1,5 @@
 const LOG_LEVELS = ["DEBUG", "INFO", "SUBMIT", "WARN", "ERROR"] as const;
-type LogLevel = (typeof LOG_LEVELS)[number];
+export type LogLevel = (typeof LOG_LEVELS)[number];
 type ChatLogEntry = {
   timestamp: number;
   logLevel: LogLevel;
@@ -17,7 +17,7 @@ type ChatLogEntry = {
     | "ERROR"; // when onStepFinish("no-workflow-id") is called
   details: unknown;
 };
-type WorkflowLoggerOptions = {
+export type WorkflowLoggerOptions = {
   logLevel: LogLevel;
   logOutput: "console";
 };
