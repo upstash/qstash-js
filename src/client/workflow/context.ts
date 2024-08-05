@@ -75,7 +75,8 @@ export class WorkflowContext<TInitialPayload = unknown> {
     stepName: string,
     stepFunction: AsyncStepFunction<TResult>
   ): Promise<TResult> {
-    return this.executor.addStep<TResult>(new LazyFunctionStep(stepName, stepFunction));
+    const wrappedStepFunction = async () => this.executor.wrapStep(stepName, stepFunction);
+    return this.executor.addStep<TResult>(new LazyFunctionStep(stepName, wrappedStepFunction));
   }
 
   /**

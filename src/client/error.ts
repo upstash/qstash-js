@@ -76,7 +76,7 @@ export class QstashWorkflowAbort extends Error {
   public stepName: string;
 
   constructor(stepName: string, stepInfo?: Step) {
-    super("Aborting workflow after executing a step.");
+    super(`Aborting workflow after executing step '${stepName}'.`);
     this.name = "QstashWorkflowAbort";
     this.stepName = stepName;
     this.stepInfo = stepInfo;
