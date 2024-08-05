@@ -4,7 +4,7 @@
       <h1 class="text-xl font-bold mb-4">Send Request</h1>
 
       <div class="mb-4">
-        <label class="block text-gray-700">Base URL:</label>
+        <label class="block text-gray-700">Base URL deployment URL:</label>
         <input
           v-model="baseUrl"
           type="text"
@@ -53,6 +53,13 @@ const requestBody = ref('{"date":123,"email":"my@mail.com","amount":10}');
 const loading = ref(false);
 const route = ref('path');
 const routes = ['path', 'sleep', 'sleepWithoutAwait', 'northStarSimple', 'northStar'];
+
+// Ensure baseUrl doesn't have a trailing slash
+watch(baseUrl, (newVal) => {
+  if (newVal.endsWith('/')) {
+    baseUrl.value = newVal.replace(/\/$/, '');
+  }
+});
 
 const handleSend = async () => {
   loading.value = true;

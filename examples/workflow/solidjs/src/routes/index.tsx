@@ -1,10 +1,18 @@
-import { createSignal } from 'solid-js';
+import { createSignal, createEffect } from 'solid-js';
 
 const LandingPage = () => {
   const [baseUrl, setBaseUrl] = createSignal("http://localhost:3000");
   const [requestBody, setRequestBody] = createSignal('{"date":123,"email":"my@mail.com","amount":10}');
   const [route, setRoute] = createSignal("path");
   const [loading, setLoading] = createSignal(false);
+
+  // Ensure baseUrl doesn't have a trailing slash
+  createEffect(() => {
+    const url = baseUrl();
+    if (url.endsWith('/')) {
+      setBaseUrl(url.replace(/\/$/, ''));
+    }
+  });
 
   const routes = ['path', 'sleep', 'sleepWithoutAwait', 'northStarSimple', 'northStar'];
 
@@ -33,7 +41,7 @@ const LandingPage = () => {
         <h1 className="text-xl font-bold mb-4">Send Request</h1>
 
         <div className="mb-4">
-          <label className="block text-gray-700">Base URL:</label>
+          <label className="block text-gray-700">Base URL (replace with deployment URL):</label>
           <input
             type="text"
             value={baseUrl()}
