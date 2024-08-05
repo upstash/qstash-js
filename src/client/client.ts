@@ -368,8 +368,9 @@ export class Client {
       },
       method: "POST",
     });
+    const arrayResposne = Array.isArray(response) ? response : [response];
 
-    return response;
+    return arrayResposne;
   }
 
   /**

@@ -1,6 +1,7 @@
 import type { Client } from "../client";
 import type { HTTPMethods } from "../types";
 import type { WorkflowContext } from "./context";
+import type { WorkflowLogger } from "./logger";
 
 export const StepTypes = ["Initial", "Run", "SleepFor", "SleepUntil", "Call"] as const;
 export type StepType = (typeof StepTypes)[number];
@@ -64,6 +65,12 @@ export type Step<TResult = unknown, TBody = unknown> = {
   targetStep: number;
 } & (ThirdPartyCallFields<TBody> | { [P in keyof ThirdPartyCallFields]?: never });
 
+export type RawStep = {
+  messageId: string;
+  body: string; // body is a base64 encoded step or payload
+  callType: "step" | "toCallback" | "fromCallback";
+};
+
 export type SyncStepFunction<TResult> = () => TResult;
 export type AsyncStepFunction<TResult> = () => Promise<TResult>;
 export type StepFunction<TResult> = AsyncStepFunction<TResult> | SyncStepFunction<TResult>;
@@ -119,4 +126,8 @@ export type WorkflowServeOptions<TResponse = Response, TInitialPayload = unknown
    * If not set, url will be inferred from the request.
    */
   url?: string;
+  /**
+   * Verbose mode
+   */
+  verbose?: boolean | WorkflowLogger;
 };

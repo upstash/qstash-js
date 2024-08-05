@@ -1,11 +1,11 @@
-import { describe, expect, test } from "bun:test";
-import { serve } from "bun";
+import { describe, expect, spyOn, test } from "bun:test";
 import { nanoid } from "nanoid";
 
 import {
   getHeaders,
   handleThirdPartyCallResult,
   recreateUserHeaders,
+  triggerFirstInvocation,
   triggerRouteFunction,
   triggerWorkflowDelete,
 } from "./workflow-requests";
@@ -20,75 +20,47 @@ import {
   WORKFLOW_PROTOCOL_VERSION_HEADER,
   WORKFLOW_URL_HEADER,
 } from "./constants";
-
-const MOCK_SERVER_PORT = 8080;
-const MOCK_SERVER_URL = `http://localhost:${MOCK_SERVER_PORT}`;
-const WORKFLOW_ENDPOINT = "https://www.my-website.com/api";
-/**
- * Create a HTTP client to mock QStash. We pass the URL of the mock server
- * as baseUrl and verify that the request is as we expect.
- *
- * @param execute function which will call QStash
- * @param responseBody response returned from QStash
- * @param responseStatus response status returned from QStash
- * @param requestFields fields of the request sent to QStash as a result of running
- *    `await execute()`.
- */
-const mockQstashServer = async ({
-  execute,
-  responseBody,
-  responseStatus,
-  requestFields,
-}: {
-  execute: () => Promise<unknown>;
-  responseBody: unknown;
-  responseStatus: number;
-  requestFields?: {
-    method: string;
-    url: string;
-    token: string;
-    body?: unknown;
-  };
-}) => {
-  const shouldBeCalled = Boolean(requestFields);
-  let called = false;
-
-  const server = serve({
-    async fetch(request) {
-      called = true;
-
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      const { method, url, token, body } = requestFields!;
-      try {
-        expect(request.method).toBe(method);
-        expect(request.url).toBe(url);
-        expect(request.headers.get("authorization")).toBe(`Bearer ${token}`);
-        if (body) {
-          expect(await request.json()).toEqual(body);
-        }
-      } catch (error) {
-        if (error instanceof Error) {
-          return new Response(JSON.stringify(error, Object.getOwnPropertyNames(error)), {
-            status: 400,
-          });
-        }
-      }
-      return new Response(JSON.stringify(responseBody), { status: responseStatus });
-    },
-    port: MOCK_SERVER_PORT,
-  });
-
-  try {
-    await execute();
-    expect(called).toBe(shouldBeCalled);
-  } finally {
-    server.stop(true);
-  }
-};
+import {
+  MOCK_QSTASH_SERVER_URL,
+  MOCK_SERVER_URL,
+  mockQstashServer,
+  WORKFLOW_ENDPOINT,
+} from "./test-utils";
 
 describe("Workflow Requests", () => {
+  test("triggerFirstInvocation", async () => {
+    const workflowId = nanoid();
+    const initialPayload = nanoid();
+    const token = "myToken";
+
+    const context = new WorkflowContext({
+      client: new Client({ baseUrl: MOCK_QSTASH_SERVER_URL, token }),
+      workflowId: workflowId,
+      initialPayload,
+      headers: new Headers({}) as Headers,
+      steps: [],
+      url: WORKFLOW_ENDPOINT,
+    });
+
+    await mockQstashServer({
+      execute: async () => {
+        await triggerFirstInvocation(context);
+      },
+      responseFields: {
+        body: { messageId: "msgId" },
+        status: 200,
+      },
+      receivesRequest: {
+        method: "POST",
+        url: `${MOCK_QSTASH_SERVER_URL}/v2/publish/https://www.my-website.com/api`,
+        token,
+        body: initialPayload,
+      },
+    });
+  });
+
   describe("triggerRouteFunction", () => {
-    test("test step finish", async () => {
+    test("should get step-finished when QstashWorkflowAbort is thrown", async () => {
       const result = await triggerRouteFunction({
         onStep: () => {
           throw new QstashWorkflowAbort("name");
@@ -102,7 +74,7 @@ describe("Workflow Requests", () => {
       expect(result.value).toBe("step-finished");
     });
 
-    test("test workflow finish", async () => {
+    test("should get workflow-finished when no error is thrown", async () => {
       const result = await triggerRouteFunction({
         onStep: async () => {
           await Promise.resolve();
@@ -116,7 +88,7 @@ describe("Workflow Requests", () => {
       expect(result.value).toBe("workflow-finished");
     });
 
-    test("test error in step", async () => {
+    test("should get Err if onStep throws error", async () => {
       const result = await triggerRouteFunction({
         onStep: () => {
           throw new Error("Something went wrong!");
@@ -128,7 +100,7 @@ describe("Workflow Requests", () => {
       expect(result.isErr()).toBeTrue();
     });
 
-    test("test error in cleanup", async () => {
+    test("should get Err if onCleanup throws error", async () => {
       const result = await triggerRouteFunction({
         onStep: async () => {
           await Promise.resolve();
@@ -141,7 +113,7 @@ describe("Workflow Requests", () => {
     });
   });
 
-  test("triggerWorkflowDelete", async () => {
+  test("should call publishJSON in triggerWorkflowDelete", async () => {
     const workflowId = nanoid();
     const token = "myToken";
 
@@ -154,22 +126,17 @@ describe("Workflow Requests", () => {
       url: WORKFLOW_ENDPOINT,
     });
 
-    await mockQstashServer({
-      execute: async () => {
-        await triggerWorkflowDelete(context);
-      },
-      responseBody: "deleted",
-      responseStatus: 200,
-      requestFields: {
-        method: "DELETE",
-        url: `${MOCK_SERVER_URL}/v2/workflows/${workflowId}?cancel=false`,
-        token,
-        body: undefined,
-      },
+    const spy = spyOn(context.client.http, "request");
+    await triggerWorkflowDelete(context);
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(spy).toHaveBeenLastCalledWith({
+      path: ["v2", "workflows", `${workflowId}?cancel=false`],
+      method: "DELETE",
+      parseResponseAsJson: false,
     });
   });
 
-  test("recreateUserHeaders", () => {
+  test("should remove workflow headers in recreateUserHeaders", () => {
     const headers = new Headers();
     headers.append("Upstash-Workflow-Other-Header", "value1");
     headers.append("My-Header", "value2");
@@ -182,7 +149,7 @@ describe("Workflow Requests", () => {
   });
 
   describe("handleThirdPartyCallResult", () => {
-    test("is-call-return case", async () => {
+    test("should POST third party call results in is-call-return case", async () => {
       // request parameters
       const thirdPartyCallResult = "third-party-call-result";
       const requestPayload = { status: 200, body: btoa(thirdPartyCallResult) };
@@ -191,8 +158,8 @@ describe("Workflow Requests", () => {
       const workflowId = nanoid();
 
       // create client
-      const token = "myToken";
-      const client = new Client({ baseUrl: MOCK_SERVER_URL, token });
+      const token = nanoid();
+      const client = new Client({ baseUrl: MOCK_QSTASH_SERVER_URL, token });
 
       // create the request which will be received by the serve method:
       const request = new Request(WORKFLOW_ENDPOINT, {
@@ -217,11 +184,13 @@ describe("Workflow Requests", () => {
           // @ts-expect-error value will be set since stepFinish isOk
           expect(result.value).toBe("is-call-return");
         },
-        responseBody: { messageId: "msgId" },
-        responseStatus: 200,
-        requestFields: {
+        responseFields: {
+          body: { messageId: "msgId" },
+          status: 200,
+        },
+        receivesRequest: {
           method: "POST",
-          url: `${MOCK_SERVER_URL}/v2/publish/${WORKFLOW_ENDPOINT}`,
+          url: `${MOCK_QSTASH_SERVER_URL}/v2/publish/${WORKFLOW_ENDPOINT}`,
           token,
           body: {
             stepId: 3,
@@ -235,7 +204,7 @@ describe("Workflow Requests", () => {
       });
     });
 
-    test("call-will-retry case (no request to QStash)", async () => {
+    test("should do nothing in call-will-retry case", async () => {
       // in this test, the SDK receives a request with "Upstash-Workflow-Callback": "true"
       // but the status is not OK, so we have to do nothing return `call-will-retry`
 
@@ -268,22 +237,15 @@ describe("Workflow Requests", () => {
         }),
       });
 
-      // create mock server and run the code
-      await mockQstashServer({
-        execute: async () => {
-          const result = await handleThirdPartyCallResult(request, client);
-          expect(result.isOk());
-          // @ts-expect-error value will be set since stepFinish isOk
-          expect(result.value).toBe("call-will-retry");
-        },
-        responseBody: { messageId: "msgId" },
-        responseStatus: 200,
-        // we pass requestFields: undefined to indicate that QStash shouldn't be called
-        requestFields: undefined,
-      });
+      const spy = spyOn(client, "publishJSON");
+      const result = await handleThirdPartyCallResult(request, client);
+      expect(result.isOk()).toBeTrue();
+      // @ts-expect-error value will be set since stepFinish isOk
+      expect(result.value).toBe("call-will-retry");
+      expect(spy).toHaveBeenCalledTimes(0);
     });
 
-    test("continue-workflow case (no request to QStash)", async () => {
+    test("should do nothing in continue-workflow case", async () => {
       // payload is a list of steps
       const initialPayload = "my-payload";
       const requestPayload: Step[] = [
@@ -319,32 +281,25 @@ describe("Workflow Requests", () => {
         }),
       });
 
-      // create mock server and run the code
-      await mockQstashServer({
-        execute: async () => {
-          // first call
-          const initialResult = await handleThirdPartyCallResult(initialRequest, client);
-          expect(initialResult.isOk());
-          // @ts-expect-error value will be set since stepFinish isOk
-          expect(initialResult.value).toBe("continue-workflow");
+      const spy = spyOn(client, "publishJSON");
+      const initialResult = await handleThirdPartyCallResult(initialRequest, client);
+      expect(initialResult.isOk());
+      // @ts-expect-error value will be set since stepFinish isOk
+      expect(initialResult.value).toBe("continue-workflow");
+      expect(spy).toHaveBeenCalledTimes(0);
 
-          // second call
-          const result = await handleThirdPartyCallResult(workflowRequest, client);
-          expect(result.isOk());
-          // @ts-expect-error value will be set since stepFinish isOk
-          expect(result.value).toBe("continue-workflow");
-        },
-        responseBody: { messageId: "msgId" },
-        responseStatus: 200,
-        // we pass requestFields: undefined to indicate that QStash shouldn't be called
-        requestFields: undefined,
-      });
+      // second call
+      const result = await handleThirdPartyCallResult(workflowRequest, client);
+      expect(result.isOk()).toBeTrue();
+      // @ts-expect-error value will be set since stepFinish isOk
+      expect(result.value).toBe("continue-workflow");
+      expect(spy).toHaveBeenCalledTimes(0);
     });
   });
 
   describe("getHeaders", () => {
     const workflowId = nanoid();
-    test("no step passed", () => {
+    test("should create headers without step passed", () => {
       const headers = getHeaders("true", workflowId, WORKFLOW_ENDPOINT);
       expect(headers).toEqual({
         [WORKFLOW_INIT_HEADER]: "true",
@@ -354,7 +309,7 @@ describe("Workflow Requests", () => {
       });
     });
 
-    test("result step passed", () => {
+    test("should create headers with a result step", () => {
       const stepId = 3;
       const stepName = "some step";
       const stepType: StepType = "Run";
@@ -374,7 +329,7 @@ describe("Workflow Requests", () => {
       });
     });
 
-    test("call step passed", () => {
+    test("should create headers with a call step", () => {
       const stepId = 3;
       const stepName = "some step";
       const stepType: StepType = "Call";
@@ -412,6 +367,7 @@ describe("Workflow Requests", () => {
         "Upstash-Callback-Workflow-CallType": "fromCallback",
         "Upstash-Callback-Workflow-Id": workflowId,
         "Upstash-Callback-Workflow-Init": "false",
+        "Upstash-Callback-Workflow-Url": WORKFLOW_ENDPOINT,
         "Upstash-Forward-my-custom-header": "my-custom-header-value",
         "Upstash-Workflow-CallType": "toCallback",
       });

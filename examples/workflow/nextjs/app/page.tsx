@@ -1,13 +1,20 @@
 "use client"
 
 import { useSearchParams } from 'next/navigation';
-import { Suspense, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 
 function Home() {
   const [baseUrl, setBaseUrl] = useState("http://localhost:3000");
   const [requestBody, setRequestBody] = useState('{"date":123,"email":"my@mail.com","amount":10}');
   const [loading, setLoading] = useState(false);
   const searchParams = useSearchParams();
+
+  // Ensure baseUrl doesn't have a trailing slash
+  useEffect(() => {
+    if (baseUrl.endsWith('/')) {
+      setBaseUrl(baseUrl.replace(/\/$/, ''));
+    }
+  }, [baseUrl]);
 
   const search = searchParams.get('function');
   const [route, setRoute] = useState(search ?? "path");
@@ -39,7 +46,7 @@ function Home() {
         <h1 className="text-xl font-bold mb-4">Send Request</h1>
 
         <div className="mb-4">
-          <label className="block text-gray-700">Base URL:</label>
+          <label className="block text-gray-700">Base URL (replace with deployment URL):</label>
           <input
             type="text"
             value={baseUrl}

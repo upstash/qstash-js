@@ -3,10 +3,17 @@
   import { page } from '$app/stores';
   import { writable } from 'svelte/store';
 
-  let baseUrl = writable("http://localhost:5173");
+  let baseUrl = writable("http://localhost:3000");
   let requestBody = writable('{"date":123,"email":"my@mail.com","amount":10}');
   let loading = writable(false);
   let route = writable('path');
+
+  // Ensure baseUrl doesn't have a trailing slash
+  baseUrl.subscribe(value => {
+    if (value.endsWith('/')) {
+      baseUrl.set(value.replace(/\/$/, ''));
+    }
+  });
 
   const routes = ['path', 'sleep', 'sleepWithoutAwait', 'northStarSimple', 'northStar'];
 
@@ -35,7 +42,7 @@
     <h1 class="text-xl font-bold mb-4">Send Request</h1>
 
     <div class="mb-4">
-      <label class="block text-gray-700">Base URL:</label>
+      <label class="block text-gray-700">Base URL (replace with deployment URL):</label>
       <input
         type="text"
         bind:value={$baseUrl}

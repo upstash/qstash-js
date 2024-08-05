@@ -13,18 +13,26 @@ import {
 } from "./constants";
 import type { Step, StepType } from "./types";
 import { StepTypes } from "./types";
+import type { WorkflowLogger } from "./logger";
 
-export const triggerFirstInvocation = <TInitialPayload>(
-  workflowContext: WorkflowContext<TInitialPayload>
+export const triggerFirstInvocation = async <TInitialPayload>(
+  workflowContext: WorkflowContext<TInitialPayload>,
+  debug?: WorkflowLogger
 ) => {
+  const headers = getHeaders(
+    "true",
+    workflowContext.workflowId,
+    workflowContext.url,
+    workflowContext.headers
+  );
+  await debug?.log("SUBMIT", "SUBMIT_FIRST_INVOCATION", {
+    headers,
+    requestPayload: workflowContext.requestPayload,
+    url: workflowContext.url,
+  });
   return fromSafePromise(
     workflowContext.client.publishJSON({
-      headers: getHeaders(
-        "true",
-        workflowContext.workflowId,
-        workflowContext.url,
-        workflowContext.headers
-      ),
+      headers,
       method: "POST",
       body: workflowContext.requestPayload,
       url: workflowContext.url,
@@ -53,13 +61,18 @@ export const triggerRouteFunction = async ({
 
 export const triggerWorkflowDelete = async <TInitialPayload>(
   workflowContext: WorkflowContext<TInitialPayload>,
+  debug?: WorkflowLogger,
   cancel = false
 ) => {
-  await workflowContext.client.http.request({
+  await debug?.log("SUBMIT", "SUBMIT_CLEANUP", {
+    deletedWorkflowId: workflowContext.workflowId,
+  });
+  const result = await workflowContext.client.http.request({
     path: ["v2", "workflows", `${workflowContext.workflowId}?cancel=${cancel}`],
     method: "DELETE",
     parseResponseAsJson: false,
   });
+  await debug?.log("SUBMIT", "SUBMIT_CLEANUP", result);
 };
 
 /**
@@ -106,7 +119,8 @@ export const recreateUserHeaders = (headers: Headers): Headers => {
  */
 export const handleThirdPartyCallResult = async (
   request: Request,
-  client: Client
+  client: Client,
+  debug?: WorkflowLogger
 ): Promise<
   Ok<"is-call-return" | "continue-workflow" | "call-will-retry", never> | Err<never, Error>
 > => {
@@ -119,6 +133,7 @@ export const handleThirdPartyCallResult = async (
 
       // eslint-disable-next-line @typescript-eslint/no-magic-numbers
       if (!(callbackMessage.status >= 200 && callbackMessage.status < 300)) {
+        await debug?.log("WARN", "SUBMIT_THIRD_PARTY_RESULT", callbackMessage);
         // this callback will be retried by the qstash, we just ignore it
         return ok("call-will-retry");
       }
@@ -152,13 +167,8 @@ export const handleThirdPartyCallResult = async (
         );
       }
 
-      request.headers.append("Content-Type", contentType);
-      request.headers.append(WORKFLOW_INIT_HEADER, "false");
-      request.headers.append(
-        `Upstash-Forward-${WORKFLOW_PROTOCOL_VERSION_HEADER}`,
-        WORKFLOW_PROTOCOL_VERSION
-      );
       const userHeaders = recreateUserHeaders(request.headers as Headers);
+      const requestHeaders = getHeaders("false", workflowId, request.url, userHeaders);
 
       const callResultStep: Step = {
         stepId: Number(stepIdString),
@@ -169,11 +179,21 @@ export const handleThirdPartyCallResult = async (
         targetStep: 0,
       };
 
-      await client.publishJSON({
-        headers: userHeaders,
+      await debug?.log("SUBMIT", "SUBMIT_THIRD_PARTY_RESULT", {
+        step: callResultStep,
+        headers: requestHeaders,
+        url: request.url,
+      });
+
+      const result = await client.publishJSON({
+        headers: requestHeaders,
         method: "POST",
         body: callResultStep,
         url: request.url,
+      });
+
+      await debug?.log("SUBMIT", "SUBMIT_THIRD_PARTY_RESULT", {
+        messageId: result.messageId,
       });
 
       return ok("is-call-return");
@@ -218,10 +238,14 @@ export const getHeaders = (
     for (const header of userHeaders.keys()) {
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       baseHeaders[`Upstash-Forward-${header}`] = userHeaders.get(header)!;
+      if (step?.callHeaders) {
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        baseHeaders[`Upstash-Callback-Forward-${header}`] = userHeaders.get(header)!;
+      }
     }
   }
 
-  if (step?.callUrl) {
+  if (step?.callHeaders) {
     const forwardedHeaders = Object.fromEntries(
       Object.entries(step.callHeaders).map(([header, value]) => [
         `Upstash-Forward-${header}`,
@@ -238,6 +262,7 @@ export const getHeaders = (
       "Upstash-Callback-Workflow-Id": workflowId,
       "Upstash-Callback-Workflow-CallType": "fromCallback",
       "Upstash-Callback-Workflow-Init": "false",
+      "Upstash-Callback-Workflow-Url": workflowUrl,
 
       "Upstash-Callback-Forward-Upstash-Workflow-Callback": "true",
       "Upstash-Callback-Forward-Upstash-Workflow-StepId": step.stepId.toString(),

@@ -21,7 +21,7 @@ At this point, if you are using a released `@upstash/qstash` version, you can de
 ```
 cd ../../..
 
-npm install
+bun install
 npm run build
 
 cd examples/workflow/nextjs

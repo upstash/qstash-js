@@ -7,8 +7,11 @@ if [ $# -eq 0 ]; then
     exit 1
 fi
 
+# store project argument
+project_arg="$1"
+
 # Store the path argument
-path_arg="$1"
+path_arg="$2"
 
 # Start ngrok and capture the public URL
 ngrok http localhost:3000 --log=stdout > ngrok.log &
@@ -19,10 +22,15 @@ sleep 5  # Allow some time for ngrok to start
 ngrok_url=$(grep -o 'url=https://[a-zA-Z0-9.-]*\.ngrok-free\.app' ngrok.log | cut -d '=' -f 2 | head -n1)
 
 # Append the path argument to the ngrok URL
-full_url="${ngrok_url}/${path_arg}"
+if [ "$project_arg" == "nuxt" ]; then
+    full_url="${ngrok_url}/api/${path_arg}"
+else
+    full_url="${ngrok_url}/${path_arg}"
+fi
 
 # Navigate to the parent directory
 cd ../..
+
 
 # Update the URL in the context.ts file
 if [[ "$OSTYPE" == "darwin"* ]]; then
@@ -38,15 +46,14 @@ bun install
 bun run build
 
 # Navigate to the examples/workflow directory
-cd examples/workflow
+cd examples/workflow/${project_arg}
 
 # Install the local package
-npm install @upstash/qstash@file:../../dist
+npm install @upstash/qstash@file:../../../dist
 
 final_path=$ngrok_url?function=$path_arg
 echo "Setup complete. Full URL: $final_path"
 echo "ngrok is running. Press Ctrl+C to stop it."
-
 
 
 # Open the URL in Chrome
