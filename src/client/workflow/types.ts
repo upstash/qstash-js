@@ -116,10 +116,10 @@ export type WorkflowServeOptions<TResponse = Response, TInitialPayload = unknown
   /**
    * Function called to return a response after each step execution
    *
-   * @param workflowId
+   * @param workflowRunId
    * @returns response
    */
-  onStepFinish?: (workflowId: string) => TResponse;
+  onStepFinish?: (workflowRunId: string) => TResponse;
   /**
    * Function to parse the initial payload passed by the user
    */

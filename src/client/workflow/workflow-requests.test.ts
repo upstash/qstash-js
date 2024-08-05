@@ -29,13 +29,13 @@ import {
 
 describe("Workflow Requests", () => {
   test("triggerFirstInvocation", async () => {
-    const workflowId = nanoid();
+    const workflowRunId = nanoid();
     const initialPayload = nanoid();
     const token = "myToken";
 
     const context = new WorkflowContext({
       client: new Client({ baseUrl: MOCK_QSTASH_SERVER_URL, token }),
-      workflowId: workflowId,
+      workflowRunId: workflowRunId,
       initialPayload,
       headers: new Headers({}) as Headers,
       steps: [],
@@ -114,12 +114,12 @@ describe("Workflow Requests", () => {
   });
 
   test("should call publishJSON in triggerWorkflowDelete", async () => {
-    const workflowId = nanoid();
+    const workflowRunId = nanoid();
     const token = "myToken";
 
     const context = new WorkflowContext({
       client: new Client({ baseUrl: MOCK_SERVER_URL, token }),
-      workflowId: workflowId,
+      workflowRunId: workflowRunId,
       initialPayload: undefined,
       headers: new Headers({}) as Headers,
       steps: [],
@@ -130,7 +130,7 @@ describe("Workflow Requests", () => {
     await triggerWorkflowDelete(context);
     expect(spy).toHaveBeenCalledTimes(1);
     expect(spy).toHaveBeenLastCalledWith({
-      path: ["v2", "workflows", `${workflowId}?cancel=false`],
+      path: ["v2", "workflows", "runs", `${workflowRunId}?cancel=false`],
       method: "DELETE",
       parseResponseAsJson: false,
     });
@@ -155,7 +155,7 @@ describe("Workflow Requests", () => {
       const requestPayload = { status: 200, body: btoa(thirdPartyCallResult) };
       const stepName = "test step";
       const stepType: StepType = "Run";
-      const workflowId = nanoid();
+      const workflowRunId = nanoid();
 
       // create client
       const token = nanoid();
@@ -172,7 +172,7 @@ describe("Workflow Requests", () => {
           "Upstash-Workflow-StepType": stepType,
           "Upstash-Workflow-Concurrent": "1",
           "Upstash-Workflow-ContentType": "application/json",
-          [WORKFLOW_ID_HEADER]: workflowId,
+          [WORKFLOW_ID_HEADER]: workflowRunId,
         }),
       });
 
@@ -216,7 +216,7 @@ describe("Workflow Requests", () => {
       const requestPayload = { status: 404, body: btoa(thirdPartyCallResult) };
       const stepName = "test step";
       const stepType: StepType = "Run";
-      const workflowId = nanoid();
+      const workflowRunId = nanoid();
 
       // create client
       const token = "myToken";
@@ -233,7 +233,7 @@ describe("Workflow Requests", () => {
           "Upstash-Workflow-StepType": stepType,
           "Upstash-Workflow-Concurrent": "1",
           "Upstash-Workflow-ContentType": "application/json",
-          [WORKFLOW_ID_HEADER]: workflowId,
+          [WORKFLOW_ID_HEADER]: workflowRunId,
         }),
       });
 
@@ -257,7 +257,7 @@ describe("Workflow Requests", () => {
           targetStep: 0,
         },
       ];
-      const workflowId = nanoid();
+      const workflowRunId = nanoid();
 
       // create client
       const token = "myToken";
@@ -275,7 +275,7 @@ describe("Workflow Requests", () => {
         body: JSON.stringify([initialPayload, requestPayload]),
         headers: new Headers({
           [WORKFLOW_INIT_HEADER]: "false",
-          [WORKFLOW_ID_HEADER]: workflowId,
+          [WORKFLOW_ID_HEADER]: workflowRunId,
           [WORKFLOW_URL_HEADER]: WORKFLOW_ENDPOINT,
           [`Upstash-Forward-${WORKFLOW_PROTOCOL_VERSION_HEADER}`]: WORKFLOW_PROTOCOL_VERSION,
         }),
@@ -298,12 +298,12 @@ describe("Workflow Requests", () => {
   });
 
   describe("getHeaders", () => {
-    const workflowId = nanoid();
+    const workflowRunId = nanoid();
     test("should create headers without step passed", () => {
-      const headers = getHeaders("true", workflowId, WORKFLOW_ENDPOINT);
+      const headers = getHeaders("true", workflowRunId, WORKFLOW_ENDPOINT);
       expect(headers).toEqual({
         [WORKFLOW_INIT_HEADER]: "true",
-        [WORKFLOW_ID_HEADER]: workflowId,
+        [WORKFLOW_ID_HEADER]: workflowRunId,
         [WORKFLOW_URL_HEADER]: WORKFLOW_ENDPOINT,
         [`Upstash-Forward-${WORKFLOW_PROTOCOL_VERSION_HEADER}`]: WORKFLOW_PROTOCOL_VERSION,
       });
@@ -314,7 +314,7 @@ describe("Workflow Requests", () => {
       const stepName = "some step";
       const stepType: StepType = "Run";
 
-      const headers = getHeaders("false", workflowId, WORKFLOW_ENDPOINT, undefined, {
+      const headers = getHeaders("false", workflowRunId, WORKFLOW_ENDPOINT, undefined, {
         stepId,
         stepName,
         stepType: stepType,
@@ -323,7 +323,7 @@ describe("Workflow Requests", () => {
       });
       expect(headers).toEqual({
         [WORKFLOW_INIT_HEADER]: "false",
-        [WORKFLOW_ID_HEADER]: workflowId,
+        [WORKFLOW_ID_HEADER]: workflowRunId,
         [WORKFLOW_URL_HEADER]: WORKFLOW_ENDPOINT,
         [`Upstash-Forward-${WORKFLOW_PROTOCOL_VERSION_HEADER}`]: WORKFLOW_PROTOCOL_VERSION,
       });
@@ -340,7 +340,7 @@ describe("Workflow Requests", () => {
       };
       const callBody = undefined;
 
-      const headers = getHeaders("false", workflowId, WORKFLOW_ENDPOINT, undefined, {
+      const headers = getHeaders("false", workflowRunId, WORKFLOW_ENDPOINT, undefined, {
         stepId,
         stepName,
         stepType: stepType,
@@ -353,7 +353,7 @@ describe("Workflow Requests", () => {
       });
       expect(headers).toEqual({
         [WORKFLOW_INIT_HEADER]: "false",
-        [WORKFLOW_ID_HEADER]: workflowId,
+        [WORKFLOW_ID_HEADER]: workflowRunId,
         [WORKFLOW_URL_HEADER]: WORKFLOW_ENDPOINT,
         [`Upstash-Forward-${WORKFLOW_PROTOCOL_VERSION_HEADER}`]: WORKFLOW_PROTOCOL_VERSION,
 
@@ -365,7 +365,7 @@ describe("Workflow Requests", () => {
         "Upstash-Callback-Forward-Upstash-Workflow-StepName": stepName,
         "Upstash-Callback-Forward-Upstash-Workflow-StepType": "Call",
         "Upstash-Callback-Workflow-CallType": "fromCallback",
-        "Upstash-Callback-Workflow-Id": workflowId,
+        "Upstash-Callback-Workflow-RunId": workflowRunId,
         "Upstash-Callback-Workflow-Init": "false",
         "Upstash-Callback-Workflow-Url": WORKFLOW_ENDPOINT,
         "Upstash-Forward-my-custom-header": "my-custom-header-value",

@@ -40,15 +40,15 @@ export const serve = <TInitialPayload = unknown>({
     const serveHandler = serveBase<TInitialPayload, Request, string>({
       routeFunction,
       options: {
-        onStepFinish: (workflowId: string) => workflowId,
+        onStepFinish: (workflowRunId: string) => workflowRunId,
         ...options,
       },
     });
     try {
-      const workflowId = await serveHandler(request);
+      const workflowRunId = await serveHandler(request);
       return {
         status: 200,
-        body: { workflowId },
+        body: { workflowRunId },
       };
     } catch (error) {
       return {

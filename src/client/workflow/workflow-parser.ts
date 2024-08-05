@@ -83,7 +83,7 @@ const parsePayload = (rawPayload: string) => {
  */
 export const validateRequest = (
   request: Request
-): { isFirstInvocation: boolean; workflowId: string } => {
+): { isFirstInvocation: boolean; workflowRunId: string } => {
   const versionHeader = request.headers.get(WORKFLOW_PROTOCOL_VERSION_HEADER);
   const isFirstInvocation = !versionHeader;
 
@@ -96,16 +96,16 @@ export const validateRequest = (
   }
 
   // get workflow id
-  const workflowId = isFirstInvocation
-    ? `wf${nanoid()}`
+  const workflowRunId = isFirstInvocation
+    ? `wfr_${nanoid()}`
     : request.headers.get(WORKFLOW_ID_HEADER) ?? "";
-  if (workflowId.length === 0) {
+  if (workflowRunId.length === 0) {
     throw new QstashWorkflowError("Couldn't get workflow id from header");
   }
 
   return {
     isFirstInvocation,
-    workflowId,
+    workflowRunId,
   };
 };
 

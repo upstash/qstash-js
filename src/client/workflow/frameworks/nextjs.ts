@@ -12,8 +12,8 @@ export const serve = <TInitialPayload = unknown>({
   return serveBase<TInitialPayload, NextRequest, NextResponse>({
     routeFunction,
     options: {
-      onStepFinish: (workflowId: string) =>
-        new NextResponse(JSON.stringify({ workflowId }), { status: 200 }),
+      onStepFinish: (workflowRunId: string) =>
+        new NextResponse(JSON.stringify({ workflowRunId }), { status: 200 }),
       ...options,
     },
   });

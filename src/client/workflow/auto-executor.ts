@@ -283,7 +283,7 @@ export class AutoExecutor {
       steps.map((singleStep) => {
         const headers = getHeaders(
           "false",
-          this.context.workflowId,
+          this.context.workflowRunId,
           this.context.url,
           this.context.headers,
           singleStep

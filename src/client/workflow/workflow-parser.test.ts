@@ -17,26 +17,26 @@ describe("Workflow Parser", () => {
         headers: undefined,
       });
 
-      const { isFirstInvocation, workflowId } = validateRequest(request);
+      const { isFirstInvocation, workflowRunId } = validateRequest(request);
 
       expect(isFirstInvocation).toBeTrue();
-      expect(workflowId.slice(0, 2)).toBe("wf");
-      expect(workflowId.length).toBeGreaterThan(2);
+      expect(workflowRunId.slice(0, 4)).toBe("wfr_");
+      expect(workflowRunId.length).toBeGreaterThan(2);
     });
 
     test("should ignore passed workflow header if first invocation", () => {
-      const requestWorkflowId = "wf-some-id";
+      const requestWorkflowRunId = "wfr-some-id";
       const request = new Request(WORKFLOW_ENDPOINT, {
         headers: {
-          [WORKFLOW_ID_HEADER]: requestWorkflowId,
+          [WORKFLOW_ID_HEADER]: requestWorkflowRunId,
         },
       });
 
-      const { isFirstInvocation, workflowId } = validateRequest(request);
+      const { isFirstInvocation, workflowRunId } = validateRequest(request);
 
       expect(isFirstInvocation).toBeTrue();
       // worklfow id in the request should be ignored
-      expect(workflowId !== requestWorkflowId).toBeTrue();
+      expect(workflowRunId !== requestWorkflowRunId).toBeTrue();
     });
 
     test("should throw when protocol header is given without workflow id header", () => {
@@ -66,17 +66,17 @@ describe("Workflow Parser", () => {
     });
 
     test("should accept when called correctly", () => {
-      const requestWorkflowId = `wf${nanoid()}`;
+      const requestWorkflowRunId = `wfr${nanoid()}`;
       const request = new Request(WORKFLOW_ENDPOINT, {
         headers: {
           [WORKFLOW_PROTOCOL_VERSION_HEADER]: WORKFLOW_PROTOCOL_VERSION,
-          [WORKFLOW_ID_HEADER]: requestWorkflowId,
+          [WORKFLOW_ID_HEADER]: requestWorkflowRunId,
         },
       });
-      const { isFirstInvocation, workflowId } = validateRequest(request);
+      const { isFirstInvocation, workflowRunId } = validateRequest(request);
 
       expect(isFirstInvocation).toBeFalse();
-      expect(workflowId).toBe(requestWorkflowId);
+      expect(workflowRunId).toBe(requestWorkflowRunId);
     });
   });
 
@@ -124,7 +124,7 @@ describe("Workflow Parser", () => {
         },
       ];
 
-      const request = getRequest(WORKFLOW_ENDPOINT, "wf-id", requestInitialPayload, resultSteps);
+      const request = getRequest(WORKFLOW_ENDPOINT, "wfr-id", requestInitialPayload, resultSteps);
       const { initialPayload, steps } = await parseRequest(request, false);
 
       // payload is not parsed

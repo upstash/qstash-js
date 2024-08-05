@@ -9,7 +9,7 @@ export class WorkflowContext<TInitialPayload = unknown> {
   protected readonly executor: AutoExecutor;
 
   public readonly client: Client;
-  public readonly workflowId: string;
+  public readonly workflowRunId: string;
   public readonly steps: Step[];
   public readonly nonPlanStepCount: number;
   public readonly url: string;
@@ -18,7 +18,7 @@ export class WorkflowContext<TInitialPayload = unknown> {
 
   constructor({
     client,
-    workflowId,
+    workflowRunId,
     initialPayload,
     headers,
     steps,
@@ -26,7 +26,7 @@ export class WorkflowContext<TInitialPayload = unknown> {
     debug,
   }: {
     client: Client;
-    workflowId: string;
+    workflowRunId: string;
     initialPayload: TInitialPayload;
     headers: Headers;
     steps: Step[];
@@ -34,7 +34,7 @@ export class WorkflowContext<TInitialPayload = unknown> {
     debug?: WorkflowLogger;
   }) {
     this.client = client;
-    this.workflowId = workflowId;
+    this.workflowRunId = workflowRunId;
     this.steps = steps;
     this.url = url;
     this.requestPayload = initialPayload;

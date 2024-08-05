@@ -165,7 +165,7 @@ describe("receiver", () => {
         body: randomBody,
         headers: {
           "Upstash-Workflow-Callback": "true",
-          [WORKFLOW_ID_HEADER]: "wf-23",
+          [WORKFLOW_ID_HEADER]: "wfr-23",
           "Upstash-Workflow-StepId": "4",
           "Upstash-Workflow-StepName": "my-step",
           "Upstash-Workflow-StepType": "Run",
@@ -198,7 +198,7 @@ describe("receiver", () => {
         headers: {
           "Upstash-Workflow-Callback": "true",
 
-          [WORKFLOW_ID_HEADER]: "wf-23",
+          [WORKFLOW_ID_HEADER]: "wfr-23",
           "Upstash-Signature": "incorrect-signature",
           "Upstash-Workflow-StepId": "4",
           "Upstash-Workflow-StepName": "my-step",
@@ -233,7 +233,7 @@ describe("receiver", () => {
         key: currentSigningKey,
         headers: {
           "Upstash-Workflow-Callback": "true",
-          [WORKFLOW_ID_HEADER]: "wf-23",
+          [WORKFLOW_ID_HEADER]: "wfr-23",
           "Upstash-Workflow-StepId": "4",
           "Upstash-Workflow-StepName": "my-step",
           "Upstash-Workflow-StepType": "Run",
@@ -268,7 +268,7 @@ describe("receiver", () => {
   });
 
   describe("normal invocation", () => {
-    const workflowId = nanoid();
+    const workflowRunId = nanoid();
     const initialPayload = nanoid();
     const step: Step = {
       stepId: 1,
@@ -284,7 +284,7 @@ describe("receiver", () => {
         method: "POST",
         body: getRequestBody(initialPayload, [step]),
         headers: {
-          [WORKFLOW_ID_HEADER]: workflowId,
+          [WORKFLOW_ID_HEADER]: workflowRunId,
           [WORKFLOW_PROTOCOL_VERSION_HEADER]: WORKFLOW_PROTOCOL_VERSION,
         },
       });
@@ -308,7 +308,7 @@ describe("receiver", () => {
         body: getRequestBody(initialPayload, [step]),
         headers: {
           "Upstash-Signature": "some-signature",
-          [WORKFLOW_ID_HEADER]: workflowId,
+          [WORKFLOW_ID_HEADER]: workflowRunId,
           [WORKFLOW_PROTOCOL_VERSION_HEADER]: WORKFLOW_PROTOCOL_VERSION,
         },
       });
@@ -333,7 +333,7 @@ describe("receiver", () => {
         body: getRequestBody(initialPayload, [step]),
         key: currentSigningKey,
         headers: {
-          [WORKFLOW_ID_HEADER]: workflowId,
+          [WORKFLOW_ID_HEADER]: workflowRunId,
           [WORKFLOW_PROTOCOL_VERSION_HEADER]: WORKFLOW_PROTOCOL_VERSION,
         },
       });
@@ -347,7 +347,7 @@ describe("receiver", () => {
         responseFields: { body: "msgId", status: 200 },
         receivesRequest: {
           method: "DELETE",
-          url: `${MOCK_QSTASH_SERVER_URL}/v2/workflows/${workflowId}?cancel=false`,
+          url: `${MOCK_QSTASH_SERVER_URL}/v2/workflows/runs/${workflowRunId}?cancel=false`,
           token,
         },
       });

@@ -32,7 +32,7 @@ class SpyWorkflowContext extends WorkflowContext {
 describe("auto-executor", () => {
   const initialPayload = { initial: "payload" };
   const token = nanoid();
-  const workflowId = nanoid();
+  const workflowRunId = nanoid();
 
   const initialStep: Step = {
     stepId: 0,
@@ -88,7 +88,7 @@ describe("auto-executor", () => {
   const getContext = (steps: Step[]) => {
     return new SpyWorkflowContext({
       client: new Client({ baseUrl: MOCK_QSTASH_SERVER_URL, token }),
-      workflowId,
+      workflowRunId,
       initialPayload,
       headers: new Headers({}) as Headers,
       steps,
@@ -126,7 +126,7 @@ describe("auto-executor", () => {
                 "content-type": "application/json",
                 "upstash-forward-upstash-workflow-sdk-version": "1",
                 "upstash-method": "POST",
-                "upstash-workflow-id": workflowId,
+                "upstash-workflow-runid": workflowRunId,
                 "upstash-workflow-init": "false",
                 "upstash-workflow-url": WORKFLOW_ENDPOINT,
               },
@@ -211,7 +211,7 @@ describe("auto-executor", () => {
                 "upstash-delay": "123s",
                 "upstash-forward-upstash-workflow-sdk-version": "1",
                 "upstash-method": "POST",
-                "upstash-workflow-id": workflowId,
+                "upstash-workflow-runid": workflowRunId,
                 "upstash-workflow-init": "false",
                 "upstash-workflow-url": WORKFLOW_ENDPOINT,
               },
@@ -224,7 +224,7 @@ describe("auto-executor", () => {
                 "upstash-forward-upstash-workflow-sdk-version": "1",
                 "upstash-method": "POST",
                 "upstash-not-before": "123123",
-                "upstash-workflow-id": workflowId,
+                "upstash-workflow-runid": workflowRunId,
                 "upstash-workflow-init": "false",
                 "upstash-workflow-url": WORKFLOW_ENDPOINT,
               },
@@ -275,7 +275,7 @@ describe("auto-executor", () => {
                 "content-type": "application/json",
                 "upstash-forward-upstash-workflow-sdk-version": "1",
                 "upstash-method": "POST",
-                "upstash-workflow-id": workflowId,
+                "upstash-workflow-runid": workflowRunId,
                 "upstash-workflow-init": "false",
                 "upstash-workflow-url": WORKFLOW_ENDPOINT,
               },
@@ -327,7 +327,7 @@ describe("auto-executor", () => {
                 "content-type": "application/json",
                 "upstash-forward-upstash-workflow-sdk-version": "1",
                 "upstash-method": "POST",
-                "upstash-workflow-id": workflowId,
+                "upstash-workflow-runid": workflowRunId,
                 "upstash-workflow-init": "false",
                 "upstash-workflow-url": WORKFLOW_ENDPOINT,
               },

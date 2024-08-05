@@ -1,4 +1,4 @@
-export const WORKFLOW_ID_HEADER = "Upstash-Workflow-Id";
+export const WORKFLOW_ID_HEADER = "Upstash-Workflow-RunId";
 export const WORKFLOW_INIT_HEADER = "Upstash-Workflow-Init";
 export const WORKFLOW_URL_HEADER = "Upstash-Workflow-Url";
 
