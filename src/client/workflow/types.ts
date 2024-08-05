@@ -1,3 +1,4 @@
+import type { Receiver } from "../../receiver";
 import type { Client } from "../client";
 import type { HTTPMethods } from "../types";
 import type { WorkflowContext } from "./context";
@@ -82,19 +83,22 @@ export type WorkflowServeParameters<TInitialPayload, TResponse = Response> = {
   options?: WorkflowServeOptions<TResponse, TInitialPayload>;
 };
 
+type ReceiverOption = Receiver | false;
+
 /**
  * Not all frameworks use env variables like nextjs does. In this case, we need
- * to be able to get the client explicitly.
+ * to be able to get the client and receiver explicitly.
  *
  * In this case, we extend the WorkflowServeParameters by requiring an explicit
- * client parameter and removing client from options.
+ * client & receiever parameters and removing client & receiever from options.
  */
-export type WorkflowServeParametersWithClient<
-  TInitialPayload = unknown,
-  TResponse = Response,
-> = Pick<WorkflowServeParameters<TInitialPayload, TResponse>, "routeFunction"> & {
+export type WorkflowServeParametersExtended<TInitialPayload = unknown, TResponse = Response> = Pick<
+  WorkflowServeParameters<TInitialPayload, TResponse>,
+  "routeFunction"
+> & {
   client: Client;
-  options?: Omit<WorkflowServeOptions<TResponse, TInitialPayload>, "client">;
+  receiver: ReceiverOption;
+  options?: Omit<WorkflowServeOptions<TResponse, TInitialPayload>, "client" | "receiver">;
 };
 
 /**
@@ -128,6 +132,21 @@ export type WorkflowServeOptions<TResponse = Response, TInitialPayload = unknown
   url?: string;
   /**
    * Verbose mode
+   *
+   * Disabled if set to false. If set to true, a logger is created automatically.
+   *
+   * Alternatively, a WorkflowLogger can be passed.
+   *
+   * Disabled by default
    */
-  verbose?: boolean | WorkflowLogger;
+  verbose?: WorkflowLogger | boolean;
+  /**
+   * Receiver to verify requests coming from QStash
+   *
+   * All requests except the first invocation are verified.
+   *
+   * Enabled by default. A receiver is created from the env variables
+   * QSTASH_CURRENT_SIGNING_KEY and QSTASH_NEXT_SIGNING_KEY.
+   */
+  receiver?: ReceiverOption;
 };

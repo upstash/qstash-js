@@ -4,10 +4,10 @@ This project has some routes showcasing how Qstash Workflow can be used in a nux
 
 Under the `server/api` directory, you will find 5 files, each corresponding to a workflow API.
 
-To run the app locally, first set the environment variables `QSTASH_URL` and `QSTASH_TOKEN`. You can find the values of the env variables from the [Upstash Console](https://console.upstash.com/qstash). `QSTASH_URL` should be `https://qstash.upstash.io`.
+To run the app locally, first set the environment variables `QSTASH_URL`, `QSTASH_TOKEN`, `QSTASH_CURRENT_SIGNING_KEY` and `QSTASH_NEXT_SIGNING_KEY`. You can find the values of the env variables from the [Upstash Console](https://console.upstash.com/qstash). `QSTASH_URL` should be `https://qstash.upstash.io`.
 
 > [!WARNING]
-> When adding workflow to your own app, don't forget to add `QSTASH_URL` and `QSTASH_TOKEN` to `nuxt.config.ts`:
+> When adding workflow to your own app, don't forget to add `QSTASH_URL`, `QSTASH_TOKEN`, `QSTASH_CURRENT_SIGNING_KEY` and `QSTASH_NEXT_SIGNING_KEY` to `nuxt.config.ts`:
 > 
 > ```diff
 > // nuxt.config.ts
@@ -17,6 +17,8 @@ To run the app locally, first set the environment variables `QSTASH_URL` and `QS
 > + runtimeConfig: {
 > +   QSTASH_URL: process.env.QSTASH_URL,
 > +   QSTASH_TOKEN: process.env.QSTASH_TOKEN,
+> +   QSTASH_CURRENT_SIGNING_KEY: process.env.QSTASH_CURRENT_SIGNING_KEY,
+> +   QSTASH_NEXT_SIGNING_KEY: process.env.QSTASH_NEXT_SIGNING_KEY,
 > + },
 >   css: ['~/assets/css/main.css'],
 >   postcss: {

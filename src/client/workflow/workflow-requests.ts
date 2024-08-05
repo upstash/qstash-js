@@ -14,6 +14,7 @@ import {
 import type { Step, StepType } from "./types";
 import { StepTypes } from "./types";
 import type { WorkflowLogger } from "./logger";
+import type { Receiver } from "../../receiver";
 
 export const triggerFirstInvocation = async <TInitialPayload>(
   workflowContext: WorkflowContext<TInitialPayload>,
@@ -120,13 +121,17 @@ export const recreateUserHeaders = (headers: Headers): Headers => {
 export const handleThirdPartyCallResult = async (
   request: Request,
   client: Client,
-  debug?: WorkflowLogger
+  debug?: WorkflowLogger,
+  receiver?: Receiver
 ): Promise<
   Ok<"is-call-return" | "continue-workflow" | "call-will-retry", never> | Err<never, Error>
 > => {
   try {
     if (request.headers.get("Upstash-Workflow-Callback")) {
-      const callbackMessage = (await request.json()) as {
+      const callbackBody = await request.text();
+      await verifyRequest(callbackBody, request.headers.get("upstash-signature"), receiver);
+
+      const callbackMessage = JSON.parse(callbackBody) as {
         status: number;
         body: string;
       };
@@ -275,4 +280,24 @@ export const getHeaders = (
   }
 
   return baseHeaders;
+};
+
+export const verifyRequest = async (
+  body: string,
+  signature: string | null,
+  receiver?: Receiver
+) => {
+  if (!receiver) {
+    return;
+  }
+  if (!signature) {
+    throw new QstashWorkflowError("`Upstash-Signature` header is not a string");
+  }
+  const isValid = await receiver.verify({
+    body,
+    signature,
+  });
+  if (!isValid) {
+    throw new QstashWorkflowError("Invalid signature");
+  }
 };

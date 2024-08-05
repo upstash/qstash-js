@@ -92,6 +92,9 @@ export const mockQstashServer = async ({
   try {
     await execute();
     expect(called).toBe(shouldBeCalled);
+  } catch (error) {
+    server.stop(true);
+    throw error;
   } finally {
     server.stop(true);
   }
@@ -125,12 +128,14 @@ export const driveWorkflow = async ({
   }
 };
 
-export const getRequest = (
-  workflowUrl: string,
-  workflowId: string,
-  initialPayload: unknown,
-  steps: Step[]
-): Request => {
+/**
+ * Returns a workflow request body given the initial payload and steps
+ *
+ * @param initialPayload payload sent by the user
+ * @param steps steps of the workflow
+ * @returns encoded and stringified request body as RawSteps
+ */
+export const getRequestBody = (initialPayload: unknown, steps: Step[]) => {
   const encodedInitialPayload = btoa(
     typeof initialPayload === "string" ? initialPayload : JSON.stringify(initialPayload)
   );
@@ -146,9 +151,26 @@ export const getRequest = (
       callType: "step",
     };
   });
+  return JSON.stringify([encodedInitialStep, ...encodedSteps]);
+};
 
+/**
+ * Creates a workflow request
+ *
+ * @param workflowUrl workflow endpoint
+ * @param workflowId workflow id
+ * @param initialPayload payload sent by the user
+ * @param steps steps of the workflow
+ * @returns request given all the parameters above
+ */
+export const getRequest = (
+  workflowUrl: string,
+  workflowId: string,
+  initialPayload: unknown,
+  steps: Step[]
+): Request => {
   return new Request(workflowUrl, {
-    body: JSON.stringify([encodedInitialStep, ...encodedSteps]),
+    body: getRequestBody(initialPayload, steps),
     headers: {
       [WORKFLOW_ID_HEADER]: workflowId,
       [WORKFLOW_PROTOCOL_VERSION_HEADER]: WORKFLOW_PROTOCOL_VERSION,
