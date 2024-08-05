@@ -86,7 +86,11 @@ export const recreateUserHeaders = (headers: Headers): Headers => {
 
   const pairs = headers.entries() as unknown as [string, string][];
   for (const [header, value] of pairs) {
-    if (!header.toLowerCase().startsWith("upstash-workflow-")) {
+    const headerLowerCase = header.toLowerCase();
+    if (
+      !headerLowerCase.startsWith("upstash-workflow-") &&
+      !headerLowerCase.startsWith("x-vercel-")
+    ) {
       filteredHeaders.append(header, value);
     }
   }

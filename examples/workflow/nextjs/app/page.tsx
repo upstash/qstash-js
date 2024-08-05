@@ -1,9 +1,9 @@
 "use client"
 
 import { useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 
-export default function Home() {
+function Home() {
   const [baseUrl, setBaseUrl] = useState("http://localhost:3000");
   const [requestBody, setRequestBody] = useState('{"date":123,"email":"my@mail.com","amount":10}');
   const [loading, setLoading] = useState(false);
@@ -90,4 +90,12 @@ export default function Home() {
       </div>
     </div>
   );
+}
+
+export default function HomePage() {
+  return (
+    <Suspense>
+      <Home/>
+    </Suspense>
+  )
 }
