@@ -6,13 +6,13 @@ type ChatLogEntry = {
   eventType:
     | "ENDPOINT_START" // when the endpoint is called
     | "SUBMIT_THIRD_PARTY_RESULT" // third party call result
-    | "CREATE_CONTEXT" // isFirstInvocation, workflowId, headers, url and initialPayload and steps (steps only in DEBUG)
+    | "CREATE_CONTEXT" // isFirstInvocation, workflowRunId, headers, url and initialPayload and steps (steps only in DEBUG)
     | "SUBMIT_FIRST_INVOCATION" // if triggerFirstInvocation is called
     | "RUN_SINGLE"
     | "RUN_PARALLEL"
     | "SUBMIT_STEP"
     | "SUBMIT_CLEANUP" // cleanup when a workflow ends
-    | "RESPONSE_WORKFLOW" // when onStepFinish is called with workflowId
+    | "RESPONSE_WORKFLOW" // when onStepFinish is called with workflowRunId
     | "RESPONSE_DEFAULT" // when onStepFinish("no-workflow-id") is called
     | "ERROR"; // when onStepFinish("no-workflow-id") is called
   details: unknown;

@@ -158,21 +158,21 @@ export const getRequestBody = (initialPayload: unknown, steps: Step[]) => {
  * Creates a workflow request
  *
  * @param workflowUrl workflow endpoint
- * @param workflowId workflow id
+ * @param workflowRunId workflow id
  * @param initialPayload payload sent by the user
  * @param steps steps of the workflow
  * @returns request given all the parameters above
  */
 export const getRequest = (
   workflowUrl: string,
-  workflowId: string,
+  workflowRunId: string,
   initialPayload: unknown,
   steps: Step[]
 ): Request => {
   return new Request(workflowUrl, {
     body: getRequestBody(initialPayload, steps),
     headers: {
-      [WORKFLOW_ID_HEADER]: workflowId,
+      [WORKFLOW_ID_HEADER]: workflowRunId,
       [WORKFLOW_PROTOCOL_VERSION_HEADER]: WORKFLOW_PROTOCOL_VERSION,
     },
   });

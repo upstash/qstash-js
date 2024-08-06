@@ -18,7 +18,7 @@ import {
  *
  * Default values for:
  * - client: QStash client created with QSTASH_URL and QSTASH_TOKEN env vars
- * - onFinish: returns a Response with workflowId in the body and status: 200
+ * - onFinish: returns a Response with workflowRunId in the body and status: 200
  * - initialPayloadParser: calls JSON.parse if initial request body exists.
  *
  * @param options options including the client, onFinish and initialPayloadParser
@@ -32,8 +32,8 @@ const processOptions = <TResponse = Response, TInitialPayload = unknown>(
       baseUrl: process.env.QSTASH_URL!,
       token: process.env.QSTASH_TOKEN!,
     }),
-    onStepFinish: (workflowId: string) =>
-      new Response(JSON.stringify({ workflowId }), { status: 200 }) as TResponse,
+    onStepFinish: (workflowRunId: string) =>
+      new Response(JSON.stringify({ workflowRunId }), { status: 200 }) as TResponse,
     initialPayloadParser: (initialRequest: string) => {
       // if there is no payload, simply return undefined
       if (!initialRequest) {
@@ -107,12 +107,12 @@ export const serve = <
       await debug?.log("ERROR", "SUBMIT_THIRD_PARTY_RESULT", { error: callReturnCheck.error });
       throw callReturnCheck.error;
     } else if (callReturnCheck.value === "continue-workflow") {
-      const { isFirstInvocation, workflowId } = validateRequest(request);
+      const { isFirstInvocation, workflowRunId } = validateRequest(request);
       const { initialPayload, steps } = await parseRequest(request, isFirstInvocation, verify);
 
       const workflowContext = new WorkflowContext<TInitialPayload>({
         client,
-        workflowId,
+        workflowRunId,
         initialPayload: initialPayloadParser(initialPayload),
         headers: recreateUserHeaders(request.headers as Headers),
         steps,
@@ -134,9 +134,11 @@ export const serve = <
         throw result.error;
       }
 
-      // Returns a Response with `workflowId` at the end of each step.
-      await debug?.log("INFO", "RESPONSE_WORKFLOW", { workflowId: workflowContext.workflowId });
-      return onStepFinish(workflowContext.workflowId);
+      // Returns a Response with `workflowRunId` at the end of each step.
+      await debug?.log("INFO", "RESPONSE_WORKFLOW", {
+        workflowRunId: workflowContext.workflowRunId,
+      });
+      return onStepFinish(workflowContext.workflowRunId);
     }
 
     // response to QStash in call cases

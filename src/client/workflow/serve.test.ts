@@ -18,7 +18,7 @@ const someWork = (input: string) => {
   return `processed '${input}'`;
 };
 
-const workflowId = `wf${nanoid()}`;
+const workflowRunId = `wfr${nanoid()}`;
 const token = nanoid();
 
 const client = new Client({ baseUrl: MOCK_QSTASH_SERVER_URL, token });
@@ -100,7 +100,7 @@ describe("serve", () => {
 
     await driveWorkflow({
       execute: async (initialPayload, steps) => {
-        const request = getRequest(WORKFLOW_ENDPOINT, workflowId, initialPayload, steps);
+        const request = getRequest(WORKFLOW_ENDPOINT, workflowRunId, initialPayload, steps);
         await endpoint(request);
       },
       initialPayload,
@@ -120,7 +120,7 @@ describe("serve", () => {
                   "content-type": "application/json",
                   "upstash-forward-upstash-workflow-sdk-version": "1",
                   "upstash-method": "POST",
-                  "upstash-workflow-id": workflowId,
+                  "upstash-workflow-runid": workflowRunId,
                   "upstash-workflow-init": "false",
                   "upstash-workflow-url": WORKFLOW_ENDPOINT,
                 },
@@ -142,7 +142,7 @@ describe("serve", () => {
                   "content-type": "application/json",
                   "upstash-forward-upstash-workflow-sdk-version": "1",
                   "upstash-method": "POST",
-                  "upstash-workflow-id": workflowId,
+                  "upstash-workflow-runid": workflowRunId,
                   "upstash-workflow-init": "false",
                   "upstash-workflow-url": WORKFLOW_ENDPOINT,
                 },
@@ -156,7 +156,7 @@ describe("serve", () => {
           responseFields: { body: "msgId", status: 200 },
           receivesRequest: {
             method: "DELETE",
-            url: `${MOCK_QSTASH_SERVER_URL}/v2/workflows/${workflowId}?cancel=false`,
+            url: `${MOCK_QSTASH_SERVER_URL}/v2/workflows/runs/${workflowRunId}?cancel=false`,
             token,
             body: undefined,
           },

@@ -22,7 +22,7 @@ export const triggerFirstInvocation = async <TInitialPayload>(
 ) => {
   const headers = getHeaders(
     "true",
-    workflowContext.workflowId,
+    workflowContext.workflowRunId,
     workflowContext.url,
     workflowContext.headers
   );
@@ -66,10 +66,10 @@ export const triggerWorkflowDelete = async <TInitialPayload>(
   cancel = false
 ) => {
   await debug?.log("SUBMIT", "SUBMIT_CLEANUP", {
-    deletedWorkflowId: workflowContext.workflowId,
+    deletedWorkflowRunId: workflowContext.workflowRunId,
   });
   const result = await workflowContext.client.http.request({
-    path: ["v2", "workflows", `${workflowContext.workflowId}?cancel=${cancel}`],
+    path: ["v2", "workflows", "runs", `${workflowContext.workflowRunId}?cancel=${cancel}`],
     method: "DELETE",
     parseResponseAsJson: false,
   });
@@ -143,7 +143,7 @@ export const handleThirdPartyCallResult = async (
         return ok("call-will-retry");
       }
 
-      const workflowId = request.headers.get(WORKFLOW_ID_HEADER);
+      const workflowRunId = request.headers.get(WORKFLOW_ID_HEADER);
       const stepIdString = request.headers.get("Upstash-Workflow-StepId");
       const stepName = request.headers.get("Upstash-Workflow-StepName");
       const stepType = request.headers.get("Upstash-Workflow-StepType") as StepType;
@@ -152,7 +152,7 @@ export const handleThirdPartyCallResult = async (
 
       if (
         !(
-          workflowId &&
+          workflowRunId &&
           stepIdString &&
           stepName &&
           StepTypes.includes(stepType) &&
@@ -161,19 +161,19 @@ export const handleThirdPartyCallResult = async (
         )
       ) {
         throw new Error(
-          `Missing info in callback message source header: ${[
-            workflowId,
+          `Missing info in callback message source header: ${JSON.stringify({
+            workflowRunId,
             stepIdString,
             stepName,
             stepType,
             concurrentString,
             contentType,
-          ]}`
+          })}`
         );
       }
 
       const userHeaders = recreateUserHeaders(request.headers as Headers);
-      const requestHeaders = getHeaders("false", workflowId, request.url, userHeaders);
+      const requestHeaders = getHeaders("false", workflowRunId, request.url, userHeaders);
 
       const callResultStep: Step = {
         stepId: Number(stepIdString),
@@ -219,7 +219,7 @@ export const handleThirdPartyCallResult = async (
  * Gets headers for calling QStash
  *
  * @param initHeaderValue Whether the invocation should create a new workflow
- * @param workflowId id of the workflow
+ * @param workflowRunId id of the workflow
  * @param workflowUrl url of the workflow endpoint
  * @param step step to get headers for. If the step is a third party call step, more
  *       headers are added.
@@ -227,14 +227,14 @@ export const handleThirdPartyCallResult = async (
  */
 export const getHeaders = (
   initHeaderValue: "true" | "false",
-  workflowId: string,
+  workflowRunId: string,
   workflowUrl: string,
   userHeaders?: Headers,
   step?: Step
 ): Record<string, string> => {
   const baseHeaders: Record<string, string> = {
     [WORKFLOW_INIT_HEADER]: initHeaderValue,
-    [WORKFLOW_ID_HEADER]: workflowId,
+    [WORKFLOW_ID_HEADER]: workflowRunId,
     [WORKFLOW_URL_HEADER]: workflowUrl,
     [`Upstash-Forward-${WORKFLOW_PROTOCOL_VERSION_HEADER}`]: WORKFLOW_PROTOCOL_VERSION,
   };
@@ -264,7 +264,7 @@ export const getHeaders = (
       ...baseHeaders,
       ...forwardedHeaders,
       "Upstash-Callback": workflowUrl,
-      "Upstash-Callback-Workflow-Id": workflowId,
+      "Upstash-Callback-Workflow-RunId": workflowRunId,
       "Upstash-Callback-Workflow-CallType": "fromCallback",
       "Upstash-Callback-Workflow-Init": "false",
       "Upstash-Callback-Workflow-Url": workflowUrl,

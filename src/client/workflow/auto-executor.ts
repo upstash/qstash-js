@@ -1,6 +1,6 @@
 import { QstashWorkflowAbort, QstashWorkflowError } from "../error";
 import type { WorkflowContext } from "./context";
-import type { ParallelCallState, Step } from "./types";
+import type { AsyncStepFunction, ParallelCallState, Step } from "./types";
 import { type BaseLazyStep } from "./steps";
 import { getHeaders } from "./workflow-requests";
 import type { WorkflowLogger } from "./logger";
@@ -14,6 +14,8 @@ export class AutoExecutor {
   private indexInCurrentList = 0;
   public stepCount = 0;
   public planStepCount = 0;
+
+  protected executingStep: string | false = false;
 
   constructor(context: WorkflowContext, debug?: WorkflowLogger) {
     this.context = context;
@@ -30,10 +32,21 @@ export class AutoExecutor {
    * If there is a single function, it's executed by itself. If there
    * are multiple, they are run in parallel.
    *
+   * If a function is already executing (this.executingStep), this
+   * means that there is a nested step which is not allowed. In this
+   * case, addStep throws QstashWorkflowError.
+   *
    * @param stepInfo step plan to add
    * @returns result of the step function
    */
   public async addStep<TResult>(stepInfo: BaseLazyStep<TResult>) {
+    if (this.executingStep) {
+      throw new QstashWorkflowError(
+        "A step can not be run inside another step." +
+          ` Tried to run '${stepInfo.stepName}' inside '${this.executingStep}'`
+      );
+    }
+
     this.stepCount += 1;
 
     const lazyStepList = this.activeLazyStepList ?? [];
@@ -61,6 +74,28 @@ export class AutoExecutor {
 
     const result = await requestComplete;
     return AutoExecutor.getResult<TResult>(lazyStepList, result, index);
+  }
+
+  /**
+   * Wraps a step function to set this.executingStep to step name
+   * before running and set this.executingStep to False after execution
+   * ends.
+   *
+   * this.executingStep allows us to detect nested steps which are not
+   * allowed.
+   *
+   * @param stepName name of the step being wrapped
+   * @param stepFunction step function to wrap
+   * @returns wrapped step function
+   */
+  public async wrapStep<TResult = unknown>(
+    stepName: string,
+    stepFunction: AsyncStepFunction<TResult>
+  ) {
+    this.executingStep = stepName;
+    const result = await stepFunction();
+    this.executingStep = false;
+    return result;
   }
 
   /**
@@ -283,7 +318,7 @@ export class AutoExecutor {
       steps.map((singleStep) => {
         const headers = getHeaders(
           "false",
-          this.context.workflowId,
+          this.context.workflowRunId,
           this.context.url,
           this.context.headers,
           singleStep
