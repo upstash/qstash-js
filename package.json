@@ -24,14 +24,14 @@
       "require": "./index.js"
     },
     "./nextjs": {
-      "types": "./next.d.ts",
-      "import": "./next.mjs",
-      "require": "./next.js"
+      "types": "./nextjs.d.ts",
+      "import": "./nextjs.mjs",
+      "require": "./nextjs.js"
     },
     "./dist/nextjs": {
-      "types": "./next.d.ts",
-      "import": "./next.mjs",
-      "require": "./next.js"
+      "types": "./nextjs.d.ts",
+      "import": "./nextjs.mjs",
+      "require": "./nextjs.js"
     },
     "./nuxt": {
       "types": "./nuxt.d.ts",
