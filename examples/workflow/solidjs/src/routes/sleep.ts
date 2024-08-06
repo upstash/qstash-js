@@ -1,4 +1,4 @@
-import { serve } from "@upstash/qstash/workflow/solidjs"
+import { serve } from "@upstash/qstash/solidjs"
 
 const someWork = (input: string) => {
   return `processed '${JSON.stringify(input)}'`

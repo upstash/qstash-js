@@ -1,5 +1,5 @@
 
-import { serve } from "@upstash/qstash/workflow/nextjs";
+import { serve } from "@upstash/qstash/nextjs";
 
 const someWork = (input: string) => {
   return `processed '${JSON.stringify(input)}'`

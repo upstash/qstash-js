@@ -1,5 +1,5 @@
 
-import { serve } from "@upstash/qstash/workflow/sveltekit";
+import { serve } from "@upstash/qstash/svelte";
 import { env } from '$env/dynamic/private'
 import { Client } from "@upstash/qstash";
 
