@@ -2,7 +2,9 @@
 
 This project has some routes showcasing how Qstash Workflow can be used in a sveltekit project.
 
-Under the `src/routes` directory, you will find 5 folders, each corresponding to a workflow API.
+Under the `src/routes` directory, you will find 6 folders, each corresponding to a workflow API except the `-call-qstash`.
+
+Here is what these `-call-qstash` endpoint does: The user calls `-call-qstash` with information about which endpoint is to be called in the body. `-call-qstash` publishes a message to QStash. QStash then calls the specified endpoint.
 
 In each of these folders, you will find the `+server.ts` file which defines the workflow.
 

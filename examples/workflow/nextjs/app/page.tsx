@@ -23,14 +23,18 @@ function Home() {
 
   const handleSend = async () => {
     setLoading(true);
-    const url = `${baseUrl}/${route}`;
+    const url = `${baseUrl}/-call-qstash`;
     try {
       const response = await fetch(url, {
         headers: {
           'Content-Type': 'application/json'
         },
         method: "POST",
-        body: requestBody
+        body: JSON.stringify({
+          baseUrl,
+          route,
+          payload: requestBody
+        })
       });
       console.log('Response:', await response.json());
     } catch (error) {

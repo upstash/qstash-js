@@ -121,13 +121,14 @@ export const validateRequest = (
 export const parseRequest = async (
   request: Request,
   isFirstInvocation: boolean,
-  receiver?: Receiver
+  verifier?: Receiver
 ): Promise<{
   initialPayload: string;
   steps: Step[];
 }> => {
   // get payload as raw string
   const payload = await getPayload(request);
+  await verifyRequest(payload ?? "", request.headers.get("upstash-signature"), verifier);
 
   if (isFirstInvocation) {
     // if first invocation, return and `serve` will handle publishing the JSON to QStash
@@ -140,7 +141,6 @@ export const parseRequest = async (
     if (!payload) {
       throw new QstashWorkflowError("Only first call can have an empty body");
     }
-    await verifyRequest(payload, request.headers.get("upstash-signature"), receiver);
     const { initialPayload, steps } = parsePayload(payload);
 
     return {

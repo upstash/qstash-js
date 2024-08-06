@@ -132,18 +132,13 @@ const testEndpoint = async <TInitialPayload = unknown>({
     port: WORKFLOW_PORT,
   });
 
-  // make the initial request:
-  const body = initialPayload
-    ? typeof initialPayload === "string"
-      ? initialPayload
-      : JSON.stringify(initialPayload)
-    : undefined;
-  await fetch(`http://localhost:${WORKFLOW_PORT}`, {
+  await client.publishJSON({
     method: "POST",
-    body,
+    body: initialPayload,
     headers: {
       Authentication: "Bearer secretPassword",
     },
+    url: `http://localhost:${WORKFLOW_PORT}`,
   });
 
   await new Promise((resolve) => setTimeout(resolve, waitFor));
@@ -161,7 +156,7 @@ describe.skip("live serve tests", () => {
       const finishState = new FinishState();
       await testEndpoint({
         finalCount: 4,
-        waitFor: 5000,
+        waitFor: 7000,
         initialPayload: "my-payload",
         finishState,
         routeFunction: async (context) => {
@@ -193,11 +188,10 @@ describe.skip("live serve tests", () => {
 
   test(
     "path sleep",
-
     async () => {
       const finishState = new FinishState();
       await testEndpoint({
-        finalCount: 6,
+        finalCount: 7,
         waitFor: 20_000,
         initialPayload: undefined,
         finishState,

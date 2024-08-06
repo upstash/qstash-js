@@ -138,23 +138,74 @@ describe("receiver", () => {
     });
   });
 
-  test("shouldn't verify first invocation", async () => {
-    const requestWithoutSignature = new Request(WORKFLOW_ENDPOINT, {
-      method: "POST",
-      body: randomBody,
+  describe("first invocation", () => {
+    test("should block request without signature", async () => {
+      const requestWithoutSignature = new Request(WORKFLOW_ENDPOINT, {
+        method: "POST",
+        body: randomBody,
+      });
+
+      const throws = async () => {
+        await endpoint(requestWithoutSignature);
+      };
+
+      await mockQstashServer({
+        // eslint-disable-next-line @typescript-eslint/require-await
+        execute: async () => {
+          expect(throws).toThrow("`Upstash-Signature` header is not a string");
+        },
+        responseFields: { body: "msgId", status: 200 },
+        receivesRequest: false,
+      });
     });
 
-    await mockQstashServer({
-      execute: async () => {
-        await endpoint(requestWithoutSignature);
-      },
-      responseFields: { body: "msgId", status: 200 },
-      receivesRequest: {
+    test("should block request with invalid signature", async () => {
+      const requestWithoutSignature = new Request(WORKFLOW_ENDPOINT, {
         method: "POST",
-        url: `${MOCK_QSTASH_SERVER_URL}/v2/publish/${WORKFLOW_ENDPOINT}`,
-        token,
         body: randomBody,
-      },
+        headers: {
+          "Upstash-Signature": "incorrect-signature",
+        },
+      });
+
+      const throws = async () => {
+        await endpoint(requestWithoutSignature);
+      };
+
+      await mockQstashServer({
+        // eslint-disable-next-line @typescript-eslint/require-await
+        execute: async () => {
+          expect(throws).toThrow("Invalid Compact JWS");
+        },
+        responseFields: { body: "msgId", status: 200 },
+        receivesRequest: false,
+      });
+    });
+
+    test("should allow request with signature", async () => {
+      const body = { status: 200, body: randomBody };
+      const requestWithHeader = await createSignedRequest({
+        url: WORKFLOW_ENDPOINT,
+        method: "POST",
+        body: JSON.stringify(body),
+        key: currentSigningKey,
+      });
+
+      let called = false;
+      await mockQstashServer({
+        execute: async () => {
+          called = true;
+          await endpoint(requestWithHeader);
+        },
+        responseFields: { body: "msgId", status: 200 },
+        receivesRequest: {
+          method: "POST",
+          url: `${MOCK_QSTASH_SERVER_URL}/v2/publish/${WORKFLOW_ENDPOINT}`,
+          token,
+          body,
+        },
+      });
+      expect(called).toBeTrue();
     });
   });
 
@@ -197,7 +248,6 @@ describe("receiver", () => {
         body: randomBody,
         headers: {
           "Upstash-Workflow-Callback": "true",
-
           [WORKFLOW_ID_HEADER]: "wfr-23",
           "Upstash-Signature": "incorrect-signature",
           "Upstash-Workflow-StepId": "4",
