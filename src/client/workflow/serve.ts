@@ -27,6 +27,10 @@ import {
 const processOptions = <TResponse = Response, TInitialPayload = unknown>(
   options?: WorkflowServeOptions<TResponse, TInitialPayload>
 ): Required<WorkflowServeOptions<TResponse, TInitialPayload>> => {
+  const receiverEnvironmentVariablesSet = Boolean(
+    process.env.QSTASH_CURRENT_SIGNING_KEY && process.env.QSTASH_NEXT_SIGNING_KEY
+  );
+
   return {
     client: new Client({
       baseUrl: process.env.QSTASH_URL!,
@@ -55,10 +59,13 @@ const processOptions = <TResponse = Response, TInitialPayload = unknown>(
     },
     url: "", // will be overwritten with request.url
     verbose: false,
-    receiver: new Receiver({
-      currentSigningKey: process.env.QSTASH_CURRENT_SIGNING_KEY!,
-      nextSigningKey: process.env.QSTASH_NEXT_SIGNING_KEY!,
-    }),
+    // initialize a receiver if the env variables are set:
+    receiver:
+      receiverEnvironmentVariablesSet &&
+      new Receiver({
+        currentSigningKey: process.env.QSTASH_CURRENT_SIGNING_KEY!,
+        nextSigningKey: process.env.QSTASH_NEXT_SIGNING_KEY!,
+      }),
     ...options,
   };
 };
@@ -88,7 +95,7 @@ export const serve = <
   >(options);
 
   const debug = WorkflowLogger.getLogger(verbose);
-  const verify = receiver || undefined;
+  const verifier = receiver || undefined;
 
   /**
    * Handles the incoming request, triggering the appropriate workflow steps.
@@ -101,14 +108,14 @@ export const serve = <
    */
   return async (request: TRequest) => {
     await debug?.log("INFO", "ENDPOINT_START");
-    const callReturnCheck = await handleThirdPartyCallResult(request, client, debug, verify);
+    const callReturnCheck = await handleThirdPartyCallResult(request, client, debug, verifier);
 
     if (callReturnCheck.isErr()) {
       await debug?.log("ERROR", "SUBMIT_THIRD_PARTY_RESULT", { error: callReturnCheck.error });
       throw callReturnCheck.error;
     } else if (callReturnCheck.value === "continue-workflow") {
       const { isFirstInvocation, workflowRunId } = validateRequest(request);
-      const { initialPayload, steps } = await parseRequest(request, isFirstInvocation, verify);
+      const { initialPayload, steps } = await parseRequest(request, isFirstInvocation, verifier);
 
       const workflowContext = new WorkflowContext<TInitialPayload>({
         client,
