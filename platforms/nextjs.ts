@@ -2,7 +2,7 @@
 import type { NextApiHandler, NextApiRequest, NextApiResponse } from "next";
 import { type NextRequest } from "next/server";
 import { type NextFetchEvent, NextResponse } from "next/server";
-import { Receiver } from "./receiver";
+import { Receiver } from "../src/receiver";
 
 export type VerifySignatureConfig = {
   currentSigningKey?: string;

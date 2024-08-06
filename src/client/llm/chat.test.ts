@@ -276,6 +276,24 @@ describe("Test Qstash chat with third party LLMs", () => {
     expect(result.messageId).toBeTruthy();
   });
 
+  test("should publish with llm api", () => {
+    //@ts-expect-error We intentionally omit the callback to ensure the function fails as expected
+    const resultPromise = client.publishJSON({
+      api: { name: "llm", provider: openai({ token: process.env.OPENAI_API_KEY! }) },
+      body: {
+        model: "gpt-3.5-turbo",
+        messages: [
+          {
+            role: "user",
+            content: "Where is the capital of Turkey?",
+          },
+        ],
+      },
+    });
+
+    expect(resultPromise).rejects.toThrow("Callback cannot be undefined when using LLM");
+  });
+
   test("should batch with llm api", async () => {
     const result = await client.batchJSON([
       {

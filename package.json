@@ -24,33 +24,34 @@
       "require": "./index.js"
     },
     "./nextjs": {
-      "import": "./nextjs.js",
+      "types": "./nextjs.d.ts",
+      "import": "./nextjs.mjs",
       "require": "./nextjs.js"
-    },
-    "./workflow": {
-      "import": "./workflow.js",
-      "require": "./workflow.js"
     },
     "./dist/nextjs": {
-      "import": "./nextjs.js",
+      "types": "./nextjs.d.ts",
+      "import": "./nextjs.mjs",
       "require": "./nextjs.js"
     },
-    "./workflow/nextjs": {
-      "import": "./workflow-nextjs.js",
-      "require": "./workflow-nextjs.js"
+    "./nuxt": {
+      "types": "./nuxt.d.ts",
+      "import": "./nuxt.mjs",
+      "require": "./nuxt.js"
     },
-    "./workflow/sveltekit": {
-      "import": "./workflow-sveltekit.js",
-      "require": "./workflow-sveltekit.js"
+    "./svelte": {
+      "types": "./svelte.d.ts",
+      "import": "./svelte.mjs",
+      "require": "./svelte.js"
     },
-    "./workflow/nuxt": {
-      "import": "./workflow-nuxt.js",
-      "require": "./workflow-nuxt.js"
+    "./solidjs": {
+      "types": "./solidjs.d.ts",
+      "import": "./solidjs.mjs",
+      "require": "./solidjs.js"
     },
-    "./workflow/solidjs": {
-      "types": "./workflow-solidjs.d.ts",
-      "import": "./workflow-solidjs.mjs",
-      "require": "./workflow-solidjs.js"
+    "./workflow": {
+      "types": "./workflow.d.ts",
+      "import": "./workflow.mjs",
+      "require": "./workflow.js"
     }
   },
   "typesVersions": {

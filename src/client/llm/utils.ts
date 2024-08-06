@@ -33,3 +33,16 @@ export function appendLLMOptionsIfNeeded<
     headers.set("Authorization", `Bearer ${provider.token}`);
   }
 }
+
+/**
+ * Ensures that a callback is present in the request when using the LLM API.
+ *
+ * @template TBody - The type of the request body.
+ * @param {PublishRequest<TBody>} request - The request object to be validated.
+ * @throws {TypeError} Throws an error if the request is for the LLM API and the callback is missing.
+ */
+export function ensureCallbackPresent<TBody = unknown>(request: PublishRequest<TBody>) {
+  if (request.api?.name === "llm" && !request.callback) {
+    throw new TypeError("Callback cannot be undefined when using LLM");
+  }
+}

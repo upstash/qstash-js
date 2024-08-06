@@ -1,6 +1,6 @@
 import type { PublishRequest, PublishResponse } from "./client";
 import type { Requester } from "./http";
-import { appendLLMOptionsIfNeeded } from "./llm/utils";
+import { appendLLMOptionsIfNeeded, ensureCallbackPresent } from "./llm/utils";
 import { getRequestPath, prefixHeaders, processHeaders } from "./utils";
 
 export type QueueResponse = {
@@ -135,7 +135,9 @@ export class Queue {
     const headers = prefixHeaders(new Headers(request.headers));
     headers.set("Content-Type", "application/json");
 
-    //If needed, this allows users to directly pass their requests to any open-ai compatible 3rd party llm directly from sdk.
+    // Using LLMs without callbacks is meaningless, that's why we check before going further.
+    ensureCallbackPresent<TBody>(request);
+    // If needed, this allows users to directly pass their requests to any open-ai compatible 3rd party llm directly from sdk.
     appendLLMOptionsIfNeeded<TBody, TRequest>(request, headers);
 
     const response = await this.enqueue({
