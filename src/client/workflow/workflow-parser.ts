@@ -6,6 +6,8 @@ import {
 } from "./constants";
 import type { RawStep, Step } from "./types";
 import { nanoid } from "nanoid";
+import { verifyRequest } from "./workflow-requests";
+import type { Receiver } from "../../receiver";
 
 /**
  * Gets the request body. If that fails, returns undefined
@@ -118,7 +120,8 @@ export const validateRequest = (
  */
 export const parseRequest = async (
   request: Request,
-  isFirstInvocation: boolean
+  isFirstInvocation: boolean,
+  receiver?: Receiver
 ): Promise<{
   initialPayload: string;
   steps: Step[];
@@ -137,6 +140,7 @@ export const parseRequest = async (
     if (!payload) {
       throw new QstashWorkflowError("Only first call can have an empty body");
     }
+    await verifyRequest(payload, request.headers.get("upstash-signature"), receiver);
     const { initialPayload, steps } = parsePayload(payload);
 
     return {

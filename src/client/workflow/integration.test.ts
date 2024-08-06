@@ -18,8 +18,8 @@
  * ## With Local QStash Server
  *
  * To run the tests, you can locally run the QStash server at localhost:8000. Don't
- * forget to set the QSTASH_TOKEN and QSTASH_URL environemnt variables after
- * starting the server.
+ * forget to set the QSTASH_TOKEN, QSTASH_URL, QSTASH_CURRENT_SIGNING_KEY and
+ * QSTASH_NEXT_SIGNING_KEY environemnt variables after starting the server.
  *
  * ## With Ngrok
  *
@@ -30,7 +30,7 @@
  * `integration.yml` file with your token. Afterwards, run the bash script with:
  *
  * ```sh
- * bash integration.sh <QSTASH_URL> <QSTASH_TOKEN>
+ * bash integration.sh <QSTASH_URL> <QSTASH_TOKEN> <QSTASH_CURRENT_SIGNING_KEY> <QSTASH_NEXT_SIGNING_KEY>
  * ```
  *
  * You can find the values of these variables from Upstash console.
@@ -242,7 +242,7 @@ describe.skip("live serve tests", () => {
       const finishState = new FinishState();
       await testEndpoint<Invoice>({
         finalCount: 13,
-        waitFor: 20_000,
+        waitFor: 25_000,
         initialPayload: payload,
         finishState,
         routeFunction: async (context) => {
@@ -281,7 +281,7 @@ describe.skip("live serve tests", () => {
       });
     },
     {
-      timeout: 25_000,
+      timeout: 30_000,
     }
   );
 
@@ -291,7 +291,7 @@ describe.skip("live serve tests", () => {
       const finishState = new FinishState();
       await testEndpoint({
         finalCount: 4,
-        waitFor: 5000,
+        waitFor: 10_000,
         initialPayload: "my-payload",
         finishState,
         routeFunction: async (context) => {
@@ -322,7 +322,7 @@ describe.skip("live serve tests", () => {
       });
     },
     {
-      timeout: 10_000,
+      timeout: 12_000,
     }
   );
 
@@ -361,7 +361,7 @@ describe.skip("live serve tests", () => {
 
       const finishState = new FinishState();
       await testEndpoint({
-        finalCount: 6,
+        finalCount: 7,
         waitFor: 10_000,
         initialPayload: "my-payload",
         finishState,

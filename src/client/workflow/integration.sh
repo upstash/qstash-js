@@ -2,14 +2,16 @@
 
 # Check if enough arguments are provided
 if [ $# -lt 2 ]; then
-    echo "Please provide two arguments: MOCK_QSTASH_URL and MOCK_QSTASH_TOKEN."
-    echo "Usage: $0 <MOCK_QSTASH_URL> <MOCK_QSTASH_TOKEN>"
+    echo "Please provide the four arguments QStash parameters:"
+    echo "Usage: $0 <QSTASH_URL> <QSTASH_TOKEN> <QSTASH_CURRENT_SIGNING_KEY> <QSTASH_NEXT_SIGNING_KEY>"
     exit 1
 fi
 
 # Store the provided arguments
 MOCK_QSTASH_URL="$1"
 MOCK_QSTASH_TOKEN="$2"
+QSTASH_CURRENT_SIGNING_KEY="$3"
+QSTASH_NEXT_SIGNING_KEY="$4"
 
 echo "INFO: starting ngrok tunnel"
 
@@ -41,6 +43,8 @@ echo "INFO: integration.test.ts updated."
 # Set environment variables
 export MOCK_QSTASH_URL="$MOCK_QSTASH_URL"
 export MOCK_QSTASH_TOKEN="$MOCK_QSTASH_TOKEN"
+export QSTASH_CURRENT_SIGNING_KEY="$QSTASH_CURRENT_SIGNING_KEY"
+export QSTASH_NEXT_SIGNING_KEY="$QSTASH_NEXT_SIGNING_KEY"
 
 echo "INFO: running tests."
 

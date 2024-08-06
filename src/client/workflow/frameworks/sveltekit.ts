@@ -1,18 +1,20 @@
 import type { RequestHandler } from "@sveltejs/kit";
 
-import type { WorkflowServeParametersWithClient } from "../types";
+import type { WorkflowServeParametersExtended } from "../types";
 import { serve as serveBase } from "../serve";
 
 export const serve = <TInitialPayload = unknown>({
   routeFunction,
   options,
+  receiver,
   client,
-}: WorkflowServeParametersWithClient<TInitialPayload>): RequestHandler => {
+}: WorkflowServeParametersExtended<TInitialPayload>): RequestHandler => {
   const handler: RequestHandler = ({ request }) => {
     const serveMethod = serveBase<TInitialPayload>({
       routeFunction,
       options: {
-        client: client,
+        client,
+        receiver,
         ...options,
       },
     });

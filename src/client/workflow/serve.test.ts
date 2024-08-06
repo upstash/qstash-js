@@ -32,6 +32,7 @@ describe("serve", () => {
       options: {
         client,
         verbose: true,
+        receiver: false,
       },
     });
 
@@ -56,7 +57,7 @@ describe("serve", () => {
     });
   });
 
-  test.only("path endpoint", async () => {
+  test("path endpoint", async () => {
     const endpoint = serve<string>({
       routeFunction: async (context) => {
         const input = context.requestPayload;
@@ -73,6 +74,7 @@ describe("serve", () => {
       options: {
         client,
         verbose: true,
+        receiver: false,
       },
     });
 

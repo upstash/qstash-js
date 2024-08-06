@@ -6,7 +6,7 @@ Under the `src/routes` directory, you will find 5 folders, each corresponding to
 
 In each of these folders, you will find the `+server.ts` file which defines the workflow.
 
-To run the app locally, first set the environment variables `QSTASH_URL` and `QSTASH_TOKEN`. You can find the values of the env variables from the [Upstash Console](https://console.upstash.com/qstash). `QSTASH_URL` should be `https://qstash.upstash.io`. 
+To run the app locally, first set the environment variables `QSTASH_URL`, `QSTASH_TOKEN`, `QSTASH_CURRENT_SIGNING_KEY` and `QSTASH_NEXT_SIGNING_KEY`. You can find the values of the env variables from the [Upstash Console](https://console.upstash.com/qstash). `QSTASH_URL` should be `https://qstash.upstash.io`. 
 
 Once you have the environment variables set, you can run the project with:
 

@@ -14,7 +14,7 @@ To deploy the project at vercel and try the endpoints, you should start with set
 vercel
 ```
 
-Next, you shoud go to vercel.com, find your project and add `QSTASH_URL` and `QSTASH_TOKEN` to the project as environment variables. You can find these env variables from the [Upstash Console](https://console.upstash.com/qstash). `QSTASH_URL` should be `https://qstash.upstash.io`
+Next, you shoud go to vercel.com, find your project and add `QSTASH_URL`, `QSTASH_TOKEN`, `QSTASH_CURRENT_SIGNING_KEY` and `QSTASH_NEXT_SIGNING_KEY` to the project as environment variables. You can find these env variables from the [Upstash Console](https://console.upstash.com/qstash). `QSTASH_URL` should be `https://qstash.upstash.io`
 
 At this point, if you are using a released `@upstash/qstash` version, you can deploy the project with `vercel --prod`. If you are going to deploy the project with an `@upstash/qstash` version which is not released yet, you can go to the branch and run:
 

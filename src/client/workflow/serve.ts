@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
+import { Receiver } from "../../receiver";
 import { Client } from "../client";
 import { WorkflowContext } from "./context";
 import { WorkflowLogger } from "./logger";
@@ -27,39 +28,38 @@ const processOptions = <TResponse = Response, TInitialPayload = unknown>(
   options?: WorkflowServeOptions<TResponse, TInitialPayload>
 ): Required<WorkflowServeOptions<TResponse, TInitialPayload>> => {
   return {
-    client:
-      options?.client ??
-      new Client({
-        baseUrl: process.env.QSTASH_URL!,
-        token: process.env.QSTASH_TOKEN!,
-      }),
-    onStepFinish:
-      options?.onStepFinish ??
-      ((workflowId: string) =>
-        new Response(JSON.stringify({ workflowId }), { status: 200 }) as TResponse),
-    initialPayloadParser:
-      options?.initialPayloadParser ??
-      ((initialRequest: string) => {
-        // if there is no payload, simply return undefined
-        if (!initialRequest) {
-          return undefined as TInitialPayload;
-        }
+    client: new Client({
+      baseUrl: process.env.QSTASH_URL!,
+      token: process.env.QSTASH_TOKEN!,
+    }),
+    onStepFinish: (workflowId: string) =>
+      new Response(JSON.stringify({ workflowId }), { status: 200 }) as TResponse,
+    initialPayloadParser: (initialRequest: string) => {
+      // if there is no payload, simply return undefined
+      if (!initialRequest) {
+        return undefined as TInitialPayload;
+      }
 
-        // try to parse the payload
-        try {
-          return JSON.parse(initialRequest) as TInitialPayload;
-        } catch (error) {
-          // if you get an error when parsing, return it as it is
-          // needed in plain string case.
-          if (error instanceof SyntaxError) {
-            return initialRequest as TInitialPayload;
-          }
-          // if not JSON.parse error, throw error
-          throw error;
+      // try to parse the payload
+      try {
+        return JSON.parse(initialRequest) as TInitialPayload;
+      } catch (error) {
+        // if you get an error when parsing, return it as it is
+        // needed in plain string case.
+        if (error instanceof SyntaxError) {
+          return initialRequest as TInitialPayload;
         }
-      }),
-    url: options?.url ?? "",
-    verbose: options?.verbose ?? false,
+        // if not JSON.parse error, throw error
+        throw error;
+      }
+    },
+    url: "", // will be overwritten with request.url
+    verbose: false,
+    receiver: new Receiver({
+      currentSigningKey: process.env.QSTASH_CURRENT_SIGNING_KEY!,
+      nextSigningKey: process.env.QSTASH_NEXT_SIGNING_KEY!,
+    }),
+    ...options,
   };
 };
 
@@ -82,12 +82,13 @@ export const serve = <
   request: TRequest
 ) => Promise<TResponse>) => {
   // Prepares options with defaults if they are not provided.
-  const { client, onStepFinish, initialPayloadParser, url, verbose } = processOptions<
+  const { client, onStepFinish, initialPayloadParser, url, verbose, receiver } = processOptions<
     TResponse,
     TInitialPayload
   >(options);
 
   const debug = WorkflowLogger.getLogger(verbose);
+  const verify = receiver || undefined;
 
   /**
    * Handles the incoming request, triggering the appropriate workflow steps.
@@ -100,14 +101,14 @@ export const serve = <
    */
   return async (request: TRequest) => {
     await debug?.log("INFO", "ENDPOINT_START");
-    const callReturnCheck = await handleThirdPartyCallResult(request, client, debug);
+    const callReturnCheck = await handleThirdPartyCallResult(request, client, debug, verify);
 
     if (callReturnCheck.isErr()) {
       await debug?.log("ERROR", "SUBMIT_THIRD_PARTY_RESULT", { error: callReturnCheck.error });
       throw callReturnCheck.error;
     } else if (callReturnCheck.value === "continue-workflow") {
       const { isFirstInvocation, workflowId } = validateRequest(request);
-      const { initialPayload, steps } = await parseRequest(request, isFirstInvocation);
+      const { initialPayload, steps } = await parseRequest(request, isFirstInvocation, verify);
 
       const workflowContext = new WorkflowContext<TInitialPayload>({
         client,
