@@ -115,7 +115,16 @@ export const serve = <
       throw callReturnCheck.error;
     } else if (callReturnCheck.value === "continue-workflow") {
       const { isFirstInvocation, workflowRunId } = validateRequest(request);
-      const { initialPayload, steps } = await parseRequest(request, isFirstInvocation, verifier);
+      const { initialPayload, steps, isLastDuplicate } = await parseRequest(
+        request,
+        isFirstInvocation,
+        verifier,
+        debug
+      );
+
+      if (isLastDuplicate) {
+        return onStepFinish("no-workflow-id-duplicate-step");
+      }
 
       const workflowContext = new WorkflowContext<TInitialPayload>({
         client,
