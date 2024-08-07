@@ -1,6 +1,6 @@
 /* eslint-disable unicorn/no-null */
 /* eslint-disable @typescript-eslint/require-await */
-import { describe, test } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import { serve } from "./serve";
 import {
   driveWorkflow,
@@ -162,6 +162,88 @@ describe("serve", () => {
           },
         },
       ],
+    });
+  });
+
+  describe("duplicate checks", () => {
+    const endpoint = serve({
+      routeFunction: async (context) => {
+        const result1 = await context.run("step 1", async () => {
+          return await Promise.resolve("result 1");
+        });
+        const result2 = await context.run("step 2", async () => {
+          return await Promise.resolve("result 2");
+        });
+        await context.run("step 3", async () => {
+          return await Promise.resolve(`combined results: ${[result1, result2]}`);
+        });
+      },
+      options: {
+        client,
+        receiver: false,
+      },
+    });
+
+    test("should return without doing anything when the last step is duplicate", async () => {
+      // prettier-ignore
+      const stepsWithDuplicate: Step[] = [
+        {stepId: 1, stepName: "step 1", stepType: "Run", out: "result 1", concurrent: 1, targetStep: 0},
+        {stepId: 2, stepName: "step 2", stepType: "Run", out: "result 2", concurrent: 1, targetStep: 0},
+        {stepId: 2, stepName: "step 2", stepType: "Run", out: "result 2", concurrent: 1, targetStep: 0}, // duplicate
+      ]
+      const request = getRequest(WORKFLOW_ENDPOINT, "wfr-foo", "my-payload", stepsWithDuplicate);
+      let called = false;
+      await mockQstashServer({
+        execute: async () => {
+          const response = await endpoint(request);
+          const { workflowRunId } = (await response.json()) as { workflowRunId: string };
+          expect(workflowRunId).toBe("no-workflow-id-duplicate-step");
+          called = true;
+        },
+        responseFields: { body: { messageId: "some-message-id" }, status: 200 },
+        receivesRequest: false,
+      });
+      expect(called).toBeTrue();
+    });
+
+    test("should remove duplicate middle step and continue executing", async () => {
+      // prettier-ignore
+      const stepsWithDuplicate: Step[] = [
+        {stepId: 1, stepName: "step 1", stepType: "Run", out: "result 1", concurrent: 1, targetStep: 0},
+        {stepId: 1, stepName: "step 1", stepType: "Run", out: "result 1", concurrent: 1, targetStep: 0}, // duplicate
+        {stepId: 2, stepName: "step 2", stepType: "Run", out: "result 2", concurrent: 1, targetStep: 0}, 
+      ]
+      const request = getRequest(WORKFLOW_ENDPOINT, "wfr-foo", "my-payload", stepsWithDuplicate);
+      let called = false;
+      await mockQstashServer({
+        execute: async () => {
+          const response = await endpoint(request);
+          const { workflowRunId } = (await response.json()) as { workflowRunId: string };
+          expect(workflowRunId).toBe("wfr-foo");
+          called = true;
+        },
+        responseFields: { body: { messageId: "some-message-id" }, status: 200 },
+        receivesRequest: {
+          method: "POST",
+          url: `${MOCK_QSTASH_SERVER_URL}/v2/batch`,
+          token,
+          body: [
+            {
+              destination: WORKFLOW_ENDPOINT,
+              headers: {
+                "content-type": "application/json",
+                "upstash-forward-upstash-workflow-sdk-version": "1",
+                "upstash-method": "POST",
+                "upstash-workflow-init": "false",
+                "upstash-workflow-runid": "wfr-foo",
+                "upstash-workflow-url": WORKFLOW_ENDPOINT,
+              },
+              body: '{"stepId":3,"stepName":"step 3","stepType":"Run","out":"combined results: result 1,result 2","concurrent":1,"targetStep":0}',
+            },
+          ],
+        },
+      });
+      expect(called).toBeTrue();
     });
   });
 });

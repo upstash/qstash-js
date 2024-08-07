@@ -122,14 +122,14 @@ export const handleThirdPartyCallResult = async (
   request: Request,
   client: Client,
   debug?: WorkflowLogger,
-  receiver?: Receiver
+  verifier?: Receiver
 ): Promise<
   Ok<"is-call-return" | "continue-workflow" | "call-will-retry", never> | Err<never, Error>
 > => {
   try {
     if (request.headers.get("Upstash-Workflow-Callback")) {
       const callbackBody = await request.text();
-      await verifyRequest(callbackBody, request.headers.get("upstash-signature"), receiver);
+      await verifyRequest(callbackBody, request.headers.get("upstash-signature"), verifier);
 
       const callbackMessage = JSON.parse(callbackBody) as {
         status: number;
@@ -285,15 +285,15 @@ export const getHeaders = (
 export const verifyRequest = async (
   body: string,
   signature: string | null,
-  receiver?: Receiver
+  verifier?: Receiver
 ) => {
-  if (!receiver) {
+  if (!verifier) {
     return;
   }
   if (!signature) {
     throw new QstashWorkflowError("`Upstash-Signature` header is not a string");
   }
-  const isValid = await receiver.verify({
+  const isValid = await verifier.verify({
     body,
     signature,
   });

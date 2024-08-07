@@ -2,7 +2,10 @@
 
 This project has some routes showcasing how Qstash Workflow can be used in a nextjs project.
 
-Under the app directory, you will find 5 folders, each corresponding to a workflow API.
+Under the app directory, you will find 10 folders, each corresponding to a workflow API except the `-call-qstash` and `call-endpoint`. Here is what these two endpoints do:
+- `-call-qstash`: the user calls `-call-qstash` with information about which endpoint is to be called in the body. `-call-qstash` publishes a message to QStash. QStash then calls the specified endpoint.
+- `call-endpoint`: used in the `call` endpoint as the third party endpoint called by QStash
+using the `context.call` method.
 
 In each of these folders, you will find the `route.ts` file which defines the workflow.
 

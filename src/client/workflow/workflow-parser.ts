@@ -8,6 +8,7 @@ import type { RawStep, Step } from "./types";
 import { nanoid } from "nanoid";
 import { verifyRequest } from "./workflow-requests";
 import type { Receiver } from "../../receiver";
+import type { WorkflowLogger } from "./logger";
 
 /**
  * Gets the request body. If that fails, returns undefined
@@ -49,12 +50,8 @@ const decodeBase64 = (encodedString: string) => {
 const parsePayload = (rawPayload: string) => {
   const [encodedInitialPayload, ...encodedSteps] = JSON.parse(rawPayload) as RawStep[];
 
-  const stepsToDecode = encodedSteps.filter((step) => step.callType === "step");
-
+  // decode initial payload:
   const initialPayload = decodeBase64(encodedInitialPayload.body);
-  const steps = stepsToDecode.map((rawStep) => {
-    return JSON.parse(decodeBase64(rawStep.body)) as Step;
-  });
   const initialStep: Step = {
     stepId: 0,
     stepName: "init",
@@ -63,10 +60,91 @@ const parsePayload = (rawPayload: string) => {
     concurrent: 1,
     targetStep: 0,
   };
+
+  // remove "toCallback" and "fromCallback" steps:
+  const stepsToDecode = encodedSteps.filter((step) => step.callType === "step");
+
+  // decode & parse other steps:
+  const otherSteps = stepsToDecode.map((rawStep) => {
+    return JSON.parse(decodeBase64(rawStep.body)) as Step;
+  });
+
+  // join and deduplicate steps:
+  const steps: Step[] = [initialStep, ...otherSteps];
   return {
     initialPayload,
-    steps: [initialStep, ...steps],
+    steps,
   };
+};
+
+/**
+ * Our steps list can potentially have duplicates. In this case, the
+ * workflow SDK should get rid of the duplicates
+ *
+ * There are two potentials cases:
+ * 1. Two results steps with equal stepId fields.
+ * 2. Two plan steps with equal targetStep fields.
+ *
+ * @param steps steps with possible duplicates
+ * @returns
+ */
+const deduplicateSteps = (steps: Step[]): Step[] => {
+  const targetStepIds: number[] = [];
+  const stepIds: number[] = [];
+  const deduplicatedSteps: Step[] = [];
+
+  for (const step of steps) {
+    if (step.stepId === 0) {
+      // Step is a plan step
+      if (!targetStepIds.includes(step.targetStep)) {
+        deduplicatedSteps.push(step);
+        targetStepIds.push(step.targetStep);
+      }
+    } else {
+      // Step is a result step
+      if (!stepIds.includes(step.stepId)) {
+        deduplicatedSteps.push(step);
+        stepIds.push(step.stepId);
+      }
+    }
+  }
+
+  return deduplicatedSteps;
+};
+
+/**
+ * Checks if the last step is duplicate. If so, we will discard
+ * this call.
+ *
+ * @param steps steps list to check
+ * @returns boolean denoting whether the last one is duplicate
+ */
+const checkIfLastOneIsDuplicate = async (
+  steps: Step[],
+  debug?: WorkflowLogger
+): Promise<boolean> => {
+  // return false if the length is 0 or 1
+  // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+  if (steps.length < 2) {
+    return false;
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+  const lastStep = steps.at(-1)!;
+  const lastStepId = lastStep.stepId;
+  const lastTargetStepId = lastStep.targetStep;
+  for (let index = 0; index < steps.length - 1; index++) {
+    const step = steps[index];
+    if (step.stepId === lastStepId && step.targetStep === lastTargetStepId) {
+      const message =
+        `Qstash Workflow: The step '${step.stepName}' with id '${step.stepId}'` +
+        "  has run twice during workflow execution. Rest of the workflow will continue running as usual.";
+      await debug?.log("WARN", "RESPONSE_DEFAULT", message);
+      console.warn(message);
+      return true;
+    }
+  }
+  return false;
 };
 
 /**
@@ -121,31 +199,37 @@ export const validateRequest = (
 export const parseRequest = async (
   request: Request,
   isFirstInvocation: boolean,
-  receiver?: Receiver
+  verifier?: Receiver,
+  debug?: WorkflowLogger
 ): Promise<{
   initialPayload: string;
   steps: Step[];
+  isLastDuplicate: boolean;
 }> => {
   // get payload as raw string
   const payload = await getPayload(request);
+  await verifyRequest(payload ?? "", request.headers.get("upstash-signature"), verifier);
 
   if (isFirstInvocation) {
     // if first invocation, return and `serve` will handle publishing the JSON to QStash
     return {
       initialPayload: payload ?? "",
       steps: [],
+      isLastDuplicate: false,
     };
-    // if not the first invocation, make sure that body is not empty and parse payload
   } else {
+    // if not the first invocation, make sure that body is not empty and parse payload
     if (!payload) {
       throw new QstashWorkflowError("Only first call can have an empty body");
     }
-    await verifyRequest(payload, request.headers.get("upstash-signature"), receiver);
     const { initialPayload, steps } = parsePayload(payload);
+    const isLastDuplicate = await checkIfLastOneIsDuplicate(steps, debug);
+    const deduplicatedSteps = deduplicateSteps(steps);
 
     return {
       initialPayload,
-      steps,
+      steps: deduplicatedSteps,
+      isLastDuplicate,
     };
   }
 };

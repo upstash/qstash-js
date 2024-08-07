@@ -63,14 +63,18 @@ watch(baseUrl, (newVal) => {
 
 const handleSend = async () => {
   loading.value = true;
-  const url = `${baseUrl.value}/api/${route.value}`;
+  const url = `${baseUrl.value}/api/callQstash`;
   try {
     const response = await fetch(url, {
       headers: {
         'Content-Type': 'application/json'
       },
       method: "POST",
-      body: requestBody.value
+        body: JSON.stringify({
+          baseUrl: baseUrl.value,
+          route: route.value,
+          payload: requestBody.value
+        })
     });
     console.log('Response:', await response.json());
   } catch (error) {

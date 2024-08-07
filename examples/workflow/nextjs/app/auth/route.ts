@@ -1,5 +1,5 @@
 
-import { serve } from "@upstash/qstash/workflow/nextjs";
+import { serve } from "@upstash/qstash/nextjs";
 
 export const POST = serve<string>({
   routeFunction: async context => {

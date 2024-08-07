@@ -13,6 +13,8 @@ There are three alternatives:
 
 ### `bootstrap.sh` Script
 
+First, set the environment variables `QSTASH_TOKEN`, `QSTASH_URL`, `QSTASH_CURRENT_SIGNING_KEY` and `QSTASH_NEXT_SIGNING_KEY`.
+
 The `bootstrap.sh` script makes it possible to start an examplew workflow project and create a Ngrok tunnel in one script. To run it, simply choose the framework and the endpoint you would like to choose as default:
 
 ```
