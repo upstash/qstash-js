@@ -1,5 +1,7 @@
 export type State = "CREATED" | "ACTIVE" | "DELIVERED" | "ERROR" | "RETRY" | "FAILED";
 
+export type HTTPMethods = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
+
 export type Event = {
   time: number;
   state: State;

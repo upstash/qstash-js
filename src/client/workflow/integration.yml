@@ -1,0 +1,9 @@
+authtoken: <auth-token>
+version: 2
+tunnels:
+  first:
+    addr: 3000
+    proto: http
+  second:
+    addr: 3001
+    proto: http

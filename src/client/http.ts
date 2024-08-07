@@ -5,7 +5,7 @@ import {
   QstashChatRatelimitError,
   QstashDailyRatelimitError,
 } from "./error";
-import type { BodyInit, HeadersInit, RequestOptions } from "./types";
+import type { BodyInit, HeadersInit, HTTPMethods, RequestOptions } from "./types";
 import type { ChatCompletionChunk } from "./llm/types";
 
 export type UpstashRequest = {
@@ -33,7 +33,7 @@ export type UpstashRequest = {
   /**
    * A string to set request's method.
    */
-  method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
+  method?: HTTPMethods;
 
   query?: Record<string, string | number | boolean | undefined>;
 

@@ -1,6 +1,9 @@
 import type { RequestHandler } from "@sveltejs/kit";
 import { Receiver } from "../src";
 
+import type { WorkflowServeParametersExtended } from "../src/client/workflow";
+import { serve as serveBase } from "../src/client/workflow";
+
 type VerifySignatureConfig = {
   currentSigningKey: string;
   nextSigningKey: string;
@@ -47,4 +50,25 @@ export const verifySignatureSvelte = <
     return handler(event);
   };
   return wrappedHandler;
+};
+
+export const serve = <TInitialPayload = unknown>({
+  routeFunction,
+  options,
+  receiver,
+  client,
+}: WorkflowServeParametersExtended<TInitialPayload>): RequestHandler => {
+  const handler: RequestHandler = ({ request }) => {
+    const serveMethod = serveBase<TInitialPayload>({
+      routeFunction,
+      options: {
+        client,
+        receiver,
+        ...options,
+      },
+    });
+    return serveMethod(request);
+  };
+
+  return handler;
 };

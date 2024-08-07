@@ -47,6 +47,11 @@
       "types": "./solidjs.d.ts",
       "import": "./solidjs.mjs",
       "require": "./solidjs.js"
+    },
+    "./workflow": {
+      "types": "./workflow.d.ts",
+      "import": "./workflow.mjs",
+      "require": "./workflow.js"
     }
   },
   "typesVersions": {
@@ -82,6 +87,7 @@
     "eslint": "^8",
     "eslint-plugin-unicorn": "^51.0.1",
     "husky": "^9.0.10",
+    "neverthrow": "^7.0.0",
     "next": "^14.0.2",
     "prettier": "^3.2.5",
     "tsup": "latest",

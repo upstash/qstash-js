@@ -187,7 +187,7 @@ describe("E2E Queue", () => {
         endpoints: [{ url: "https://example.com/", name: "first" }],
       });
 
-      await client.batch([
+      const result = await client.batch([
         {
           urlGroup: urlGroup,
           body: "message",
@@ -198,6 +198,32 @@ describe("E2E Queue", () => {
           queueName,
         },
       ]);
+      expect(Array.isArray(result)).toBeTrue();
+      await client.queue({ queueName }).delete();
+    },
+    { timeout: 35_000 }
+  );
+
+  test(
+    "should return batch result as array when there is a single item",
+    async () => {
+      const queueName = nanoid();
+      const urlGroup = nanoid();
+
+      await client.queue({ queueName }).upsert({ parallelism: 1 });
+      await client.urlGroups.addEndpoints({
+        name: urlGroup,
+        endpoints: [{ url: "https://example.com/", name: "first" }],
+      });
+
+      const result = await client.batch([
+        {
+          urlGroup: urlGroup,
+          body: "message",
+          queueName,
+        },
+      ]);
+      expect(Array.isArray(result)).toBeTrue();
       await client.queue({ queueName }).delete();
     },
     { timeout: 35_000 }
