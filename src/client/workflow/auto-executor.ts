@@ -119,7 +119,7 @@ export class AutoExecutor {
       return step.out as TResult;
     }
 
-    const resultStep = await lazyStep.getResultStep(this.stepCount, true);
+    const resultStep = await lazyStep.getResultStep(1, this.stepCount);
 
     await this.debug?.log("INFO", "RUN_SINGLE", {
       fromRequest: false,
@@ -207,8 +207,8 @@ export class AutoExecutor {
         validateStep(parallelSteps[stepIndex], planStep);
         try {
           const resultStep = await parallelSteps[stepIndex].getResultStep(
-            planStep.targetStep,
-            false
+            parallelSteps.length,
+            planStep.targetStep
           );
           await this.submitStepsToQstash([resultStep]);
         } catch (error) {
@@ -323,6 +323,10 @@ export class AutoExecutor {
           this.context.headers,
           singleStep
         );
+
+        // if the step is a single step execution or a plan step, we can add sleep headers
+        const willWait = singleStep.concurrent === 1 || singleStep.stepId === 0;
+
         return singleStep.callUrl
           ? // if the step is a third party call, we call the third party
             // url (singleStep.callUrl) and pass information about the workflow
@@ -344,8 +348,8 @@ export class AutoExecutor {
               method: "POST",
               body: singleStep,
               url: this.context.url,
-              notBefore: singleStep.sleepUntil,
-              delay: singleStep.sleepFor,
+              notBefore: willWait ? singleStep.sleepUntil : undefined,
+              delay: willWait ? singleStep.sleepFor : undefined,
             };
       })
     );

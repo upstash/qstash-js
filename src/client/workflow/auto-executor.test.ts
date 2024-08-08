@@ -73,14 +73,16 @@ describe("auto-executor", () => {
       stepId: 1,
       stepName: "sleep for some time",
       stepType: "SleepFor",
-      concurrent: 1,
+      sleepFor: 123,
+      concurrent: 2,
       targetStep: 0,
     },
     {
       stepId: 2,
       stepName: "sleep until next day",
       stepType: "SleepUntil",
-      concurrent: 1,
+      sleepUntil: 123_123,
+      concurrent: 2,
       targetStep: 0,
     },
   ];
