@@ -165,6 +165,35 @@ describe("serve", () => {
     });
   });
 
+  test.only("should return 500 on error during step execution", async () => {
+    const endpoint = serve({
+      routeFunction: async (context) => {
+        await context.run("wrong step", async () => {
+          throw new Error("some-error");
+        });
+      },
+      options: {
+        client,
+        receiver: false,
+      },
+    });
+
+    const request = getRequest(WORKFLOW_ENDPOINT, "wfr-bar", "my-payload", []);
+    let called = false;
+    await mockQstashServer({
+      execute: async () => {
+        // endpoint will throw an error, which will result in a 500 response
+        // when used as an actual endpoint
+        const throws = endpoint(request);
+        expect(throws).rejects.toThrow("some-error");
+        called = true;
+      },
+      responseFields: { body: { messageId: "some-message-id" }, status: 200 },
+      receivesRequest: false,
+    });
+    expect(called).toBeTrue();
+  });
+
   describe("duplicate checks", () => {
     const endpoint = serve({
       routeFunction: async (context) => {
