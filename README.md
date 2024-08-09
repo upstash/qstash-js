@@ -55,11 +55,11 @@ import { Client } from "@upstash/qstash";
  */
 import "isomorphic-fetch";
 
-const c = new Client({
+const client = new Client({
   token: "<QSTASH_TOKEN>",
 });
 
-const res = await c.publishJSON({
+const res = await client.publishJSON({
   url: "https://my-api...",
   // or urlGroup: "the name or id of a url group"
   body: {
@@ -107,7 +107,7 @@ No need for complicated setup your LLM request. We'll call LLM and schedule it f
 ```ts
 import { Client, openai } from "@upstash/qstash";
 
-const c = new Client({
+const client = new Client({
   token: "<QSTASH_TOKEN>",
 });
 
@@ -133,7 +133,7 @@ You can easily start streaming Upstash or OpenAI responses from your favorite fr
 ```ts
 import { Client, upstash } from "@upstash/qstash";
 
-const c = new Client({
+const client = new Client({
   token: "<QSTASH_TOKEN>",
 });
 
@@ -166,7 +166,7 @@ To enable Helicone observability in QStash, you simply need to pass your Helicon
 ```ts
 import { Client, custom } from "@upstash/qstash";
 
-const c = new Client({
+const client = new Client({
   token: "<QSTASH_TOKEN>",
 });
 
@@ -192,10 +192,6 @@ await client.publishJSON({
 });
 ```
 
-```
-
-### Adding
-
 ## Docs
 
 See [the documentation](https://docs.upstash.com/qstash) for details.
@@ -203,4 +199,7 @@ See [the documentation](https://docs.upstash.com/qstash) for details.
 ## Contributing
 
 ### [Install Deno](https://deno.land/#installation)
+
+```
+
 ```
