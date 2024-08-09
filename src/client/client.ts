@@ -182,7 +182,11 @@ export type PublishRequest<TBody = BodyInit> = {
       /**
        * The api endpoint the request should be sent to.
        */
-      api: { name: "llm"; provider?: ProviderReturnType };
+      api: {
+        name: "llm";
+        provider?: ProviderReturnType;
+        analytics?: { name: "helicone"; token: string };
+      };
       /**
        * Use a callback url to forward the response of your destination server to your callback url.
        *

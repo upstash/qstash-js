@@ -1,4 +1,5 @@
 import type { PublishRequest } from "../client";
+import { analyticsBaseUrlMap } from "./providers";
 
 /**
  * Appends necessary LLM (Language Model) options such as the required token and authorization header to the request.
@@ -17,6 +18,7 @@ export function appendLLMOptionsIfNeeded<
   TRequest extends PublishRequest<TBody> = PublishRequest<TBody>,
 >(request: TRequest, headers: Headers) {
   //If the provider owner is "upstash", switch request API to "llm" and exit the function.
+
   if (request.api?.provider?.owner === "upstash") {
     request.api = { name: "llm" };
     return;
@@ -29,8 +31,24 @@ export function appendLLMOptionsIfNeeded<
     if (!provider?.baseUrl) throw new Error("baseUrl cannot be empty or undefined!");
     if (!provider.token) throw new Error("token cannot be empty or undefined!");
 
-    request.url = `${provider.baseUrl}/v1/chat/completions`;
-    headers.set("Authorization", `Bearer ${provider.token}`);
+    if (request.api.analytics) {
+      const analyticsToken = request.api.analytics.token;
+      const analyticsName = request.api.analytics.name;
+      const { baseURL, headers: defaultHeaders } = analyticsBaseUrlMap(
+        analyticsName,
+        analyticsToken,
+        provider.token,
+        provider.baseUrl
+      );
+
+      request.url = baseURL;
+      headers.set("Helicone-Auth", defaultHeaders["Helicone-Auth"]);
+      headers.set("Helicone-Target-Url", defaultHeaders["Helicone-Target-Url"]);
+      headers.set("Authorization", defaultHeaders.Authorization);
+    } else {
+      request.url = `${provider.baseUrl}/v1/chat/completions`;
+      headers.set("Authorization", `Bearer ${provider.token}`);
+    }
   }
 }
 

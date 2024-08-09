@@ -4,6 +4,24 @@ export type ProviderReturnType = {
   token: string;
 };
 
+export const analyticsBaseUrlMap = (
+  analyticsName: "helicone",
+  analyticsToken: string,
+  providerApiKey: string,
+  providerBaseUrl: string
+) => {
+  return {
+    helicone: {
+      baseURL: "https://gateway.helicone.ai/v1/chat/completions",
+      headers: {
+        "Helicone-Auth": `Bearer ${analyticsToken}`,
+        "Helicone-Target-Url": providerBaseUrl,
+        Authorization: `Bearer ${providerApiKey}`,
+      },
+    },
+  }[analyticsName];
+};
+
 const upstash = (): {
   owner: "upstash";
   baseUrl: "https://qstash.upstash.io/llm";
