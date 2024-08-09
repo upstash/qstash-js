@@ -1,4 +1,6 @@
 import type { Requester } from "../http";
+import type { HeadersInit } from "../types";
+import { analyticsBaseUrlMap } from "./providers";
 import type {
   ChatCompletion,
   ChatCompletionChunk,
@@ -84,6 +86,7 @@ export class Chat {
    * @param request ChatRequest with messages
    * @returns Chat completion or stream
    */
+  // eslint-disable-next-line @typescript-eslint/require-await
   private createThirdParty = async <TStream extends StreamParameter>(
     request: ChatRequest<TStream>
   ): Promise<
@@ -97,35 +100,49 @@ export class Chat {
     //@ts-expect-error We need to delete the prop, otherwise openai throws an error
     delete request.system;
 
+    const analytics = request.analytics;
+    //We need to delete the prop, otherwise openai or other llm providers throws an error
+    delete request.analytics;
+
     const body = JSON.stringify(request);
 
-    if ("stream" in request && request.stream) {
-      // @ts-expect-error when req.stream, we return ChatCompletion
-      return this.http.requestStream({
-        path: ["v1", "chat", "completions"],
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Connection: "keep-alive",
-          Accept: "text/event-stream",
-          "Cache-Control": "no-cache",
-          Authorization: `Bearer ${token}`,
-        },
-        body,
-        baseUrl,
-      });
-    }
+    // Configures analytics headers and baseURL if analytics are provided, otherwise uses defaults
+    const isAnalyticsEnabled = analytics?.name && analytics.token;
 
-    return this.http.request({
-      path: ["v1", "chat", "completions"],
+    const analyticsConfig =
+      // This is exact copy of "isAnalyticsEnabled" but required in order to satify ts
+      analytics?.name && analytics.token
+        ? analyticsBaseUrlMap(analytics.name, analytics.token, token, baseUrl)
+        : { headers: undefined, baseURL: baseUrl };
+
+    // Configures stream headers if stream is enabled
+    const isStream = "stream" in request && request.stream;
+
+    const headers: HeadersInit = {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+      ...(isStream
+        ? {
+            Connection: "keep-alive",
+            Accept: "text/event-stream",
+            "Cache-Control": "no-cache",
+          }
+        : {}),
+      ...analyticsConfig.headers,
+    };
+
+    const response = await this.http[isStream ? "requestStream" : "request"]({
+      path: isAnalyticsEnabled ? [] : ["v1", "chat", "completions"],
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
+      headers: headers,
       body,
-      baseUrl,
+      baseUrl: analyticsConfig.baseURL,
     });
+
+    // Requiredassertion to satisfy ts
+    return response as TStream extends StreamEnabled
+      ? AsyncIterable<ChatCompletionChunk>
+      : ChatCompletion;
   };
 
   /**
