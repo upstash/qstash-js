@@ -5,6 +5,7 @@ import { MOCK_QSTASH_SERVER_URL, mockQstashServer, WORKFLOW_ENDPOINT } from "./t
 import { WorkflowContext } from "./context";
 import { Client } from "../client";
 import { nanoid } from "nanoid";
+import { QstashWorkflowError } from "../error";
 
 describe("context tests", () => {
   const token = nanoid();
@@ -27,7 +28,9 @@ describe("context tests", () => {
       });
     };
     expect(throws).toThrow(
-      "A step can not be run inside another step. Tried to run 'inner step' inside 'outer step'"
+      new QstashWorkflowError(
+        "A step can not be run inside another step. Tried to run 'inner step' inside 'outer step'"
+      )
     );
   });
 
@@ -47,7 +50,9 @@ describe("context tests", () => {
       });
     };
     expect(throws).toThrow(
-      "A step can not be run inside another step. Tried to run 'inner sleep' inside 'outer step'"
+      new QstashWorkflowError(
+        "A step can not be run inside another step. Tried to run 'inner sleep' inside 'outer step'"
+      )
     );
   });
 
@@ -67,7 +72,9 @@ describe("context tests", () => {
       });
     };
     expect(throws).toThrow(
-      "A step can not be run inside another step. Tried to run 'inner sleepUntil' inside 'outer step'"
+      new QstashWorkflowError(
+        "A step can not be run inside another step. Tried to run 'inner sleepUntil' inside 'outer step'"
+      )
     );
   });
 
@@ -87,7 +94,9 @@ describe("context tests", () => {
       });
     };
     expect(throws).toThrow(
-      "A step can not be run inside another step. Tried to run 'inner call' inside 'outer step'"
+      new QstashWorkflowError(
+        "A step can not be run inside another step. Tried to run 'inner call' inside 'outer step'"
+      )
     );
   });
 

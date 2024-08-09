@@ -6,7 +6,7 @@ import { MOCK_QSTASH_SERVER_URL, mockQstashServer, WORKFLOW_ENDPOINT } from "./t
 import { nanoid } from "nanoid";
 import { AutoExecutor } from "./auto-executor";
 import type { Step } from "./types";
-import { QstashWorkflowAbort } from "../error";
+import { QstashWorkflowAbort, QstashWorkflowError } from "../error";
 
 class SpyAutoExecutor extends AutoExecutor {
   public declare getParallelCallState;
@@ -421,6 +421,125 @@ describe("auto-executor", () => {
       expect(lazySteps[1].stepType).toBe("SleepUntil");
       expect(lazySteps[0].stepName).toBe("sleep for some time");
       expect(lazySteps[1].stepName).toBe("sleep until next day");
+    });
+  });
+
+  describe("should throw error when step name/type changes", () => {
+    describe("single step", () => {
+      test("step name", () => {
+        const context = getContext([initialStep, singleStep]);
+
+        const throws = context.run("wrongName", async () => {
+          return await Promise.resolve(true);
+        });
+        expect(throws).rejects.toThrow(
+          new QstashWorkflowError(
+            "Incompatible step name. Expected 'wrongName', got 'attemptCharge' from the request"
+          )
+        );
+      });
+      test("step type", () => {
+        const context = getContext([initialStep, singleStep]);
+        const throws = context.sleep("attemptCharge", 10);
+        expect(throws).rejects.toThrow(
+          new QstashWorkflowError(
+            "Incompatible step type. Expected 'SleepFor', got 'Run' from the request"
+          )
+        );
+      });
+    });
+
+    describe("paralel with ParallelCallState: partial", () => {
+      test("step name", () => {
+        const context = getContext([initialStep, parallelSteps[0]]);
+        expect(context.executor.getParallelCallState(2, 1)).toBe("partial");
+
+        const throws = Promise.all([
+          context.sleep("wrongName", 10), // wrong step name
+          context.sleepUntil("sleep until next day", 123_123),
+        ]);
+        expect(throws).rejects.toThrow(
+          new QstashWorkflowError(
+            "Incompatible step name. Expected 'wrongName', got 'sleep for some time' from the request"
+          )
+        );
+      });
+      test("step type", () => {
+        const context = getContext([initialStep, parallelSteps[0]]);
+        expect(context.executor.getParallelCallState(2, 1)).toBe("partial");
+
+        const throws = Promise.all([
+          context.sleepUntil("sleep for some time", 10), // wrong step type
+          context.sleepUntil("sleep until next day", 123_123),
+        ]);
+        expect(throws).rejects.toThrow(
+          new QstashWorkflowError(
+            "Incompatible step type. Expected 'SleepUntil', got 'SleepFor' from the request"
+          )
+        );
+      });
+    });
+
+    describe("shouldn't throw incompatibility error when paralel with ParallelCallState: discard", () => {
+      test("step name", () => {
+        const context = getContext([initialStep, ...parallelSteps.slice(0, 3)]);
+        expect(context.executor.getParallelCallState(2, 1)).toBe("discard");
+
+        const throws = Promise.all([
+          context.sleep("wrongName", 10), // wrong step name
+          context.sleepUntil("sleep until next day", 123_123),
+        ]);
+        expect(throws).rejects.toThrowError(QstashWorkflowAbort);
+      });
+      test("step type", () => {
+        const context = getContext([initialStep, ...parallelSteps.slice(0, 3)]);
+        expect(context.executor.getParallelCallState(2, 1)).toBe("discard");
+
+        const throws = Promise.all([
+          context.sleepUntil("sleep for some time", 10), // wrong step type
+          context.sleepUntil("sleep until next day", 123_123),
+        ]);
+        expect(throws).rejects.toThrowError(QstashWorkflowAbort);
+      });
+    });
+
+    describe("paralel with ParallelCallState: last", () => {
+      test("step name", () => {
+        const context = getContext([initialStep, ...parallelSteps]);
+        expect(context.executor.getParallelCallState(2, 1)).toBe("last");
+
+        const throws = Promise.all([
+          context.sleep("wrongName", 10), // wrong step name
+          context.sleepUntil("sleep until next day", 123_123),
+        ]);
+        expect(throws).rejects.toThrowError(
+          new QstashWorkflowError(
+            "Incompatible steps detected in parallel execution: Incompatible step name. Expected 'wrongName', got 'sleep for some time' from the request\n" +
+              '  > Step Names from the request: ["sleep for some time","sleep until next day"]\n' +
+              '    Step Types from the request: ["SleepFor","SleepUntil"]\n' +
+              '  > Step Names expected: ["wrongName","sleep until next day"]\n' +
+              '    Step Types expected: ["SleepFor","SleepUntil"]'
+          )
+        );
+      });
+      test("step type", () => {
+        const context = getContext([initialStep, ...parallelSteps]);
+        expect(context.executor.getParallelCallState(2, 1)).toBe("last");
+
+        const throws = Promise.all([
+          context.sleepUntil("sleep for some time", 10), // wrong step type
+          context.sleepUntil("sleep until next day", 123_123),
+        ]);
+        expect(throws).rejects.toThrowError(
+          new QstashWorkflowError(
+            "Incompatible steps detected in parallel execution: Incompatible step type. Expected 'SleepUntil', got 'SleepFor' from the request\n" +
+              '  > Step Names from the request: ["sleep for some time","sleep until next day"]\n' +
+              '    Step Types from the request: ["SleepFor","SleepUntil"]\n' +
+              '  > Step Names expected: ["sleep for some time","sleep until next day"]\n' +
+              '    Step Types expected: ["SleepUntil","SleepUntil"]'
+          )
+        );
+      });
     });
   });
 });

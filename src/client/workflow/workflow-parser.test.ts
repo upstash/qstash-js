@@ -9,6 +9,7 @@ import {
 import { nanoid } from "nanoid";
 import type { Step } from "./types";
 import { getRequest, WORKFLOW_ENDPOINT } from "./test-utils";
+import { QstashWorkflowError } from "../error";
 
 describe("Workflow Parser", () => {
   describe("validateRequest", () => {
@@ -47,7 +48,7 @@ describe("Workflow Parser", () => {
       });
 
       const throws = () => validateRequest(request);
-      expect(throws).toThrow("Couldn't get workflow id from header");
+      expect(throws).toThrow(new QstashWorkflowError("Couldn't get workflow id from header"));
     });
 
     test("should throw when protocol version is incompatible", () => {
@@ -60,8 +61,10 @@ describe("Workflow Parser", () => {
 
       const throws = () => validateRequest(request);
       expect(throws).toThrow(
-        `Incompatible workflow sdk protocol version.` +
-          ` Expected ${WORKFLOW_PROTOCOL_VERSION}, got ${requestProtocol} from the request.`
+        new QstashWorkflowError(
+          `Incompatible workflow sdk protocol version.` +
+            ` Expected ${WORKFLOW_PROTOCOL_VERSION}, got ${requestProtocol} from the request.`
+        )
       );
     });
 
@@ -101,7 +104,9 @@ describe("Workflow Parser", () => {
       const request = new Request(WORKFLOW_ENDPOINT);
       // isFirstInvocation = false:
       const throws = parseRequest(request, false);
-      expect(throws).rejects.toThrow("Only first call can have an empty body");
+      expect(throws).rejects.toThrow(
+        new QstashWorkflowError("Only first call can have an empty body")
+      );
     });
 
     test("should return steps and initial payload correctly", async () => {

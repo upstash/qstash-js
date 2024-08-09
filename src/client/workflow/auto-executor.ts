@@ -421,15 +421,15 @@ const validateStep = (lazyStep: BaseLazyStep, stepFromRequest: Step): void => {
   // check step name
   if (lazyStep.stepName !== stepFromRequest.stepName) {
     throw new QstashWorkflowError(
-      `Incompatible step name. Expected ${lazyStep.stepName},` +
-        ` got ${stepFromRequest.stepName} from the request`
+      `Incompatible step name. Expected '${lazyStep.stepName}',` +
+        ` got '${stepFromRequest.stepName}' from the request`
     );
   }
   // check type name
   if (lazyStep.stepType !== stepFromRequest.stepType) {
     throw new QstashWorkflowError(
-      `Incompatible step type. Expected ${lazyStep.stepType},` +
-        ` got ${stepFromRequest.stepType} from the request`
+      `Incompatible step type. Expected '${lazyStep.stepType}',` +
+        ` got '${stepFromRequest.stepType}' from the request`
     );
   }
 };
@@ -457,10 +457,10 @@ const validateParallelSteps = (lazySteps: BaseLazyStep[], stepsFromRequest: Step
       const requestStepTypes = stepsFromRequest.map((step) => step.stepType);
       throw new QstashWorkflowError(
         `Incompatible steps detected in parallel execution: ${error.message}` +
-          `\n  > Step Names from the request: ${requestStepNames}` +
-          `\n    Step Types from the request: ${requestStepTypes}` +
-          `\n  > Step Names expected: ${lazyStepNames}` +
-          `\n    Step Types expected: ${lazyStepTypes}`
+          `\n  > Step Names from the request: ${JSON.stringify(requestStepNames)}` +
+          `\n    Step Types from the request: ${JSON.stringify(requestStepTypes)}` +
+          `\n  > Step Names expected: ${JSON.stringify(lazyStepNames)}` +
+          `\n    Step Types expected: ${JSON.stringify(lazyStepTypes)}`
       );
     }
     throw error;
