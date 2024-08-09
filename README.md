@@ -100,7 +100,7 @@ const isValid = await r.verify({
 })
 ```
 
-### Publishing a message to Open AI or any Open AI Compatible LLM
+### Publishing a message to an LLM provider
 
 No need for complicated setup your LLM request. We'll call LLM and schedule it for your serverless needs.
 
@@ -119,72 +119,6 @@ const result = await client.publishJSON({
       {
         role: "user",
         content: "Where is the capital of Turkey?",
-      },
-    ],
-  },
-  callback: "https://oz.requestcatcher.com/",
-});
-```
-
-### Chatting with your favorite LLM
-
-You can easily start streaming Upstash or OpenAI responses from your favorite framework(Next.js) or library
-
-```ts
-import { Client, upstash } from "@upstash/qstash";
-
-const client = new Client({
-  token: "<QSTASH_TOKEN>",
-});
-
-const response = await client.chat().create({
-  provider: upstash(), // Optionally, provider: "custom({token: "XXX", baseUrl: "https://api.openai.com"})". This will allow you to call every OpenAI compatible API out there.
-  model: "meta-llama/Meta-Llama-3-8B-Instruct", // Optionally, model: "gpt-3.5-turbo",
-  messages: [
-    {
-      role: "system",
-      content: "from now on, foo is whale",
-    },
-    {
-      role: "user",
-      content: "what exactly is foo?",
-    },
-  ],
-  stream: true,
-  temperature: 0.5,
-});
-```
-
-### Add Observability via Helicone
-
-Helicone is a powerful observability platform that provides valuable insights into your LLM usage. Integrating Helicone with QStash is straightforward.
-
-To enable Helicone observability in QStash, you simply need to pass your Helicone API key when initializing your model. Here's how to do it for both custom models and OpenAI:
-
-#### For Custom Models (e.g., Meta-Llama)
-
-```ts
-import { Client, custom } from "@upstash/qstash";
-
-const client = new Client({
-  token: "<QSTASH_TOKEN>",
-});
-
-await client.publishJSON({
-  api: {
-    name: "llm",
-    provider: custom({
-      token: "XXX",
-      baseUrl: "https://api.together.xyz",
-    }),
-    analytics: { name: "helicone", token: process.env.HELICONE_API_KEY! },
-  },
-  body: {
-    model: "meta-llama/Llama-3-8b-chat-hf",
-    messages: [
-      {
-        role: "user",
-        content: "hello",
       },
     ],
   },
