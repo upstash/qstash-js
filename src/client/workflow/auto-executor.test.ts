@@ -40,7 +40,6 @@ describe("auto-executor", () => {
     stepType: "Initial",
     out: JSON.stringify(initialPayload),
     concurrent: 1,
-    targetStep: 0,
   };
 
   const singleStep: Step = {
@@ -49,7 +48,6 @@ describe("auto-executor", () => {
     stepType: "Run",
     out: { input: initialPayload, success: false },
     concurrent: 1,
-    targetStep: 0,
   };
 
   const parallelSteps: Step[] = [
@@ -75,7 +73,6 @@ describe("auto-executor", () => {
       stepType: "SleepFor",
       sleepFor: 123,
       concurrent: 2,
-      targetStep: 0,
     },
     {
       stepId: 2,
@@ -83,7 +80,6 @@ describe("auto-executor", () => {
       stepType: "SleepUntil",
       sleepUntil: 123_123,
       concurrent: 2,
-      targetStep: 0,
     },
   ];
 

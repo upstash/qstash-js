@@ -188,7 +188,7 @@ export class AutoExecutor {
          * Execute the step and call qstash with the result
          */
         const planStep = this.context.steps.at(-1);
-        if (!planStep || planStep.targetStep === 0) {
+        if (!planStep || planStep.targetStep === undefined) {
           throw new QstashWorkflowError(
             `There must be a last step and it should have targetStep larger than 0.` +
               `Received: ${JSON.stringify(planStep)}`
@@ -276,7 +276,7 @@ export class AutoExecutor {
     initialStepCount: number
   ): ParallelCallState {
     const remainingSteps = this.context.steps.filter(
-      (step) => (step.stepId === 0 ? step.targetStep : step.stepId) >= initialStepCount
+      (step) => (step.targetStep ?? step.stepId) >= initialStepCount
     );
 
     if (remainingSteps.length === 0) {
@@ -475,6 +475,6 @@ const validateParallelSteps = (lazySteps: BaseLazyStep[], stepsFromRequest: Step
  * @returns sorted steps
  */
 const sortSteps = (steps: Step[]): Step[] => {
-  const getStepId = (step: Step) => (step.stepId === 0 ? step.targetStep : step.stepId);
+  const getStepId = (step: Step) => step.targetStep ?? step.stepId;
   return steps.toSorted((step, stepOther) => getStepId(step) - getStepId(stepOther));
 };

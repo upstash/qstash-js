@@ -58,7 +58,6 @@ const parsePayload = (rawPayload: string) => {
     stepType: "Initial",
     out: initialPayload,
     concurrent: 1,
-    targetStep: 0,
   };
 
   // remove "toCallback" and "fromCallback" steps:
@@ -96,9 +95,9 @@ const deduplicateSteps = (steps: Step[]): Step[] => {
   for (const step of steps) {
     if (step.stepId === 0) {
       // Step is a plan step
-      if (!targetStepIds.includes(step.targetStep)) {
+      if (!targetStepIds.includes(step.targetStep ?? 0)) {
         deduplicatedSteps.push(step);
-        targetStepIds.push(step.targetStep);
+        targetStepIds.push(step.targetStep ?? 0);
       }
     } else {
       // Step is a result step

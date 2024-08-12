@@ -39,7 +39,6 @@ describe("test steps", () => {
         stepType: "Run",
         out: result,
         concurrent: 9,
-        targetStep: 0,
       };
 
       expect(await step.getResultStep(9, stepId)).toEqual(resultStep);
@@ -72,7 +71,6 @@ describe("test steps", () => {
         stepType: "SleepFor",
         sleepFor: sleepAmount, // adding sleepFor
         concurrent: 6,
-        targetStep: 0,
       });
     });
   });
@@ -103,7 +101,6 @@ describe("test steps", () => {
         stepType: "SleepUntil",
         sleepUntil: sleepUntilTime, // adding sleepUntil
         concurrent: 4,
-        targetStep: 0,
       });
     });
   });
@@ -143,7 +140,6 @@ describe("test steps", () => {
         stepId,
         stepName,
         stepType: "Call",
-        targetStep: 0,
       });
     });
   });

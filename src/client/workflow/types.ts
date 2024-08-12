@@ -63,13 +63,14 @@ export type Step<TResult = unknown, TBody = unknown> = {
    * Set to 0 if the step is not a plan step (of a parallel run). Otherwise,
    * set to the target step.
    */
-  targetStep: number;
+  targetStep?: number;
 } & (ThirdPartyCallFields<TBody> | { [P in keyof ThirdPartyCallFields]?: never });
 
+export type CallType = "step" | "toCallback" | "fromCallback";
 export type RawStep = {
   messageId: string;
   body: string; // body is a base64 encoded step or payload
-  callType: "step" | "toCallback" | "fromCallback";
+  callType: CallType;
 };
 
 export type SyncStepFunction<TResult> = () => TResult;

@@ -198,7 +198,6 @@ describe("Workflow Requests", () => {
             stepType: stepType,
             out: thirdPartyCallResult,
             concurrent: 1,
-            targetStep: 0,
           },
         },
       });
@@ -254,7 +253,6 @@ describe("Workflow Requests", () => {
           stepName: "step name",
           stepType: "Run",
           concurrent: 1,
-          targetStep: 0,
         },
       ];
       const workflowRunId = nanoid();
@@ -319,7 +317,6 @@ describe("Workflow Requests", () => {
         stepName,
         stepType: stepType,
         concurrent: 1,
-        targetStep: 0,
       });
       expect(headers).toEqual({
         [WORKFLOW_INIT_HEADER]: "false",
@@ -345,7 +342,6 @@ describe("Workflow Requests", () => {
         stepName,
         stepType: stepType,
         concurrent: 1,
-        targetStep: 0,
         callUrl,
         callMethod,
         callHeaders,

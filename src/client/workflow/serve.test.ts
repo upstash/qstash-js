@@ -86,7 +86,6 @@ describe("serve", () => {
         stepType: "Run",
         out: `processed '${initialPayload}'`,
         concurrent: 1,
-        targetStep: 0,
       },
       {
         stepId: 2,
@@ -94,7 +93,6 @@ describe("serve", () => {
         stepType: "Run",
         out: `processed 'processed '${initialPayload}''`,
         concurrent: 1,
-        targetStep: 0,
       },
     ];
 
@@ -165,7 +163,7 @@ describe("serve", () => {
     });
   });
 
-  test.only("should return 500 on error during step execution", async () => {
+  test("should return 500 on error during step execution", async () => {
     const endpoint = serve({
       routeFunction: async (context) => {
         await context.run("wrong step", async () => {
@@ -216,9 +214,9 @@ describe("serve", () => {
     test("should return without doing anything when the last step is duplicate", async () => {
       // prettier-ignore
       const stepsWithDuplicate: Step[] = [
-        {stepId: 1, stepName: "step 1", stepType: "Run", out: "result 1", concurrent: 1, targetStep: 0},
-        {stepId: 2, stepName: "step 2", stepType: "Run", out: "result 2", concurrent: 1, targetStep: 0},
-        {stepId: 2, stepName: "step 2", stepType: "Run", out: "result 2", concurrent: 1, targetStep: 0}, // duplicate
+        {stepId: 1, stepName: "step 1", stepType: "Run", out: "result 1", concurrent: 1},
+        {stepId: 2, stepName: "step 2", stepType: "Run", out: "result 2", concurrent: 1},
+        {stepId: 2, stepName: "step 2", stepType: "Run", out: "result 2", concurrent: 1}, // duplicate
       ]
       const request = getRequest(WORKFLOW_ENDPOINT, "wfr-foo", "my-payload", stepsWithDuplicate);
       let called = false;
@@ -238,9 +236,9 @@ describe("serve", () => {
     test("should remove duplicate middle step and continue executing", async () => {
       // prettier-ignore
       const stepsWithDuplicate: Step[] = [
-        {stepId: 1, stepName: "step 1", stepType: "Run", out: "result 1", concurrent: 1, targetStep: 0},
-        {stepId: 1, stepName: "step 1", stepType: "Run", out: "result 1", concurrent: 1, targetStep: 0}, // duplicate
-        {stepId: 2, stepName: "step 2", stepType: "Run", out: "result 2", concurrent: 1, targetStep: 0}, 
+        {stepId: 1, stepName: "step 1", stepType: "Run", out: "result 1", concurrent: 1},
+        {stepId: 1, stepName: "step 1", stepType: "Run", out: "result 1", concurrent: 1}, // duplicate
+        {stepId: 2, stepName: "step 2", stepType: "Run", out: "result 2", concurrent: 1}, 
       ]
       const request = getRequest(WORKFLOW_ENDPOINT, "wfr-foo", "my-payload", stepsWithDuplicate);
       let called = false;
@@ -267,7 +265,7 @@ describe("serve", () => {
                 "upstash-workflow-runid": "wfr-foo",
                 "upstash-workflow-url": WORKFLOW_ENDPOINT,
               },
-              body: '{"stepId":3,"stepName":"step 3","stepType":"Run","out":"combined results: result 1,result 2","concurrent":1,"targetStep":0}',
+              body: '{"stepId":3,"stepName":"step 3","stepType":"Run","out":"combined results: result 1,result 2","concurrent":1}',
             },
           ],
         },

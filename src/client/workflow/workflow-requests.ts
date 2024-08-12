@@ -181,7 +181,6 @@ export const handleThirdPartyCallResult = async (
         stepType,
         out: Buffer.from(callbackMessage.body, "base64").toString(),
         concurrent: Number(concurrentString),
-        targetStep: 0,
       };
 
       await debug?.log("SUBMIT", "SUBMIT_THIRD_PARTY_RESULT", {

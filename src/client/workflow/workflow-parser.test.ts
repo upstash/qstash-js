@@ -118,7 +118,6 @@ describe("Workflow Parser", () => {
           stepType: "Run",
           out: "first result",
           concurrent: 1,
-          targetStep: 0,
         },
         {
           stepId: 2,
@@ -126,7 +125,6 @@ describe("Workflow Parser", () => {
           stepType: "Run",
           out: "second result",
           concurrent: 1,
-          targetStep: 0,
         },
       ];
 
@@ -146,7 +144,6 @@ describe("Workflow Parser", () => {
           stepName: "init",
           stepType: "Initial",
           out: initialPayload,
-          targetStep: 0,
           concurrent: 1,
         },
         ...resultSteps,
@@ -217,15 +214,14 @@ describe("Workflow Parser", () => {
       stepType: "Initial",
       out: requestPayload,
       concurrent: 1,
-      targetStep: 0,
     };
     const workflowId = "wfr-foo";
 
     test("should ignore extra init steps", async () => {
       // prettier-ignore
       const requestSteps: Step[] = [
-        {stepId: 0, stepName: "init", stepType: "Initial", out: "duplicate-payload", concurrent: 1, targetStep: 0},
-        {stepId: 1, stepName: "retrySleep", stepType: "SleepFor", sleepFor: 1_000_000, concurrent: 1, targetStep: 0},
+        {stepId: 0, stepName: "init", stepType: "Initial", out: "duplicate-payload", concurrent: 1},
+        {stepId: 1, stepName: "retrySleep", stepType: "SleepFor", sleepFor: 1_000_000, concurrent: 1},
       ]
 
       const request = getRequest(WORKFLOW_ENDPOINT, workflowId, requestPayload, requestSteps);
@@ -237,17 +233,17 @@ describe("Workflow Parser", () => {
       // prettier-ignore
       expect(steps).toEqual([
         initStep,
-        {stepId: 1, stepName: "retrySleep", stepType: "SleepFor", sleepFor: 1_000_000, concurrent: 1, targetStep: 0},
+        {stepId: 1, stepName: "retrySleep", stepType: "SleepFor", sleepFor: 1_000_000, concurrent: 1},
       ])
     });
 
     test("target step duplicated at the end", async () => {
       // prettier-ignore
       const requestSteps: Step[] = [
-        {stepId: 1, stepName: "chargeStep", stepType: "Run", out:  "false", concurrent: 1, targetStep: 0},
-        {stepId: 2, stepName: "retrySleep", stepType: "SleepFor", sleepFor: 1_000_000, concurrent: 1, targetStep: 0},
+        {stepId: 1, stepName: "chargeStep", stepType: "Run", out:  "false", concurrent: 1},
+        {stepId: 2, stepName: "retrySleep", stepType: "SleepFor", sleepFor: 1_000_000, concurrent: 1},
         {stepId: 0, stepName: "successStep2", stepType: "Run", concurrent: 2, targetStep: 5},
-        {stepId: 3, stepName: "chargeStep", stepType: "Run", out:  "true", concurrent: 1, targetStep: 0},
+        {stepId: 3, stepName: "chargeStep", stepType: "Run", out:  "true", concurrent: 1},
         {stepId: 0, stepName: "successStep2", stepType: "Run", concurrent: 2, targetStep: 5}, // duplicate
       ]
 
@@ -260,22 +256,22 @@ describe("Workflow Parser", () => {
       // prettier-ignore
       expect(steps).toEqual([
         initStep,
-        {stepId: 1, stepName: "chargeStep", stepType: "Run", out:  "false", concurrent: 1, targetStep: 0},
-        {stepId: 2, stepName: "retrySleep", stepType: "SleepFor", sleepFor: 1_000_000, concurrent: 1, targetStep: 0},
+        {stepId: 1, stepName: "chargeStep", stepType: "Run", out:  "false", concurrent: 1},
+        {stepId: 2, stepName: "retrySleep", stepType: "SleepFor", sleepFor: 1_000_000, concurrent: 1},
         {stepId: 0, stepName: "successStep2", stepType: "Run", concurrent: 2, targetStep: 5},
-        {stepId: 3, stepName: "chargeStep", stepType: "Run", out:  "true", concurrent: 1, targetStep: 0},
+        {stepId: 3, stepName: "chargeStep", stepType: "Run", out:  "true", concurrent: 1},
       ])
     });
 
     test("target step duplicated in the middle", async () => {
       // prettier-ignore
       const requestSteps: Step[] = [
-        {stepId: 1, stepName: "chargeStep", stepType: "Run", out:  "false", concurrent: 1, targetStep: 0},
-        {stepId: 2, stepName: "retrySleep", stepType: "SleepFor", sleepFor: 1_000_000, concurrent: 1, targetStep: 0},
-        {stepId: 3, stepName: "chargeStep", stepType: "Run", out:  "true", concurrent: 1, targetStep: 0},
+        {stepId: 1, stepName: "chargeStep", stepType: "Run", out:  "false", concurrent: 1},
+        {stepId: 2, stepName: "retrySleep", stepType: "SleepFor", sleepFor: 1_000_000, concurrent: 1},
+        {stepId: 3, stepName: "chargeStep", stepType: "Run", out:  "true", concurrent: 1},
         {stepId: 0, stepName: "successStep1", stepType: "Run", concurrent: 2, targetStep: 4},
         {stepId: 0, stepName: "successStep1", stepType: "Run", concurrent: 2, targetStep: 4}, // duplicate
-        {stepId: 4, stepName: "successStep1", stepType: "Run", out:  "10", concurrent: 2, targetStep: 0},
+        {stepId: 4, stepName: "successStep1", stepType: "Run", out:  "10", concurrent: 2},
         {stepId: 0, stepName: "successStep2", stepType: "Run", concurrent: 2, targetStep: 5},
       ]
 
@@ -288,11 +284,11 @@ describe("Workflow Parser", () => {
       // prettier-ignore
       expect(steps).toEqual([
         initStep,
-        {stepId: 1, stepName: "chargeStep", stepType: "Run", out:  "false", concurrent: 1, targetStep: 0},
-        {stepId: 2, stepName: "retrySleep", stepType: "SleepFor", sleepFor: 1_000_000, concurrent: 1, targetStep: 0},
-        {stepId: 3, stepName: "chargeStep", stepType: "Run", out:  "true", concurrent: 1, targetStep: 0},
+        {stepId: 1, stepName: "chargeStep", stepType: "Run", out:  "false", concurrent: 1},
+        {stepId: 2, stepName: "retrySleep", stepType: "SleepFor", sleepFor: 1_000_000, concurrent: 1},
+        {stepId: 3, stepName: "chargeStep", stepType: "Run", out:  "true", concurrent: 1},
         {stepId: 0, stepName: "successStep1", stepType: "Run", concurrent: 2, targetStep: 4},
-        {stepId: 4, stepName: "successStep1", stepType: "Run", out:  "10", concurrent: 2, targetStep: 0},
+        {stepId: 4, stepName: "successStep1", stepType: "Run", out:  "10", concurrent: 2},
         {stepId: 0, stepName: "successStep2", stepType: "Run", concurrent: 2, targetStep: 5},
       ])
     });
@@ -300,13 +296,13 @@ describe("Workflow Parser", () => {
     test("concurrent step result duplicated", async () => {
       // prettier-ignore
       const requestSteps: Step[] = [
-        {stepId: 1, stepName: "chargeStep", stepType: "Run", out: "false", concurrent: 1, targetStep: 0},
-        {stepId: 2, stepName: "retrySleep", stepType: "SleepFor", sleepFor: 1_000_000, concurrent: 1, targetStep: 0},
-        {stepId: 3, stepName: "chargeStep", stepType: "Run", out: "true", concurrent: 1, targetStep: 0},
+        {stepId: 1, stepName: "chargeStep", stepType: "Run", out: "false", concurrent: 1},
+        {stepId: 2, stepName: "retrySleep", stepType: "SleepFor", sleepFor: 1_000_000, concurrent: 1},
+        {stepId: 3, stepName: "chargeStep", stepType: "Run", out: "true", concurrent: 1},
         {stepId: 0, stepName: "successStep1", stepType: "Run", concurrent: 2, targetStep: 4},
         {stepId: 0, stepName: "successStep2", stepType: "Run", concurrent: 2, targetStep: 5},
-        {stepId: 5, stepName: "successStep2", stepType: "Run", out: "20", concurrent: 2, targetStep: 0},
-        {stepId: 5, stepName: "successStep2", stepType: "Run", out: "20", concurrent: 2, targetStep: 0}, // duplicate
+        {stepId: 5, stepName: "successStep2", stepType: "Run", out: "20", concurrent: 2},
+        {stepId: 5, stepName: "successStep2", stepType: "Run", out: "20", concurrent: 2}, // duplicate
       ]
 
       const request = getRequest(WORKFLOW_ENDPOINT, workflowId, requestPayload, requestSteps);
@@ -318,26 +314,26 @@ describe("Workflow Parser", () => {
       // prettier-ignore
       expect(steps).toEqual([
         initStep,
-        {stepId: 1, stepName: "chargeStep", stepType: "Run", out: "false", concurrent: 1, targetStep: 0},
-        {stepId: 2, stepName: "retrySleep", stepType: "SleepFor", sleepFor: 1_000_000, concurrent: 1, targetStep: 0},
-        {stepId: 3, stepName: "chargeStep", stepType: "Run", out: "true", concurrent: 1, targetStep: 0},
+        {stepId: 1, stepName: "chargeStep", stepType: "Run", out: "false", concurrent: 1},
+        {stepId: 2, stepName: "retrySleep", stepType: "SleepFor", sleepFor: 1_000_000, concurrent: 1},
+        {stepId: 3, stepName: "chargeStep", stepType: "Run", out: "true", concurrent: 1},
         {stepId: 0, stepName: "successStep1", stepType: "Run", concurrent: 2, targetStep: 4},
         {stepId: 0, stepName: "successStep2", stepType: "Run", concurrent: 2, targetStep: 5},
-        {stepId: 5, stepName: "successStep2", stepType: "Run", out: "20", concurrent: 2, targetStep: 0},
+        {stepId: 5, stepName: "successStep2", stepType: "Run", out: "20", concurrent: 2},
       ])
     });
 
     test("concurrent step result duplicated with two results", async () => {
       // prettier-ignore
       const requestSteps: Step[] = [
-        {stepId: 1, stepName: "chargeStep", stepType: "Run", out: "false", concurrent: 1, targetStep: 0},
-        {stepId: 2, stepName: "retrySleep", stepType: "SleepFor", sleepFor: 1_000_000, concurrent: 1, targetStep: 0},
-        {stepId: 3, stepName: "chargeStep", stepType: "Run", out: "true", concurrent: 1, targetStep: 0},
+        {stepId: 1, stepName: "chargeStep", stepType: "Run", out: "false", concurrent: 1},
+        {stepId: 2, stepName: "retrySleep", stepType: "SleepFor", sleepFor: 1_000_000, concurrent: 1},
+        {stepId: 3, stepName: "chargeStep", stepType: "Run", out: "true", concurrent: 1},
         {stepId: 0, stepName: "successStep1", stepType: "Run", concurrent: 2, targetStep: 4},
-        {stepId: 4, stepName: "successStep1", stepType: "Run", out: "10", concurrent: 2, targetStep: 0},
+        {stepId: 4, stepName: "successStep1", stepType: "Run", out: "10", concurrent: 2},
         {stepId: 0, stepName: "successStep2", stepType: "Run", concurrent: 2, targetStep: 5},
-        {stepId: 5, stepName: "successStep2", stepType: "Run", out: "20", concurrent: 2, targetStep: 0},
-        {stepId: 5, stepName: "successStep2", stepType: "Run", out: "20", concurrent: 2, targetStep: 0}, // duplicate
+        {stepId: 5, stepName: "successStep2", stepType: "Run", out: "20", concurrent: 2},
+        {stepId: 5, stepName: "successStep2", stepType: "Run", out: "20", concurrent: 2}, // duplicate
       ]
 
       const request = getRequest(WORKFLOW_ENDPOINT, workflowId, requestPayload, requestSteps);
@@ -349,22 +345,22 @@ describe("Workflow Parser", () => {
       // prettier-ignore
       expect(steps).toEqual([
         initStep,
-        {stepId: 1, stepName: "chargeStep", stepType: "Run", out: "false", concurrent: 1, targetStep: 0},
-        {stepId: 2, stepName: "retrySleep", stepType: "SleepFor", sleepFor: 1_000_000, concurrent: 1, targetStep: 0},
-        {stepId: 3, stepName: "chargeStep", stepType: "Run", out: "true", concurrent: 1, targetStep: 0},
+        {stepId: 1, stepName: "chargeStep", stepType: "Run", out: "false", concurrent: 1},
+        {stepId: 2, stepName: "retrySleep", stepType: "SleepFor", sleepFor: 1_000_000, concurrent: 1},
+        {stepId: 3, stepName: "chargeStep", stepType: "Run", out: "true", concurrent: 1},
         {stepId: 0, stepName: "successStep1", stepType: "Run", concurrent: 2, targetStep: 4},
-        {stepId: 4, stepName: "successStep1", stepType: "Run", out: "10", concurrent: 2, targetStep: 0},
+        {stepId: 4, stepName: "successStep1", stepType: "Run", out: "10", concurrent: 2},
         {stepId: 0, stepName: "successStep2", stepType: "Run", concurrent: 2, targetStep: 5},
-        {stepId: 5, stepName: "successStep2", stepType: "Run", out: "20", concurrent: 2, targetStep: 0},
+        {stepId: 5, stepName: "successStep2", stepType: "Run", out: "20", concurrent: 2},
       ])
     });
 
     test("result step duplicate", async () => {
       // prettier-ignore
       const requestSteps: Step[] = [
-        {stepId: 1, stepName: "chargeStep", stepType: "Run", out:  "false", concurrent: 1, targetStep: 0},
-        {stepId: 2, stepName: "retrySleep", stepType: "SleepFor", sleepFor: 1_000_000, concurrent: 1, targetStep: 0},
-        {stepId: 2, stepName: "retrySleep", stepType: "SleepFor", sleepFor: 1_000_000, concurrent: 1, targetStep: 0}, // duplicate
+        {stepId: 1, stepName: "chargeStep", stepType: "Run", out:  "false", concurrent: 1},
+        {stepId: 2, stepName: "retrySleep", stepType: "SleepFor", sleepFor: 1_000_000, concurrent: 1},
+        {stepId: 2, stepName: "retrySleep", stepType: "SleepFor", sleepFor: 1_000_000, concurrent: 1}, // duplicate
       ]
 
       const request = getRequest(WORKFLOW_ENDPOINT, workflowId, requestPayload, requestSteps);
@@ -376,17 +372,17 @@ describe("Workflow Parser", () => {
       // prettier-ignore
       expect(steps).toEqual([
         initStep,
-        {stepId: 1, stepName: "chargeStep", stepType: "Run", out:  "false", concurrent: 1, targetStep: 0},
-        {stepId: 2, stepName: "retrySleep", stepType: "SleepFor", sleepFor: 1_000_000, concurrent: 1, targetStep: 0},
+        {stepId: 1, stepName: "chargeStep", stepType: "Run", out:  "false", concurrent: 1},
+        {stepId: 2, stepName: "retrySleep", stepType: "SleepFor", sleepFor: 1_000_000, concurrent: 1},
       ])
     });
 
     test("duplicate results in the middle", async () => {
       // prettier-ignore
       const requestSteps: Step[] = [
-        {stepId: 1, stepName: "chargeStep", stepType: "Run", out:  "false", concurrent: 1, targetStep: 0},
-        {stepId: 1, stepName: "chargeStep", stepType: "Run", out:  "false", concurrent: 1, targetStep: 0}, // duplicate
-        {stepId: 2, stepName: "retrySleep", stepType: "SleepFor", sleepFor: 1_000_000, concurrent: 1, targetStep: 0},
+        {stepId: 1, stepName: "chargeStep", stepType: "Run", out:  "false", concurrent: 1},
+        {stepId: 1, stepName: "chargeStep", stepType: "Run", out:  "false", concurrent: 1}, // duplicate
+        {stepId: 2, stepName: "retrySleep", stepType: "SleepFor", sleepFor: 1_000_000, concurrent: 1},
       ]
 
       const request = getRequest(WORKFLOW_ENDPOINT, workflowId, requestPayload, requestSteps);
@@ -398,29 +394,29 @@ describe("Workflow Parser", () => {
       // prettier-ignore
       expect(steps).toEqual([
         initStep,
-        {stepId: 1, stepName: "chargeStep", stepType: "Run", out:  "false", concurrent: 1, targetStep: 0},
-        {stepId: 2, stepName: "retrySleep", stepType: "SleepFor", sleepFor: 1_000_000, concurrent: 1, targetStep: 0},
+        {stepId: 1, stepName: "chargeStep", stepType: "Run", out:  "false", concurrent: 1},
+        {stepId: 2, stepName: "retrySleep", stepType: "SleepFor", sleepFor: 1_000_000, concurrent: 1},
       ])
     });
 
     test("all duplicated", async () => {
       // prettier-ignore
       const requestSteps: Step[] = [
-        {stepId: 1, stepName: "chargeStep", stepType: "Run", out:  "false", concurrent: 1, targetStep: 0},
-        {stepId: 1, stepName: "chargeStep", stepType: "Run", out:  "false", concurrent: 1, targetStep: 0},
-        {stepId: 1, stepName: "chargeStep", stepType: "Run", out:  "false", concurrent: 1, targetStep: 0},
-        {stepId: 2, stepName: "retrySleep", stepType: "SleepFor", sleepFor: 1_000_000, concurrent: 1, targetStep: 0},
-        {stepId: 2, stepName: "retrySleep", stepType: "SleepFor", sleepFor: 1_000_000, concurrent: 1, targetStep: 0},
-        {stepId: 3, stepName: "chargeStep", stepType: "Run", out:  "true", concurrent: 1, targetStep: 0},
-        {stepId: 3, stepName: "chargeStep", stepType: "Run", out:  "true", concurrent: 1, targetStep: 0},
+        {stepId: 1, stepName: "chargeStep", stepType: "Run", out:  "false", concurrent: 1},
+        {stepId: 1, stepName: "chargeStep", stepType: "Run", out:  "false", concurrent: 1},
+        {stepId: 1, stepName: "chargeStep", stepType: "Run", out:  "false", concurrent: 1},
+        {stepId: 2, stepName: "retrySleep", stepType: "SleepFor", sleepFor: 1_000_000, concurrent: 1},
+        {stepId: 2, stepName: "retrySleep", stepType: "SleepFor", sleepFor: 1_000_000, concurrent: 1},
+        {stepId: 3, stepName: "chargeStep", stepType: "Run", out:  "true", concurrent: 1},
+        {stepId: 3, stepName: "chargeStep", stepType: "Run", out:  "true", concurrent: 1},
         {stepId: 0, stepName: "successStep1", stepType: "Run", concurrent: 2, targetStep: 4},
         {stepId: 0, stepName: "successStep1", stepType: "Run", concurrent: 2, targetStep: 4},
-        {stepId: 4, stepName: "successStep1", stepType: "Run", out:  "10", concurrent: 2, targetStep: 0},
-        {stepId: 4, stepName: "successStep1", stepType: "Run", out:  "10", concurrent: 2, targetStep: 0},
+        {stepId: 4, stepName: "successStep1", stepType: "Run", out:  "10", concurrent: 2},
+        {stepId: 4, stepName: "successStep1", stepType: "Run", out:  "10", concurrent: 2},
         {stepId: 0, stepName: "successStep2", stepType: "Run", concurrent: 2, targetStep: 5},
         {stepId: 0, stepName: "successStep2", stepType: "Run", concurrent: 2, targetStep: 5},
-        {stepId: 5, stepName: "successStep2", stepType: "Run", out:  "20", concurrent: 2, targetStep: 0},
-        {stepId: 5, stepName: "successStep2", stepType: "Run", out:  "20", concurrent: 2, targetStep: 0},
+        {stepId: 5, stepName: "successStep2", stepType: "Run", out:  "20", concurrent: 2},
+        {stepId: 5, stepName: "successStep2", stepType: "Run", out:  "20", concurrent: 2},
       ]
 
       const request = getRequest(WORKFLOW_ENDPOINT, workflowId, requestPayload, requestSteps);
@@ -432,33 +428,33 @@ describe("Workflow Parser", () => {
       // prettier-ignore
       expect(steps).toEqual([
         initStep,
-        {stepId: 1, stepName: "chargeStep", stepType: "Run", out:  "false", concurrent: 1, targetStep: 0},
-        {stepId: 2, stepName: "retrySleep", stepType: "SleepFor", sleepFor: 1_000_000, concurrent: 1, targetStep: 0},
-        {stepId: 3, stepName: "chargeStep", stepType: "Run", out:  "true", concurrent: 1, targetStep: 0},
+        {stepId: 1, stepName: "chargeStep", stepType: "Run", out:  "false", concurrent: 1},
+        {stepId: 2, stepName: "retrySleep", stepType: "SleepFor", sleepFor: 1_000_000, concurrent: 1},
+        {stepId: 3, stepName: "chargeStep", stepType: "Run", out:  "true", concurrent: 1},
         {stepId: 0, stepName: "successStep1", stepType: "Run", concurrent: 2, targetStep: 4},
-        {stepId: 4, stepName: "successStep1", stepType: "Run", out:  "10", concurrent: 2, targetStep: 0},
+        {stepId: 4, stepName: "successStep1", stepType: "Run", out:  "10", concurrent: 2},
         {stepId: 0, stepName: "successStep2", stepType: "Run", concurrent: 2, targetStep: 5},
-        {stepId: 5, stepName: "successStep2", stepType: "Run", out:  "20", concurrent: 2, targetStep: 0},
+        {stepId: 5, stepName: "successStep2", stepType: "Run", out:  "20", concurrent: 2},
       ])
     });
 
     test("all duplicated except last", async () => {
       // prettier-ignore
       const requestSteps: Step[] = [
-        {stepId: 1, stepName: "chargeStep", stepType: "Run", out:  "false", concurrent: 1, targetStep: 0},
-        {stepId: 1, stepName: "chargeStep", stepType: "Run", out:  "false", concurrent: 1, targetStep: 0},
-        {stepId: 1, stepName: "chargeStep", stepType: "Run", out:  "false", concurrent: 1, targetStep: 0},
-        {stepId: 2, stepName: "retrySleep", stepType: "SleepFor", sleepFor: 1_000_000, concurrent: 1, targetStep: 0},
-        {stepId: 2, stepName: "retrySleep", stepType: "SleepFor", sleepFor: 1_000_000, concurrent: 1, targetStep: 0},
-        {stepId: 3, stepName: "chargeStep", stepType: "Run", out:  "true", concurrent: 1, targetStep: 0},
-        {stepId: 3, stepName: "chargeStep", stepType: "Run", out:  "true", concurrent: 1, targetStep: 0},
+        {stepId: 1, stepName: "chargeStep", stepType: "Run", out:  "false", concurrent: 1},
+        {stepId: 1, stepName: "chargeStep", stepType: "Run", out:  "false", concurrent: 1},
+        {stepId: 1, stepName: "chargeStep", stepType: "Run", out:  "false", concurrent: 1},
+        {stepId: 2, stepName: "retrySleep", stepType: "SleepFor", sleepFor: 1_000_000, concurrent: 1},
+        {stepId: 2, stepName: "retrySleep", stepType: "SleepFor", sleepFor: 1_000_000, concurrent: 1},
+        {stepId: 3, stepName: "chargeStep", stepType: "Run", out:  "true", concurrent: 1},
+        {stepId: 3, stepName: "chargeStep", stepType: "Run", out:  "true", concurrent: 1},
         {stepId: 0, stepName: "successStep1", stepType: "Run", concurrent: 2, targetStep: 4},
         {stepId: 0, stepName: "successStep1", stepType: "Run", concurrent: 2, targetStep: 4},
-        {stepId: 4, stepName: "successStep1", stepType: "Run", out:  "10", concurrent: 2, targetStep: 0},
-        {stepId: 4, stepName: "successStep1", stepType: "Run", out:  "10", concurrent: 2, targetStep: 0},
+        {stepId: 4, stepName: "successStep1", stepType: "Run", out:  "10", concurrent: 2},
+        {stepId: 4, stepName: "successStep1", stepType: "Run", out:  "10", concurrent: 2},
         {stepId: 0, stepName: "successStep2", stepType: "Run", concurrent: 2, targetStep: 5},
         {stepId: 0, stepName: "successStep2", stepType: "Run", concurrent: 2, targetStep: 5},
-        {stepId: 5, stepName: "successStep2", stepType: "Run", out:  "20", concurrent: 2, targetStep: 0},
+        {stepId: 5, stepName: "successStep2", stepType: "Run", out:  "20", concurrent: 2},
       ]
 
       const request = getRequest(WORKFLOW_ENDPOINT, workflowId, requestPayload, requestSteps);
@@ -470,13 +466,13 @@ describe("Workflow Parser", () => {
       // prettier-ignore
       expect(steps).toEqual([
         initStep,
-        {stepId: 1, stepName: "chargeStep", stepType: "Run", out:  "false", concurrent: 1, targetStep: 0},
-        {stepId: 2, stepName: "retrySleep", stepType: "SleepFor", sleepFor: 1_000_000, concurrent: 1, targetStep: 0},
-        {stepId: 3, stepName: "chargeStep", stepType: "Run", out:  "true", concurrent: 1, targetStep: 0},
+        {stepId: 1, stepName: "chargeStep", stepType: "Run", out:  "false", concurrent: 1},
+        {stepId: 2, stepName: "retrySleep", stepType: "SleepFor", sleepFor: 1_000_000, concurrent: 1},
+        {stepId: 3, stepName: "chargeStep", stepType: "Run", out:  "true", concurrent: 1},
         {stepId: 0, stepName: "successStep1", stepType: "Run", concurrent: 2, targetStep: 4},
-        {stepId: 4, stepName: "successStep1", stepType: "Run", out:  "10", concurrent: 2, targetStep: 0},
+        {stepId: 4, stepName: "successStep1", stepType: "Run", out:  "10", concurrent: 2},
         {stepId: 0, stepName: "successStep2", stepType: "Run", concurrent: 2, targetStep: 5},
-        {stepId: 5, stepName: "successStep2", stepType: "Run", out:  "20", concurrent: 2, targetStep: 0},
+        {stepId: 5, stepName: "successStep2", stepType: "Run", out:  "20", concurrent: 2},
       ])
     });
   });

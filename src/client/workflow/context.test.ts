@@ -130,7 +130,7 @@ describe("context tests", () => {
         token,
         body: [
           {
-            body: '{"stepId":1,"stepName":"my-step","stepType":"Run","out":"my-result","concurrent":1,"targetStep":0}',
+            body: '{"stepId":1,"stepName":"my-step","stepType":"Run","out":"my-result","concurrent":1}',
             destination: WORKFLOW_ENDPOINT,
             headers: {
               "content-type": "application/json",

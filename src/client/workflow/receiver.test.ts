@@ -309,7 +309,6 @@ describe("receiver", () => {
             stepType: "Run",
             out: atob(randomBody),
             concurrent: 1,
-            targetStep: 0,
           },
         },
       });
@@ -326,7 +325,6 @@ describe("receiver", () => {
       stepType: "Run",
       out: "result",
       concurrent: 1,
-      targetStep: 0,
     };
 
     test("should block request without signature", async () => {

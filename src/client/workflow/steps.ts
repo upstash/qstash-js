@@ -68,7 +68,6 @@ export class LazyFunctionStep<TResult = unknown> extends BaseLazyStep<TResult> {
       stepType: this.stepType,
       out: result,
       concurrent,
-      targetStep: 0,
     };
   }
 }
@@ -105,7 +104,6 @@ export class LazySleepStep extends BaseLazyStep {
       stepType: this.stepType,
       sleepFor: this.sleep,
       concurrent,
-      targetStep: 0,
     });
   }
 }
@@ -142,7 +140,6 @@ export class LazySleepUntilStep extends BaseLazyStep {
       stepType: this.stepType,
       sleepUntil: this.sleepUntil,
       concurrent,
-      targetStep: 0,
     });
   }
 }
@@ -186,7 +183,6 @@ export class LazyCallStep<TResult = unknown, TBody = unknown> extends BaseLazySt
       stepName: this.stepName,
       stepType: this.stepType,
       concurrent,
-      targetStep: 0,
       callUrl: this.url,
       callMethod: this.method,
       callBody: this.body,
