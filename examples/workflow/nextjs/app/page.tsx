@@ -33,7 +33,7 @@ function Home() {
         body: JSON.stringify({
           baseUrl,
           route,
-          payload: requestBody
+          payload: JSON.parse(requestBody)
         })
       });
       console.log('Response:', await response.json());
