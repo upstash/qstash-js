@@ -90,11 +90,11 @@ describe("Workflow Parser", () => {
       const request = new Request(WORKFLOW_ENDPOINT, {
         body: rawPayload,
       });
-      const { initialPayload, steps, isLastDuplicate } = await parseRequest(request, true);
+      const { rawInitialPayload, steps, isLastDuplicate } = await parseRequest(request, true);
 
       // payload isn't parsed
-      expect(typeof initialPayload).toBe("string");
-      expect(initialPayload).toBe(rawPayload);
+      expect(typeof rawInitialPayload).toBe("string");
+      expect(rawInitialPayload).toBe(rawPayload);
       // steps are empty:
       expect(steps).toEqual([]);
       expect(isLastDuplicate).toBeFalse();
@@ -129,11 +129,11 @@ describe("Workflow Parser", () => {
       ];
 
       const request = getRequest(WORKFLOW_ENDPOINT, "wfr-id", requestInitialPayload, resultSteps);
-      const { initialPayload, steps, isLastDuplicate } = await parseRequest(request, false);
+      const { rawInitialPayload, steps, isLastDuplicate } = await parseRequest(request, false);
 
       // payload is not parsed
-      expect(typeof initialPayload).toEqual("string");
-      expect(initialPayload).toEqual(JSON.stringify(requestInitialPayload));
+      expect(typeof rawInitialPayload).toEqual("string");
+      expect(rawInitialPayload).toEqual(JSON.stringify(requestInitialPayload));
       expect(isLastDuplicate).toBeFalse();
 
       // steps
@@ -143,7 +143,7 @@ describe("Workflow Parser", () => {
           stepId: 0,
           stepName: "init",
           stepType: "Initial",
-          out: initialPayload,
+          out: rawInitialPayload,
           concurrent: 1,
         },
         ...resultSteps,
@@ -195,9 +195,9 @@ describe("Workflow Parser", () => {
       ];
 
       const request = new Request(WORKFLOW_ENDPOINT, { body: JSON.stringify(payload) });
-      const { initialPayload, steps, isLastDuplicate } = await parseRequest(request, false);
+      const { rawInitialPayload, steps, isLastDuplicate } = await parseRequest(request, false);
 
-      expect(initialPayload).toBe(reqiestInitialPayload);
+      expect(rawInitialPayload).toBe(reqiestInitialPayload);
 
       expect(steps.length).toBe(2);
       expect(steps[0].stepId).toBe(0);
@@ -225,9 +225,9 @@ describe("Workflow Parser", () => {
       ]
 
       const request = getRequest(WORKFLOW_ENDPOINT, workflowId, requestPayload, requestSteps);
-      const { initialPayload, steps, isLastDuplicate } = await parseRequest(request, false);
+      const { rawInitialPayload, steps, isLastDuplicate } = await parseRequest(request, false);
 
-      expect(initialPayload).toBe(requestPayload);
+      expect(rawInitialPayload).toBe(requestPayload);
       expect(isLastDuplicate).toBeFalse();
 
       // prettier-ignore
@@ -248,9 +248,9 @@ describe("Workflow Parser", () => {
       ]
 
       const request = getRequest(WORKFLOW_ENDPOINT, workflowId, requestPayload, requestSteps);
-      const { initialPayload, steps, isLastDuplicate } = await parseRequest(request, false);
+      const { rawInitialPayload, steps, isLastDuplicate } = await parseRequest(request, false);
 
-      expect(initialPayload).toBe(requestPayload);
+      expect(rawInitialPayload).toBe(requestPayload);
       expect(isLastDuplicate).toBeTrue();
 
       // prettier-ignore
@@ -276,9 +276,9 @@ describe("Workflow Parser", () => {
       ]
 
       const request = getRequest(WORKFLOW_ENDPOINT, workflowId, requestPayload, requestSteps);
-      const { initialPayload, steps, isLastDuplicate } = await parseRequest(request, false);
+      const { rawInitialPayload, steps, isLastDuplicate } = await parseRequest(request, false);
 
-      expect(initialPayload).toBe(requestPayload);
+      expect(rawInitialPayload).toBe(requestPayload);
       expect(isLastDuplicate).toBeFalse();
 
       // prettier-ignore
@@ -306,9 +306,9 @@ describe("Workflow Parser", () => {
       ]
 
       const request = getRequest(WORKFLOW_ENDPOINT, workflowId, requestPayload, requestSteps);
-      const { initialPayload, steps, isLastDuplicate } = await parseRequest(request, false);
+      const { rawInitialPayload, steps, isLastDuplicate } = await parseRequest(request, false);
 
-      expect(initialPayload).toBe(requestPayload);
+      expect(rawInitialPayload).toBe(requestPayload);
       expect(isLastDuplicate).toBeTrue();
 
       // prettier-ignore
@@ -337,9 +337,9 @@ describe("Workflow Parser", () => {
       ]
 
       const request = getRequest(WORKFLOW_ENDPOINT, workflowId, requestPayload, requestSteps);
-      const { initialPayload, steps, isLastDuplicate } = await parseRequest(request, false);
+      const { rawInitialPayload, steps, isLastDuplicate } = await parseRequest(request, false);
 
-      expect(initialPayload).toBe(requestPayload);
+      expect(rawInitialPayload).toBe(requestPayload);
       expect(isLastDuplicate).toBeTrue();
 
       // prettier-ignore
@@ -364,9 +364,9 @@ describe("Workflow Parser", () => {
       ]
 
       const request = getRequest(WORKFLOW_ENDPOINT, workflowId, requestPayload, requestSteps);
-      const { initialPayload, steps, isLastDuplicate } = await parseRequest(request, false);
+      const { rawInitialPayload, steps, isLastDuplicate } = await parseRequest(request, false);
 
-      expect(initialPayload).toBe(requestPayload);
+      expect(rawInitialPayload).toBe(requestPayload);
       expect(isLastDuplicate).toBeTrue();
 
       // prettier-ignore
@@ -386,9 +386,9 @@ describe("Workflow Parser", () => {
       ]
 
       const request = getRequest(WORKFLOW_ENDPOINT, workflowId, requestPayload, requestSteps);
-      const { initialPayload, steps, isLastDuplicate } = await parseRequest(request, false);
+      const { rawInitialPayload, steps, isLastDuplicate } = await parseRequest(request, false);
 
-      expect(initialPayload).toBe(requestPayload);
+      expect(rawInitialPayload).toBe(requestPayload);
       expect(isLastDuplicate).toBeFalse();
 
       // prettier-ignore
@@ -420,9 +420,9 @@ describe("Workflow Parser", () => {
       ]
 
       const request = getRequest(WORKFLOW_ENDPOINT, workflowId, requestPayload, requestSteps);
-      const { initialPayload, steps, isLastDuplicate } = await parseRequest(request, false);
+      const { rawInitialPayload, steps, isLastDuplicate } = await parseRequest(request, false);
 
-      expect(initialPayload).toBe(requestPayload);
+      expect(rawInitialPayload).toBe(requestPayload);
       expect(isLastDuplicate).toBeTrue();
 
       // prettier-ignore
@@ -458,9 +458,9 @@ describe("Workflow Parser", () => {
       ]
 
       const request = getRequest(WORKFLOW_ENDPOINT, workflowId, requestPayload, requestSteps);
-      const { initialPayload, steps, isLastDuplicate } = await parseRequest(request, false);
+      const { rawInitialPayload, steps, isLastDuplicate } = await parseRequest(request, false);
 
-      expect(initialPayload).toBe(requestPayload);
+      expect(rawInitialPayload).toBe(requestPayload);
       expect(isLastDuplicate).toBeFalse();
 
       // prettier-ignore

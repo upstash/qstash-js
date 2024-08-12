@@ -11,7 +11,7 @@ import {
 } from "./test-utils";
 import { nanoid } from "nanoid";
 import { Client } from "../client";
-import type { Step } from "./types";
+import type { FinishCondition, Step } from "./types";
 import { WORKFLOW_INIT_HEADER, WORKFLOW_PROTOCOL_VERSION_HEADER } from "./constants";
 
 const someWork = (input: string) => {
@@ -28,6 +28,7 @@ describe("serve", () => {
     const endpoint = serve<string>({
       routeFunction: async (context) => {
         const _input = context.requestPayload;
+        await context.sleep("sleep 1", 1);
       },
       options: {
         client,
@@ -192,6 +193,37 @@ describe("serve", () => {
     expect(called).toBeTrue();
   });
 
+  test("should call onFinish with auth-fail if authentication fails", async () => {
+    const endpoint = serve({
+      routeFunction: async (_context) => {
+        // we call `return` when auth fails:
+        return;
+      },
+      options: {
+        client,
+        receiver: false,
+      },
+    });
+
+    const request = getRequest(WORKFLOW_ENDPOINT, "wfr-foo", "my-payload", []);
+    let called = false;
+    await mockQstashServer({
+      execute: async () => {
+        const response = await endpoint(request);
+        const { workflowRunId, finishCondition } = (await response.json()) as {
+          workflowRunId: string;
+          finishCondition: FinishCondition;
+        };
+        expect(workflowRunId).toBe("no-workflow-id");
+        expect(finishCondition).toBe("auth-fail");
+        called = true;
+      },
+      responseFields: { body: { messageId: "some-message-id" }, status: 200 },
+      receivesRequest: false,
+    });
+    expect(called).toBeTrue();
+  });
+
   describe("duplicate checks", () => {
     const endpoint = serve({
       routeFunction: async (context) => {
@@ -223,8 +255,12 @@ describe("serve", () => {
       await mockQstashServer({
         execute: async () => {
           const response = await endpoint(request);
-          const { workflowRunId } = (await response.json()) as { workflowRunId: string };
-          expect(workflowRunId).toBe("no-workflow-id-duplicate-step");
+          const { workflowRunId, finishCondition } = (await response.json()) as {
+            workflowRunId: string;
+            finishCondition: FinishCondition;
+          };
+          expect(workflowRunId).toBe("no-workflow-id");
+          expect(finishCondition).toBe("duplicate-step");
           called = true;
         },
         responseFields: { body: { messageId: "some-message-id" }, status: 200 },
@@ -245,8 +281,12 @@ describe("serve", () => {
       await mockQstashServer({
         execute: async () => {
           const response = await endpoint(request);
-          const { workflowRunId } = (await response.json()) as { workflowRunId: string };
+          const { workflowRunId, finishCondition } = (await response.json()) as {
+            workflowRunId: string;
+            finishCondition: FinishCondition;
+          };
           expect(workflowRunId).toBe("wfr-foo");
+          expect(finishCondition).toBe("success");
           called = true;
         },
         responseFields: { body: { messageId: "some-message-id" }, status: 200 },

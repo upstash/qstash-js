@@ -79,8 +79,12 @@ export type StepFunction<TResult> = AsyncStepFunction<TResult> | SyncStepFunctio
 
 export type ParallelCallState = "first" | "partial" | "discard" | "last";
 
+export type RouteFunction<TInitialPayload> = (
+  context: WorkflowContext<TInitialPayload>
+) => Promise<void>;
+
 export type WorkflowServeParameters<TInitialPayload, TResponse = Response> = {
-  routeFunction: (context: WorkflowContext<TInitialPayload>) => Promise<void>;
+  routeFunction: RouteFunction<TInitialPayload>;
   options?: WorkflowServeOptions<TResponse, TInitialPayload>;
 };
 
@@ -108,7 +112,7 @@ export type WorkflowServeParametersExtended<TInitialPayload = unknown, TResponse
 export type InitialPayloadParser<TInitialPayload = unknown> = (
   initialPayload: string
 ) => TInitialPayload;
-
+export type FinishCondition = "success" | "duplicate-step" | "fromCallback" | "auth-fail";
 export type WorkflowServeOptions<TResponse = Response, TInitialPayload = unknown> = {
   /**
    * QStash client
@@ -120,7 +124,7 @@ export type WorkflowServeOptions<TResponse = Response, TInitialPayload = unknown
    * @param workflowRunId
    * @returns response
    */
-  onStepFinish?: (workflowRunId: string) => TResponse;
+  onStepFinish?: (workflowRunId: string, finishCondition: FinishCondition) => TResponse;
   /**
    * Function to parse the initial payload passed by the user
    */

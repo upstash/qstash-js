@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { Receiver } from "../../receiver";
 import { Client } from "../client";
-import { WorkflowContext } from "./context";
+import { DisabledWorkflowContext, WorkflowContext } from "./context";
 import { WorkflowLogger } from "./logger";
-import type { WorkflowServeOptions, WorkflowServeParameters } from "./types";
+import type { FinishCondition, WorkflowServeOptions, WorkflowServeParameters } from "./types";
 import { parseRequest, validateRequest } from "./workflow-parser";
 import {
   handleThirdPartyCallResult,
@@ -36,8 +36,10 @@ const processOptions = <TResponse = Response, TInitialPayload = unknown>(
       baseUrl: process.env.QSTASH_URL!,
       token: process.env.QSTASH_TOKEN!,
     }),
-    onStepFinish: (workflowRunId: string) =>
-      new Response(JSON.stringify({ workflowRunId }), { status: 200 }) as TResponse,
+    onStepFinish: (workflowRunId: string, finishCondition: FinishCondition) =>
+      new Response(JSON.stringify({ workflowRunId, finishCondition }), {
+        status: 200,
+      }) as TResponse,
     initialPayloadParser: (initialRequest: string) => {
       // if there is no payload, simply return undefined
       if (!initialRequest) {
@@ -108,34 +110,52 @@ export const serve = <
    */
   return async (request: TRequest) => {
     await debug?.log("INFO", "ENDPOINT_START");
-    const callReturnCheck = await handleThirdPartyCallResult(request, client, debug, verifier);
+
+    const { isFirstInvocation, workflowRunId } = validateRequest(request);
+    const { rawInitialPayload, steps, isLastDuplicate } = await parseRequest(
+      request,
+      isFirstInvocation,
+      verifier,
+      debug
+    );
+
+    if (isLastDuplicate) {
+      return onStepFinish("no-workflow-id", "duplicate-step");
+    }
+
+    const workflowContext = new WorkflowContext<TInitialPayload>({
+      client,
+      workflowRunId,
+      initialPayload: initialPayloadParser(rawInitialPayload),
+      rawInitialPayload,
+      headers: recreateUserHeaders(request.headers as Headers),
+      steps,
+      url: url || request.url,
+      debug,
+    });
+
+    const authCheck = await DisabledWorkflowContext.tryAuthentication(
+      routeFunction,
+      workflowContext
+    );
+    if (authCheck.isErr()) {
+      await debug?.log("ERROR", "ERROR", { error: authCheck.error });
+      throw authCheck.error;
+    } else if (authCheck.value === "run-ended") {
+      return onStepFinish("no-workflow-id", "auth-fail");
+    }
+
+    const callReturnCheck = await handleThirdPartyCallResult(
+      request,
+      rawInitialPayload,
+      client,
+      debug
+    );
 
     if (callReturnCheck.isErr()) {
       await debug?.log("ERROR", "SUBMIT_THIRD_PARTY_RESULT", { error: callReturnCheck.error });
       throw callReturnCheck.error;
     } else if (callReturnCheck.value === "continue-workflow") {
-      const { isFirstInvocation, workflowRunId } = validateRequest(request);
-      const { initialPayload, steps, isLastDuplicate } = await parseRequest(
-        request,
-        isFirstInvocation,
-        verifier,
-        debug
-      );
-
-      if (isLastDuplicate) {
-        return onStepFinish("no-workflow-id-duplicate-step");
-      }
-
-      const workflowContext = new WorkflowContext<TInitialPayload>({
-        client,
-        workflowRunId,
-        initialPayload: initialPayloadParser(initialPayload),
-        headers: recreateUserHeaders(request.headers as Headers),
-        steps,
-        url: url || request.url,
-        debug,
-      });
-
       const result = isFirstInvocation
         ? await triggerFirstInvocation(workflowContext, debug)
         : await triggerRouteFunction({
@@ -154,11 +174,10 @@ export const serve = <
       await debug?.log("INFO", "RESPONSE_WORKFLOW", {
         workflowRunId: workflowContext.workflowRunId,
       });
-      return onStepFinish(workflowContext.workflowRunId);
+      return onStepFinish(workflowContext.workflowRunId, "success");
     }
-
     // response to QStash in call cases
     await debug?.log("INFO", "RESPONSE_DEFAULT");
-    return onStepFinish("no-workflow-id");
+    return onStepFinish("no-workflow-id", "fromCallback");
   };
 };

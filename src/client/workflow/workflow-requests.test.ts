@@ -179,7 +179,7 @@ describe("Workflow Requests", () => {
       // create mock server and run the code
       await mockQstashServer({
         execute: async () => {
-          const result = await handleThirdPartyCallResult(request, client);
+          const result = await handleThirdPartyCallResult(request, await request.text(), client);
           expect(result.isOk());
           // @ts-expect-error value will be set since stepFinish isOk
           expect(result.value).toBe("is-call-return");
@@ -237,7 +237,7 @@ describe("Workflow Requests", () => {
       });
 
       const spy = spyOn(client, "publishJSON");
-      const result = await handleThirdPartyCallResult(request, client);
+      const result = await handleThirdPartyCallResult(request, await request.text(), client);
       expect(result.isOk()).toBeTrue();
       // @ts-expect-error value will be set since stepFinish isOk
       expect(result.value).toBe("call-will-retry");
@@ -280,14 +280,22 @@ describe("Workflow Requests", () => {
       });
 
       const spy = spyOn(client, "publishJSON");
-      const initialResult = await handleThirdPartyCallResult(initialRequest, client);
+      const initialResult = await handleThirdPartyCallResult(
+        initialRequest,
+        await initialRequest.text(),
+        client
+      );
       expect(initialResult.isOk());
       // @ts-expect-error value will be set since stepFinish isOk
       expect(initialResult.value).toBe("continue-workflow");
       expect(spy).toHaveBeenCalledTimes(0);
 
       // second call
-      const result = await handleThirdPartyCallResult(workflowRequest, client);
+      const result = await handleThirdPartyCallResult(
+        workflowRequest,
+        await workflowRequest.text(),
+        client
+      );
       expect(result.isOk()).toBeTrue();
       // @ts-expect-error value will be set since stepFinish isOk
       expect(result.value).toBe("continue-workflow");

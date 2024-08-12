@@ -120,18 +120,15 @@ export const recreateUserHeaders = (headers: Headers): Headers => {
  */
 export const handleThirdPartyCallResult = async (
   request: Request,
+  requestPayload: string,
   client: Client,
-  debug?: WorkflowLogger,
-  verifier?: Receiver
+  debug?: WorkflowLogger
 ): Promise<
   Ok<"is-call-return" | "continue-workflow" | "call-will-retry", never> | Err<never, Error>
 > => {
   try {
     if (request.headers.get("Upstash-Workflow-Callback")) {
-      const callbackBody = await request.text();
-      await verifyRequest(callbackBody, request.headers.get("upstash-signature"), verifier);
-
-      const callbackMessage = JSON.parse(callbackBody) as {
+      const callbackMessage = JSON.parse(requestPayload) as {
         status: number;
         body: string;
       };

@@ -2,10 +2,11 @@
 /* eslint-disable @typescript-eslint/no-magic-numbers */
 import { describe, test, expect } from "bun:test";
 import { MOCK_QSTASH_SERVER_URL, mockQstashServer, WORKFLOW_ENDPOINT } from "./test-utils";
-import { WorkflowContext } from "./context";
+import { DisabledWorkflowContext, WorkflowContext } from "./context";
 import { Client } from "../client";
 import { nanoid } from "nanoid";
-import { QstashWorkflowError } from "../error";
+import { QstashWorkflowAbort, QstashWorkflowError } from "../error";
+import type { RouteFunction } from "./types";
 
 describe("context tests", () => {
   const token = nanoid();
@@ -119,7 +120,6 @@ describe("context tests", () => {
           });
         expect(throws).toThrowError("Aborting workflow after executing step 'my-step'.");
       },
-
       responseFields: {
         status: 200,
         body: "msgId",
@@ -143,6 +143,169 @@ describe("context tests", () => {
           },
         ],
       },
+    });
+  });
+});
+
+describe("disabled workflow context", () => {
+  const token = nanoid();
+  const client = new Client({ baseUrl: MOCK_QSTASH_SERVER_URL, token });
+  const disabledContext = new DisabledWorkflowContext({
+    client,
+    workflowRunId: "wfr-foo",
+    headers: new Headers() as Headers,
+    steps: [],
+    url: WORKFLOW_ENDPOINT,
+    initialPayload: "my-payload",
+  });
+  describe("should throw abort for each step kind", () => {
+    test("run", async () => {
+      let called = false;
+      await mockQstashServer({
+        // eslint-disable-next-line @typescript-eslint/require-await
+        execute: async () => {
+          const throws = disabledContext.run("run-step", async () => {
+            return await Promise.resolve(1);
+          });
+          expect(throws).rejects.toThrow(QstashWorkflowAbort);
+          called = true;
+        },
+        responseFields: {
+          status: 200,
+          body: "msgId",
+        },
+        receivesRequest: false,
+      });
+      expect(called).toBeTrue();
+    });
+    test("sleep", async () => {
+      let called = false;
+      await mockQstashServer({
+        // eslint-disable-next-line @typescript-eslint/require-await
+        execute: async () => {
+          const throws = disabledContext.sleep("sleep-step", 1);
+          expect(throws).rejects.toThrow(QstashWorkflowAbort);
+          called = true;
+        },
+        responseFields: {
+          status: 200,
+          body: "msgId",
+        },
+        receivesRequest: false,
+      });
+      expect(called).toBeTrue();
+    });
+    test("run", async () => {
+      let called = false;
+      await mockQstashServer({
+        // eslint-disable-next-line @typescript-eslint/require-await
+        execute: async () => {
+          const throws = disabledContext.sleepUntil("sleepUntil-step", 1);
+          expect(throws).rejects.toThrow(QstashWorkflowAbort);
+          called = true;
+        },
+        responseFields: {
+          status: 200,
+          body: "msgId",
+        },
+        receivesRequest: false,
+      });
+      expect(called).toBeTrue();
+    });
+    test("run", async () => {
+      let called = false;
+      await mockQstashServer({
+        // eslint-disable-next-line @typescript-eslint/require-await
+        execute: async () => {
+          const throws = disabledContext.call("call-step", "some-url", "GET");
+          expect(throws).rejects.toThrow(QstashWorkflowAbort);
+          called = true;
+        },
+        responseFields: {
+          status: 200,
+          body: "msgId",
+        },
+        receivesRequest: false,
+      });
+      expect(called).toBeTrue();
+    });
+  });
+
+  describe("tryAuthentication", () => {
+    const disabledContext = new DisabledWorkflowContext({
+      client,
+      workflowRunId: "wfr-foo",
+      headers: new Headers() as Headers,
+      steps: [],
+      url: WORKFLOW_ENDPOINT,
+      initialPayload: "my-payload",
+    });
+
+    test("should return step-found on step", async () => {
+      const endpoint: RouteFunction<string> = async (context) => {
+        await context.sleep("sleep-step", 1);
+      };
+
+      let called = false;
+      await mockQstashServer({
+        execute: async () => {
+          const result = await DisabledWorkflowContext.tryAuthentication(endpoint, disabledContext);
+          expect(result.isOk()).toBeTrue();
+          expect(result.isOk() && result.value).toBe("step-found");
+          called = true;
+        },
+        responseFields: {
+          status: 200,
+          body: "msgId",
+        },
+        receivesRequest: false,
+      });
+      expect(called).toBeTrue();
+    });
+
+    test("should return run-ended on return", async () => {
+      // eslint-disable-next-line @typescript-eslint/require-await
+      const endpoint: RouteFunction<string> = async (_context) => {
+        return;
+      };
+
+      let called = false;
+      await mockQstashServer({
+        execute: async () => {
+          const result = await DisabledWorkflowContext.tryAuthentication(endpoint, disabledContext);
+          expect(result.isOk()).toBeTrue();
+          expect(result.isOk() && result.value).toBe("run-ended");
+          called = true;
+        },
+        responseFields: {
+          status: 200,
+          body: "msgId",
+        },
+        receivesRequest: false,
+      });
+      expect(called).toBeTrue();
+    });
+
+    test("should get error on error", async () => {
+      // eslint-disable-next-line @typescript-eslint/require-await
+      const endpoint: RouteFunction<string> = async (_context) => {
+        throw new Error("my-error");
+      };
+
+      let called = false;
+      await mockQstashServer({
+        execute: async () => {
+          const result = await DisabledWorkflowContext.tryAuthentication(endpoint, disabledContext);
+          expect(result.isErr()).toBeTrue();
+          called = true;
+        },
+        responseFields: {
+          status: 200,
+          body: "msgId",
+        },
+        receivesRequest: false,
+      });
+      expect(called).toBeTrue();
     });
   });
 });

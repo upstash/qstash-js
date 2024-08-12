@@ -51,12 +51,12 @@ const parsePayload = (rawPayload: string) => {
   const [encodedInitialPayload, ...encodedSteps] = JSON.parse(rawPayload) as RawStep[];
 
   // decode initial payload:
-  const initialPayload = decodeBase64(encodedInitialPayload.body);
+  const rawInitialPayload = decodeBase64(encodedInitialPayload.body);
   const initialStep: Step = {
     stepId: 0,
     stepName: "init",
     stepType: "Initial",
-    out: initialPayload,
+    out: rawInitialPayload,
     concurrent: 1,
   };
 
@@ -71,7 +71,7 @@ const parsePayload = (rawPayload: string) => {
   // join and deduplicate steps:
   const steps: Step[] = [initialStep, ...otherSteps];
   return {
-    initialPayload,
+    rawInitialPayload,
     steps,
   };
 };
@@ -201,7 +201,7 @@ export const parseRequest = async (
   verifier?: Receiver,
   debug?: WorkflowLogger
 ): Promise<{
-  initialPayload: string;
+  rawInitialPayload: string;
   steps: Step[];
   isLastDuplicate: boolean;
 }> => {
@@ -212,7 +212,7 @@ export const parseRequest = async (
   if (isFirstInvocation) {
     // if first invocation, return and `serve` will handle publishing the JSON to QStash
     return {
-      initialPayload: payload ?? "",
+      rawInitialPayload: payload ?? "",
       steps: [],
       isLastDuplicate: false,
     };
@@ -221,12 +221,12 @@ export const parseRequest = async (
     if (!payload) {
       throw new QstashWorkflowError("Only first call can have an empty body");
     }
-    const { initialPayload, steps } = parsePayload(payload);
+    const { rawInitialPayload, steps } = parsePayload(payload);
     const isLastDuplicate = await checkIfLastOneIsDuplicate(steps, debug);
     const deduplicatedSteps = deduplicateSteps(steps);
 
     return {
-      initialPayload,
+      rawInitialPayload,
       steps: deduplicatedSteps,
       isLastDuplicate,
     };
