@@ -326,7 +326,7 @@ describe.skip("live serve tests", () => {
       const finishState = new FinishState();
       await testEndpoint({
         finalCount: 1,
-        waitFor: 2000,
+        waitFor: 4500,
         initialPayload: "my-payload",
         finishState,
         routeFunction: async (context) => {
@@ -340,7 +340,7 @@ describe.skip("live serve tests", () => {
       });
     },
     {
-      timeout: 3000,
+      timeout: 5000,
     }
   );
 

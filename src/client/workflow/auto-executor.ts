@@ -323,7 +323,8 @@ export class AutoExecutor {
           this.context.workflowRunId,
           this.context.url,
           this.context.headers,
-          singleStep
+          singleStep,
+          this.context.failureUrl
         );
 
         // if the step is a single step execution or a plan step, we can add sleep headers

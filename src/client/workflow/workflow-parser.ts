@@ -1,10 +1,13 @@
+import type { Err, Ok } from "neverthrow";
+import { err, ok } from "neverthrow";
 import { QstashWorkflowError } from "../error";
 import {
+  WORKFLOW_FAILURE_HEADER,
   WORKFLOW_ID_HEADER,
   WORKFLOW_PROTOCOL_VERSION,
   WORKFLOW_PROTOCOL_VERSION_HEADER,
 } from "./constants";
-import type { RawStep, Step } from "./types";
+import type { RawStep, Step, WorkflowServeOptions } from "./types";
 import { nanoid } from "nanoid";
 import { verifyRequest } from "./workflow-requests";
 import type { Receiver } from "../../receiver";
@@ -231,4 +234,48 @@ export const parseRequest = async (
       isLastDuplicate,
     };
   }
+};
+
+/**
+ * checks if Upstash-Workflow-Is-Failure header is set to "true". If so,
+ * attempts to call the failureFunction function.
+ *
+ * If the header is set but failureFunction is not passed, returns
+ * QstashWorkflowError.
+ *
+ * @param request incoming request
+ * @param failureFunction function to handle the failure
+ */
+export const handleFailure = async (
+  request: Request,
+  failureFunction?: WorkflowServeOptions["failureFunction"]
+): Promise<Ok<"is-failure-callback" | "not-failure-callback", never> | Err<never, Error>> => {
+  if (request.headers.get(WORKFLOW_FAILURE_HEADER) !== "true") {
+    return ok("not-failure-callback");
+  }
+
+  if (!failureFunction) {
+    return err(
+      new QstashWorkflowError(
+        "Workflow endpoint is called to handle a failure," +
+          " but a failureFunction is not provided in serve options." +
+          " Either provide a failureUrl or a failureFunction."
+      )
+    );
+  }
+
+  try {
+    const { status, header, body } = (await request.json()) as {
+      status: number;
+      header: Record<string, string>;
+      body: string;
+    };
+    const decodedBody = atob(body);
+
+    await failureFunction(status, header, decodedBody);
+  } catch (error) {
+    return err(error as Error);
+  }
+
+  return ok("is-failure-callback");
 };

@@ -4,7 +4,7 @@ import { Client } from "../client";
 import { DisabledWorkflowContext, WorkflowContext } from "./context";
 import { WorkflowLogger } from "./logger";
 import type { FinishCondition, WorkflowServeOptions, WorkflowServeParameters } from "./types";
-import { parseRequest, validateRequest } from "./workflow-parser";
+import { handleFailure, parseRequest, validateRequest } from "./workflow-parser";
 import {
   handleThirdPartyCallResult,
   recreateUserHeaders,
@@ -68,6 +68,8 @@ const processOptions = <TResponse = Response, TInitialPayload = unknown>(
         currentSigningKey: process.env.QSTASH_CURRENT_SIGNING_KEY!,
         nextSigningKey: process.env.QSTASH_NEXT_SIGNING_KEY!,
       }),
+    failureUrl: false,
+    failureFunction: false,
     ...options,
   };
 };
@@ -91,10 +93,16 @@ export const serve = <
   request: TRequest
 ) => Promise<TResponse>) => {
   // Prepares options with defaults if they are not provided.
-  const { client, onStepFinish, initialPayloadParser, url, verbose, receiver } = processOptions<
-    TResponse,
-    TInitialPayload
-  >(options);
+  const {
+    client,
+    onStepFinish,
+    initialPayloadParser,
+    url,
+    verbose,
+    receiver,
+    failureUrl,
+    failureFunction,
+  } = processOptions<TResponse, TInitialPayload>(options);
 
   const debug = WorkflowLogger.getLogger(verbose);
   const verifier = receiver || undefined;
@@ -109,8 +117,22 @@ export const serve = <
    * @returns A promise that resolves to a response.
    */
   return async (request: TRequest) => {
+    const workflowUrl = url || request.url;
+    const workflowFailureUrl = failureFunction ? workflowUrl : failureUrl;
+
     await debug?.log("INFO", "ENDPOINT_START");
 
+    // check if the request is a failure callback
+    const failureCheck = await handleFailure(request, failureFunction);
+    if (failureCheck.isErr()) {
+      // unexpected error during handleFailure
+      throw failureCheck.error;
+    } else if (failureCheck.value === "is-failure-callback") {
+      // is a failure ballback.
+      return onStepFinish("no-workflow-id", "failure-callback");
+    }
+
+    // validation & parsing
     const { isFirstInvocation, workflowRunId } = validateRequest(request);
     const { rawInitialPayload, steps, isLastDuplicate } = await parseRequest(
       request,
@@ -119,10 +141,12 @@ export const serve = <
       debug
     );
 
+    // terminate current call if it's a duplicate branch
     if (isLastDuplicate) {
       return onStepFinish("no-workflow-id", "duplicate-step");
     }
 
+    // create context
     const workflowContext = new WorkflowContext<TInitialPayload>({
       client,
       workflowRunId,
@@ -130,32 +154,40 @@ export const serve = <
       rawInitialPayload,
       headers: recreateUserHeaders(request.headers as Headers),
       steps,
-      url: url || request.url,
+      url: workflowUrl,
+      failureUrl: workflowFailureUrl,
       debug,
     });
 
+    // attempt running routeFunction until the first step
     const authCheck = await DisabledWorkflowContext.tryAuthentication(
       routeFunction,
       workflowContext
     );
     if (authCheck.isErr()) {
+      // got error while running until first step
       await debug?.log("ERROR", "ERROR", { error: authCheck.error });
       throw authCheck.error;
     } else if (authCheck.value === "run-ended") {
+      // finished routeFunction while trying to run until first step.
+      // either there is no step or auth check resulted in `return`
       return onStepFinish("no-workflow-id", "auth-fail");
     }
 
+    // check if request is a third party call result
     const callReturnCheck = await handleThirdPartyCallResult(
       request,
       rawInitialPayload,
       client,
+      workflowFailureUrl,
       debug
     );
-
     if (callReturnCheck.isErr()) {
+      // error while checking
       await debug?.log("ERROR", "SUBMIT_THIRD_PARTY_RESULT", { error: callReturnCheck.error });
       throw callReturnCheck.error;
     } else if (callReturnCheck.value === "continue-workflow") {
+      // request is not third party call. Continue workflow as usual
       const result = isFirstInvocation
         ? await triggerFirstInvocation(workflowContext, debug)
         : await triggerRouteFunction({
@@ -166,6 +198,7 @@ export const serve = <
           });
 
       if (result.isErr()) {
+        // error while running the workflow or when cleaning up
         await debug?.log("ERROR", "ERROR", { error: result.error });
         throw result.error;
       }

@@ -1,13 +1,14 @@
 /* eslint-disable @typescript-eslint/no-magic-numbers */
 import { describe, expect, test } from "bun:test";
-import { parseRequest, validateRequest } from "./workflow-parser";
+import { handleFailure, parseRequest, validateRequest } from "./workflow-parser";
 import {
+  WORKFLOW_FAILURE_HEADER,
   WORKFLOW_ID_HEADER,
   WORKFLOW_PROTOCOL_VERSION,
   WORKFLOW_PROTOCOL_VERSION_HEADER,
 } from "./constants";
 import { nanoid } from "nanoid";
-import type { Step } from "./types";
+import type { Step, WorkflowServeOptions } from "./types";
 import { getRequest, WORKFLOW_ENDPOINT } from "./test-utils";
 import { QstashWorkflowError } from "../error";
 
@@ -474,6 +475,88 @@ describe("Workflow Parser", () => {
         {stepId: 0, stepName: "successStep2", stepType: "Run", concurrent: 2, targetStep: 5},
         {stepId: 5, stepName: "successStep2", stepType: "Run", out:  "20", concurrent: 2},
       ])
+    });
+  });
+
+  describe("handleFailure", () => {
+    const body = { status: 201, header: { myHeader: "value" }, body: btoa("myBody") };
+    test("should return not-failure-callback when the header is not set", async () => {
+      const request = new Request(WORKFLOW_ENDPOINT);
+      const failureFunction: WorkflowServeOptions["failureFunction"] = async (
+        _status,
+        _header,
+        _body
+        // eslint-disable-next-line @typescript-eslint/require-await, unicorn/consistent-function-scoping
+      ) => {
+        return;
+      };
+
+      const result1 = await handleFailure(request);
+      expect(result1.isOk()).toBeTrue();
+      expect(result1.isOk() && result1.value === "not-failure-callback").toBeTrue();
+
+      const result2 = await handleFailure(request, failureFunction);
+      expect(result2.isOk()).toBeTrue();
+      expect(result2.isOk() && result2.value === "not-failure-callback").toBeTrue();
+    });
+
+    test("should throw QstashWorkflowError if header is set but function is not passed", async () => {
+      const request = new Request(WORKFLOW_ENDPOINT, {
+        headers: {
+          [WORKFLOW_FAILURE_HEADER]: "true",
+        },
+      });
+      const result = await handleFailure(request);
+      expect(result.isErr()).toBeTrue();
+      expect(result.isErr() && result.error.name).toBe(QstashWorkflowError.name);
+      expect(result.isErr() && result.error.message).toBe(
+        "Workflow endpoint is called to handle a failure," +
+          " but a failureFunction is not provided in serve options." +
+          " Either provide a failureUrl or a failureFunction."
+      );
+    });
+
+    test("should return error when the failure function throws an error", async () => {
+      const request = new Request(WORKFLOW_ENDPOINT, {
+        body: JSON.stringify(body),
+        headers: {
+          [WORKFLOW_FAILURE_HEADER]: "true",
+        },
+      });
+      const failureFunction: WorkflowServeOptions["failureFunction"] = async (
+        _status,
+        _header,
+        _body
+        // eslint-disable-next-line @typescript-eslint/require-await, unicorn/consistent-function-scoping
+      ) => {
+        throw new Error("my-error");
+      };
+      const result = await handleFailure(request, failureFunction);
+      expect(result.isErr()).toBeTrue();
+      expect(result.isErr() && result.error.message).toBe("my-error");
+    });
+
+    test("should return is-failure-callback when failure code runs succesfully", async () => {
+      const request = new Request(WORKFLOW_ENDPOINT, {
+        body: JSON.stringify(body),
+        headers: {
+          [WORKFLOW_FAILURE_HEADER]: "true",
+        },
+      });
+      const failureFunction: WorkflowServeOptions["failureFunction"] = async (
+        status,
+        header,
+        body
+        // eslint-disable-next-line @typescript-eslint/require-await
+      ) => {
+        expect(status).toBe(201);
+        expect(header.myHeader).toBe("value");
+        expect(body).toBe("myBody");
+        return;
+      };
+      const result = await handleFailure(request, failureFunction);
+      expect(result.isOk()).toBeTrue();
+      expect(result.isOk() && result.value).toBe("is-failure-callback");
     });
   });
 });

@@ -17,6 +17,7 @@ export class WorkflowContext<TInitialPayload = unknown> {
   public readonly workflowRunId: string;
   public readonly steps: Step[];
   public readonly url: string;
+  public readonly failureUrl: string | false;
   public readonly requestPayload: TInitialPayload;
   public readonly headers: Headers;
   public readonly rawInitialPayload: string;
@@ -27,6 +28,7 @@ export class WorkflowContext<TInitialPayload = unknown> {
     headers,
     steps,
     url,
+    failureUrl = false,
     debug,
     initialPayload,
     rawInitialPayload,
@@ -36,6 +38,7 @@ export class WorkflowContext<TInitialPayload = unknown> {
     headers: Headers;
     steps: Step[];
     url: string;
+    failureUrl?: string | false;
     debug?: WorkflowLogger;
     initialPayload: TInitialPayload;
     rawInitialPayload?: string; // optional for tests
@@ -44,6 +47,7 @@ export class WorkflowContext<TInitialPayload = unknown> {
     this.workflowRunId = workflowRunId;
     this.steps = steps;
     this.url = url;
+    this.failureUrl = failureUrl;
     this.headers = headers;
     this.requestPayload = initialPayload;
     this.rawInitialPayload = rawInitialPayload ?? JSON.stringify(this.requestPayload);
@@ -201,6 +205,7 @@ export class DisabledWorkflowContext<
       headers: context.headers,
       steps: context.steps,
       url: context.url,
+      failureUrl: context.failureUrl,
       initialPayload: context.requestPayload,
       rawInitialPayload: context.rawInitialPayload,
     });

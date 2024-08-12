@@ -60,17 +60,16 @@ export type Step<TResult = unknown, TBody = unknown> = {
    * target step of a plan step. In other words, the step to assign the
    * result of a plan step.
    *
-   * Set to 0 if the step is not a plan step (of a parallel run). Otherwise,
+   * undefined if the step is not a plan step (of a parallel run). Otherwise,
    * set to the target step.
    */
   targetStep?: number;
 } & (ThirdPartyCallFields<TBody> | { [P in keyof ThirdPartyCallFields]?: never });
 
-export type CallType = "step" | "toCallback" | "fromCallback";
 export type RawStep = {
   messageId: string;
   body: string; // body is a base64 encoded step or payload
-  callType: CallType;
+  callType: "step" | "toCallback" | "fromCallback";
 };
 
 export type SyncStepFunction<TResult> = () => TResult;
@@ -88,8 +87,6 @@ export type WorkflowServeParameters<TInitialPayload, TResponse = Response> = {
   options?: WorkflowServeOptions<TResponse, TInitialPayload>;
 };
 
-type ReceiverOption = Receiver | false;
-
 /**
  * Not all frameworks use env variables like nextjs does. In this case, we need
  * to be able to get the client and receiver explicitly.
@@ -102,17 +99,16 @@ export type WorkflowServeParametersExtended<TInitialPayload = unknown, TResponse
   "routeFunction"
 > & {
   client: Client;
-  receiver: ReceiverOption;
+  receiver: WorkflowServeOptions["receiver"];
   options?: Omit<WorkflowServeOptions<TResponse, TInitialPayload>, "client" | "receiver">;
 };
 
-/**
- * Function parsing initial payload from string to an object
- */
-export type InitialPayloadParser<TInitialPayload = unknown> = (
-  initialPayload: string
-) => TInitialPayload;
-export type FinishCondition = "success" | "duplicate-step" | "fromCallback" | "auth-fail";
+export type FinishCondition =
+  | "success"
+  | "duplicate-step"
+  | "fromCallback"
+  | "auth-fail"
+  | "failure-callback";
 export type WorkflowServeOptions<TResponse = Response, TInitialPayload = unknown> = {
   /**
    * QStash client
@@ -128,7 +124,7 @@ export type WorkflowServeOptions<TResponse = Response, TInitialPayload = unknown
   /**
    * Function to parse the initial payload passed by the user
    */
-  initialPayloadParser?: InitialPayloadParser<TInitialPayload>;
+  initialPayloadParser?: (initialPayload: string) => TInitialPayload;
   /**
    * Url of the endpoint where the workflow is set up.
    *
@@ -153,5 +149,12 @@ export type WorkflowServeOptions<TResponse = Response, TInitialPayload = unknown
    * Enabled by default. A receiver is created from the env variables
    * QSTASH_CURRENT_SIGNING_KEY and QSTASH_NEXT_SIGNING_KEY.
    */
-  receiver?: ReceiverOption;
+  receiver?: Receiver | false;
+  /**
+   *
+   */
+  failureUrl?: string | false;
+  failureFunction?:
+    | ((status: number, header: Record<string, string>, body: string) => Promise<void>)
+    | false;
 };
