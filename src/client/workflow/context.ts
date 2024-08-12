@@ -16,7 +16,6 @@ export class WorkflowContext<TInitialPayload = unknown> {
   public readonly client: Client;
   public readonly workflowRunId: string;
   public readonly steps: Step[];
-  public readonly nonPlanStepCount: number;
   public readonly url: string;
   public readonly requestPayload: TInitialPayload;
   public readonly headers: Headers;
@@ -46,7 +45,6 @@ export class WorkflowContext<TInitialPayload = unknown> {
     this.steps = steps;
     this.url = url;
     this.headers = headers;
-    this.nonPlanStepCount = this.steps.filter((step) => !step.targetStep).length;
     this.requestPayload = initialPayload;
     this.rawInitialPayload = rawInitialPayload ?? JSON.stringify(this.requestPayload);
 

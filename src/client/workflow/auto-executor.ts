@@ -11,6 +11,7 @@ export class AutoExecutor {
   private activeLazyStepList?: BaseLazyStep[];
   private debug?: WorkflowLogger;
 
+  private readonly nonPlanStepCount: number;
   private indexInCurrentList = 0;
   public stepCount = 0;
   public planStepCount = 0;
@@ -20,6 +21,7 @@ export class AutoExecutor {
   constructor(context: WorkflowContext, debug?: WorkflowLogger) {
     this.context = context;
     this.debug = debug;
+    this.nonPlanStepCount = this.context.steps.filter((step) => !step.targetStep).length;
   }
 
   /**
@@ -108,7 +110,7 @@ export class AutoExecutor {
    * @returns step result
    */
   protected async runSingle<TResult>(lazyStep: BaseLazyStep<TResult>) {
-    if (this.stepCount < this.context.nonPlanStepCount) {
+    if (this.stepCount < this.nonPlanStepCount) {
       const step = this.context.steps[this.stepCount + this.planStepCount];
       validateStep(lazyStep, step);
       await this.debug?.log("INFO", "RUN_SINGLE", {
