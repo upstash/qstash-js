@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { analyticsBaseUrlMap } from "./providers";
+import { setupAnalytics } from "./providers";
 import { appendLLMOptionsIfNeeded } from "./utils";
 
 describe("appendLLMOptionsIfNeeded", () => {
@@ -92,19 +92,17 @@ describe("appendLLMOptionsIfNeeded", () => {
     appendLLMOptionsIfNeeded(request, headers);
 
     // Use the actual analyticsBaseUrlMap function to get expected values
-    const { baseURL, headers: expectedHeaders } = analyticsBaseUrlMap(
-      //@ts-expect-error ts compiler silencer
-      request.api.analytics.name,
-      request.api.analytics.token,
+    const { baseURL, defaultHeaders: expectedHeaders } = setupAnalytics(
+      { name: "helicone", token: request.api.analytics.token },
       request.api.provider.token,
       request.api.provider.baseUrl
     );
 
     //@ts-expect-error ts compiler silencer
     expect(request.url).toBe(baseURL);
-    expect(headers.get("Helicone-Auth")).toBe(expectedHeaders["Helicone-Auth"]);
-    expect(headers.get("Helicone-Target-Url")).toBe(expectedHeaders["Helicone-Target-Url"]);
-    expect(headers.get("Authorization")).toBe(expectedHeaders.Authorization);
+    expect(headers.get("Helicone-Auth")).toBe(expectedHeaders?.["Helicone-Auth"] ?? "");
+    expect(headers.get("Helicone-Target-Url")).toBe(expectedHeaders?.["Helicone-Target-Url"] ?? "");
+    expect(headers.get("Authorization")).toBe(expectedHeaders?.Authorization ?? "");
   });
 
   test("should not modify request or headers when api is not present", () => {
