@@ -15,5 +15,5 @@
     "allowJs": true,
     "types": ["bun-types"]
   },
-  "exclude": ["examples"]
+  "exclude": ["examples", "node_modules"]
 }
