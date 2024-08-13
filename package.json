@@ -1,5 +1,5 @@
 {
-  "version": "2.5.5",
+  "version": "2.6.3",
   "name": "@upstash/qstash",
   "description": "Official Typescript client for QStash",
   "author": "Andreas Thomas <dev@chronark.com>",
