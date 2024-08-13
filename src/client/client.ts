@@ -358,7 +358,7 @@ export class Client {
     // Using LLMs without callbacks is meaningless, that's why we check before going further.
     ensureCallbackPresent<TBody>(request);
     //If needed, this allows users to directly pass their requests to any open-ai compatible 3rd party llm directly from sdk.
-    appendLLMOptionsIfNeeded<TBody, TRequest>(request, headers);
+    appendLLMOptionsIfNeeded<TBody, TRequest>(request, headers, this.http);
 
     // @ts-expect-error it's just internal
     const response = await this.publish<TRequest>({
@@ -418,9 +418,10 @@ export class Client {
       // Using LLMs without callbacks is meaningless, that's why we check before going further.
       ensureCallbackPresent<TBody>(message);
       //If needed, this allows users to directly pass their requests to any open-ai compatible 3rd party llm directly from sdk.
+
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      //@ts-ignore Type mismatch TODO: should be checked later
-      appendLLMOptionsIfNeeded<TBody, TRequest>(message, message.headers);
+      //@ts-ignore this is required otherwise message header prevent ts to compile
+      appendLLMOptionsIfNeeded<TBody, TRequest>(message, message.headers, this.http);
       (message.headers as Headers).set("Content-Type", "application/json");
     }
 

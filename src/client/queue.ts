@@ -138,7 +138,7 @@ export class Queue {
     // Using LLMs without callbacks is meaningless, that's why we check before going further.
     ensureCallbackPresent<TBody>(request);
     // If needed, this allows users to directly pass their requests to any open-ai compatible 3rd party llm directly from sdk.
-    appendLLMOptionsIfNeeded<TBody, TRequest>(request, headers);
+    appendLLMOptionsIfNeeded<TBody, TRequest>(request, headers, this.http);
 
     const response = await this.enqueue({
       ...request,

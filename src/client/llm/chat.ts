@@ -1,6 +1,6 @@
 import type { Requester } from "../http";
 import type { HeadersInit } from "../types";
-import { analyticsBaseUrlMap } from "./providers";
+import { setupAnalytics } from "./providers";
 import type {
   ChatCompletion,
   ChatCompletionChunk,
@@ -51,30 +51,53 @@ export class Chat {
     // This section calls any non-Upstash LLM
     if (request.provider.owner != "upstash") return this.createThirdParty<TStream>(request);
 
-    // This section calls Upstash LLM
+    // This section calls Upstash LLMs
     const body = JSON.stringify(request);
-    if ("stream" in request && request.stream) {
-      // @ts-expect-error when req.stream, we return ChatCompletion
-      return this.http.requestStream({
-        path: ["llm", "v1", "chat", "completions"],
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Connection: "keep-alive",
-          Accept: "text/event-stream",
-          "Cache-Control": "no-cache",
-          Authorization: `Bearer ${this.token}`,
-        },
-        body,
-      });
-    }
 
-    return this.http.request({
-      path: ["llm", "v1", "chat", "completions"],
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${this.token}` },
-      body,
-    });
+    let baseUrl = undefined;
+    let headers = {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${this.token}`,
+      ...("stream" in request && request.stream
+        ? {
+            Connection: "keep-alive",
+            Accept: "text/event-stream",
+            "Cache-Control": "no-cache",
+          }
+        : {}),
+    };
+
+    if (request.analytics) {
+      const { baseURL, defaultHeaders } = setupAnalytics(
+        { name: "helicone", token: request.analytics.token },
+        this.getAuthorizationToken(),
+        request.provider.baseUrl,
+        "upstash"
+      );
+      headers = { ...headers, ...defaultHeaders };
+      baseUrl = baseURL;
+    }
+    const path = request.analytics ? [] : ["llm", "v1", "chat", "completions"];
+
+    return (
+      "stream" in request && request.stream
+        ? this.http.requestStream({
+            path,
+            method: "POST",
+            headers,
+            baseUrl,
+            body,
+          })
+        : this.http.request({
+            path,
+            method: "POST",
+            headers,
+            baseUrl,
+            body,
+          })
+    ) as Promise<
+      TStream extends StreamEnabled ? AsyncIterable<ChatCompletionChunk> : ChatCompletion
+    >;
   };
 
   /**
@@ -110,10 +133,9 @@ export class Chat {
     const isAnalyticsEnabled = analytics?.name && analytics.token;
 
     const analyticsConfig =
-      // This is exact copy of "isAnalyticsEnabled" but required in order to satify ts
       analytics?.name && analytics.token
-        ? analyticsBaseUrlMap(analytics.name, analytics.token, token, baseUrl)
-        : { headers: undefined, baseURL: baseUrl };
+        ? setupAnalytics({ name: analytics.name, token: analytics.token }, token, baseUrl, owner)
+        : { defaultHeaders: undefined, baseURL: baseUrl };
 
     // Configures stream headers if stream is enabled
     const isStream = "stream" in request && request.stream;
@@ -128,13 +150,13 @@ export class Chat {
             "Cache-Control": "no-cache",
           }
         : {}),
-      ...analyticsConfig.headers,
+      ...analyticsConfig.defaultHeaders,
     };
 
     const response = await this.http[isStream ? "requestStream" : "request"]({
       path: isAnalyticsEnabled ? [] : ["v1", "chat", "completions"],
       method: "POST",
-      headers: headers,
+      headers,
       body,
       baseUrl: analyticsConfig.baseURL,
     });
@@ -144,6 +166,17 @@ export class Chat {
       ? AsyncIterable<ChatCompletionChunk>
       : ChatCompletion;
   };
+
+  // Helper method to get the authorization token
+  private getAuthorizationToken(): string {
+    //@ts-expect-error hacky way to get token from http module
+    const authHeader = String(this.http.authorization);
+    const match = authHeader.match(/Bearer (.+)/);
+    if (!match) {
+      throw new Error("Invalid authorization header format");
+    }
+    return match[1];
+  }
 
   /**
    * Calls the Upstash completions api given a PromptRequest.
