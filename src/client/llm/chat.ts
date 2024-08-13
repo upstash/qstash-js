@@ -51,7 +51,7 @@ export class Chat {
     // This section calls any non-Upstash LLM
     if (request.provider.owner != "upstash") return this.createThirdParty<TStream>(request);
 
-    // This section calls Upstash LLM
+    // This section calls Upstash LLMs
     const body = JSON.stringify(request);
 
     let baseUrl = undefined;
