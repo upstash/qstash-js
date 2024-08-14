@@ -20,7 +20,7 @@ import type { Receiver } from "../../receiver";
 export const triggerFirstInvocation = async <TInitialPayload>(
   workflowContext: WorkflowContext<TInitialPayload>,
   debug?: WorkflowLogger
-) => {
+): Promise<Ok<"success", never> | Err<never, Error>> => {
   const headers = getHeaders(
     "true",
     workflowContext.workflowRunId,
@@ -43,7 +43,8 @@ export const triggerFirstInvocation = async <TInitialPayload>(
     });
     return ok("success");
   } catch (error) {
-    return err(error);
+    const error_ = error as Error;
+    return err(error_);
   }
 };
 
@@ -128,6 +129,7 @@ export const handleThirdPartyCallResult = async (
   request: Request,
   requestPayload: string,
   client: Client,
+  workflowUrl: string,
   failureUrl: WorkflowServeOptions["failureUrl"],
   debug?: WorkflowLogger
 ): Promise<
@@ -180,7 +182,7 @@ export const handleThirdPartyCallResult = async (
       const requestHeaders = getHeaders(
         "false",
         workflowRunId,
-        request.url,
+        workflowUrl,
         userHeaders,
         undefined,
         failureUrl
@@ -197,14 +199,14 @@ export const handleThirdPartyCallResult = async (
       await debug?.log("SUBMIT", "SUBMIT_THIRD_PARTY_RESULT", {
         step: callResultStep,
         headers: requestHeaders,
-        url: request.url,
+        url: workflowUrl,
       });
 
       const result = await client.publishJSON({
         headers: requestHeaders,
         method: "POST",
         body: callResultStep,
-        url: request.url,
+        url: workflowUrl,
       });
 
       await debug?.log("SUBMIT", "SUBMIT_THIRD_PARTY_RESULT", {

@@ -185,6 +185,7 @@ describe("Workflow Requests", () => {
             request,
             await request.text(),
             client,
+            WORKFLOW_ENDPOINT,
             WORKFLOW_ENDPOINT
           );
           expect(result.isOk());
@@ -248,6 +249,7 @@ describe("Workflow Requests", () => {
         request,
         await request.text(),
         client,
+        WORKFLOW_ENDPOINT,
         WORKFLOW_ENDPOINT
       );
       expect(result.isOk()).toBeTrue();
@@ -296,6 +298,7 @@ describe("Workflow Requests", () => {
         initialRequest,
         await initialRequest.text(),
         client,
+        WORKFLOW_ENDPOINT,
         WORKFLOW_ENDPOINT
       );
       expect(initialResult.isOk());
@@ -308,6 +311,7 @@ describe("Workflow Requests", () => {
         workflowRequest,
         await workflowRequest.text(),
         client,
+        WORKFLOW_ENDPOINT,
         WORKFLOW_ENDPOINT
       );
       expect(result.isOk()).toBeTrue();

@@ -166,7 +166,7 @@ export const serve = <
     );
     if (authCheck.isErr()) {
       // got error while running until first step
-      await debug?.log("ERROR", "ERROR", { error: authCheck.error });
+      await debug?.log("ERROR", "ERROR", { error: authCheck.error.message });
       throw authCheck.error;
     } else if (authCheck.value === "run-ended") {
       // finished routeFunction while trying to run until first step.
@@ -179,12 +179,15 @@ export const serve = <
       request,
       rawInitialPayload,
       qstashClient,
+      workflowUrl,
       workflowFailureUrl,
       debug
     );
     if (callReturnCheck.isErr()) {
       // error while checking
-      await debug?.log("ERROR", "SUBMIT_THIRD_PARTY_RESULT", { error: callReturnCheck.error });
+      await debug?.log("ERROR", "SUBMIT_THIRD_PARTY_RESULT", {
+        error: callReturnCheck.error.message,
+      });
       throw callReturnCheck.error;
     } else if (callReturnCheck.value === "continue-workflow") {
       // request is not third party call. Continue workflow as usual
@@ -199,7 +202,7 @@ export const serve = <
 
       if (result.isErr()) {
         // error while running the workflow or when cleaning up
-        await debug?.log("ERROR", "ERROR", { error: result.error });
+        await debug?.log("ERROR", "ERROR", { error: result.error.message });
         throw result.error;
       }
 
