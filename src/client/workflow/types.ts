@@ -89,18 +89,18 @@ export type WorkflowServeParameters<TInitialPayload, TResponse = Response> = {
 
 /**
  * Not all frameworks use env variables like nextjs does. In this case, we need
- * to be able to get the client and receiver explicitly.
+ * to be able to get the qstashClient and receiver explicitly.
  *
  * In this case, we extend the WorkflowServeParameters by requiring an explicit
- * client & receiever parameters and removing client & receiever from options.
+ * qstashClient & receiever parameters and removing qstashClient & receiever from options.
  */
 export type WorkflowServeParametersExtended<TInitialPayload = unknown, TResponse = Response> = Pick<
   WorkflowServeParameters<TInitialPayload, TResponse>,
   "routeFunction"
 > & {
-  client: Client;
+  qstashClient: Client;
   receiver: WorkflowServeOptions["receiver"];
-  options?: Omit<WorkflowServeOptions<TResponse, TInitialPayload>, "client" | "receiver">;
+  options?: Omit<WorkflowServeOptions<TResponse, TInitialPayload>, "qstashClient" | "receiver">;
 };
 
 export type FinishCondition =
@@ -113,7 +113,7 @@ export type WorkflowServeOptions<TResponse = Response, TInitialPayload = unknown
   /**
    * QStash client
    */
-  client?: Client;
+  qstashClient?: Client;
   /**
    * Function called to return a response after each step execution
    *

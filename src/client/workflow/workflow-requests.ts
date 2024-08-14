@@ -35,7 +35,7 @@ export const triggerFirstInvocation = async <TInitialPayload>(
     url: workflowContext.url,
   });
   return fromSafePromise(
-    workflowContext.client.publishJSON({
+    workflowContext.qstashClient.publishJSON({
       headers,
       method: "POST",
       body: workflowContext.requestPayload,
@@ -71,7 +71,7 @@ export const triggerWorkflowDelete = async <TInitialPayload>(
   await debug?.log("SUBMIT", "SUBMIT_CLEANUP", {
     deletedWorkflowRunId: workflowContext.workflowRunId,
   });
-  const result = await workflowContext.client.http.request({
+  const result = await workflowContext.qstashClient.http.request({
     path: ["v2", "workflows", "runs", `${workflowContext.workflowRunId}?cancel=${cancel}`],
     method: "DELETE",
     parseResponseAsJson: false,

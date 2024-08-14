@@ -56,13 +56,13 @@ export const serve = <TInitialPayload = unknown>({
   routeFunction,
   options,
   receiver,
-  client,
+  qstashClient,
 }: WorkflowServeParametersExtended<TInitialPayload>): RequestHandler => {
   const handler: RequestHandler = ({ request }) => {
     const serveMethod = serveBase<TInitialPayload>({
       routeFunction,
       options: {
-        client,
+        qstashClient,
         receiver,
         ...options,
       },

@@ -35,7 +35,7 @@ describe("Workflow Requests", () => {
     const token = "myToken";
 
     const context = new WorkflowContext({
-      client: new Client({ baseUrl: MOCK_QSTASH_SERVER_URL, token }),
+      qstashClient: new Client({ baseUrl: MOCK_QSTASH_SERVER_URL, token }),
       workflowRunId: workflowRunId,
       initialPayload,
       headers: new Headers({}) as Headers,
@@ -119,7 +119,7 @@ describe("Workflow Requests", () => {
     const token = "myToken";
 
     const context = new WorkflowContext({
-      client: new Client({ baseUrl: MOCK_SERVER_URL, token }),
+      qstashClient: new Client({ baseUrl: MOCK_SERVER_URL, token }),
       workflowRunId: workflowRunId,
       initialPayload: undefined,
       headers: new Headers({}) as Headers,
@@ -127,7 +127,7 @@ describe("Workflow Requests", () => {
       url: WORKFLOW_ENDPOINT,
     });
 
-    const spy = spyOn(context.client.http, "request");
+    const spy = spyOn(context.qstashClient.http, "request");
     await triggerWorkflowDelete(context);
     expect(spy).toHaveBeenCalledTimes(1);
     expect(spy).toHaveBeenLastCalledWith({

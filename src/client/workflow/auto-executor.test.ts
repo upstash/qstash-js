@@ -85,7 +85,7 @@ describe("auto-executor", () => {
 
   const getContext = (steps: Step[]) => {
     return new SpyWorkflowContext({
-      client: new Client({ baseUrl: MOCK_QSTASH_SERVER_URL, token }),
+      qstashClient: new Client({ baseUrl: MOCK_QSTASH_SERVER_URL, token }),
       workflowRunId,
       initialPayload,
       headers: new Headers({}) as Headers,

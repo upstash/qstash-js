@@ -14,7 +14,7 @@ export class WorkflowContext<TInitialPayload = unknown> {
   protected readonly executor: AutoExecutor;
   protected readonly steps: Step[];
 
-  public readonly client: Client;
+  public readonly qstashClient: Client;
   public readonly workflowRunId: string;
   public readonly url: string;
   public readonly failureUrl: string | false;
@@ -23,7 +23,7 @@ export class WorkflowContext<TInitialPayload = unknown> {
   public readonly rawInitialPayload: string;
 
   constructor({
-    client,
+    qstashClient,
     workflowRunId,
     headers,
     steps,
@@ -33,7 +33,7 @@ export class WorkflowContext<TInitialPayload = unknown> {
     initialPayload,
     rawInitialPayload,
   }: {
-    client: Client;
+    qstashClient: Client;
     workflowRunId: string;
     headers: Headers;
     steps: Step[];
@@ -43,7 +43,7 @@ export class WorkflowContext<TInitialPayload = unknown> {
     initialPayload: TInitialPayload;
     rawInitialPayload?: string; // optional for tests
   }) {
-    this.client = client;
+    this.qstashClient = qstashClient;
     this.workflowRunId = workflowRunId;
     this.steps = steps;
     this.url = url;
@@ -200,7 +200,7 @@ export class DisabledWorkflowContext<
     context: WorkflowContext<TInitialPayload>
   ): Promise<Ok<"step-found" | "run-ended", never> | Err<never, Error>> {
     const disabledContext = new DisabledWorkflowContext({
-      client: new Client({ baseUrl: "disabled-client", token: "disabled-client" }),
+      qstashClient: new Client({ baseUrl: "disabled-client", token: "disabled-client" }),
       workflowRunId: context.workflowRunId,
       headers: context.headers,
       steps: [],

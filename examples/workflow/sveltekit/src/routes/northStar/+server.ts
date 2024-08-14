@@ -66,7 +66,7 @@ export const POST = serve<Invoice>({
       return true
     })
   },
-  client: new Client({
+  qstashClient: new Client({
     baseUrl: env.QSTASH_URL!,
     token: env.QSTASH_TOKEN!,
   }),

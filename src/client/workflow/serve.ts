@@ -32,7 +32,7 @@ const processOptions = <TResponse = Response, TInitialPayload = unknown>(
   );
 
   return {
-    client: new Client({
+    qstashClient: new Client({
       baseUrl: process.env.QSTASH_URL!,
       token: process.env.QSTASH_TOKEN!,
     }),
@@ -94,7 +94,7 @@ export const serve = <
 ) => Promise<TResponse>) => {
   // Prepares options with defaults if they are not provided.
   const {
-    client,
+    qstashClient,
     onStepFinish,
     initialPayloadParser,
     url,
@@ -148,7 +148,7 @@ export const serve = <
 
     // create context
     const workflowContext = new WorkflowContext<TInitialPayload>({
-      client,
+      qstashClient,
       workflowRunId,
       initialPayload: initialPayloadParser(rawInitialPayload),
       rawInitialPayload,
@@ -178,7 +178,7 @@ export const serve = <
     const callReturnCheck = await handleThirdPartyCallResult(
       request,
       rawInitialPayload,
-      client,
+      qstashClient,
       workflowFailureUrl,
       debug
     );

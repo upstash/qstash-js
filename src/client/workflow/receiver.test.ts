@@ -80,7 +80,7 @@ const nextSigningKey = nanoid();
 const randomBody = btoa(nanoid());
 
 const token = nanoid();
-const client = new Client({ baseUrl: MOCK_QSTASH_SERVER_URL, token });
+const qstashClient = new Client({ baseUrl: MOCK_QSTASH_SERVER_URL, token });
 const receiver = new Receiver({ currentSigningKey, nextSigningKey });
 
 /**
@@ -93,7 +93,7 @@ const endpoint = serve({
     });
   },
   options: {
-    client,
+    qstashClient,
     receiver,
     url: WORKFLOW_ENDPOINT,
   },

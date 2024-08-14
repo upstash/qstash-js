@@ -318,7 +318,7 @@ export class AutoExecutor {
 
     await this.debug?.log("SUBMIT", "SUBMIT_STEP", { length: steps.length, steps });
 
-    const result = await this.context.client.batchJSON(
+    const result = await this.context.qstashClient.batchJSON(
       steps.map((singleStep) => {
         const headers = getHeaders(
           "false",

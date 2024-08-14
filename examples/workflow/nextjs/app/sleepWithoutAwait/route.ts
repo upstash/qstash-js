@@ -53,7 +53,7 @@ export const POST = serve<Invoice>({
             console.log(x, "  send receipt", charge.invoice.email);
             return 10
           }),
-          context.sleep("sleep", 5)
+          context.sleep("sleep", 3600)
         ])
         console.log("end", updateDb, receipt, wait);
         return

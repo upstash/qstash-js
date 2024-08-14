@@ -20,7 +20,7 @@ export const POST = serve<string>({
       console.log("step 2 input", result1, "output", output)
     });
   },
-  client: new Client({
+  qstashClient: new Client({
     baseUrl: env.QSTASH_URL!,
     token: env.QSTASH_TOKEN!,
   }),
