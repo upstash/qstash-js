@@ -12,10 +12,10 @@ import { QstashWorkflowAbort } from "../error";
 
 export class WorkflowContext<TInitialPayload = unknown> {
   protected readonly executor: AutoExecutor;
+  protected readonly steps: Step[];
 
   public readonly client: Client;
   public readonly workflowRunId: string;
-  public readonly steps: Step[];
   public readonly url: string;
   public readonly failureUrl: string | false;
   public readonly requestPayload: TInitialPayload;
@@ -52,7 +52,7 @@ export class WorkflowContext<TInitialPayload = unknown> {
     this.requestPayload = initialPayload;
     this.rawInitialPayload = rawInitialPayload ?? JSON.stringify(this.requestPayload);
 
-    this.executor = new AutoExecutor(this, debug);
+    this.executor = new AutoExecutor(this, this.steps, debug);
   }
 
   /**
@@ -203,7 +203,7 @@ export class DisabledWorkflowContext<
       client: new Client({ baseUrl: "disabled-client", token: "disabled-client" }),
       workflowRunId: context.workflowRunId,
       headers: context.headers,
-      steps: context.steps,
+      steps: [],
       url: context.url,
       failureUrl: context.failureUrl,
       initialPayload: context.requestPayload,
