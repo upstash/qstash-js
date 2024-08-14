@@ -1,5 +1,5 @@
 import type { Err, Ok } from "neverthrow";
-import { err, fromSafePromise, ok } from "neverthrow";
+import { err, ok } from "neverthrow";
 import { QstashWorkflowAbort, QstashWorkflowError } from "../error";
 import type { WorkflowContext } from "./context";
 import type { Client } from "../client";
@@ -34,14 +34,17 @@ export const triggerFirstInvocation = async <TInitialPayload>(
     requestPayload: workflowContext.requestPayload,
     url: workflowContext.url,
   });
-  return fromSafePromise(
-    workflowContext.qstashClient.publishJSON({
+  try {
+    await workflowContext.qstashClient.publishJSON({
       headers,
       method: "POST",
       body: workflowContext.requestPayload,
       url: workflowContext.url,
-    })
-  );
+    });
+    return ok("success");
+  } catch (error) {
+    return err(error);
+  }
 };
 
 export const triggerRouteFunction = async ({

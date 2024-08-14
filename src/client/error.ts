@@ -1,5 +1,5 @@
 import type { ChatRateLimit, RateLimit } from "./types";
-import type { Step } from "./workflow/types";
+import type { FailureFunctionPayload, Step } from "./workflow/types";
 
 /**
  * Result of 500 Internal Server Error
@@ -82,3 +82,22 @@ export class QstashWorkflowAbort extends Error {
     this.stepInfo = stepInfo;
   }
 }
+
+/**
+ * Formats an unknown error to match the FailureFunctionPayload format
+ *
+ * @param error
+ * @returns
+ */
+export const formatWorkflowError = (error: unknown): FailureFunctionPayload => {
+  return error instanceof Error
+    ? {
+        error: error.name,
+        message: error.message,
+        stack: error.stack,
+      }
+    : {
+        error: "Error",
+        message: "An error occured while executing workflow.",
+      };
+};

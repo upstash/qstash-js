@@ -171,7 +171,6 @@ describe.skip("live serve tests", () => {
           expect(result1).toBe("processed 'my-payload'");
 
           const result2 = await context.run("step2", async () => {
-            // console.log("step2 ran", result1);
             const result = someWork(result1);
             return await Promise.resolve(result);
           });
@@ -305,7 +304,6 @@ describe.skip("live serve tests", () => {
           expect(result1).toBe("processed 'my-payload'");
 
           const result2 = await context.run("step2", async () => {
-            // console.log("step2 ran", result1);
             const result = someWork(result1);
             return await Promise.resolve(result);
           });

@@ -17,14 +17,14 @@ import {
  * Fills the options with default values if they are not provided.
  *
  * Default values for:
- * - client: QStash client created with QSTASH_URL and QSTASH_TOKEN env vars
+ * - qstashClient: QStash client created with QSTASH_URL and QSTASH_TOKEN env vars
  * - onFinish: returns a Response with workflowRunId in the body and status: 200
  * - initialPayloadParser: calls JSON.parse if initial request body exists.
  *
  * @param options options including the client, onFinish and initialPayloadParser
  * @returns
  */
-const processOptions = <TResponse = Response, TInitialPayload = unknown>(
+const processOptions = <TResponse extends Response = Response, TInitialPayload = unknown>(
   options?: WorkflowServeOptions<TResponse, TInitialPayload>
 ): Required<WorkflowServeOptions<TResponse, TInitialPayload>> => {
   const receiverEnvironmentVariablesSet = Boolean(
@@ -85,7 +85,7 @@ const processOptions = <TResponse = Response, TInitialPayload = unknown>(
 export const serve = <
   TInitialPayload = unknown,
   TRequest extends Request = Request,
-  TResponse = Response,
+  TResponse extends Response = Response,
 >({
   routeFunction,
   options,

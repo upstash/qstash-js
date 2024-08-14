@@ -82,7 +82,7 @@ export type RouteFunction<TInitialPayload> = (
   context: WorkflowContext<TInitialPayload>
 ) => Promise<void>;
 
-export type WorkflowServeParameters<TInitialPayload, TResponse = Response> = {
+export type WorkflowServeParameters<TInitialPayload, TResponse extends Response = Response> = {
   routeFunction: RouteFunction<TInitialPayload>;
   options?: WorkflowServeOptions<TResponse, TInitialPayload>;
 };
@@ -94,10 +94,10 @@ export type WorkflowServeParameters<TInitialPayload, TResponse = Response> = {
  * In this case, we extend the WorkflowServeParameters by requiring an explicit
  * qstashClient & receiever parameters and removing qstashClient & receiever from options.
  */
-export type WorkflowServeParametersExtended<TInitialPayload = unknown, TResponse = Response> = Pick<
-  WorkflowServeParameters<TInitialPayload, TResponse>,
-  "routeFunction"
-> & {
+export type WorkflowServeParametersExtended<
+  TInitialPayload = unknown,
+  TResponse extends Response = Response,
+> = Pick<WorkflowServeParameters<TInitialPayload, TResponse>, "routeFunction"> & {
   qstashClient: Client;
   receiver: WorkflowServeOptions["receiver"];
   options?: Omit<WorkflowServeOptions<TResponse, TInitialPayload>, "qstashClient" | "receiver">;
@@ -109,7 +109,10 @@ export type FinishCondition =
   | "fromCallback"
   | "auth-fail"
   | "failure-callback";
-export type WorkflowServeOptions<TResponse = Response, TInitialPayload = unknown> = {
+export type WorkflowServeOptions<
+  TResponse extends Response = Response,
+  TInitialPayload = unknown,
+> = {
   /**
    * QStash client
    */
@@ -155,6 +158,17 @@ export type WorkflowServeOptions<TResponse = Response, TInitialPayload = unknown
    */
   failureUrl?: string | false;
   failureFunction?:
-    | ((status: number, header: Record<string, string>, body: string) => Promise<void>)
+    | ((
+        status: number,
+        header: Record<string, string>,
+        body: FailureFunctionPayload,
+        worklfowRunId: string
+      ) => Promise<void>)
     | false;
+};
+
+export type FailureFunctionPayload = {
+  error: string;
+  message: string;
+  stack?: string;
 };

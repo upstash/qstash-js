@@ -10,7 +10,7 @@ import {
 import { nanoid } from "nanoid";
 import type { Step, WorkflowServeOptions } from "./types";
 import { getRequest, WORKFLOW_ENDPOINT } from "./test-utils";
-import { QstashWorkflowError } from "../error";
+import { formatWorkflowError, QstashWorkflowError } from "../error";
 
 describe("Workflow Parser", () => {
   describe("validateRequest", () => {
@@ -479,7 +479,11 @@ describe("Workflow Parser", () => {
   });
 
   describe("handleFailure", () => {
-    const body = { status: 201, header: { myHeader: "value" }, body: btoa("myBody") };
+    const body = {
+      status: 201,
+      header: { myHeader: "value" },
+      body: btoa(JSON.stringify(formatWorkflowError(new QstashWorkflowError("my-error")))),
+    };
     test("should return not-failure-callback when the header is not set", async () => {
       const request = new Request(WORKFLOW_ENDPOINT);
       const failureFunction: WorkflowServeOptions["failureFunction"] = async (
@@ -551,7 +555,8 @@ describe("Workflow Parser", () => {
       ) => {
         expect(status).toBe(201);
         expect(header.myHeader).toBe("value");
-        expect(body).toBe("myBody");
+        expect(body.error).toBe(QstashWorkflowError.name);
+        expect(body.message).toBe("my-error");
         return;
       };
       const result = await handleFailure(request, failureFunction);

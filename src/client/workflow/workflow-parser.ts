@@ -7,7 +7,7 @@ import {
   WORKFLOW_PROTOCOL_VERSION,
   WORKFLOW_PROTOCOL_VERSION_HEADER,
 } from "./constants";
-import type { RawStep, Step, WorkflowServeOptions } from "./types";
+import type { FailureFunctionPayload, RawStep, Step, WorkflowServeOptions } from "./types";
 import { nanoid } from "nanoid";
 import { verifyRequest } from "./workflow-requests";
 import type { Receiver } from "../../receiver";
@@ -265,14 +265,17 @@ export const handleFailure = async (
   }
 
   try {
-    const { status, header, body } = (await request.json()) as {
+    const { status, header, body, workflowRunId } = (await request.json()) as {
       status: number;
       header: Record<string, string>;
       body: string;
+      workflowRunId: string;
     };
-    const decodedBody = atob(body);
+    const decodedBody = body ? atob(body) : "{}";
 
-    await failureFunction(status, header, decodedBody);
+    const payload = JSON.parse(decodedBody) as FailureFunctionPayload;
+
+    await failureFunction(status, header, payload, workflowRunId);
   } catch (error) {
     return err(error as Error);
   }

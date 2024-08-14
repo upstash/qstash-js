@@ -45,7 +45,8 @@ describe("Workflow Requests", () => {
 
     await mockQstashServer({
       execute: async () => {
-        await triggerFirstInvocation(context);
+        const result = await triggerFirstInvocation(context);
+        expect(result.isOk()).toBeTrue();
       },
       responseFields: {
         body: { messageId: "msgId" },
