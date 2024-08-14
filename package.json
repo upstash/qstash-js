@@ -1,5 +1,5 @@
 {
-  "version": "2.5.5",
+  "version": "2.6.4-workflow-alpha.0",
   "name": "@upstash/qstash",
   "description": "Official Typescript client for QStash",
   "author": "Andreas Thomas <dev@chronark.com>",
