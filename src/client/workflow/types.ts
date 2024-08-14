@@ -82,9 +82,13 @@ export type RouteFunction<TInitialPayload> = (
   context: WorkflowContext<TInitialPayload>
 ) => Promise<void>;
 
-export type WorkflowServeParameters<TInitialPayload, TResponse extends Response = Response> = {
+export type WorkflowServeParameters<
+  TInitialPayload,
+  TResponse extends Response = Response,
+  TExcludeFromOptions extends keyof WorkflowServeOptions = never,
+> = {
   routeFunction: RouteFunction<TInitialPayload>;
-  options?: WorkflowServeOptions<TResponse, TInitialPayload>;
+  options?: Omit<WorkflowServeOptions<TResponse, TInitialPayload>, TExcludeFromOptions>;
 };
 
 /**
@@ -97,10 +101,14 @@ export type WorkflowServeParameters<TInitialPayload, TResponse extends Response 
 export type WorkflowServeParametersExtended<
   TInitialPayload = unknown,
   TResponse extends Response = Response,
-> = Pick<WorkflowServeParameters<TInitialPayload, TResponse>, "routeFunction"> & {
+  TExcludeFromOptions extends keyof WorkflowServeOptions = never,
+> = WorkflowServeParameters<
+  TInitialPayload,
+  TResponse,
+  "qstashClient" | "receiver" | TExcludeFromOptions
+> & {
   qstashClient: Client;
   receiver: WorkflowServeOptions["receiver"];
-  options?: Omit<WorkflowServeOptions<TResponse, TInitialPayload>, "qstashClient" | "receiver">;
 };
 
 export type FinishCondition =

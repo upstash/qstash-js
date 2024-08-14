@@ -199,7 +199,7 @@ export function verifySignatureAppRouter(
 export const serve = <TInitialPayload = unknown>({
   routeFunction,
   options,
-}: WorkflowServeParameters<TInitialPayload, NextResponse>): ((
+}: WorkflowServeParameters<TInitialPayload, NextResponse, "onStepFinish">): ((
   request: NextRequest
 ) => Promise<NextResponse>) => {
   const handler = serveBase<TInitialPayload, NextRequest, NextResponse>({

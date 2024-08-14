@@ -57,7 +57,7 @@ export const serve = <TInitialPayload = unknown>({
   options,
   receiver,
   qstashClient,
-}: WorkflowServeParametersExtended<TInitialPayload>): RequestHandler => {
+}: WorkflowServeParametersExtended<TInitialPayload, Response, "onStepFinish">): RequestHandler => {
   const handler: RequestHandler = async ({ request }) => {
     const serveMethod = serveBase<TInitialPayload>({
       routeFunction,

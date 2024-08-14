@@ -70,7 +70,7 @@ function transformHeaders(headers: IncomingHttpHeaders): [string, string][] {
 export const serve = <TInitialPayload = unknown>({
   routeFunction,
   options,
-}: WorkflowServeParameters<TInitialPayload>) => {
+}: WorkflowServeParameters<TInitialPayload, Response, "onStepFinish">) => {
   const handler = defineEventHandler(async (event) => {
     const method = event.node.req.method;
     if (method?.toUpperCase() !== "POST") {

@@ -51,7 +51,7 @@ export const verifySignatureSolidjs = (
 export const serve = <TInitialPayload = unknown>({
   routeFunction,
   options,
-}: WorkflowServeParameters<TInitialPayload>) => {
+}: WorkflowServeParameters<TInitialPayload, Response, "onStepFinish">) => {
   // Create a handler which receives an event and calls the
   // serveBase method
   const handler = async (event: APIEvent) => {
