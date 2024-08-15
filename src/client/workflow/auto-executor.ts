@@ -4,6 +4,7 @@ import type { AsyncStepFunction, ParallelCallState, Step } from "./types";
 import { type BaseLazyStep } from "./steps";
 import { getHeaders } from "./workflow-requests";
 import type { WorkflowLogger } from "./logger";
+import { NO_CONCURRENCY } from "./constants";
 
 export class AutoExecutor {
   private context: WorkflowContext;
@@ -121,7 +122,7 @@ export class AutoExecutor {
       return step.out as TResult;
     }
 
-    const resultStep = await lazyStep.getResultStep(1, this.stepCount);
+    const resultStep = await lazyStep.getResultStep(NO_CONCURRENCY, this.stepCount);
 
     await this.debug?.log("INFO", "RUN_SINGLE", {
       fromRequest: false,
@@ -328,7 +329,7 @@ export class AutoExecutor {
         );
 
         // if the step is a single step execution or a plan step, we can add sleep headers
-        const willWait = singleStep.concurrent === 1 || singleStep.stepId === 0;
+        const willWait = singleStep.concurrent === NO_CONCURRENCY || singleStep.stepId === 0;
 
         return singleStep.callUrl
           ? // if the step is a third party call, we call the third party

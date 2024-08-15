@@ -2,6 +2,7 @@ import type { Err, Ok } from "neverthrow";
 import { err, ok } from "neverthrow";
 import { QstashWorkflowError } from "../error";
 import {
+  NO_CONCURRENCY,
   WORKFLOW_FAILURE_HEADER,
   WORKFLOW_ID_HEADER,
   WORKFLOW_PROTOCOL_VERSION,
@@ -60,7 +61,7 @@ const parsePayload = (rawPayload: string) => {
     stepName: "init",
     stepType: "Initial",
     out: rawInitialPayload,
-    concurrent: 1,
+    concurrent: NO_CONCURRENCY,
   };
 
   // remove "toCallback" and "fromCallback" steps:
