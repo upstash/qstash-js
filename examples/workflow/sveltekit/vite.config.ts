@@ -3,10 +3,10 @@ import { defineConfig } from 'vite';
 
 export default defineConfig({
 	plugins: [sveltekit()],
-    resolve: {
-        preserveSymlinks: true,
-    },
-    server: {
-      port: 3001,
-    },
+  resolve: {
+      preserveSymlinks: true,
+  },
+  server: {
+    port: 3001,
+  },
 });

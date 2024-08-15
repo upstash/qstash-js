@@ -27,5 +27,8 @@ export const POST = serve<string>(
     const result3 = await context.run("step3", async () => {
       console.log("post result:", postResult)
     });
+  },
+  {
+    url: `${process.env.WORKFLOW_LOCAL_TUNNEL_URL}/call`,
   }
 )

@@ -17,6 +17,9 @@ export const POST = serve<string>(
     const result2 = await context.run("step2", async () => {
       return "output 2"
     })
+  },
+  {
+    url: `${process.env.WORKFLOW_LOCAL_TUNNEL_URL}/auth`
   }
 )
   

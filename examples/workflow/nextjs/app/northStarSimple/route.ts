@@ -58,6 +58,9 @@ export const POST = serve<Invoice>(
       console.log(`northStarSimple failed permenantly with input ${JSON.stringify(context.requestPayload)}`);
       return true
     })
+  },
+  {
+    url: `${process.env.WORKFLOW_LOCAL_TUNNEL_URL}/northStarSimple`
   }
 )
 

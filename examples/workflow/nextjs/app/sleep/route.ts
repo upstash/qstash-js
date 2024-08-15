@@ -28,6 +28,9 @@ export const POST = serve<string>(
       const output = someWork(result2)
       console.log("step 3 input", result2, "output", output)
     });
+  },
+  {
+    url: `${process.env.WORKFLOW_LOCAL_TUNNEL_URL}/sleep`
   }
 )
 

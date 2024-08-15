@@ -53,7 +53,7 @@ export const POST = serve<Invoice>(
             console.log(x, "  send receipt", charge.invoice.email);
             return 10
           }),
-          context.sleep("sleep", 5)
+        context.sleep("sleep", 3)
         ])
         console.log("end", updateDb, receipt, wait);
         return
@@ -64,6 +64,9 @@ export const POST = serve<Invoice>(
       console.log(`northStarSimple failed permenantly with input ${JSON.stringify(context.requestPayload)}`);
       return true
     })
+  },
+  {
+    url: `${process.env.WORKFLOW_LOCAL_TUNNEL_URL}/sleepWithoutAwait`
   }
 )
 

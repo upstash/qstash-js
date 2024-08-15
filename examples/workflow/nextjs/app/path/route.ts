@@ -19,4 +19,7 @@ export const POST = serve<string>(
       console.log("step 2 input", result1, "output", output)
     });
   },
+  {
+    url: `${process.env.WORKFLOW_LOCAL_TUNNEL_URL}/path`
+  }
 )
