@@ -14,7 +14,7 @@ project_arg="$1"
 path_arg="$2"
 
 # Start ngrok and capture the public URL
-ngrok http localhost:3000 --log=stdout > ngrok.log &
+ngrok http localhost:3001 --log=stdout > ngrok.log &
 NGROK_PID=$!
 sleep 5  # Allow some time for ngrok to start
 
