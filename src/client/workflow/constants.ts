@@ -7,3 +7,6 @@ export const WORKFLOW_PROTOCOL_VERSION = "1";
 export const WORKFLOW_PROTOCOL_VERSION_HEADER = "Upstash-Workflow-Sdk-Version";
 
 export const DEFAULT_CONTENT_TYPE = "application/json";
+
+export const NO_CONCURRENCY = 1;
+export const NOT_SET = "not-set";

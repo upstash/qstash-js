@@ -14,6 +14,6 @@ export const POST = async (request: NextRequest) => {
 
     return new Response(JSON.stringify({messageId}), {status: 200})
   } catch (error) {
-    return new Response(`Error when publishing to QStash: ${error}`, {status: 500})
+    return new Response(JSON.stringify({error: `Error when publishing to QStash: ${error}`}), {status: 500})
   }
 }

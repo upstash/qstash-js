@@ -33,7 +33,7 @@ describe("serve", () => {
       options: {
         qstashClient,
         verbose: true,
-        receiver: false,
+        receiver: undefined,
       },
     });
 
@@ -75,7 +75,7 @@ describe("serve", () => {
       options: {
         qstashClient,
         verbose: true,
-        receiver: false,
+        receiver: undefined,
       },
     });
 
@@ -173,7 +173,7 @@ describe("serve", () => {
       },
       options: {
         qstashClient,
-        receiver: false,
+        receiver: undefined,
       },
     });
 
@@ -201,7 +201,7 @@ describe("serve", () => {
       },
       options: {
         qstashClient,
-        receiver: false,
+        receiver: undefined,
       },
     });
 
@@ -239,7 +239,7 @@ describe("serve", () => {
       },
       options: {
         qstashClient,
-        receiver: false,
+        receiver: undefined,
       },
     });
 
@@ -326,7 +326,7 @@ describe("serve", () => {
         routeFunction,
         options: {
           qstashClient,
-          receiver: false,
+          receiver: undefined,
         },
       });
       let called = false;
@@ -367,7 +367,7 @@ describe("serve", () => {
         routeFunction,
         options: {
           qstashClient,
-          receiver: false,
+          receiver: undefined,
           failureUrl: myFailureEndpoint,
         },
       });
@@ -419,7 +419,7 @@ describe("serve", () => {
         routeFunction,
         options: {
           qstashClient,
-          receiver: false,
+          receiver: undefined,
           failureFunction: myFailureFunction,
         },
       });
