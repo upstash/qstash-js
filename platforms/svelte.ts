@@ -1,5 +1,5 @@
 import type { RequestHandler } from "@sveltejs/kit";
-import { Receiver } from "../src";
+import { formatWorkflowError, Receiver } from "../src";
 
 import type { WorkflowServeParametersExtended } from "../src/client/workflow";
 import { serve as serveBase } from "../src/client/workflow";
@@ -56,18 +56,22 @@ export const serve = <TInitialPayload = unknown>({
   routeFunction,
   options,
   receiver,
-  client,
-}: WorkflowServeParametersExtended<TInitialPayload>): RequestHandler => {
-  const handler: RequestHandler = ({ request }) => {
+  qstashClient,
+}: WorkflowServeParametersExtended<TInitialPayload, Response, "onStepFinish">): RequestHandler => {
+  const handler: RequestHandler = async ({ request }) => {
     const serveMethod = serveBase<TInitialPayload>({
       routeFunction,
       options: {
-        client,
+        qstashClient,
         receiver,
         ...options,
       },
     });
-    return serveMethod(request);
+    try {
+      return await serveMethod(request);
+    } catch (error) {
+      return new Response(JSON.stringify(formatWorkflowError(error)), { status: 500 });
+    }
   };
 
   return handler;

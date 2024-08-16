@@ -21,7 +21,7 @@ const someWork = (input: string) => {
 const workflowRunId = `wfr${nanoid()}`;
 const token = nanoid();
 
-const client = new Client({ baseUrl: MOCK_QSTASH_SERVER_URL, token });
+const qstashClient = new Client({ baseUrl: MOCK_QSTASH_SERVER_URL, token });
 
 describe("serve", () => {
   test("should send create workflow request in initial request", async () => {
@@ -31,7 +31,7 @@ describe("serve", () => {
         await context.sleep("sleep 1", 1);
       },
       options: {
-        client,
+        qstashClient,
         verbose: true,
         receiver: undefined,
       },
@@ -73,7 +73,7 @@ describe("serve", () => {
         });
       },
       options: {
-        client,
+        qstashClient,
         verbose: true,
         receiver: undefined,
       },
@@ -172,7 +172,7 @@ describe("serve", () => {
         });
       },
       options: {
-        client,
+        qstashClient,
         receiver: undefined,
       },
     });
@@ -200,7 +200,7 @@ describe("serve", () => {
         return;
       },
       options: {
-        client,
+        qstashClient,
         receiver: undefined,
       },
     });
@@ -238,7 +238,7 @@ describe("serve", () => {
         });
       },
       options: {
-        client,
+        qstashClient,
         receiver: undefined,
       },
     });
@@ -325,7 +325,7 @@ describe("serve", () => {
       const endpoint = serve({
         routeFunction,
         options: {
-          client,
+          qstashClient,
           receiver: undefined,
         },
       });
@@ -366,7 +366,7 @@ describe("serve", () => {
       const endpoint = serve({
         routeFunction,
         options: {
-          client,
+          qstashClient,
           receiver: undefined,
           failureUrl: myFailureEndpoint,
         },
@@ -418,7 +418,7 @@ describe("serve", () => {
       const endpoint = serve({
         routeFunction,
         options: {
-          client,
+          qstashClient,
           receiver: undefined,
           failureFunction: myFailureFunction,
         },

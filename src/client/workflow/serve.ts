@@ -22,14 +22,14 @@ import {
  * Fills the options with default values if they are not provided.
  *
  * Default values for:
- * - client: QStash client created with QSTASH_URL and QSTASH_TOKEN env vars
+ * - qstashClient: QStash client created with QSTASH_URL and QSTASH_TOKEN env vars
  * - onFinish: returns a Response with workflowRunId in the body and status: 200
  * - initialPayloadParser: calls JSON.parse if initial request body exists.
  *
  * @param options options including the client, onFinish and initialPayloadParser
  * @returns
  */
-const processOptions = <TResponse = Response, TInitialPayload = unknown>(
+const processOptions = <TResponse extends Response = Response, TInitialPayload = unknown>(
   options?: WorkflowServeOptions<TResponse, TInitialPayload>
 ): RequiredExceptFields<
   WorkflowServeOptions<TResponse, TInitialPayload>,
@@ -40,7 +40,7 @@ const processOptions = <TResponse = Response, TInitialPayload = unknown>(
   );
 
   return {
-    client: new Client({
+    qstashClient: new Client({
       baseUrl: process.env.QSTASH_URL!,
       token: process.env.QSTASH_TOKEN!,
     }),
@@ -88,7 +88,7 @@ const processOptions = <TResponse = Response, TInitialPayload = unknown>(
 export const serve = <
   TInitialPayload = unknown,
   TRequest extends Request = Request,
-  TResponse = Response,
+  TResponse extends Response = Response,
 >({
   routeFunction,
   options,
@@ -97,7 +97,7 @@ export const serve = <
 ) => Promise<TResponse>) => {
   // Prepares options with defaults if they are not provided.
   const {
-    client,
+    qstashClient,
     onStepFinish,
     initialPayloadParser,
     url,
@@ -150,7 +150,7 @@ export const serve = <
 
     // create context
     const workflowContext = new WorkflowContext<TInitialPayload>({
-      client,
+      qstashClient,
       workflowRunId,
       initialPayload: initialPayloadParser(rawInitialPayload),
       rawInitialPayload,
@@ -168,7 +168,7 @@ export const serve = <
     );
     if (authCheck.isErr()) {
       // got error while running until first step
-      await debug?.log("ERROR", "ERROR", { error: authCheck.error });
+      await debug?.log("ERROR", "ERROR", { error: authCheck.error.message });
       throw authCheck.error;
     } else if (authCheck.value === "run-ended") {
       // finished routeFunction while trying to run until first step.
@@ -180,13 +180,16 @@ export const serve = <
     const callReturnCheck = await handleThirdPartyCallResult(
       request,
       rawInitialPayload,
-      client,
+      qstashClient,
+      workflowUrl,
       workflowFailureUrl,
       debug
     );
     if (callReturnCheck.isErr()) {
       // error while checking
-      await debug?.log("ERROR", "SUBMIT_THIRD_PARTY_RESULT", { error: callReturnCheck.error });
+      await debug?.log("ERROR", "SUBMIT_THIRD_PARTY_RESULT", {
+        error: callReturnCheck.error.message,
+      });
       throw callReturnCheck.error;
     } else if (callReturnCheck.value === "continue-workflow") {
       // request is not third party call. Continue workflow as usual
@@ -201,7 +204,7 @@ export const serve = <
 
       if (result.isErr()) {
         // error while running the workflow or when cleaning up
-        await debug?.log("ERROR", "ERROR", { error: result.error });
+        await debug?.log("ERROR", "ERROR", { error: result.error.message });
         throw result.error;
       }
 

@@ -1,6 +1,6 @@
 import type { H3Event } from "h3";
 import { defineEventHandler, getHeader, readRawBody } from "h3";
-import { Receiver } from "../src";
+import { formatWorkflowError, Receiver } from "../src";
 
 import type { WorkflowServeParameters } from "../src/client/workflow";
 import { serve as serveBase } from "../src/client/workflow";
@@ -70,7 +70,7 @@ function transformHeaders(headers: IncomingHttpHeaders): [string, string][] {
 export const serve = <TInitialPayload = unknown>({
   routeFunction,
   options,
-}: WorkflowServeParameters<TInitialPayload, string>) => {
+}: WorkflowServeParameters<TInitialPayload, Response, "onStepFinish">) => {
   const handler = defineEventHandler(async (event) => {
     const method = event.node.req.method;
     if (method?.toUpperCase() !== "POST") {
@@ -92,24 +92,14 @@ export const serve = <TInitialPayload = unknown>({
       method: "POST",
     });
 
-    const serveHandler = serveBase<TInitialPayload, Request, string>({
+    const serveHandler = serveBase<TInitialPayload>({
       routeFunction,
-      options: {
-        onStepFinish: (workflowRunId: string) => workflowRunId,
-        ...options,
-      },
+      options,
     });
     try {
-      const workflowRunId = await serveHandler(request);
-      return {
-        status: 200,
-        body: { workflowRunId },
-      };
+      return await serveHandler(request);
     } catch (error) {
-      return {
-        status: 500,
-        body: `Error running the workflow at URL '${url}'. Got error: ${error}`,
-      };
+      return new Response(JSON.stringify(formatWorkflowError(error)), { status: 500 });
     }
   });
   return handler;

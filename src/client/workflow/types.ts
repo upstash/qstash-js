@@ -82,25 +82,33 @@ export type RouteFunction<TInitialPayload> = (
   context: WorkflowContext<TInitialPayload>
 ) => Promise<void>;
 
-export type WorkflowServeParameters<TInitialPayload, TResponse = Response> = {
+export type WorkflowServeParameters<
+  TInitialPayload,
+  TResponse extends Response = Response,
+  TExcludeFromOptions extends keyof WorkflowServeOptions = never,
+> = {
   routeFunction: RouteFunction<TInitialPayload>;
-  options?: WorkflowServeOptions<TResponse, TInitialPayload>;
+  options?: Omit<WorkflowServeOptions<TResponse, TInitialPayload>, TExcludeFromOptions>;
 };
 
 /**
  * Not all frameworks use env variables like nextjs does. In this case, we need
- * to be able to get the client and receiver explicitly.
+ * to be able to get the qstashClient and receiver explicitly.
  *
  * In this case, we extend the WorkflowServeParameters by requiring an explicit
- * client & receiever parameters and removing client & receiever from options.
+ * qstashClient & receiever parameters and removing qstashClient & receiever from options.
  */
-export type WorkflowServeParametersExtended<TInitialPayload = unknown, TResponse = Response> = Pick<
-  WorkflowServeParameters<TInitialPayload, TResponse>,
-  "routeFunction"
+export type WorkflowServeParametersExtended<
+  TInitialPayload = unknown,
+  TResponse extends Response = Response,
+  TExcludeFromOptions extends keyof WorkflowServeOptions = never,
+> = WorkflowServeParameters<
+  TInitialPayload,
+  TResponse,
+  "qstashClient" | "receiver" | TExcludeFromOptions
 > & {
-  client: Client;
+  qstashClient: Client;
   receiver: WorkflowServeOptions["receiver"];
-  options?: Omit<WorkflowServeOptions<TResponse, TInitialPayload>, "client" | "receiver">;
 };
 
 export type FinishCondition =
@@ -109,11 +117,14 @@ export type FinishCondition =
   | "fromCallback"
   | "auth-fail"
   | "failure-callback";
-export type WorkflowServeOptions<TResponse = Response, TInitialPayload = unknown> = {
+export type WorkflowServeOptions<
+  TResponse extends Response = Response,
+  TInitialPayload = unknown,
+> = {
   /**
    * QStash client
    */
-  client?: Client;
+  qstashClient?: Client;
   /**
    * Function called to return a response after each step execution
    *
@@ -160,7 +171,27 @@ export type WorkflowServeOptions<TResponse = Response, TInitialPayload = unknown
    * @param body body which contains the error message
    * @returns void
    */
-  failureFunction?: (status: number, header: Record<string, string>, body: string) => Promise<void>;
+  failureFunction?: (
+    status: number,
+    header: Record<string, string>,
+    body: FailureFunctionPayload,
+    workflowRunId: string
+  ) => Promise<void>;
+};
+
+/**
+ * Payload passed as body in failureFunction
+ */
+export type FailureFunctionPayload = {
+  /**
+   * error name
+   */
+  error: string;
+  /**
+   * error message
+   */
+  message: string;
+  stack?: string;
 };
 
 /**

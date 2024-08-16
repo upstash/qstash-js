@@ -35,7 +35,7 @@ describe("Workflow Requests", () => {
     const token = "myToken";
 
     const context = new WorkflowContext({
-      client: new Client({ baseUrl: MOCK_QSTASH_SERVER_URL, token }),
+      qstashClient: new Client({ baseUrl: MOCK_QSTASH_SERVER_URL, token }),
       workflowRunId: workflowRunId,
       initialPayload,
       headers: new Headers({}) as Headers,
@@ -45,7 +45,8 @@ describe("Workflow Requests", () => {
 
     await mockQstashServer({
       execute: async () => {
-        await triggerFirstInvocation(context);
+        const result = await triggerFirstInvocation(context);
+        expect(result.isOk()).toBeTrue();
       },
       responseFields: {
         body: { messageId: "msgId" },
@@ -119,7 +120,7 @@ describe("Workflow Requests", () => {
     const token = "myToken";
 
     const context = new WorkflowContext({
-      client: new Client({ baseUrl: MOCK_SERVER_URL, token }),
+      qstashClient: new Client({ baseUrl: MOCK_SERVER_URL, token }),
       workflowRunId: workflowRunId,
       initialPayload: undefined,
       headers: new Headers({}) as Headers,
@@ -127,7 +128,7 @@ describe("Workflow Requests", () => {
       url: WORKFLOW_ENDPOINT,
     });
 
-    const spy = spyOn(context.client.http, "request");
+    const spy = spyOn(context.qstashClient.http, "request");
     await triggerWorkflowDelete(context);
     expect(spy).toHaveBeenCalledTimes(1);
     expect(spy).toHaveBeenLastCalledWith({
@@ -184,6 +185,7 @@ describe("Workflow Requests", () => {
             request,
             await request.text(),
             client,
+            WORKFLOW_ENDPOINT,
             WORKFLOW_ENDPOINT
           );
           expect(result.isOk());
@@ -247,6 +249,7 @@ describe("Workflow Requests", () => {
         request,
         await request.text(),
         client,
+        WORKFLOW_ENDPOINT,
         WORKFLOW_ENDPOINT
       );
       expect(result.isOk()).toBeTrue();
@@ -295,6 +298,7 @@ describe("Workflow Requests", () => {
         initialRequest,
         await initialRequest.text(),
         client,
+        WORKFLOW_ENDPOINT,
         WORKFLOW_ENDPOINT
       );
       expect(initialResult.isOk());
@@ -307,6 +311,7 @@ describe("Workflow Requests", () => {
         workflowRequest,
         await workflowRequest.text(),
         client,
+        WORKFLOW_ENDPOINT,
         WORKFLOW_ENDPOINT
       );
       expect(result.isOk()).toBeTrue();

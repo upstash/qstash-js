@@ -10,10 +10,10 @@ import type { RouteFunction } from "./types";
 
 describe("context tests", () => {
   const token = nanoid();
-  const client = new Client({ baseUrl: MOCK_QSTASH_SERVER_URL, token });
+  const qstashClient = new Client({ baseUrl: MOCK_QSTASH_SERVER_URL, token });
   test("should raise when there are nested steps (with run)", () => {
     const context = new WorkflowContext({
-      client,
+      qstashClient,
       initialPayload: "my-payload",
       steps: [],
       url: WORKFLOW_ENDPOINT,
@@ -37,7 +37,7 @@ describe("context tests", () => {
 
   test("should raise when there are nested steps (with sleep)", () => {
     const context = new WorkflowContext({
-      client,
+      qstashClient,
       initialPayload: "my-payload",
       steps: [],
       url: WORKFLOW_ENDPOINT,
@@ -59,7 +59,7 @@ describe("context tests", () => {
 
   test("should raise when there are nested steps (with sleepUntil)", () => {
     const context = new WorkflowContext({
-      client,
+      qstashClient,
       initialPayload: "my-payload",
       steps: [],
       url: WORKFLOW_ENDPOINT,
@@ -81,7 +81,7 @@ describe("context tests", () => {
 
   test("should raise when there are nested steps (with call)", () => {
     const context = new WorkflowContext({
-      client,
+      qstashClient,
       initialPayload: "my-payload",
       steps: [],
       url: WORKFLOW_ENDPOINT,
@@ -103,7 +103,7 @@ describe("context tests", () => {
 
   test("should not raise when there are no nested steps", async () => {
     const context = new WorkflowContext({
-      client,
+      qstashClient,
       initialPayload: "my-payload",
       steps: [],
       url: WORKFLOW_ENDPOINT,
@@ -149,9 +149,9 @@ describe("context tests", () => {
 
 describe("disabled workflow context", () => {
   const token = nanoid();
-  const client = new Client({ baseUrl: MOCK_QSTASH_SERVER_URL, token });
+  const qstashClient = new Client({ baseUrl: MOCK_QSTASH_SERVER_URL, token });
   const disabledContext = new DisabledWorkflowContext({
-    client,
+    qstashClient,
     workflowRunId: "wfr-foo",
     headers: new Headers() as Headers,
     steps: [],
@@ -233,7 +233,7 @@ describe("disabled workflow context", () => {
 
   describe("tryAuthentication", () => {
     const disabledContext = new DisabledWorkflowContext({
-      client,
+      qstashClient,
       workflowRunId: "wfr-foo",
       headers: new Headers() as Headers,
       steps: [],

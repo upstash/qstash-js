@@ -1,5 +1,5 @@
 import type { Err, Ok } from "neverthrow";
-import { err, fromSafePromise, ok } from "neverthrow";
+import { err, ok } from "neverthrow";
 import { QstashWorkflowAbort, QstashWorkflowError } from "../error";
 import type { WorkflowContext } from "./context";
 import type { Client } from "../client";
@@ -20,7 +20,7 @@ import type { Receiver } from "../../receiver";
 export const triggerFirstInvocation = async <TInitialPayload>(
   workflowContext: WorkflowContext<TInitialPayload>,
   debug?: WorkflowLogger
-) => {
+): Promise<Ok<"success", never> | Err<never, Error>> => {
   const headers = getHeaders(
     "true",
     workflowContext.workflowRunId,
@@ -34,14 +34,18 @@ export const triggerFirstInvocation = async <TInitialPayload>(
     requestPayload: workflowContext.requestPayload,
     url: workflowContext.url,
   });
-  return fromSafePromise(
-    workflowContext.client.publishJSON({
+  try {
+    await workflowContext.qstashClient.publishJSON({
       headers,
       method: "POST",
       body: workflowContext.requestPayload,
       url: workflowContext.url,
-    })
-  );
+    });
+    return ok("success");
+  } catch (error) {
+    const error_ = error as Error;
+    return err(error_);
+  }
 };
 
 export const triggerRouteFunction = async ({
@@ -71,7 +75,7 @@ export const triggerWorkflowDelete = async <TInitialPayload>(
   await debug?.log("SUBMIT", "SUBMIT_CLEANUP", {
     deletedWorkflowRunId: workflowContext.workflowRunId,
   });
-  const result = await workflowContext.client.http.request({
+  const result = await workflowContext.qstashClient.http.request({
     path: ["v2", "workflows", "runs", `${workflowContext.workflowRunId}?cancel=${cancel}`],
     method: "DELETE",
     parseResponseAsJson: false,
@@ -125,6 +129,7 @@ export const handleThirdPartyCallResult = async (
   request: Request,
   requestPayload: string,
   client: Client,
+  workflowUrl: string,
   failureUrl: WorkflowServeOptions["failureUrl"],
   debug?: WorkflowLogger
 ): Promise<
@@ -177,7 +182,7 @@ export const handleThirdPartyCallResult = async (
       const requestHeaders = getHeaders(
         "false",
         workflowRunId,
-        request.url,
+        workflowUrl,
         userHeaders,
         undefined,
         failureUrl
@@ -194,14 +199,14 @@ export const handleThirdPartyCallResult = async (
       await debug?.log("SUBMIT", "SUBMIT_THIRD_PARTY_RESULT", {
         step: callResultStep,
         headers: requestHeaders,
-        url: request.url,
+        url: workflowUrl,
       });
 
       const result = await client.publishJSON({
         headers: requestHeaders,
         method: "POST",
         body: callResultStep,
-        url: request.url,
+        url: workflowUrl,
       });
 
       await debug?.log("SUBMIT", "SUBMIT_THIRD_PARTY_RESULT", {

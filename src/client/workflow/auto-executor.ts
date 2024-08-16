@@ -13,16 +13,18 @@ export class AutoExecutor {
   private debug?: WorkflowLogger;
 
   private readonly nonPlanStepCount: number;
+  private readonly steps: Step[];
   private indexInCurrentList = 0;
   public stepCount = 0;
   public planStepCount = 0;
 
   protected executingStep: string | false = false;
 
-  constructor(context: WorkflowContext, debug?: WorkflowLogger) {
+  constructor(context: WorkflowContext, steps: Step[], debug?: WorkflowLogger) {
     this.context = context;
     this.debug = debug;
-    this.nonPlanStepCount = this.context.steps.filter((step) => !step.targetStep).length;
+    this.steps = steps;
+    this.nonPlanStepCount = this.steps.filter((step) => !step.targetStep).length;
   }
 
   /**
@@ -112,7 +114,7 @@ export class AutoExecutor {
    */
   protected async runSingle<TResult>(lazyStep: BaseLazyStep<TResult>) {
     if (this.stepCount < this.nonPlanStepCount) {
-      const step = this.context.steps[this.stepCount + this.planStepCount];
+      const step = this.steps[this.stepCount + this.planStepCount];
       validateStep(lazyStep, step);
       await this.debug?.log("INFO", "RUN_SINGLE", {
         fromRequest: true,
@@ -150,7 +152,7 @@ export class AutoExecutor {
     const initialStepCount = this.stepCount - (parallelSteps.length - 1);
     const parallelCallState = this.getParallelCallState(parallelSteps.length, initialStepCount);
 
-    const sortedSteps = sortSteps(this.context.steps);
+    const sortedSteps = sortSteps(this.steps);
 
     // get the expected concurrency. Will be undefined in the `first` case.
     const plannedParallelStepCount = sortedSteps[initialStepCount + this.planStepCount]?.concurrent;
@@ -190,7 +192,7 @@ export class AutoExecutor {
          *
          * Execute the step and call qstash with the result
          */
-        const planStep = this.context.steps.at(-1);
+        const planStep = this.steps.at(-1);
         if (!planStep || planStep.targetStep === undefined) {
           throw new QstashWorkflowError(
             `There must be a last step and it should have targetStep larger than 0.` +
@@ -278,7 +280,7 @@ export class AutoExecutor {
     parallelStepCount: number,
     initialStepCount: number
   ): ParallelCallState {
-    const remainingSteps = this.context.steps.filter(
+    const remainingSteps = this.steps.filter(
       (step) => (step.targetStep ?? step.stepId) >= initialStepCount
     );
 
@@ -317,7 +319,7 @@ export class AutoExecutor {
 
     await this.debug?.log("SUBMIT", "SUBMIT_STEP", { length: steps.length, steps });
 
-    const result = await this.context.client.batchJSON(
+    const result = await this.context.qstashClient.batchJSON(
       steps.map((singleStep) => {
         const headers = getHeaders(
           "false",

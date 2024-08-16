@@ -95,7 +95,7 @@ const attemptCharge = () => {
   return false;
 };
 
-const client = new Client({
+const qstashClient = new Client({
   baseUrl: process.env.MOCK_QSTASH_URL,
   token: process.env.MOCK_QSTASH_TOKEN ?? "",
 });
@@ -118,7 +118,7 @@ const testEndpoint = async <TInitialPayload = unknown>({
   const endpoint = workflowServe<TInitialPayload>({
     routeFunction,
     options: {
-      client,
+      qstashClient,
       url: LOCAL_WORKFLOW_URL,
       verbose: true,
     },
@@ -132,7 +132,7 @@ const testEndpoint = async <TInitialPayload = unknown>({
     port: WORKFLOW_PORT,
   });
 
-  await client.publishJSON({
+  await qstashClient.publishJSON({
     method: "POST",
     body: initialPayload,
     headers: {
@@ -171,7 +171,6 @@ describe.skip("live serve tests", () => {
           expect(result1).toBe("processed 'my-payload'");
 
           const result2 = await context.run("step2", async () => {
-            // console.log("step2 ran", result1);
             const result = someWork(result1);
             return await Promise.resolve(result);
           });
@@ -305,7 +304,6 @@ describe.skip("live serve tests", () => {
           expect(result1).toBe("processed 'my-payload'");
 
           const result2 = await context.run("step2", async () => {
-            // console.log("step2 ran", result1);
             const result = someWork(result1);
             return await Promise.resolve(result);
           });
