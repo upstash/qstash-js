@@ -14,6 +14,7 @@ import { WorkflowContext } from "./context";
 import { Client } from "../client";
 import type { Step, StepType } from "./types";
 import {
+  WORKFLOW_FAILURE_HEADER,
   WORKFLOW_ID_HEADER,
   WORKFLOW_INIT_HEADER,
   WORKFLOW_PROTOCOL_VERSION,
@@ -179,7 +180,12 @@ describe("Workflow Requests", () => {
       // create mock server and run the code
       await mockQstashServer({
         execute: async () => {
-          const result = await handleThirdPartyCallResult(request, client);
+          const result = await handleThirdPartyCallResult(
+            request,
+            await request.text(),
+            client,
+            WORKFLOW_ENDPOINT
+          );
           expect(result.isOk());
           // @ts-expect-error value will be set since stepFinish isOk
           expect(result.value).toBe("is-call-return");
@@ -198,7 +204,6 @@ describe("Workflow Requests", () => {
             stepType: stepType,
             out: thirdPartyCallResult,
             concurrent: 1,
-            targetStep: 0,
           },
         },
       });
@@ -238,7 +243,12 @@ describe("Workflow Requests", () => {
       });
 
       const spy = spyOn(client, "publishJSON");
-      const result = await handleThirdPartyCallResult(request, client);
+      const result = await handleThirdPartyCallResult(
+        request,
+        await request.text(),
+        client,
+        WORKFLOW_ENDPOINT
+      );
       expect(result.isOk()).toBeTrue();
       // @ts-expect-error value will be set since stepFinish isOk
       expect(result.value).toBe("call-will-retry");
@@ -254,7 +264,6 @@ describe("Workflow Requests", () => {
           stepName: "step name",
           stepType: "Run",
           concurrent: 1,
-          targetStep: 0,
         },
       ];
       const workflowRunId = nanoid();
@@ -282,14 +291,24 @@ describe("Workflow Requests", () => {
       });
 
       const spy = spyOn(client, "publishJSON");
-      const initialResult = await handleThirdPartyCallResult(initialRequest, client);
+      const initialResult = await handleThirdPartyCallResult(
+        initialRequest,
+        await initialRequest.text(),
+        client,
+        WORKFLOW_ENDPOINT
+      );
       expect(initialResult.isOk());
       // @ts-expect-error value will be set since stepFinish isOk
       expect(initialResult.value).toBe("continue-workflow");
       expect(spy).toHaveBeenCalledTimes(0);
 
       // second call
-      const result = await handleThirdPartyCallResult(workflowRequest, client);
+      const result = await handleThirdPartyCallResult(
+        workflowRequest,
+        await workflowRequest.text(),
+        client,
+        WORKFLOW_ENDPOINT
+      );
       expect(result.isOk()).toBeTrue();
       // @ts-expect-error value will be set since stepFinish isOk
       expect(result.value).toBe("continue-workflow");
@@ -319,7 +338,6 @@ describe("Workflow Requests", () => {
         stepName,
         stepType: stepType,
         concurrent: 1,
-        targetStep: 0,
       });
       expect(headers).toEqual({
         [WORKFLOW_INIT_HEADER]: "false",
@@ -345,7 +363,6 @@ describe("Workflow Requests", () => {
         stepName,
         stepType: stepType,
         concurrent: 1,
-        targetStep: 0,
         callUrl,
         callMethod,
         callHeaders,
@@ -370,6 +387,26 @@ describe("Workflow Requests", () => {
         "Upstash-Callback-Workflow-Url": WORKFLOW_ENDPOINT,
         "Upstash-Forward-my-custom-header": "my-custom-header-value",
         "Upstash-Workflow-CallType": "toCallback",
+      });
+    });
+
+    test("should include failure header", () => {
+      const failureUrl = "https://my-failure-endpoint.com";
+      const headers = getHeaders(
+        "true",
+        workflowRunId,
+        WORKFLOW_ENDPOINT,
+        new Headers() as Headers,
+        undefined,
+        failureUrl
+      );
+      expect(headers).toEqual({
+        [WORKFLOW_INIT_HEADER]: "true",
+        [WORKFLOW_ID_HEADER]: workflowRunId,
+        [WORKFLOW_URL_HEADER]: WORKFLOW_ENDPOINT,
+        [`Upstash-Forward-${WORKFLOW_PROTOCOL_VERSION_HEADER}`]: WORKFLOW_PROTOCOL_VERSION,
+        [`Upstash-Failure-Callback-Forward-${WORKFLOW_FAILURE_HEADER}`]: "true",
+        "Upstash-Failure-Callback": failureUrl,
       });
     });
   });

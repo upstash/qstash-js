@@ -11,7 +11,7 @@ import {
 } from "./test-utils";
 import { nanoid } from "nanoid";
 import { Client } from "../client";
-import type { Step } from "./types";
+import type { FinishCondition, RouteFunction, Step, WorkflowServeOptions } from "./types";
 import { WORKFLOW_INIT_HEADER, WORKFLOW_PROTOCOL_VERSION_HEADER } from "./constants";
 
 const someWork = (input: string) => {
@@ -28,11 +28,12 @@ describe("serve", () => {
     const endpoint = serve<string>({
       routeFunction: async (context) => {
         const _input = context.requestPayload;
+        await context.sleep("sleep 1", 1);
       },
       options: {
         client,
         verbose: true,
-        receiver: false,
+        receiver: undefined,
       },
     });
 
@@ -74,7 +75,7 @@ describe("serve", () => {
       options: {
         client,
         verbose: true,
-        receiver: false,
+        receiver: undefined,
       },
     });
 
@@ -86,7 +87,6 @@ describe("serve", () => {
         stepType: "Run",
         out: `processed '${initialPayload}'`,
         concurrent: 1,
-        targetStep: 0,
       },
       {
         stepId: 2,
@@ -94,7 +94,6 @@ describe("serve", () => {
         stepType: "Run",
         out: `processed 'processed '${initialPayload}''`,
         concurrent: 1,
-        targetStep: 0,
       },
     ];
 
@@ -165,6 +164,66 @@ describe("serve", () => {
     });
   });
 
+  test("should return 500 on error during step execution", async () => {
+    const endpoint = serve({
+      routeFunction: async (context) => {
+        await context.run("wrong step", async () => {
+          throw new Error("some-error");
+        });
+      },
+      options: {
+        client,
+        receiver: undefined,
+      },
+    });
+
+    const request = getRequest(WORKFLOW_ENDPOINT, "wfr-bar", "my-payload", []);
+    let called = false;
+    await mockQstashServer({
+      execute: async () => {
+        // endpoint will throw an error, which will result in a 500 response
+        // when used as an actual endpoint
+        const throws = endpoint(request);
+        expect(throws).rejects.toThrow("some-error");
+        called = true;
+      },
+      responseFields: { body: { messageId: "some-message-id" }, status: 200 },
+      receivesRequest: false,
+    });
+    expect(called).toBeTrue();
+  });
+
+  test("should call onFinish with auth-fail if authentication fails", async () => {
+    const endpoint = serve({
+      routeFunction: async (_context) => {
+        // we call `return` when auth fails:
+        return;
+      },
+      options: {
+        client,
+        receiver: undefined,
+      },
+    });
+
+    const request = getRequest(WORKFLOW_ENDPOINT, "wfr-foo", "my-payload", []);
+    let called = false;
+    await mockQstashServer({
+      execute: async () => {
+        const response = await endpoint(request);
+        const { workflowRunId, finishCondition } = (await response.json()) as {
+          workflowRunId: string;
+          finishCondition: FinishCondition;
+        };
+        expect(workflowRunId).toBe("no-workflow-id");
+        expect(finishCondition).toBe("auth-fail");
+        called = true;
+      },
+      responseFields: { body: { messageId: "some-message-id" }, status: 200 },
+      receivesRequest: false,
+    });
+    expect(called).toBeTrue();
+  });
+
   describe("duplicate checks", () => {
     const endpoint = serve({
       routeFunction: async (context) => {
@@ -180,24 +239,28 @@ describe("serve", () => {
       },
       options: {
         client,
-        receiver: false,
+        receiver: undefined,
       },
     });
 
     test("should return without doing anything when the last step is duplicate", async () => {
       // prettier-ignore
       const stepsWithDuplicate: Step[] = [
-        {stepId: 1, stepName: "step 1", stepType: "Run", out: "result 1", concurrent: 1, targetStep: 0},
-        {stepId: 2, stepName: "step 2", stepType: "Run", out: "result 2", concurrent: 1, targetStep: 0},
-        {stepId: 2, stepName: "step 2", stepType: "Run", out: "result 2", concurrent: 1, targetStep: 0}, // duplicate
+        {stepId: 1, stepName: "step 1", stepType: "Run", out: "result 1", concurrent: 1},
+        {stepId: 2, stepName: "step 2", stepType: "Run", out: "result 2", concurrent: 1},
+        {stepId: 2, stepName: "step 2", stepType: "Run", out: "result 2", concurrent: 1}, // duplicate
       ]
       const request = getRequest(WORKFLOW_ENDPOINT, "wfr-foo", "my-payload", stepsWithDuplicate);
       let called = false;
       await mockQstashServer({
         execute: async () => {
           const response = await endpoint(request);
-          const { workflowRunId } = (await response.json()) as { workflowRunId: string };
-          expect(workflowRunId).toBe("no-workflow-id-duplicate-step");
+          const { workflowRunId, finishCondition } = (await response.json()) as {
+            workflowRunId: string;
+            finishCondition: FinishCondition;
+          };
+          expect(workflowRunId).toBe("no-workflow-id");
+          expect(finishCondition).toBe("duplicate-step");
           called = true;
         },
         responseFields: { body: { messageId: "some-message-id" }, status: 200 },
@@ -209,17 +272,21 @@ describe("serve", () => {
     test("should remove duplicate middle step and continue executing", async () => {
       // prettier-ignore
       const stepsWithDuplicate: Step[] = [
-        {stepId: 1, stepName: "step 1", stepType: "Run", out: "result 1", concurrent: 1, targetStep: 0},
-        {stepId: 1, stepName: "step 1", stepType: "Run", out: "result 1", concurrent: 1, targetStep: 0}, // duplicate
-        {stepId: 2, stepName: "step 2", stepType: "Run", out: "result 2", concurrent: 1, targetStep: 0}, 
+        {stepId: 1, stepName: "step 1", stepType: "Run", out: "result 1", concurrent: 1},
+        {stepId: 1, stepName: "step 1", stepType: "Run", out: "result 1", concurrent: 1}, // duplicate
+        {stepId: 2, stepName: "step 2", stepType: "Run", out: "result 2", concurrent: 1}, 
       ]
       const request = getRequest(WORKFLOW_ENDPOINT, "wfr-foo", "my-payload", stepsWithDuplicate);
       let called = false;
       await mockQstashServer({
         execute: async () => {
           const response = await endpoint(request);
-          const { workflowRunId } = (await response.json()) as { workflowRunId: string };
+          const { workflowRunId, finishCondition } = (await response.json()) as {
+            workflowRunId: string;
+            finishCondition: FinishCondition;
+          };
           expect(workflowRunId).toBe("wfr-foo");
+          expect(finishCondition).toBe("success");
           called = true;
         },
         responseFields: { body: { messageId: "some-message-id" }, status: 200 },
@@ -238,7 +305,149 @@ describe("serve", () => {
                 "upstash-workflow-runid": "wfr-foo",
                 "upstash-workflow-url": WORKFLOW_ENDPOINT,
               },
-              body: '{"stepId":3,"stepName":"step 3","stepType":"Run","out":"combined results: result 1,result 2","concurrent":1,"targetStep":0}',
+              body: '{"stepId":3,"stepName":"step 3","stepType":"Run","out":"combined results: result 1,result 2","concurrent":1}',
+            },
+          ],
+        },
+      });
+      expect(called).toBeTrue();
+    });
+  });
+
+  describe("failure settings", () => {
+    // eslint-disable-next-line unicorn/consistent-function-scoping
+    const routeFunction: RouteFunction<unknown> = async (context) => {
+      await context.sleep("sleep-step", 1);
+    };
+
+    test("should not have failureUrl if failureUrl or failureFunction is not passed", async () => {
+      const request = getRequest(WORKFLOW_ENDPOINT, "wfr-bar", "my-payload", []);
+      const endpoint = serve({
+        routeFunction,
+        options: {
+          client,
+          receiver: undefined,
+        },
+      });
+      let called = false;
+      await mockQstashServer({
+        execute: async () => {
+          await endpoint(request);
+          called = true;
+        },
+        responseFields: { body: { messageId: "some-message-id" }, status: 200 },
+        receivesRequest: {
+          method: "POST",
+          url: `${MOCK_QSTASH_SERVER_URL}/v2/batch`,
+          token,
+          body: [
+            {
+              destination: WORKFLOW_ENDPOINT,
+              headers: {
+                "content-type": "application/json",
+                "upstash-delay": "1s",
+                "upstash-forward-upstash-workflow-sdk-version": "1",
+                "upstash-method": "POST",
+                "upstash-workflow-init": "false",
+                "upstash-workflow-runid": "wfr-bar",
+                "upstash-workflow-url": WORKFLOW_ENDPOINT,
+              },
+              body: '{"stepId":1,"stepName":"sleep-step","stepType":"SleepFor","sleepFor":1,"concurrent":1}',
+            },
+          ],
+        },
+      });
+      expect(called).toBeTrue();
+    });
+
+    test("should set failureUrl if failureUrl is passed", async () => {
+      const request = getRequest(WORKFLOW_ENDPOINT, "wfr-bar", "my-payload", []);
+      const myFailureEndpoint = "https://www.my-failure-endpoint.com/api";
+      const endpoint = serve({
+        routeFunction,
+        options: {
+          client,
+          receiver: undefined,
+          failureUrl: myFailureEndpoint,
+        },
+      });
+      let called = false;
+      await mockQstashServer({
+        execute: async () => {
+          await endpoint(request);
+          called = true;
+        },
+        responseFields: { body: { messageId: "some-message-id" }, status: 200 },
+        receivesRequest: {
+          method: "POST",
+          url: `${MOCK_QSTASH_SERVER_URL}/v2/batch`,
+          token,
+          body: [
+            {
+              destination: WORKFLOW_ENDPOINT,
+              headers: {
+                "content-type": "application/json",
+                "upstash-delay": "1s",
+                "upstash-forward-upstash-workflow-sdk-version": "1",
+                "upstash-method": "POST",
+                "upstash-workflow-init": "false",
+                "upstash-workflow-runid": "wfr-bar",
+                "upstash-workflow-url": WORKFLOW_ENDPOINT,
+                "upstash-failure-callback": myFailureEndpoint,
+                "upstash-failure-callback-forward-upstash-workflow-is-failure": "true",
+              },
+              body: '{"stepId":1,"stepName":"sleep-step","stepType":"SleepFor","sleepFor":1,"concurrent":1}',
+            },
+          ],
+        },
+      });
+      expect(called).toBeTrue();
+    });
+
+    test("should set failureUrl as context url if failureFunction is passed", async () => {
+      const request = getRequest(WORKFLOW_ENDPOINT, "wfr-bar", "my-payload", []);
+      let called = false;
+      const myFailureFunction: WorkflowServeOptions["failureFunction"] = async (
+        _status,
+        _header,
+        _body
+        // eslint-disable-next-line unicorn/consistent-function-scoping
+      ) => {
+        return;
+      };
+      const endpoint = serve({
+        routeFunction,
+        options: {
+          client,
+          receiver: undefined,
+          failureFunction: myFailureFunction,
+        },
+      });
+      await mockQstashServer({
+        execute: async () => {
+          await endpoint(request);
+          called = true;
+        },
+        responseFields: { body: { messageId: "some-message-id" }, status: 200 },
+        receivesRequest: {
+          method: "POST",
+          url: `${MOCK_QSTASH_SERVER_URL}/v2/batch`,
+          token,
+          body: [
+            {
+              destination: WORKFLOW_ENDPOINT,
+              headers: {
+                "content-type": "application/json",
+                "upstash-delay": "1s",
+                "upstash-forward-upstash-workflow-sdk-version": "1",
+                "upstash-method": "POST",
+                "upstash-workflow-init": "false",
+                "upstash-workflow-runid": "wfr-bar",
+                "upstash-workflow-url": WORKFLOW_ENDPOINT,
+                "upstash-failure-callback": WORKFLOW_ENDPOINT,
+                "upstash-failure-callback-forward-upstash-workflow-is-failure": "true",
+              },
+              body: '{"stepId":1,"stepName":"sleep-step","stepType":"SleepFor","sleepFor":1,"concurrent":1}',
             },
           ],
         },

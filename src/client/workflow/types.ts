@@ -60,10 +60,10 @@ export type Step<TResult = unknown, TBody = unknown> = {
    * target step of a plan step. In other words, the step to assign the
    * result of a plan step.
    *
-   * Set to 0 if the step is not a plan step (of a parallel run). Otherwise,
+   * undefined if the step is not a plan step (of a parallel run). Otherwise,
    * set to the target step.
    */
-  targetStep: number;
+  targetStep?: number;
 } & (ThirdPartyCallFields<TBody> | { [P in keyof ThirdPartyCallFields]?: never });
 
 export type RawStep = {
@@ -78,12 +78,14 @@ export type StepFunction<TResult> = AsyncStepFunction<TResult> | SyncStepFunctio
 
 export type ParallelCallState = "first" | "partial" | "discard" | "last";
 
+export type RouteFunction<TInitialPayload> = (
+  context: WorkflowContext<TInitialPayload>
+) => Promise<void>;
+
 export type WorkflowServeParameters<TInitialPayload, TResponse = Response> = {
-  routeFunction: (context: WorkflowContext<TInitialPayload>) => Promise<void>;
+  routeFunction: RouteFunction<TInitialPayload>;
   options?: WorkflowServeOptions<TResponse, TInitialPayload>;
 };
-
-type ReceiverOption = Receiver | false;
 
 /**
  * Not all frameworks use env variables like nextjs does. In this case, we need
@@ -97,17 +99,16 @@ export type WorkflowServeParametersExtended<TInitialPayload = unknown, TResponse
   "routeFunction"
 > & {
   client: Client;
-  receiver: ReceiverOption;
+  receiver: WorkflowServeOptions["receiver"];
   options?: Omit<WorkflowServeOptions<TResponse, TInitialPayload>, "client" | "receiver">;
 };
 
-/**
- * Function parsing initial payload from string to an object
- */
-export type InitialPayloadParser<TInitialPayload = unknown> = (
-  initialPayload: string
-) => TInitialPayload;
-
+export type FinishCondition =
+  | "success"
+  | "duplicate-step"
+  | "fromCallback"
+  | "auth-fail"
+  | "failure-callback";
 export type WorkflowServeOptions<TResponse = Response, TInitialPayload = unknown> = {
   /**
    * QStash client
@@ -119,11 +120,11 @@ export type WorkflowServeOptions<TResponse = Response, TInitialPayload = unknown
    * @param workflowRunId
    * @returns response
    */
-  onStepFinish?: (workflowRunId: string) => TResponse;
+  onStepFinish?: (workflowRunId: string, finishCondition: FinishCondition) => TResponse;
   /**
    * Function to parse the initial payload passed by the user
    */
-  initialPayloadParser?: InitialPayloadParser<TInitialPayload>;
+  initialPayloadParser?: (initialPayload: string) => TInitialPayload;
   /**
    * Url of the endpoint where the workflow is set up.
    *
@@ -133,20 +134,36 @@ export type WorkflowServeOptions<TResponse = Response, TInitialPayload = unknown
   /**
    * Verbose mode
    *
-   * Disabled if set to false. If set to true, a logger is created automatically.
+   * Disabled if not set. If set to true, a logger is created automatically.
    *
    * Alternatively, a WorkflowLogger can be passed.
-   *
-   * Disabled by default
    */
-  verbose?: WorkflowLogger | boolean;
+  verbose?: WorkflowLogger | true;
   /**
-   * Receiver to verify requests coming from QStash
+   * Receiver to verify *all* requests by checking if they come from QStash
    *
-   * All requests except the first invocation are verified.
-   *
-   * Enabled by default. A receiver is created from the env variables
-   * QSTASH_CURRENT_SIGNING_KEY and QSTASH_NEXT_SIGNING_KEY.
+   * By default, a receiver is created from the env variables
+   * QSTASH_CURRENT_SIGNING_KEY and QSTASH_NEXT_SIGNING_KEY if they are set.
    */
-  receiver?: ReceiverOption;
+  receiver?: Receiver;
+  /**
+   * Url to call if QStash retries are exhausted while executing the workflow
+   */
+  failureUrl?: string;
+  /**
+   * Failure function called when QStash retries are exhausted while executing
+   * the workflow. Will overwrite `failureUrl` parameter with the workflow
+   * endpoint if passed.
+   *
+   * @param status failure status
+   * @param header headers of the request which failed
+   * @param body body which contains the error message
+   * @returns void
+   */
+  failureFunction?: (status: number, header: Record<string, string>, body: string) => Promise<void>;
 };
+
+/**
+ * Makes all fields except the ones selected required
+ */
+export type RequiredExceptFields<T, K extends keyof T> = Omit<Required<T>, K> & Partial<Pick<T, K>>;

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-magic-numbers */
 import { describe, test, expect } from "bun:test";
 import { LazyCallStep, LazyFunctionStep, LazySleepStep, LazySleepUntilStep } from "./steps";
 import { nanoid } from "nanoid";
@@ -37,13 +38,10 @@ describe("test steps", () => {
         stepName,
         stepType: "Run",
         out: result,
-        concurrent: 1,
-        targetStep: 0,
+        concurrent: 9,
       };
 
-      // _singleStep has no affect:
-      expect(await step.getResultStep(stepId, false)).toEqual(resultStep);
-      expect(await step.getResultStep(stepId, true)).toEqual(resultStep);
+      expect(await step.getResultStep(9, stepId)).toEqual(resultStep);
     });
   });
 
@@ -67,24 +65,12 @@ describe("test steps", () => {
     });
 
     test("should create result step", async () => {
-      // if singleStep=false, then we are running parallel and the
-      // sleep was applied in the sleep step.
-      expect(await step.getResultStep(stepId, false)).toEqual({
-        stepId,
-        stepName,
-        stepType: "SleepFor",
-        concurrent: 1,
-        targetStep: 0,
-      });
-
-      // if singleStep=true, then we should sleep
-      expect(await step.getResultStep(stepId, true)).toEqual({
+      expect(await step.getResultStep(6, stepId)).toEqual({
         stepId,
         stepName,
         stepType: "SleepFor",
         sleepFor: sleepAmount, // adding sleepFor
-        concurrent: 1,
-        targetStep: 0,
+        concurrent: 6,
       });
     });
   });
@@ -109,24 +95,12 @@ describe("test steps", () => {
     });
 
     test("should create result step", async () => {
-      // if singleStep=false, then we are running parallel and the
-      // sleep was applied in the sleep step.
-      expect(await step.getResultStep(stepId, false)).toEqual({
+      expect(await step.getResultStep(4, stepId)).toEqual({
         stepId,
         stepName,
         stepType: "SleepUntil",
-        concurrent: 1,
-        targetStep: 0,
-      });
-
-      // if singleStep=true, then we should sleep
-      expect(await step.getResultStep(stepId, true)).toEqual({
-        stepId,
-        stepName,
-        stepType: "SleepUntil",
-        sleepUntil: sleepUntilTime, // adding sleepFor
-        concurrent: 1,
-        targetStep: 0,
+        sleepUntil: sleepUntilTime, // adding sleepUntil
+        concurrent: 4,
       });
     });
   });
@@ -157,16 +131,15 @@ describe("test steps", () => {
     });
 
     test("should create result step", async () => {
-      expect(await step.getResultStep(stepId)).toEqual({
+      expect(await step.getResultStep(4, stepId)).toEqual({
         callBody,
         callHeaders,
         callMethod,
         callUrl,
-        concurrent: 1,
+        concurrent: 4,
         stepId,
         stepName,
         stepType: "Call",
-        targetStep: 0,
       });
     });
   });

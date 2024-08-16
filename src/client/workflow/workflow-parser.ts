@@ -1,10 +1,14 @@
+import type { Err, Ok } from "neverthrow";
+import { err, ok } from "neverthrow";
 import { QstashWorkflowError } from "../error";
 import {
+  NO_CONCURRENCY,
+  WORKFLOW_FAILURE_HEADER,
   WORKFLOW_ID_HEADER,
   WORKFLOW_PROTOCOL_VERSION,
   WORKFLOW_PROTOCOL_VERSION_HEADER,
 } from "./constants";
-import type { RawStep, Step } from "./types";
+import type { RawStep, Step, WorkflowServeOptions } from "./types";
 import { nanoid } from "nanoid";
 import { verifyRequest } from "./workflow-requests";
 import type { Receiver } from "../../receiver";
@@ -51,14 +55,13 @@ const parsePayload = (rawPayload: string) => {
   const [encodedInitialPayload, ...encodedSteps] = JSON.parse(rawPayload) as RawStep[];
 
   // decode initial payload:
-  const initialPayload = decodeBase64(encodedInitialPayload.body);
+  const rawInitialPayload = decodeBase64(encodedInitialPayload.body);
   const initialStep: Step = {
     stepId: 0,
     stepName: "init",
     stepType: "Initial",
-    out: initialPayload,
-    concurrent: 1,
-    targetStep: 0,
+    out: rawInitialPayload,
+    concurrent: NO_CONCURRENCY,
   };
 
   // remove "toCallback" and "fromCallback" steps:
@@ -72,7 +75,7 @@ const parsePayload = (rawPayload: string) => {
   // join and deduplicate steps:
   const steps: Step[] = [initialStep, ...otherSteps];
   return {
-    initialPayload,
+    rawInitialPayload,
     steps,
   };
 };
@@ -96,9 +99,9 @@ const deduplicateSteps = (steps: Step[]): Step[] => {
   for (const step of steps) {
     if (step.stepId === 0) {
       // Step is a plan step
-      if (!targetStepIds.includes(step.targetStep)) {
+      if (!targetStepIds.includes(step.targetStep ?? 0)) {
         deduplicatedSteps.push(step);
-        targetStepIds.push(step.targetStep);
+        targetStepIds.push(step.targetStep ?? 0);
       }
     } else {
       // Step is a result step
@@ -202,7 +205,7 @@ export const parseRequest = async (
   verifier?: Receiver,
   debug?: WorkflowLogger
 ): Promise<{
-  initialPayload: string;
+  rawInitialPayload: string;
   steps: Step[];
   isLastDuplicate: boolean;
 }> => {
@@ -213,7 +216,7 @@ export const parseRequest = async (
   if (isFirstInvocation) {
     // if first invocation, return and `serve` will handle publishing the JSON to QStash
     return {
-      initialPayload: payload ?? "",
+      rawInitialPayload: payload ?? "",
       steps: [],
       isLastDuplicate: false,
     };
@@ -222,14 +225,58 @@ export const parseRequest = async (
     if (!payload) {
       throw new QstashWorkflowError("Only first call can have an empty body");
     }
-    const { initialPayload, steps } = parsePayload(payload);
+    const { rawInitialPayload, steps } = parsePayload(payload);
     const isLastDuplicate = await checkIfLastOneIsDuplicate(steps, debug);
     const deduplicatedSteps = deduplicateSteps(steps);
 
     return {
-      initialPayload,
+      rawInitialPayload,
       steps: deduplicatedSteps,
       isLastDuplicate,
     };
   }
+};
+
+/**
+ * checks if Upstash-Workflow-Is-Failure header is set to "true". If so,
+ * attempts to call the failureFunction function.
+ *
+ * If the header is set but failureFunction is not passed, returns
+ * QstashWorkflowError.
+ *
+ * @param request incoming request
+ * @param failureFunction function to handle the failure
+ */
+export const handleFailure = async (
+  request: Request,
+  failureFunction?: WorkflowServeOptions["failureFunction"]
+): Promise<Ok<"is-failure-callback" | "not-failure-callback", never> | Err<never, Error>> => {
+  if (request.headers.get(WORKFLOW_FAILURE_HEADER) !== "true") {
+    return ok("not-failure-callback");
+  }
+
+  if (!failureFunction) {
+    return err(
+      new QstashWorkflowError(
+        "Workflow endpoint is called to handle a failure," +
+          " but a failureFunction is not provided in serve options." +
+          " Either provide a failureUrl or a failureFunction."
+      )
+    );
+  }
+
+  try {
+    const { status, header, body } = (await request.json()) as {
+      status: number;
+      header: Record<string, string>;
+      body: string;
+    };
+    const decodedBody = atob(body);
+
+    await failureFunction(status, header, decodedBody);
+  } catch (error) {
+    return err(error as Error);
+  }
+
+  return ok("is-failure-callback");
 };

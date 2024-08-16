@@ -29,9 +29,10 @@ export abstract class BaseLazyStep<TResult = unknown> {
    * result step to submit after the step executes. Used in single step executions
    * and when a plan step executes in parallel executions (parallel call state `partial`).
    *
+   * @param concurrent
    * @param stepId
    */
-  public abstract getResultStep(stepId: number, singleStep: boolean): Promise<Step<TResult>>;
+  public abstract getResultStep(concurrent: number, stepId: number): Promise<Step<TResult>>;
 }
 
 /**
@@ -58,7 +59,7 @@ export class LazyFunctionStep<TResult = unknown> extends BaseLazyStep<TResult> {
     }
   }
 
-  public async getResultStep(stepId: number, _singleStep: boolean): Promise<Step<TResult>> {
+  public async getResultStep(concurrent: number, stepId: number): Promise<Step<TResult>> {
     const result = await this.stepFunction();
 
     return {
@@ -66,8 +67,7 @@ export class LazyFunctionStep<TResult = unknown> extends BaseLazyStep<TResult> {
       stepName: this.stepName,
       stepType: this.stepType,
       out: result,
-      concurrent: 1,
-      targetStep: 0,
+      concurrent,
     };
   }
 }
@@ -97,16 +97,13 @@ export class LazySleepStep extends BaseLazyStep {
     }
   }
 
-  public async getResultStep(stepId: number, singleStep: boolean): Promise<Step> {
+  public async getResultStep(concurrent: number, stepId: number): Promise<Step> {
     return await Promise.resolve({
       stepId,
       stepName: this.stepName,
       stepType: this.stepType,
-      // apply sleepFor if the step is running by itself. If it's running parallel,
-      // the sleepFor is already applied in the plan step
-      sleepFor: singleStep ? this.sleep : undefined,
-      concurrent: 1,
-      targetStep: 0,
+      sleepFor: this.sleep,
+      concurrent,
     });
   }
 }
@@ -136,16 +133,13 @@ export class LazySleepUntilStep extends BaseLazyStep {
     }
   }
 
-  public async getResultStep(stepId: number, singleStep: boolean): Promise<Step> {
+  public async getResultStep(concurrent: number, stepId: number): Promise<Step> {
     return await Promise.resolve({
       stepId,
       stepName: this.stepName,
       stepType: this.stepType,
-      // apply sleepUntil if the step is running by itself. If it's running parallel,
-      // the sleepUntil is already applied in the plan step
-      sleepUntil: singleStep ? this.sleepUntil : undefined,
-      concurrent: 1,
-      targetStep: 0,
+      sleepUntil: this.sleepUntil,
+      concurrent,
     });
   }
 }
@@ -183,13 +177,12 @@ export class LazyCallStep<TResult = unknown, TBody = unknown> extends BaseLazySt
     }
   }
 
-  public async getResultStep(stepId: number): Promise<Step<TResult>> {
+  public async getResultStep(concurrent: number, stepId: number): Promise<Step<TResult>> {
     return await Promise.resolve({
       stepId,
       stepName: this.stepName,
       stepType: this.stepType,
-      concurrent: 1,
-      targetStep: 0,
+      concurrent,
       callUrl: this.url,
       callMethod: this.method,
       callBody: this.body,

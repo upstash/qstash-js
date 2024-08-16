@@ -53,7 +53,7 @@ import { serve } from "bun";
 import { serve as workflowServe } from "./serve";
 import { expect, test, describe } from "bun:test";
 import { Client } from "../client";
-import type { WorkflowContext } from "./context";
+import type { RouteFunction } from "./types";
 
 const WORKFLOW_PORT = "3000";
 const THIRD_PARTY_PORT = "3001";
@@ -110,7 +110,7 @@ const testEndpoint = async <TInitialPayload = unknown>({
   finalCount: number;
   waitFor: number;
   initialPayload: TInitialPayload;
-  routeFunction: (context: WorkflowContext<TInitialPayload>) => Promise<void>;
+  routeFunction: RouteFunction<TInitialPayload>;
   finishState: FinishState;
 }) => {
   let counter = 0;
@@ -317,6 +317,30 @@ describe.skip("live serve tests", () => {
     },
     {
       timeout: 12_000,
+    }
+  );
+
+  test(
+    "auth endpoint - failed authentication",
+    async () => {
+      const finishState = new FinishState();
+      await testEndpoint({
+        finalCount: 1,
+        waitFor: 4500,
+        initialPayload: "my-payload",
+        finishState,
+        routeFunction: async (context) => {
+          if (context.headers.get("authentication") !== "Bearer aDifferentPassword") {
+            console.error("Authentication failed.");
+            finishState.finish();
+            return;
+          }
+          throw new Error("shouldn't be here.");
+        },
+      });
+    },
+    {
+      timeout: 5000,
     }
   );
 

@@ -232,10 +232,7 @@ describe("receiver", () => {
       await mockQstashServer({
         // eslint-disable-next-line @typescript-eslint/require-await
         execute: async () => {
-          expect(throws).toThrow(
-            "Error when handling call return (isCallReturn=true): QstashWorkflowError: " +
-              "`Upstash-Signature` header is not a string"
-          );
+          expect(throws).toThrow("`Upstash-Signature` header is not a string");
         },
         responseFields: { body: "msgId", status: 200 },
         receivesRequest: false,
@@ -265,9 +262,7 @@ describe("receiver", () => {
       await mockQstashServer({
         // eslint-disable-next-line @typescript-eslint/require-await
         execute: async () => {
-          expect(throws).toThrow(
-            "Error when handling call return (isCallReturn=true): SignatureError: Invalid Compact JWS"
-          );
+          expect(throws).toThrow("Invalid Compact JWS");
         },
         responseFields: { body: "msgId", status: 200 },
         receivesRequest: false,
@@ -309,7 +304,6 @@ describe("receiver", () => {
             stepType: "Run",
             out: atob(randomBody),
             concurrent: 1,
-            targetStep: 0,
           },
         },
       });
@@ -326,7 +320,6 @@ describe("receiver", () => {
       stepType: "Run",
       out: "result",
       concurrent: 1,
-      targetStep: 0,
     };
 
     test("should block request without signature", async () => {

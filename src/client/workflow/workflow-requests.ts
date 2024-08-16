@@ -5,13 +5,14 @@ import type { WorkflowContext } from "./context";
 import type { Client } from "../client";
 import {
   DEFAULT_CONTENT_TYPE,
+  WORKFLOW_FAILURE_HEADER,
   WORKFLOW_ID_HEADER,
   WORKFLOW_INIT_HEADER,
   WORKFLOW_PROTOCOL_VERSION,
   WORKFLOW_PROTOCOL_VERSION_HEADER,
   WORKFLOW_URL_HEADER,
 } from "./constants";
-import type { Step, StepType } from "./types";
+import type { Step, StepType, WorkflowServeOptions } from "./types";
 import { StepTypes } from "./types";
 import type { WorkflowLogger } from "./logger";
 import type { Receiver } from "../../receiver";
@@ -24,7 +25,9 @@ export const triggerFirstInvocation = async <TInitialPayload>(
     "true",
     workflowContext.workflowRunId,
     workflowContext.url,
-    workflowContext.headers
+    workflowContext.headers,
+    undefined,
+    workflowContext.failureUrl
   );
   await debug?.log("SUBMIT", "SUBMIT_FIRST_INVOCATION", {
     headers,
@@ -120,18 +123,16 @@ export const recreateUserHeaders = (headers: Headers): Headers => {
  */
 export const handleThirdPartyCallResult = async (
   request: Request,
+  requestPayload: string,
   client: Client,
-  debug?: WorkflowLogger,
-  verifier?: Receiver
+  failureUrl: WorkflowServeOptions["failureUrl"],
+  debug?: WorkflowLogger
 ): Promise<
   Ok<"is-call-return" | "continue-workflow" | "call-will-retry", never> | Err<never, Error>
 > => {
   try {
     if (request.headers.get("Upstash-Workflow-Callback")) {
-      const callbackBody = await request.text();
-      await verifyRequest(callbackBody, request.headers.get("upstash-signature"), verifier);
-
-      const callbackMessage = JSON.parse(callbackBody) as {
+      const callbackMessage = JSON.parse(requestPayload) as {
         status: number;
         body: string;
       };
@@ -173,7 +174,14 @@ export const handleThirdPartyCallResult = async (
       }
 
       const userHeaders = recreateUserHeaders(request.headers as Headers);
-      const requestHeaders = getHeaders("false", workflowRunId, request.url, userHeaders);
+      const requestHeaders = getHeaders(
+        "false",
+        workflowRunId,
+        request.url,
+        userHeaders,
+        undefined,
+        failureUrl
+      );
 
       const callResultStep: Step = {
         stepId: Number(stepIdString),
@@ -181,7 +189,6 @@ export const handleThirdPartyCallResult = async (
         stepType,
         out: Buffer.from(callbackMessage.body, "base64").toString(),
         concurrent: Number(concurrentString),
-        targetStep: 0,
       };
 
       await debug?.log("SUBMIT", "SUBMIT_THIRD_PARTY_RESULT", {
@@ -230,13 +237,20 @@ export const getHeaders = (
   workflowRunId: string,
   workflowUrl: string,
   userHeaders?: Headers,
-  step?: Step
+  step?: Step,
+  failureUrl?: WorkflowServeOptions["failureUrl"]
 ): Record<string, string> => {
   const baseHeaders: Record<string, string> = {
     [WORKFLOW_INIT_HEADER]: initHeaderValue,
     [WORKFLOW_ID_HEADER]: workflowRunId,
     [WORKFLOW_URL_HEADER]: workflowUrl,
     [`Upstash-Forward-${WORKFLOW_PROTOCOL_VERSION_HEADER}`]: WORKFLOW_PROTOCOL_VERSION,
+    ...(failureUrl
+      ? {
+          [`Upstash-Failure-Callback-Forward-${WORKFLOW_FAILURE_HEADER}`]: "true",
+          "Upstash-Failure-Callback": failureUrl,
+        }
+      : {}),
   };
 
   if (userHeaders) {

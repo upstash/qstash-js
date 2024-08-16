@@ -4,6 +4,7 @@ import type { AsyncStepFunction, ParallelCallState, Step } from "./types";
 import { type BaseLazyStep } from "./steps";
 import { getHeaders } from "./workflow-requests";
 import type { WorkflowLogger } from "./logger";
+import { NO_CONCURRENCY } from "./constants";
 
 export class AutoExecutor {
   private context: WorkflowContext;
@@ -11,6 +12,7 @@ export class AutoExecutor {
   private activeLazyStepList?: BaseLazyStep[];
   private debug?: WorkflowLogger;
 
+  private readonly nonPlanStepCount: number;
   private indexInCurrentList = 0;
   public stepCount = 0;
   public planStepCount = 0;
@@ -20,6 +22,7 @@ export class AutoExecutor {
   constructor(context: WorkflowContext, debug?: WorkflowLogger) {
     this.context = context;
     this.debug = debug;
+    this.nonPlanStepCount = this.context.steps.filter((step) => !step.targetStep).length;
   }
 
   /**
@@ -108,7 +111,7 @@ export class AutoExecutor {
    * @returns step result
    */
   protected async runSingle<TResult>(lazyStep: BaseLazyStep<TResult>) {
-    if (this.stepCount < this.context.nonPlanStepCount) {
+    if (this.stepCount < this.nonPlanStepCount) {
       const step = this.context.steps[this.stepCount + this.planStepCount];
       validateStep(lazyStep, step);
       await this.debug?.log("INFO", "RUN_SINGLE", {
@@ -119,7 +122,7 @@ export class AutoExecutor {
       return step.out as TResult;
     }
 
-    const resultStep = await lazyStep.getResultStep(this.stepCount, true);
+    const resultStep = await lazyStep.getResultStep(NO_CONCURRENCY, this.stepCount);
 
     await this.debug?.log("INFO", "RUN_SINGLE", {
       fromRequest: false,
@@ -188,7 +191,7 @@ export class AutoExecutor {
          * Execute the step and call qstash with the result
          */
         const planStep = this.context.steps.at(-1);
-        if (!planStep || planStep.targetStep === 0) {
+        if (!planStep || planStep.targetStep === undefined) {
           throw new QstashWorkflowError(
             `There must be a last step and it should have targetStep larger than 0.` +
               `Received: ${JSON.stringify(planStep)}`
@@ -207,8 +210,8 @@ export class AutoExecutor {
         validateStep(parallelSteps[stepIndex], planStep);
         try {
           const resultStep = await parallelSteps[stepIndex].getResultStep(
-            planStep.targetStep,
-            false
+            parallelSteps.length,
+            planStep.targetStep
           );
           await this.submitStepsToQstash([resultStep]);
         } catch (error) {
@@ -276,7 +279,7 @@ export class AutoExecutor {
     initialStepCount: number
   ): ParallelCallState {
     const remainingSteps = this.context.steps.filter(
-      (step) => (step.stepId === 0 ? step.targetStep : step.stepId) >= initialStepCount
+      (step) => (step.targetStep ?? step.stepId) >= initialStepCount
     );
 
     if (remainingSteps.length === 0) {
@@ -321,8 +324,13 @@ export class AutoExecutor {
           this.context.workflowRunId,
           this.context.url,
           this.context.headers,
-          singleStep
+          singleStep,
+          this.context.failureUrl
         );
+
+        // if the step is a single step execution or a plan step, we can add sleep headers
+        const willWait = singleStep.concurrent === NO_CONCURRENCY || singleStep.stepId === 0;
+
         return singleStep.callUrl
           ? // if the step is a third party call, we call the third party
             // url (singleStep.callUrl) and pass information about the workflow
@@ -344,8 +352,8 @@ export class AutoExecutor {
               method: "POST",
               body: singleStep,
               url: this.context.url,
-              notBefore: singleStep.sleepUntil,
-              delay: singleStep.sleepFor,
+              notBefore: willWait ? singleStep.sleepUntil : undefined,
+              delay: willWait ? singleStep.sleepFor : undefined,
             };
       })
     );
@@ -417,15 +425,15 @@ const validateStep = (lazyStep: BaseLazyStep, stepFromRequest: Step): void => {
   // check step name
   if (lazyStep.stepName !== stepFromRequest.stepName) {
     throw new QstashWorkflowError(
-      `Incompatible step name. Expected ${lazyStep.stepName},` +
-        ` got ${stepFromRequest.stepName} from the request`
+      `Incompatible step name. Expected '${lazyStep.stepName}',` +
+        ` got '${stepFromRequest.stepName}' from the request`
     );
   }
   // check type name
   if (lazyStep.stepType !== stepFromRequest.stepType) {
     throw new QstashWorkflowError(
-      `Incompatible step type. Expected ${lazyStep.stepType},` +
-        ` got ${stepFromRequest.stepType} from the request`
+      `Incompatible step type. Expected '${lazyStep.stepType}',` +
+        ` got '${stepFromRequest.stepType}' from the request`
     );
   }
 };
@@ -453,10 +461,10 @@ const validateParallelSteps = (lazySteps: BaseLazyStep[], stepsFromRequest: Step
       const requestStepTypes = stepsFromRequest.map((step) => step.stepType);
       throw new QstashWorkflowError(
         `Incompatible steps detected in parallel execution: ${error.message}` +
-          `\n  > Step Names from the request: ${requestStepNames}` +
-          `\n    Step Types from the request: ${requestStepTypes}` +
-          `\n  > Step Names expected: ${lazyStepNames}` +
-          `\n    Step Types expected: ${lazyStepTypes}`
+          `\n  > Step Names from the request: ${JSON.stringify(requestStepNames)}` +
+          `\n    Step Types from the request: ${JSON.stringify(requestStepTypes)}` +
+          `\n  > Step Names expected: ${JSON.stringify(lazyStepNames)}` +
+          `\n    Step Types expected: ${JSON.stringify(lazyStepTypes)}`
       );
     }
     throw error;
@@ -471,6 +479,6 @@ const validateParallelSteps = (lazySteps: BaseLazyStep[], stepsFromRequest: Step
  * @returns sorted steps
  */
 const sortSteps = (steps: Step[]): Step[] => {
-  const getStepId = (step: Step) => (step.stepId === 0 ? step.targetStep : step.stepId);
+  const getStepId = (step: Step) => step.targetStep ?? step.stepId;
   return steps.toSorted((step, stepOther) => getStepId(step) - getStepId(stepOther));
 };
