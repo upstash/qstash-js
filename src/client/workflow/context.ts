@@ -17,7 +17,7 @@ export class WorkflowContext<TInitialPayload = unknown> {
   public readonly workflowRunId: string;
   public readonly steps: Step[];
   public readonly url: string;
-  public readonly failureUrl: string | false;
+  public readonly failureUrl?: string;
   public readonly requestPayload: TInitialPayload;
   public readonly headers: Headers;
   public readonly rawInitialPayload: string;
@@ -28,7 +28,7 @@ export class WorkflowContext<TInitialPayload = unknown> {
     headers,
     steps,
     url,
-    failureUrl = false,
+    failureUrl,
     debug,
     initialPayload,
     rawInitialPayload,
@@ -38,7 +38,7 @@ export class WorkflowContext<TInitialPayload = unknown> {
     headers: Headers;
     steps: Step[];
     url: string;
-    failureUrl?: string | false;
+    failureUrl?: string;
     debug?: WorkflowLogger;
     initialPayload: TInitialPayload;
     rawInitialPayload?: string; // optional for tests

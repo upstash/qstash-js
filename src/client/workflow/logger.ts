@@ -65,7 +65,7 @@ export class WorkflowLogger {
     return LOG_LEVELS.indexOf(level) >= LOG_LEVELS.indexOf(this.options.logLevel);
   }
 
-  public static getLogger(verbose: boolean | WorkflowLogger) {
+  public static getLogger(verbose?: boolean | WorkflowLogger) {
     if (typeof verbose === "object") {
       return verbose;
     } else {

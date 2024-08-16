@@ -3,7 +3,12 @@ import { Receiver } from "../../receiver";
 import { Client } from "../client";
 import { DisabledWorkflowContext, WorkflowContext } from "./context";
 import { WorkflowLogger } from "./logger";
-import type { FinishCondition, WorkflowServeOptions, WorkflowServeParameters } from "./types";
+import type {
+  FinishCondition,
+  RequiredExceptFields,
+  WorkflowServeOptions,
+  WorkflowServeParameters,
+} from "./types";
 import { handleFailure, parseRequest, validateRequest } from "./workflow-parser";
 import {
   handleThirdPartyCallResult,
@@ -26,7 +31,10 @@ import {
  */
 const processOptions = <TResponse = Response, TInitialPayload = unknown>(
   options?: WorkflowServeOptions<TResponse, TInitialPayload>
-): Required<WorkflowServeOptions<TResponse, TInitialPayload>> => {
+): RequiredExceptFields<
+  WorkflowServeOptions<TResponse, TInitialPayload>,
+  "verbose" | "receiver" | "url" | "failureFunction" | "failureUrl"
+> => {
   const receiverEnvironmentVariablesSet = Boolean(
     process.env.QSTASH_CURRENT_SIGNING_KEY && process.env.QSTASH_NEXT_SIGNING_KEY
   );
@@ -59,17 +67,12 @@ const processOptions = <TResponse = Response, TInitialPayload = unknown>(
         throw error;
       }
     },
-    url: "", // will be overwritten with request.url
-    verbose: false,
-    // initialize a receiver if the env variables are set:
-    receiver:
-      receiverEnvironmentVariablesSet &&
-      new Receiver({
-        currentSigningKey: process.env.QSTASH_CURRENT_SIGNING_KEY!,
-        nextSigningKey: process.env.QSTASH_NEXT_SIGNING_KEY!,
-      }),
-    failureUrl: false,
-    failureFunction: false,
+    receiver: receiverEnvironmentVariablesSet
+      ? new Receiver({
+          currentSigningKey: process.env.QSTASH_CURRENT_SIGNING_KEY!,
+          nextSigningKey: process.env.QSTASH_NEXT_SIGNING_KEY!,
+        })
+      : undefined,
     ...options,
   };
 };
@@ -105,7 +108,6 @@ export const serve = <
   } = processOptions<TResponse, TInitialPayload>(options);
 
   const debug = WorkflowLogger.getLogger(verbose);
-  const verifier = receiver || undefined;
 
   /**
    * Handles the incoming request, triggering the appropriate workflow steps.
@@ -117,7 +119,7 @@ export const serve = <
    * @returns A promise that resolves to a response.
    */
   return async (request: TRequest) => {
-    const workflowUrl = url || request.url;
+    const workflowUrl = url ?? request.url;
     const workflowFailureUrl = failureFunction ? workflowUrl : failureUrl;
 
     await debug?.log("INFO", "ENDPOINT_START");
@@ -137,7 +139,7 @@ export const serve = <
     const { rawInitialPayload, steps, isLastDuplicate } = await parseRequest(
       request,
       isFirstInvocation,
-      verifier,
+      receiver,
       debug
     );
 
