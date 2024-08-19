@@ -24,13 +24,11 @@
       "require": "./index.js"
     },
     "./nextjs": {
-      "types": "./nextjs.d.ts",
-      "import": "./nextjs.mjs",
+      "import": "./nextjs.js",
       "require": "./nextjs.js"
     },
     "./dist/nextjs": {
-      "types": "./nextjs.d.ts",
-      "import": "./nextjs.mjs",
+      "import": "./nextjs.js",
       "require": "./nextjs.js"
     },
     "./nuxt": {
