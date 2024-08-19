@@ -1,7 +1,7 @@
 import type { APIEvent, APIHandler } from "@solidjs/start/server";
 import { formatWorkflowError, Receiver } from "../src";
 
-import type { WorkflowServeParameters } from "../src/client/workflow";
+import type { RouteFunction, WorkflowServeOptions } from "../src/client/workflow";
 import { serve as serveBase } from "../src/client/workflow";
 
 type VerifySignatureConfig = {
@@ -48,10 +48,10 @@ export const verifySignatureSolidjs = (
   };
 };
 
-export const serve = <TInitialPayload = unknown>({
-  routeFunction,
-  options,
-}: WorkflowServeParameters<TInitialPayload, Response, "onStepFinish">) => {
+export const serve = <TInitialPayload = unknown>(
+  routeFunction: RouteFunction<TInitialPayload>,
+  options?: Omit<WorkflowServeOptions<Response, TInitialPayload>, "onStepFinish">
+) => {
   // Create a handler which receives an event and calls the
   // serveBase method
   const handler = async (event: APIEvent) => {
@@ -62,10 +62,7 @@ export const serve = <TInitialPayload = unknown>({
     }
 
     // create serve handler
-    const serveHandler = serveBase<TInitialPayload>({
-      routeFunction,
-      options,
-    });
+    const serveHandler = serveBase<TInitialPayload>(routeFunction, options);
 
     // invoke serve handler and return result
     try {

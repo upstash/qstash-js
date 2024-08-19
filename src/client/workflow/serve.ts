@@ -6,8 +6,8 @@ import { WorkflowLogger } from "./logger";
 import type {
   FinishCondition,
   RequiredExceptFields,
+  RouteFunction,
   WorkflowServeOptions,
-  WorkflowServeParameters,
 } from "./types";
 import { handleFailure, parseRequest, validateRequest } from "./workflow-parser";
 import {
@@ -89,12 +89,10 @@ export const serve = <
   TInitialPayload = unknown,
   TRequest extends Request = Request,
   TResponse extends Response = Response,
->({
-  routeFunction,
-  options,
-}: WorkflowServeParameters<TInitialPayload, TResponse>): ((
-  request: TRequest
-) => Promise<TResponse>) => {
+>(
+  routeFunction: RouteFunction<TInitialPayload>,
+  options?: WorkflowServeOptions<TResponse, TInitialPayload>
+): ((request: TRequest) => Promise<TResponse>) => {
   // Prepares options with defaults if they are not provided.
   const {
     qstashClient,

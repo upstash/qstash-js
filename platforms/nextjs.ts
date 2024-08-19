@@ -4,7 +4,7 @@ import { type NextRequest } from "next/server";
 import { type NextFetchEvent, NextResponse } from "next/server";
 import { Receiver } from "../src/receiver";
 
-import type { WorkflowServeParameters } from "../src/client/workflow";
+import type { WorkflowServeOptions, RouteFunction } from "../src/client/workflow";
 import { serve as serveBase } from "../src/client/workflow";
 import { formatWorkflowError } from "../src/client/error";
 
@@ -196,19 +196,14 @@ export function verifySignatureAppRouter(
   };
 }
 
-export const serve = <TInitialPayload = unknown>({
-  routeFunction,
-  options,
-}: WorkflowServeParameters<TInitialPayload, NextResponse, "onStepFinish">): ((
-  request: NextRequest
-) => Promise<NextResponse>) => {
-  const handler = serveBase<TInitialPayload, NextRequest, NextResponse>({
-    routeFunction,
-    options: {
-      onStepFinish: (workflowRunId: string) =>
-        new NextResponse(JSON.stringify({ workflowRunId }), { status: 200 }),
-      ...options,
-    },
+export const serve = <TInitialPayload = unknown>(
+  routeFunction: RouteFunction<TInitialPayload>,
+  options?: Omit<WorkflowServeOptions<NextResponse, TInitialPayload>, "onStepFinish">
+): ((request: NextRequest) => Promise<NextResponse>) => {
+  const handler = serveBase<TInitialPayload, NextRequest, NextResponse>(routeFunction, {
+    onStepFinish: (workflowRunId: string) =>
+      new NextResponse(JSON.stringify({ workflowRunId }), { status: 200 }),
+    ...options,
   });
 
   return async (request: NextRequest) => {

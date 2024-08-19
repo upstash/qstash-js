@@ -86,18 +86,18 @@ const receiver = new Receiver({ currentSigningKey, nextSigningKey });
 /**
  * endpoint to call in the receiver tests
  */
-const endpoint = serve({
-  routeFunction: async (context) => {
+const endpoint = serve(
+  async (context) => {
     await context.run("step 1", async () => {
       return await Promise.resolve("result");
     });
   },
-  options: {
+  {
     qstashClient,
     receiver,
     url: WORKFLOW_ENDPOINT,
-  },
-});
+  }
+);
 
 describe("receiver", () => {
   describe("createSignedRequest helper", () => {

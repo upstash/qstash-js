@@ -28,8 +28,8 @@ const attemptCharge = (invoice: Invoice) => {
   return false;
 }
 
-export default serve<Invoice>({
-  routeFunction: async context => {
+export default serve<Invoice>(
+  async context => {
     const x = Math.random()
     const invoice = context.requestPayload
     
@@ -65,6 +65,4 @@ export default serve<Invoice>({
       return true
     })
   }
-})
-
-
+)

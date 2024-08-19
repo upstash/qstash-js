@@ -6,8 +6,8 @@ const someWork = (input: string) => {
   return `processed '${JSON.stringify(input)}'`
 }
 
-export const POST = serve<string>({
-  routeFunction: async context => {
+export const POST = serve<string>(
+  async context => {
     const input = context.requestPayload
     const result1 = await context.run("step1", async () => {
       const output = someWork(input)
@@ -30,14 +30,14 @@ export const POST = serve<string>({
       console.log("step 3 input", result2, "output", output)
     });
   },
-  qstashClient: new Client({
+  new Client({
     baseUrl: env.QSTASH_URL!,
     token: env.QSTASH_TOKEN!,
   }),
-  receiver: new Receiver({
-    currentSigningKey: env.QSTASH_CURRENT_SIGNING_KEY,
-    nextSigningKey: env.QSTASH_NEXT_SIGNING_KEY,
-  })
-})
-
-
+  {
+    receiver: new Receiver({
+      currentSigningKey: env.QSTASH_CURRENT_SIGNING_KEY,
+      nextSigningKey: env.QSTASH_NEXT_SIGNING_KEY,
+    })
+  }
+)
