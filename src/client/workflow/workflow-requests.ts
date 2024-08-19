@@ -309,14 +309,23 @@ export const verifyRequest = async (
   if (!verifier) {
     return;
   }
-  if (!signature) {
-    throw new QstashWorkflowError("`Upstash-Signature` header is not a string");
-  }
-  const isValid = await verifier.verify({
-    body,
-    signature,
-  });
-  if (!isValid) {
-    throw new QstashWorkflowError("Invalid signature");
+
+  try {
+    if (!signature) {
+      throw new Error("`Upstash-Signature` header is not passed.");
+    }
+    const isValid = await verifier.verify({
+      body,
+      signature,
+    });
+    if (!isValid) {
+      throw new Error("Signature in `Upstash-Signature` header is not valid");
+    }
+  } catch (error) {
+    throw new QstashWorkflowError(
+      `Failed to verify that the Workflow request comes from QStash: ${error}\n\n` +
+        "Either disable request verification or start the workflow by publishing your request to QStash.\n\n" +
+        "If you want to disable request verification, you should clear env variables QSTASH_CURRENT_SIGNING_KEY and QSTASH_NEXT_SIGNING_KEY"
+    );
   }
 };
