@@ -5,10 +5,10 @@ const client = new Client({ baseUrl: process.env.QSTASH_URL!, token: process.env
 
 export const POST: APIHandler = async (event: APIEvent) => {
   try {
-    const { baseUrl, route, payload } = await event.request.json();
+    const { route, payload } = await event.request.json();
     
     const { messageId } = await client.publishJSON({
-      url: `${baseUrl}/${route}`,
+      url: `${process.env.UPSTASH_WORKFLOW_URL}/${route}`,
       body: payload
     });
 

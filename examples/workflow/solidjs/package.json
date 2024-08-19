@@ -3,9 +3,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vinxi dev",
+    "dev": "vinxi dev --port 3001",
     "build": "vinxi build",
-    "start": "vinxi start"
+    "start": "vinxi start --port 3001"
   },
   "devDependencies": {
     "autoprefixer": "^10.4.19",

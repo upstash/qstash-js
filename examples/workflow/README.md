@@ -18,7 +18,7 @@ First, set the environment variables `QSTASH_TOKEN`, `QSTASH_URL`, `QSTASH_CURRE
 The `bootstrap.sh` script makes it possible to start an examplew workflow project and create a Ngrok tunnel in one script. To run it, simply choose the framework and the endpoint you would like to choose as default:
 
 ```
-bash bootstrap.sh <example-framework> <workflow-endpoint>
+bash bootstrap.sh <example-framework>
 ```
 
 Here is an example call:
@@ -30,7 +30,7 @@ bash bootstrap.sh nextjs path
 You will still be able to use endpoints other than `path`. `path` will simply be what the home page will have as default endpoint.
 
 Here is what the script does in a nutshell:
-- create a Ngrok tunnel from `localhost:3000`
+- create a Ngrok tunnel from `localhost:3001`
 - Public URL of the tunnel is inferred from Ngrok logs.
 - `context.ts` file in `@upstash/qstash` is updated with the URL from Ngrok.
 - `@upstash/qstash` is built and installed in the picked framework example

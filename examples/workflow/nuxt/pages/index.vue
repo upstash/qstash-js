@@ -4,15 +4,6 @@
       <h1 class="text-xl font-bold mb-4">Send Request</h1>
 
       <div class="mb-4">
-        <label class="block text-gray-700">Base URL deployment URL:</label>
-        <input
-          v-model="baseUrl"
-          type="text"
-          class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-        />
-      </div>
-
-      <div class="mb-4">
         <label class="block text-gray-700">Route:</label>
         <select
           v-model="route"
@@ -48,22 +39,14 @@
 <script setup>
 import { ref } from 'vue';
 
-const baseUrl = ref('http://localhost:3000');
 const requestBody = ref('{"date":123,"email":"my@mail.com","amount":10}');
 const loading = ref(false);
 const route = ref('path');
 const routes = ['path', 'sleep', 'sleepWithoutAwait', 'northStarSimple', 'northStar'];
 
-// Ensure baseUrl doesn't have a trailing slash
-watch(baseUrl, (newVal) => {
-  if (newVal.endsWith('/')) {
-    baseUrl.value = newVal.replace(/\/$/, '');
-  }
-});
-
 const handleSend = async () => {
   loading.value = true;
-  const url = `${baseUrl.value}/api/callQstash`;
+  const url = "/api/callQstash";
   try {
     const response = await fetch(url, {
       headers: {
@@ -71,9 +54,8 @@ const handleSend = async () => {
       },
       method: "POST",
         body: JSON.stringify({
-          baseUrl: baseUrl.value,
           route: route.value,
-          payload: requestBody.value
+          payload: JSON.parse(requestBody.value)
         })
     });
     console.log('Response:', await response.json());
