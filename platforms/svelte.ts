@@ -70,6 +70,7 @@ export const serve = <TInitialPayload = unknown>({
     try {
       return await serveMethod(request);
     } catch (error) {
+      console.error(error);
       return new Response(JSON.stringify(formatWorkflowError(error)), { status: 500 });
     }
   };

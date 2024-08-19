@@ -215,6 +215,7 @@ export const serve = <TInitialPayload = unknown>({
     try {
       return await handler(request);
     } catch (error) {
+      console.error(error);
       return new NextResponse(JSON.stringify(formatWorkflowError(error)), {
         status: 500,
       });
