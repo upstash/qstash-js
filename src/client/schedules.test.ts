@@ -1,13 +1,14 @@
 /* eslint-disable @typescript-eslint/no-magic-numbers */
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { afterAll, describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, test } from "bun:test";
 import { Client } from "./client";
 import type { Schedule } from "./schedules";
+import { nanoid } from "nanoid";
 
 describe("Schedules", () => {
   const client = new Client({ token: process.env.QSTASH_TOKEN! });
 
-  afterAll(async () => {
+  afterEach(async () => {
     const scheduleDetails = await client.schedules.list();
     await Promise.all(
       scheduleDetails.map(async (s) => {
@@ -103,5 +104,36 @@ describe("Schedules", () => {
 
     getResult = await client.schedules.get(createResult.scheduleId);
     expect(getResult.isPaused).toBeFalse();
+  });
+
+  test("should be able to edit existing schedule", async () => {
+    const scheduleId = nanoid();
+    const initialDestination = "https://www.initial.com";
+    const updatedDestination = "https://www.updated.com";
+
+    let schedules = await client.schedules.list();
+    expect(schedules.length).toBe(0);
+
+    await client.schedules.create({
+      destination: initialDestination,
+      cron: "*/5 * * * *",
+      scheduleId,
+      body: "my-payload",
+    });
+    schedules = await client.schedules.list();
+    expect(schedules.length).toBe(1);
+    expect(schedules[0].scheduleId).toBe(scheduleId);
+    expect(schedules[0].destination).toBe(initialDestination);
+
+    await client.schedules.create({
+      destination: updatedDestination,
+      cron: "*/5 * * * *",
+      scheduleId,
+    });
+    schedules = await client.schedules.list();
+    expect(schedules.length).toBe(1);
+    expect(schedules[0].scheduleId).toBe(scheduleId);
+    expect(schedules[0].destination).toBe(updatedDestination);
+    expect(schedules[0].body).toBeUndefined();
   });
 });
