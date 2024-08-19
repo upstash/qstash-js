@@ -1,24 +1,15 @@
 import { createSignal, createEffect } from 'solid-js';
 
 const LandingPage = () => {
-  const [baseUrl, setBaseUrl] = createSignal("http://localhost:3000");
   const [requestBody, setRequestBody] = createSignal('{"date":123,"email":"my@mail.com","amount":10}');
   const [route, setRoute] = createSignal("path");
   const [loading, setLoading] = createSignal(false);
-
-  // Ensure baseUrl doesn't have a trailing slash
-  createEffect(() => {
-    const url = baseUrl();
-    if (url.endsWith('/')) {
-      setBaseUrl(url.replace(/\/$/, ''));
-    }
-  });
 
   const routes = ['path', 'sleep', 'sleepWithoutAwait', 'northStarSimple', 'northStar'];
 
   const handleSend = async () => {
     setLoading(true);
-    const url = `${baseUrl()}/-call-qstash`;
+    const url = "/-call-qstash";
     try {
       const response = await fetch(url, {
         headers: {
@@ -26,9 +17,8 @@ const LandingPage = () => {
         },
         method: "POST",
         body: JSON.stringify({
-          baseUrl: baseUrl(),
           route: route(),
-          payload: requestBody(),
+          payload: JSON.parse(requestBody()),
         })
       });
       console.log('Response:', await response.json());
@@ -43,16 +33,6 @@ const LandingPage = () => {
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
       <div className="bg-white p-6 rounded shadow-md w-full max-w-md">
         <h1 className="text-xl font-bold mb-4">Send Request</h1>
-
-        <div className="mb-4">
-          <label className="block text-gray-700">Base URL (replace with deployment URL):</label>
-          <input
-            type="text"
-            value={baseUrl()}
-            onInput={(e) => setBaseUrl(e.currentTarget.value)}
-            className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-          />
-        </div>
 
         <div className="mb-4">
           <label className="block text-gray-700">Route:</label>

@@ -9,11 +9,11 @@ const client = new Client({
 });
 
 export const POST: RequestHandler = async ({ request }) => {
-  const { baseUrl, route, payload } = await request.json() as { baseUrl: string, route: string, payload: unknown };
+  const { route, payload } = await request.json() as { route: string, payload: unknown };
 
   try {
     const { messageId } = await client.publishJSON({
-      url: `${baseUrl}/${route}`,
+      url: `${env.UPSTASH_WORKFLOW_URL}/${route}`,
       body: payload
     });
 

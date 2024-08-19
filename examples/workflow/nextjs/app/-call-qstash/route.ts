@@ -8,7 +8,7 @@ export const POST = async (request: NextRequest) => {
 
   try {
     const {messageId} = await client.publishJSON({
-      url: `${baseUrl}/${route}`,
+      url: `${process.env.UPSTASH_WORKFLOW_URL}/${route}`,
       body: payload
     });
 

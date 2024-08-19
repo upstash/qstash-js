@@ -128,6 +128,15 @@ export const serve = <
         })
       : initialWorkflowUrl;
 
+    // log workflow url change
+    if (workflowUrl !== initialWorkflowUrl) {
+      await debug?.log("WARN", "ENDPOINT_START", {
+        warning: `QStash Workflow: replacing the base of the url with "${baseUrl}" and using it as workflow endpoint.`,
+        originalURL: initialWorkflowUrl,
+        updatedURL: workflowUrl,
+      });
+    }
+
     // set url to call in case of failure
     const workflowFailureUrl = failureFunction ? workflowUrl : failureUrl;
 

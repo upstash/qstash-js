@@ -5,11 +5,11 @@ import { defineEventHandler, readBody } from "h3";
 const client = new Client({ baseUrl: process.env.QSTASH_URL!, token: process.env.QSTASH_TOKEN! });
 
 export default defineEventHandler(async (event: H3Event) => {
-  const { baseUrl, route, payload } = await readBody(event) as { baseUrl: string, route: string, payload: unknown };
+  const { route, payload } = await readBody(event) as { route: string, payload: unknown };
 
   try {
     const { messageId } = await client.publishJSON({
-      url: `${baseUrl}/api/${route}`,
+      url: `${process.env.UPSTASH_WORKFLOW_URL}/api/${route}`,
       body: payload,
     });
 
