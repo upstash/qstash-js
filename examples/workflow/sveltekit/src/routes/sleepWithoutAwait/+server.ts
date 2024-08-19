@@ -29,8 +29,8 @@ const attemptCharge = (invoice: Invoice) => {
   return false;
 }
 
-export const POST = serve<Invoice>({
-  routeFunction: async context => {
+export const POST = serve<Invoice>(
+  async context => {
     const x = Math.random()
     const invoice = context.requestPayload
     
@@ -66,14 +66,16 @@ export const POST = serve<Invoice>({
       return true
     })
   },
-  qstashClient: new Client({
+  new Client({
     baseUrl: env.QSTASH_URL!,
     token: env.QSTASH_TOKEN!,
   }),
-  receiver: new Receiver({
-    currentSigningKey: env.QSTASH_CURRENT_SIGNING_KEY,
-    nextSigningKey: env.QSTASH_NEXT_SIGNING_KEY,
-  })
-})
+  {
+    receiver: new Receiver({
+      currentSigningKey: env.QSTASH_CURRENT_SIGNING_KEY,
+      nextSigningKey: env.QSTASH_NEXT_SIGNING_KEY,
+    })
+  }
+)
 
 

@@ -5,8 +5,8 @@ const someWork = (input: string) => {
   return `processed '${JSON.stringify(input)}'`
 }
 
-export default serve<string>({
-  routeFunction: async context => {
+export default serve<string>(
+  async context => {
     const input = context.requestPayload
     const result1 = await context.run("step1", async () => {
       const output = someWork(input)
@@ -29,6 +29,6 @@ export default serve<string>({
       console.log("step 3 input", result2, "output", output)
     });
   }
-})
+)
 
 

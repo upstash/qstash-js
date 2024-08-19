@@ -6,8 +6,8 @@ import { WorkflowLogger } from "./logger";
 import type {
   FinishCondition,
   RequiredExceptFields,
+  RouteFunction,
   WorkflowServeOptions,
-  WorkflowServeParameters,
 } from "./types";
 import { handleFailure, parseRequest, validateRequest } from "./workflow-parser";
 import {
@@ -89,12 +89,10 @@ export const serve = <
   TInitialPayload = unknown,
   TRequest extends Request = Request,
   TResponse extends Response = Response,
->({
-  routeFunction,
-  options,
-}: WorkflowServeParameters<TInitialPayload, TResponse>): ((
-  request: TRequest
-) => Promise<TResponse>) => {
+>(
+  routeFunction: RouteFunction<TInitialPayload>,
+  options?: WorkflowServeOptions<TResponse, TInitialPayload>
+): ((request: TRequest) => Promise<TResponse>) => {
   // Prepares options with defaults if they are not provided.
   const {
     qstashClient,
@@ -136,6 +134,7 @@ export const serve = <
 
     // validation & parsing
     const { isFirstInvocation, workflowRunId } = validateRequest(request);
+    debug?.setWorkflowRunId(workflowRunId);
     const { rawInitialPayload, steps, isLastDuplicate } = await parseRequest(
       request,
       isFirstInvocation,
@@ -209,9 +208,7 @@ export const serve = <
       }
 
       // Returns a Response with `workflowRunId` at the end of each step.
-      await debug?.log("INFO", "RESPONSE_WORKFLOW", {
-        workflowRunId: workflowContext.workflowRunId,
-      });
+      await debug?.log("INFO", "RESPONSE_WORKFLOW");
       return onStepFinish(workflowContext.workflowRunId, "success");
     }
     // response to QStash in call cases

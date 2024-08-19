@@ -2,7 +2,7 @@ import type { H3Event } from "h3";
 import { defineEventHandler, getHeader, readRawBody } from "h3";
 import { formatWorkflowError, Receiver } from "../src";
 
-import type { WorkflowServeParameters } from "../src/client/workflow";
+import type { RouteFunction, WorkflowServeOptions } from "../src/client/workflow";
 import { serve as serveBase } from "../src/client/workflow";
 import type { IncomingHttpHeaders } from "node:http";
 
@@ -67,10 +67,10 @@ function transformHeaders(headers: IncomingHttpHeaders): [string, string][] {
   return formattedHeaders as [string, string][];
 }
 
-export const serve = <TInitialPayload = unknown>({
-  routeFunction,
-  options,
-}: WorkflowServeParameters<TInitialPayload, Response, "onStepFinish">) => {
+export const serve = <TInitialPayload = unknown>(
+  routeFunction: RouteFunction<TInitialPayload>,
+  options?: Omit<WorkflowServeOptions<Response, TInitialPayload>, "onStepFinish">
+) => {
   const handler = defineEventHandler(async (event) => {
     const method = event.node.req.method;
     if (method?.toUpperCase() !== "POST") {
@@ -92,13 +92,11 @@ export const serve = <TInitialPayload = unknown>({
       method: "POST",
     });
 
-    const serveHandler = serveBase<TInitialPayload>({
-      routeFunction,
-      options,
-    });
+    const serveHandler = serveBase<TInitialPayload>(routeFunction, options);
     try {
       return await serveHandler(request);
     } catch (error) {
+      console.error(error);
       return new Response(JSON.stringify(formatWorkflowError(error)), { status: 500 });
     }
   });

@@ -25,17 +25,17 @@ const qstashClient = new Client({ baseUrl: MOCK_QSTASH_SERVER_URL, token });
 
 describe("serve", () => {
   test("should send create workflow request in initial request", async () => {
-    const endpoint = serve<string>({
-      routeFunction: async (context) => {
+    const endpoint = serve<string>(
+      async (context) => {
         const _input = context.requestPayload;
         await context.sleep("sleep 1", 1);
       },
-      options: {
+      {
         qstashClient,
         verbose: true,
         receiver: undefined,
-      },
-    });
+      }
+    );
 
     const initialPayload = nanoid();
     const request = new Request(WORKFLOW_ENDPOINT, { method: "POST", body: initialPayload });
@@ -59,8 +59,8 @@ describe("serve", () => {
   });
 
   test("path endpoint", async () => {
-    const endpoint = serve<string>({
-      routeFunction: async (context) => {
+    const endpoint = serve<string>(
+      async (context) => {
         const input = context.requestPayload;
 
         const result1 = await context.run("step1", async () => {
@@ -72,12 +72,12 @@ describe("serve", () => {
           return result;
         });
       },
-      options: {
+      {
         qstashClient,
         verbose: true,
         receiver: undefined,
-      },
-    });
+      }
+    );
 
     const initialPayload = "initial-payload";
     const steps: Step[] = [
@@ -165,17 +165,17 @@ describe("serve", () => {
   });
 
   test("should return 500 on error during step execution", async () => {
-    const endpoint = serve({
-      routeFunction: async (context) => {
+    const endpoint = serve(
+      async (context) => {
         await context.run("wrong step", async () => {
           throw new Error("some-error");
         });
       },
-      options: {
+      {
         qstashClient,
         receiver: undefined,
-      },
-    });
+      }
+    );
 
     const request = getRequest(WORKFLOW_ENDPOINT, "wfr-bar", "my-payload", []);
     let called = false;
@@ -194,16 +194,16 @@ describe("serve", () => {
   });
 
   test("should call onFinish with auth-fail if authentication fails", async () => {
-    const endpoint = serve({
-      routeFunction: async (_context) => {
+    const endpoint = serve(
+      async (_context) => {
         // we call `return` when auth fails:
         return;
       },
-      options: {
+      {
         qstashClient,
         receiver: undefined,
-      },
-    });
+      }
+    );
 
     const request = getRequest(WORKFLOW_ENDPOINT, "wfr-foo", "my-payload", []);
     let called = false;
@@ -225,8 +225,8 @@ describe("serve", () => {
   });
 
   describe("duplicate checks", () => {
-    const endpoint = serve({
-      routeFunction: async (context) => {
+    const endpoint = serve(
+      async (context) => {
         const result1 = await context.run("step 1", async () => {
           return await Promise.resolve("result 1");
         });
@@ -237,11 +237,11 @@ describe("serve", () => {
           return await Promise.resolve(`combined results: ${[result1, result2]}`);
         });
       },
-      options: {
+      {
         qstashClient,
         receiver: undefined,
-      },
-    });
+      }
+    );
 
     test("should return without doing anything when the last step is duplicate", async () => {
       // prettier-ignore
@@ -322,12 +322,9 @@ describe("serve", () => {
 
     test("should not have failureUrl if failureUrl or failureFunction is not passed", async () => {
       const request = getRequest(WORKFLOW_ENDPOINT, "wfr-bar", "my-payload", []);
-      const endpoint = serve({
-        routeFunction,
-        options: {
-          qstashClient,
-          receiver: undefined,
-        },
+      const endpoint = serve(routeFunction, {
+        qstashClient,
+        receiver: undefined,
       });
       let called = false;
       await mockQstashServer({
@@ -363,13 +360,10 @@ describe("serve", () => {
     test("should set failureUrl if failureUrl is passed", async () => {
       const request = getRequest(WORKFLOW_ENDPOINT, "wfr-bar", "my-payload", []);
       const myFailureEndpoint = "https://www.my-failure-endpoint.com/api";
-      const endpoint = serve({
-        routeFunction,
-        options: {
-          qstashClient,
-          receiver: undefined,
-          failureUrl: myFailureEndpoint,
-        },
+      const endpoint = serve(routeFunction, {
+        qstashClient,
+        receiver: undefined,
+        failureUrl: myFailureEndpoint,
       });
       let called = false;
       await mockQstashServer({
@@ -415,13 +409,10 @@ describe("serve", () => {
       ) => {
         return;
       };
-      const endpoint = serve({
-        routeFunction,
-        options: {
-          qstashClient,
-          receiver: undefined,
-          failureFunction: myFailureFunction,
-        },
+      const endpoint = serve(routeFunction, {
+        qstashClient,
+        receiver: undefined,
+        failureFunction: myFailureFunction,
       });
       await mockQstashServer({
         execute: async () => {

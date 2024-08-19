@@ -1,8 +1,8 @@
 
 import { serve } from "@upstash/qstash/nextjs";
 
-export const POST = serve<string>({
-  routeFunction: async context => {
+export const POST = serve<string>(
+  async context => {
     
     if (context.headers.get("authentication") !== "Bearer secretPassword" ) {
       console.error("Authentication failed.");
@@ -18,5 +18,5 @@ export const POST = serve<string>({
       return "output 2"
     })
   }
-})
+)
   

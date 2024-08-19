@@ -2,6 +2,7 @@ const LOG_LEVELS = ["DEBUG", "INFO", "SUBMIT", "WARN", "ERROR"] as const;
 export type LogLevel = (typeof LOG_LEVELS)[number];
 type ChatLogEntry = {
   timestamp: number;
+  workflowRunId: string;
   logLevel: LogLevel;
   eventType:
     | "ENDPOINT_START" // when the endpoint is called
@@ -25,6 +26,7 @@ export type WorkflowLoggerOptions = {
 export class WorkflowLogger {
   private logs: ChatLogEntry[] = [];
   private options: WorkflowLoggerOptions;
+  private workflowRunId?: string = undefined;
 
   constructor(options: WorkflowLoggerOptions) {
     this.options = options;
@@ -39,6 +41,7 @@ export class WorkflowLogger {
       const timestamp = Date.now();
       const logEntry: ChatLogEntry = {
         timestamp,
+        workflowRunId: this.workflowRunId ?? "",
         logLevel: level,
         eventType,
         details,
@@ -53,6 +56,10 @@ export class WorkflowLogger {
       // Introduce a small delay to make the sequence more visible
       await new Promise((resolve) => setTimeout(resolve, 100));
     }
+  }
+
+  public setWorkflowRunId(workflowRunId: string) {
+    this.workflowRunId = workflowRunId;
   }
 
   private writeToConsole(logEntry: ChatLogEntry): void {

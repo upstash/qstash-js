@@ -28,8 +28,8 @@ const attemptCharge = (invoice: Invoice) => {
   return false;
 }
 
-export const POST = serve<Invoice>({
-  routeFunction: async context => {
+export const POST = serve<Invoice>(
+  async context => {
     const x = Math.random()
     const invoice = context.requestPayload
     
@@ -65,6 +65,6 @@ export const POST = serve<Invoice>({
       return true
     })
   }
-})
+)
 
 

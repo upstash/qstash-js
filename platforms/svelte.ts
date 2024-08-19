@@ -1,7 +1,7 @@
 import type { RequestHandler } from "@sveltejs/kit";
 import { formatWorkflowError, Receiver } from "../src";
 
-import type { WorkflowServeParametersExtended } from "../src/client/workflow";
+import type { RouteFunction, WorkflowServeOptions } from "../src/client/workflow";
 import { serve as serveBase } from "../src/client/workflow";
 
 type VerifySignatureConfig = {
@@ -52,24 +52,20 @@ export const verifySignatureSvelte = <
   return wrappedHandler;
 };
 
-export const serve = <TInitialPayload = unknown>({
-  routeFunction,
-  options,
-  receiver,
-  qstashClient,
-}: WorkflowServeParametersExtended<TInitialPayload, Response, "onStepFinish">): RequestHandler => {
+export const serve = <TInitialPayload = unknown>(
+  routeFunction: RouteFunction<TInitialPayload>,
+  qstashClient: WorkflowServeOptions["qstashClient"],
+  options?: Omit<WorkflowServeOptions<Response, TInitialPayload>, "onStepFinish" | "qstashClient">
+): RequestHandler => {
   const handler: RequestHandler = async ({ request }) => {
-    const serveMethod = serveBase<TInitialPayload>({
-      routeFunction,
-      options: {
-        qstashClient,
-        receiver,
-        ...options,
-      },
+    const serveMethod = serveBase<TInitialPayload>(routeFunction, {
+      qstashClient,
+      ...options,
     });
     try {
       return await serveMethod(request);
     } catch (error) {
+      console.error(error);
       return new Response(JSON.stringify(formatWorkflowError(error)), { status: 500 });
     }
   };

@@ -28,8 +28,8 @@ const attemptCharge = (invoice: Invoice) => {
   return false;
 }
 
-export default serve<Invoice>({
-  routeFunction: async context => {
+export default serve<Invoice>(
+  async context => {
     const invoice = context.requestPayload
     
     for (let index = 0; index < 3; index ++) {
@@ -59,6 +59,6 @@ export default serve<Invoice>({
       return true
     })
   }
-})
+)
 
 
