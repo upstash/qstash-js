@@ -136,6 +136,7 @@ export const serve = <
 
     // validation & parsing
     const { isFirstInvocation, workflowRunId } = validateRequest(request);
+    debug?.setWorkflowRunId(workflowRunId);
     const { rawInitialPayload, steps, isLastDuplicate } = await parseRequest(
       request,
       isFirstInvocation,
@@ -209,9 +210,7 @@ export const serve = <
       }
 
       // Returns a Response with `workflowRunId` at the end of each step.
-      await debug?.log("INFO", "RESPONSE_WORKFLOW", {
-        workflowRunId: workflowContext.workflowRunId,
-      });
+      await debug?.log("INFO", "RESPONSE_WORKFLOW");
       return onStepFinish(workflowContext.workflowRunId, "success");
     }
     // response to QStash in call cases
