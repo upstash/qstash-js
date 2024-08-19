@@ -82,35 +82,6 @@ export type RouteFunction<TInitialPayload> = (
   context: WorkflowContext<TInitialPayload>
 ) => Promise<void>;
 
-export type WorkflowServeParameters<
-  TInitialPayload,
-  TResponse extends Response = Response,
-  TExcludeFromOptions extends keyof WorkflowServeOptions = never,
-> = {
-  routeFunction: RouteFunction<TInitialPayload>;
-  options?: Omit<WorkflowServeOptions<TResponse, TInitialPayload>, TExcludeFromOptions>;
-};
-
-/**
- * Not all frameworks use env variables like nextjs does. In this case, we need
- * to be able to get the qstashClient and receiver explicitly.
- *
- * In this case, we extend the WorkflowServeParameters by requiring an explicit
- * qstashClient & receiever parameters and removing qstashClient & receiever from options.
- */
-export type WorkflowServeParametersExtended<
-  TInitialPayload = unknown,
-  TResponse extends Response = Response,
-  TExcludeFromOptions extends keyof WorkflowServeOptions = never,
-> = WorkflowServeParameters<
-  TInitialPayload,
-  TResponse,
-  "qstashClient" | "receiver" | TExcludeFromOptions
-> & {
-  qstashClient: Client;
-  receiver: WorkflowServeOptions["receiver"];
-};
-
 export type FinishCondition =
   | "success"
   | "duplicate-step"
@@ -177,6 +148,19 @@ export type WorkflowServeOptions<
     body: FailureFunctionPayload,
     workflowRunId: string
   ) => Promise<void>;
+  /**
+   * Base Url of the workflow endpoint
+   *
+   * Can be used to set if there is a local tunnel or a proxy between
+   * QStash and the workflow endpoint.
+   *
+   * Will be set to the env variable UPSTASH_WORKFLOW_URL if not passed.
+   * If the env variable is not set, the url will be infered as usual from
+   * the `request.url` or the `url` parameter in `serve` options.
+   *
+   * @default undefined
+   */
+  baseUrl?: string;
 };
 
 /**

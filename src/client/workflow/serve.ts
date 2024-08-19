@@ -33,7 +33,7 @@ const processOptions = <TResponse extends Response = Response, TInitialPayload =
   options?: WorkflowServeOptions<TResponse, TInitialPayload>
 ): RequiredExceptFields<
   WorkflowServeOptions<TResponse, TInitialPayload>,
-  "verbose" | "receiver" | "url" | "failureFunction" | "failureUrl"
+  "verbose" | "receiver" | "url" | "failureFunction" | "failureUrl" | "baseUrl"
 > => {
   const receiverEnvironmentVariablesSet = Boolean(
     process.env.QSTASH_CURRENT_SIGNING_KEY && process.env.QSTASH_NEXT_SIGNING_KEY
@@ -73,6 +73,7 @@ const processOptions = <TResponse extends Response = Response, TInitialPayload =
           nextSigningKey: process.env.QSTASH_NEXT_SIGNING_KEY!,
         })
       : undefined,
+    baseUrl: process.env.UPSTASH_WORKFLOW_URL,
     ...options,
   };
 };
@@ -103,6 +104,7 @@ export const serve = <
     receiver,
     failureUrl,
     failureFunction,
+    baseUrl,
   } = processOptions<TResponse, TInitialPayload>(options);
 
   const debug = WorkflowLogger.getLogger(verbose);
@@ -117,7 +119,16 @@ export const serve = <
    * @returns A promise that resolves to a response.
    */
   return async (request: TRequest) => {
-    const workflowUrl = url ?? request.url;
+    // set the workflow endpoint url. If baseUrl is set and initialWorkflowUrl
+    // has localhost, replaces localhost with baseUrl
+    const initialWorkflowUrl = url ?? request.url;
+    const workflowUrl = baseUrl
+      ? initialWorkflowUrl.replace(/^(https?:\/\/[^/]+)(\/.*)?$/, (_, matchedBaseUrl, path) => {
+          return baseUrl + ((path as string) || "");
+        })
+      : initialWorkflowUrl;
+
+    // set url to call in case of failure
     const workflowFailureUrl = failureFunction ? workflowUrl : failureUrl;
 
     await debug?.log("INFO", "ENDPOINT_START");
