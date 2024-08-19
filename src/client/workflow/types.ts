@@ -191,7 +191,6 @@ export type FailureFunctionPayload = {
    * error message
    */
   message: string;
-  stack?: string;
 };
 
 /**
