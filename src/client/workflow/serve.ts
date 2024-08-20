@@ -9,13 +9,14 @@ import type {
   RouteFunction,
   WorkflowServeOptions,
 } from "./types";
-import { handleFailure, parseRequest, validateRequest } from "./workflow-parser";
+import { getPayload, handleFailure, parseRequest, validateRequest } from "./workflow-parser";
 import {
   handleThirdPartyCallResult,
   recreateUserHeaders,
   triggerFirstInvocation,
   triggerRouteFunction,
   triggerWorkflowDelete,
+  verifyRequest,
 } from "./workflow-requests";
 
 /**
@@ -23,17 +24,19 @@ import {
  *
  * Default values for:
  * - qstashClient: QStash client created with QSTASH_URL and QSTASH_TOKEN env vars
- * - onFinish: returns a Response with workflowRunId in the body and status: 200
+ * - onStepFinish: returns a Response with workflowRunId & finish condition in the body (status: 200)
  * - initialPayloadParser: calls JSON.parse if initial request body exists.
+ * - receiver: a Receiver if the required env vars are set
+ * - baseUrl: env variable UPSTASH_WORKFLOW_URL
  *
  * @param options options including the client, onFinish and initialPayloadParser
  * @returns
  */
-const processOptions = <TResponse extends Response = Response, TInitialPayload = unknown>(
+export const processOptions = <TResponse extends Response = Response, TInitialPayload = unknown>(
   options?: WorkflowServeOptions<TResponse, TInitialPayload>
 ): RequiredExceptFields<
   WorkflowServeOptions<TResponse, TInitialPayload>,
-  "verbose" | "receiver" | "url" | "failureFunction" | "failureUrl"
+  "verbose" | "receiver" | "url" | "failureFunction" | "failureUrl" | "baseUrl"
 > => {
   const receiverEnvironmentVariablesSet = Boolean(
     process.env.QSTASH_CURRENT_SIGNING_KEY && process.env.QSTASH_NEXT_SIGNING_KEY
@@ -73,6 +76,7 @@ const processOptions = <TResponse extends Response = Response, TInitialPayload =
           nextSigningKey: process.env.QSTASH_NEXT_SIGNING_KEY!,
         })
       : undefined,
+    baseUrl: process.env.UPSTASH_WORKFLOW_URL,
     ...options,
   };
 };
@@ -103,6 +107,7 @@ export const serve = <
     receiver,
     failureUrl,
     failureFunction,
+    baseUrl,
   } = processOptions<TResponse, TInitialPayload>(options);
 
   const debug = WorkflowLogger.getLogger(verbose);
@@ -117,28 +122,58 @@ export const serve = <
    * @returns A promise that resolves to a response.
    */
   return async (request: TRequest) => {
-    const workflowUrl = url ?? request.url;
+    // set the workflow endpoint url. If baseUrl is set and initialWorkflowUrl
+    // has localhost, replaces localhost with baseUrl
+    const initialWorkflowUrl = url ?? request.url;
+    const workflowUrl = baseUrl
+      ? initialWorkflowUrl.replace(/^(https?:\/\/[^/]+)(\/.*)?$/, (_, matchedBaseUrl, path) => {
+          return baseUrl + ((path as string) || "");
+        })
+      : initialWorkflowUrl;
+
+    // log workflow url change
+    if (workflowUrl !== initialWorkflowUrl) {
+      await debug?.log("WARN", "ENDPOINT_START", {
+        warning: `QStash Workflow: replacing the base of the url with "${baseUrl}" and using it as workflow endpoint.`,
+        originalURL: initialWorkflowUrl,
+        updatedURL: workflowUrl,
+      });
+    }
+
+    // set url to call in case of failure
     const workflowFailureUrl = failureFunction ? workflowUrl : failureUrl;
+
+    // get payload as raw string
+    const requestPayload = (await getPayload(request)) ?? "";
+    await verifyRequest(requestPayload, request.headers.get("upstash-signature"), receiver);
 
     await debug?.log("INFO", "ENDPOINT_START");
 
     // check if the request is a failure callback
-    const failureCheck = await handleFailure(request, failureFunction);
+    const failureCheck = await handleFailure<TInitialPayload>(
+      request,
+      requestPayload,
+      qstashClient,
+      initialPayloadParser,
+      failureFunction
+    );
     if (failureCheck.isErr()) {
       // unexpected error during handleFailure
       throw failureCheck.error;
     } else if (failureCheck.value === "is-failure-callback") {
       // is a failure ballback.
+      await debug?.log("WARN", "RESPONSE_DEFAULT", "failureFunction executed");
       return onStepFinish("no-workflow-id", "failure-callback");
     }
 
     // validation & parsing
     const { isFirstInvocation, workflowRunId } = validateRequest(request);
     debug?.setWorkflowRunId(workflowRunId);
+
+    // parse steps
     const { rawInitialPayload, steps, isLastDuplicate } = await parseRequest(
-      request,
+      requestPayload,
       isFirstInvocation,
-      receiver,
       debug
     );
 

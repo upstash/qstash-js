@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-magic-numbers */
 import { describe, expect, test } from "bun:test";
-import { handleFailure, parseRequest, validateRequest } from "./workflow-parser";
+import { getPayload, handleFailure, parseRequest, validateRequest } from "./workflow-parser";
 import {
   WORKFLOW_FAILURE_HEADER,
   WORKFLOW_ID_HEADER,
@@ -8,9 +8,11 @@ import {
   WORKFLOW_PROTOCOL_VERSION_HEADER,
 } from "./constants";
 import { nanoid } from "nanoid";
-import type { Step, WorkflowServeOptions } from "./types";
+import type { RawStep, Step, WorkflowServeOptions } from "./types";
 import { getRequest, WORKFLOW_ENDPOINT } from "./test-utils";
 import { formatWorkflowError, QstashWorkflowError } from "../error";
+import { Client } from "../client";
+import { processOptions } from "./serve";
 
 describe("Workflow Parser", () => {
   describe("validateRequest", () => {
@@ -91,7 +93,12 @@ describe("Workflow Parser", () => {
       const request = new Request(WORKFLOW_ENDPOINT, {
         body: rawPayload,
       });
-      const { rawInitialPayload, steps, isLastDuplicate } = await parseRequest(request, true);
+
+      const requestPayload = (await getPayload(request)) ?? "";
+      const { rawInitialPayload, steps, isLastDuplicate } = await parseRequest(
+        requestPayload,
+        true
+      );
 
       // payload isn't parsed
       expect(typeof rawInitialPayload).toBe("string");
@@ -101,10 +108,11 @@ describe("Workflow Parser", () => {
       expect(isLastDuplicate).toBeFalse();
     });
 
-    test("should throw when not first invocation and body is missing", () => {
+    test("should throw when not first invocation and body is missing", async () => {
       const request = new Request(WORKFLOW_ENDPOINT);
-      // isFirstInvocation = false:
-      const throws = parseRequest(request, false);
+
+      const requestPayload = (await getPayload(request)) ?? "";
+      const throws = parseRequest(requestPayload, false);
       expect(throws).rejects.toThrow(
         new QstashWorkflowError("Only first call can have an empty body")
       );
@@ -130,7 +138,12 @@ describe("Workflow Parser", () => {
       ];
 
       const request = getRequest(WORKFLOW_ENDPOINT, "wfr-id", requestInitialPayload, resultSteps);
-      const { rawInitialPayload, steps, isLastDuplicate } = await parseRequest(request, false);
+
+      const requestPayload = (await getPayload(request)) ?? "";
+      const { rawInitialPayload, steps, isLastDuplicate } = await parseRequest(
+        requestPayload,
+        false
+      );
 
       // payload is not parsed
       expect(typeof rawInitialPayload).toEqual("string");
@@ -196,7 +209,12 @@ describe("Workflow Parser", () => {
       ];
 
       const request = new Request(WORKFLOW_ENDPOINT, { body: JSON.stringify(payload) });
-      const { rawInitialPayload, steps, isLastDuplicate } = await parseRequest(request, false);
+
+      const requestPayload = (await getPayload(request)) ?? "";
+      const { rawInitialPayload, steps, isLastDuplicate } = await parseRequest(
+        requestPayload,
+        false
+      );
 
       expect(rawInitialPayload).toBe(reqiestInitialPayload);
 
@@ -226,7 +244,12 @@ describe("Workflow Parser", () => {
       ]
 
       const request = getRequest(WORKFLOW_ENDPOINT, workflowId, requestPayload, requestSteps);
-      const { rawInitialPayload, steps, isLastDuplicate } = await parseRequest(request, false);
+
+      const requestFromPayload = (await getPayload(request)) ?? "";
+      const { rawInitialPayload, steps, isLastDuplicate } = await parseRequest(
+        requestFromPayload,
+        false
+      );
 
       expect(rawInitialPayload).toBe(requestPayload);
       expect(isLastDuplicate).toBeFalse();
@@ -249,7 +272,12 @@ describe("Workflow Parser", () => {
       ]
 
       const request = getRequest(WORKFLOW_ENDPOINT, workflowId, requestPayload, requestSteps);
-      const { rawInitialPayload, steps, isLastDuplicate } = await parseRequest(request, false);
+
+      const requestFromPayload = (await getPayload(request)) ?? "";
+      const { rawInitialPayload, steps, isLastDuplicate } = await parseRequest(
+        requestFromPayload,
+        false
+      );
 
       expect(rawInitialPayload).toBe(requestPayload);
       expect(isLastDuplicate).toBeTrue();
@@ -277,7 +305,12 @@ describe("Workflow Parser", () => {
       ]
 
       const request = getRequest(WORKFLOW_ENDPOINT, workflowId, requestPayload, requestSteps);
-      const { rawInitialPayload, steps, isLastDuplicate } = await parseRequest(request, false);
+
+      const requestFromPayload = (await getPayload(request)) ?? "";
+      const { rawInitialPayload, steps, isLastDuplicate } = await parseRequest(
+        requestFromPayload,
+        false
+      );
 
       expect(rawInitialPayload).toBe(requestPayload);
       expect(isLastDuplicate).toBeFalse();
@@ -307,7 +340,12 @@ describe("Workflow Parser", () => {
       ]
 
       const request = getRequest(WORKFLOW_ENDPOINT, workflowId, requestPayload, requestSteps);
-      const { rawInitialPayload, steps, isLastDuplicate } = await parseRequest(request, false);
+
+      const requestFromPayload = (await getPayload(request)) ?? "";
+      const { rawInitialPayload, steps, isLastDuplicate } = await parseRequest(
+        requestFromPayload,
+        false
+      );
 
       expect(rawInitialPayload).toBe(requestPayload);
       expect(isLastDuplicate).toBeTrue();
@@ -338,7 +376,12 @@ describe("Workflow Parser", () => {
       ]
 
       const request = getRequest(WORKFLOW_ENDPOINT, workflowId, requestPayload, requestSteps);
-      const { rawInitialPayload, steps, isLastDuplicate } = await parseRequest(request, false);
+
+      const requestFromPayload = (await getPayload(request)) ?? "";
+      const { rawInitialPayload, steps, isLastDuplicate } = await parseRequest(
+        requestFromPayload,
+        false
+      );
 
       expect(rawInitialPayload).toBe(requestPayload);
       expect(isLastDuplicate).toBeTrue();
@@ -365,7 +408,12 @@ describe("Workflow Parser", () => {
       ]
 
       const request = getRequest(WORKFLOW_ENDPOINT, workflowId, requestPayload, requestSteps);
-      const { rawInitialPayload, steps, isLastDuplicate } = await parseRequest(request, false);
+
+      const requestFromPayload = (await getPayload(request)) ?? "";
+      const { rawInitialPayload, steps, isLastDuplicate } = await parseRequest(
+        requestFromPayload,
+        false
+      );
 
       expect(rawInitialPayload).toBe(requestPayload);
       expect(isLastDuplicate).toBeTrue();
@@ -387,7 +435,12 @@ describe("Workflow Parser", () => {
       ]
 
       const request = getRequest(WORKFLOW_ENDPOINT, workflowId, requestPayload, requestSteps);
-      const { rawInitialPayload, steps, isLastDuplicate } = await parseRequest(request, false);
+
+      const requestFromPayload = (await getPayload(request)) ?? "";
+      const { rawInitialPayload, steps, isLastDuplicate } = await parseRequest(
+        requestFromPayload,
+        false
+      );
 
       expect(rawInitialPayload).toBe(requestPayload);
       expect(isLastDuplicate).toBeFalse();
@@ -421,7 +474,12 @@ describe("Workflow Parser", () => {
       ]
 
       const request = getRequest(WORKFLOW_ENDPOINT, workflowId, requestPayload, requestSteps);
-      const { rawInitialPayload, steps, isLastDuplicate } = await parseRequest(request, false);
+
+      const requestFromPayload = (await getPayload(request)) ?? "";
+      const { rawInitialPayload, steps, isLastDuplicate } = await parseRequest(
+        requestFromPayload,
+        false
+      );
 
       expect(rawInitialPayload).toBe(requestPayload);
       expect(isLastDuplicate).toBeTrue();
@@ -459,7 +517,12 @@ describe("Workflow Parser", () => {
       ]
 
       const request = getRequest(WORKFLOW_ENDPOINT, workflowId, requestPayload, requestSteps);
-      const { rawInitialPayload, steps, isLastDuplicate } = await parseRequest(request, false);
+
+      const requestFromPayload = (await getPayload(request)) ?? "";
+      const { rawInitialPayload, steps, isLastDuplicate } = await parseRequest(
+        requestFromPayload,
+        false
+      );
 
       expect(rawInitialPayload).toBe(requestPayload);
       expect(isLastDuplicate).toBeFalse();
@@ -479,27 +542,57 @@ describe("Workflow Parser", () => {
   });
 
   describe("handleFailure", () => {
+    const client = new Client({
+      baseUrl: process.env.MOCK_QSTASH_URL,
+      token: process.env.MOCK_QSTASH_TOKEN ?? "",
+    });
+    const { initialPayloadParser } = processOptions();
+
+    const failMessage = `my-custom-error-${nanoid()}`;
+    const authorization = `Bearer ${nanoid()}`;
+    const initialPayload = { hello: "world" };
     const body = {
       status: 201,
       header: { myHeader: "value" },
-      body: btoa(JSON.stringify(formatWorkflowError(new QstashWorkflowError("my-error")))),
+      body: btoa(JSON.stringify(formatWorkflowError(new QstashWorkflowError(failMessage)))),
+      url: WORKFLOW_ENDPOINT,
+      sourceHeader: {
+        Authorization: authorization,
+      },
+      sourceBody: btoa(
+        JSON.stringify([
+          {
+            callType: "step",
+            messageId: "msg-id",
+            body: btoa(JSON.stringify(initialPayload)),
+          } as RawStep,
+        ])
+      ),
     };
     test("should return not-failure-callback when the header is not set", async () => {
       const request = new Request(WORKFLOW_ENDPOINT);
       const failureFunction: WorkflowServeOptions["failureFunction"] = async (
-        _status,
-        _header,
-        _body
+        _context,
+        _failStatus,
+        _failResponse
         // eslint-disable-next-line @typescript-eslint/require-await, unicorn/consistent-function-scoping
       ) => {
         return;
       };
 
-      const result1 = await handleFailure(request);
+      // no failureFunction
+      const result1 = await handleFailure(request, "", client, initialPayloadParser);
       expect(result1.isOk()).toBeTrue();
       expect(result1.isOk() && result1.value === "not-failure-callback").toBeTrue();
 
-      const result2 = await handleFailure(request, failureFunction);
+      // with failureFunction
+      const result2 = await handleFailure(
+        request,
+        "",
+        client,
+        initialPayloadParser,
+        failureFunction
+      );
       expect(result2.isOk()).toBeTrue();
       expect(result2.isOk() && result2.value === "not-failure-callback").toBeTrue();
     });
@@ -510,7 +603,8 @@ describe("Workflow Parser", () => {
           [WORKFLOW_FAILURE_HEADER]: "true",
         },
       });
-      const result = await handleFailure(request);
+
+      const result = await handleFailure(request, "", client, initialPayloadParser);
       expect(result.isErr()).toBeTrue();
       expect(result.isErr() && result.error.name).toBe(QstashWorkflowError.name);
       expect(result.isErr() && result.error.message).toBe(
@@ -535,7 +629,14 @@ describe("Workflow Parser", () => {
       ) => {
         throw new Error("my-error");
       };
-      const result = await handleFailure(request, failureFunction);
+
+      const result = await handleFailure(
+        request,
+        JSON.stringify(body),
+        client,
+        initialPayloadParser,
+        failureFunction
+      );
       expect(result.isErr()).toBeTrue();
       expect(result.isErr() && result.error.message).toBe("my-error");
     });
@@ -548,18 +649,24 @@ describe("Workflow Parser", () => {
         },
       });
       const failureFunction: WorkflowServeOptions["failureFunction"] = async (
-        status,
-        header,
-        body
-        // eslint-disable-next-line @typescript-eslint/require-await
+        context,
+        failStatus,
+        failResponse
+        // eslint-disable-next-line @typescript-eslint/require-await, unicorn/consistent-function-scoping
       ) => {
-        expect(status).toBe(201);
-        expect(header.myHeader).toBe("value");
-        expect(body.error).toBe(QstashWorkflowError.name);
-        expect(body.message).toBe("my-error");
+        expect(failStatus).toBe(201);
+        expect(failResponse).toBe(failMessage);
+        expect(context.headers.get("authorization")).toBe(authorization);
         return;
       };
-      const result = await handleFailure(request, failureFunction);
+
+      const result = await handleFailure(
+        request,
+        JSON.stringify(body),
+        client,
+        initialPayloadParser,
+        failureFunction
+      );
       expect(result.isOk()).toBeTrue();
       expect(result.isOk() && result.value).toBe("is-failure-callback");
     });

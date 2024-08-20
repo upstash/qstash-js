@@ -14,12 +14,102 @@ export class WorkflowContext<TInitialPayload = unknown> {
   protected readonly executor: AutoExecutor;
   protected readonly steps: Step[];
 
+  /**
+   * QStash client of the workflow
+   *
+   * Can be overwritten by passing `qstashClient` parameter in `serve`:
+   *
+   * ```ts
+   * import { Client } from "@upstash/qstash"
+   *
+   * export const POST = serve(
+   *   async (context) => {
+   *     ...
+   *   },
+   *   {
+   *     qstashClient: new Client({...})
+   *   }
+   * )
+   * ```
+   */
   public readonly qstashClient: Client;
+  /**
+   * Run id of the workflow
+   */
   public readonly workflowRunId: string;
+  /**
+   * URL of the workflow
+   *
+   * Can be overwritten by passing a `url` parameter in `serve`:
+   *
+   * ```ts
+   * export const POST = serve(
+   *   async (context) => {
+   *     ...
+   *   },
+   *   {
+   *     url: "new-url-value"
+   *   }
+   * )
+   * ```
+   */
   public readonly url: string;
+  /**
+   * URL to call in case of workflow failure with QStash failure callback
+   *
+   * https://upstash.com/docs/qstash/features/callbacks#what-is-a-failure-callback
+   *
+   * Can be overwritten by passing a `failureUrl` parameter in `serve`:
+   *
+   * ```ts
+   * export const POST = serve(
+   *   async (context) => {
+   *     ...
+   *   },
+   *   {
+   *     failureUrl: "new-url-value"
+   *   }
+   * )
+   * ```
+   */
   public readonly failureUrl?: string;
+  /**
+   * Payload of the request which started the workflow.
+   *
+   * To specify its type, you can define `serve` as follows:
+   *
+   * ```ts
+   * // set requestPayload type to MyPayload:
+   * export const POST = serve<MyPayload>(
+   *   async (context) => {
+   *     ...
+   *   }
+   * )
+   * ```
+   *
+   * By default, `serve` tries to apply `JSON.parse` to the request payload.
+   * If your payload is encoded in a format other than JSON, you can utilize
+   * the `initialPayloadParser` parameter:
+   *
+   * ```ts
+   * export const POST = serve<MyPayload>(
+   *   async (context) => {
+   *     ...
+   *   },
+   *   {
+   *     initialPayloadParser: (initialPayload) => {return doSomething(initialPayload)}
+   *   }
+   * )
+   * ```
+   */
   public readonly requestPayload: TInitialPayload;
+  /**
+   * headers of the initial request
+   */
   public readonly headers: Headers;
+  /**
+   * initial payload as a raw string
+   */
   public readonly rawInitialPayload: string;
 
   constructor({
@@ -95,7 +185,7 @@ export class WorkflowContext<TInitialPayload = unknown> {
    *
    * @param stepName
    * @param duration sleep duration in seconds
-   * @returns
+   * @returns undefined
    */
   public async sleep(stepName: string, duration: number): Promise<void> {
     await this.addStep(new LazySleepStep(stepName, duration));
@@ -107,7 +197,7 @@ export class WorkflowContext<TInitialPayload = unknown> {
    * @param stepName
    * @param datetime time to sleep until. Can be provided as a number (in unix seconds),
    *   as a Date object or a string (passed to `new Date(datetimeString)`)
-   * @returns
+   * @returns undefined
    */
   public async sleepUntil(stepName: string, datetime: Date | string | number): Promise<void> {
     let time: number;
@@ -122,6 +212,26 @@ export class WorkflowContext<TInitialPayload = unknown> {
     await this.addStep(new LazySleepUntilStep(stepName, time));
   }
 
+  /**
+   * Makes a third party call through QStash in order to make a
+   * network call without consuming any runtime.
+   *
+   * ```ts
+   * const postResult = await context.call<string>(
+   *   "post call step",
+   *   `https://www.some-endpoint.com/api`,
+   *   "POST",
+   *   "my-payload"
+   * );
+   * ```
+   *
+   * @param stepName
+   * @param url url to call
+   * @param method call method
+   * @param body call body
+   * @param headers call headers
+   * @returns call result
+   */
   public async call<TResult = unknown, TBody = unknown>(
     stepName: string,
     url: string,

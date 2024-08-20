@@ -97,7 +97,8 @@ export const recreateUserHeaders = (headers: Headers): Headers => {
     const headerLowerCase = header.toLowerCase();
     if (
       !headerLowerCase.startsWith("upstash-workflow-") &&
-      !headerLowerCase.startsWith("x-vercel-")
+      !headerLowerCase.startsWith("x-vercel-") &&
+      !headerLowerCase.startsWith("x-forwarded-")
     ) {
       filteredHeaders.append(header, value);
     }
@@ -324,8 +325,8 @@ export const verifyRequest = async (
   } catch (error) {
     throw new QstashWorkflowError(
       `Failed to verify that the Workflow request comes from QStash: ${error}\n\n` +
-        "Either disable request verification or start the workflow by publishing your request to QStash.\n\n" +
-        "If you want to disable request verification, you should clear env variables QSTASH_CURRENT_SIGNING_KEY and QSTASH_NEXT_SIGNING_KEY"
+        "If signature is missing, trigger the workflow endpoint by publishing your request to QStash instead of calling it directly.\n\n" +
+        "If you want to disable QStash Verification, you should clear env variables QSTASH_CURRENT_SIGNING_KEY and QSTASH_NEXT_SIGNING_KEY"
     );
   }
 };

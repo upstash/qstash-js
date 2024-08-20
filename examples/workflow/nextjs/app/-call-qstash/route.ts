@@ -4,11 +4,11 @@ import { NextRequest } from 'next/server';
 const client = new Client({ baseUrl: process.env.QSTASH_URL!, token: process.env.QSTASH_TOKEN! });
 
 export const POST = async (request: NextRequest) => {
-  const { baseUrl, route, payload } = await request.json() as {baseUrl: string, route: string, payload: unknown};
+  const { route, payload } = await request.json() as {route: string, payload: unknown};
 
   try {
     const {messageId} = await client.publishJSON({
-      url: `${baseUrl}/${route}`,
+      url: `${process.env.UPSTASH_WORKFLOW_URL}/${route}`,
       body: payload
     });
 

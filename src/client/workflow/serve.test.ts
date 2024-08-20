@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/consistent-function-scoping */
 /* eslint-disable unicorn/no-null */
 /* eslint-disable @typescript-eslint/require-await */
 import { describe, expect, test } from "bun:test";
@@ -12,7 +13,11 @@ import {
 import { nanoid } from "nanoid";
 import { Client } from "../client";
 import type { FinishCondition, RouteFunction, Step, WorkflowServeOptions } from "./types";
-import { WORKFLOW_INIT_HEADER, WORKFLOW_PROTOCOL_VERSION_HEADER } from "./constants";
+import {
+  WORKFLOW_ID_HEADER,
+  WORKFLOW_INIT_HEADER,
+  WORKFLOW_PROTOCOL_VERSION_HEADER,
+} from "./constants";
 
 const someWork = (input: string) => {
   return `processed '${input}'`;
@@ -444,6 +449,65 @@ describe("serve", () => {
         },
       });
       expect(called).toBeTrue();
+    });
+  });
+
+  describe("should replace baseUrl correctly", () => {
+    const testBaseUrl = async (
+      requestUrl: string,
+      baseUrl: string,
+      contextUrl: string,
+      url?: string
+    ) => {
+      const request = new Request(requestUrl, {
+        headers: {
+          [WORKFLOW_INIT_HEADER]: "false",
+          [WORKFLOW_ID_HEADER]: "wfr-id",
+        },
+      });
+      let called = false;
+      const endpoint = serve(
+        async (context) => {
+          expect(context.url).toBe(contextUrl);
+          called = true;
+        },
+        {
+          url,
+          baseUrl,
+          qstashClient,
+          receiver: undefined,
+        }
+      );
+      await endpoint(request);
+      expect(called).toBeTrue();
+    };
+
+    test("should replace localhost correctly", async () => {
+      await testBaseUrl(
+        "http://localhost:3000/api/path",
+        "http://www.local-tunnel.com",
+        "http://www.local-tunnel.com/api/path"
+      );
+
+      await testBaseUrl(
+        "https://localhost:3000/api/path",
+        "http://www.local-tunnel.com",
+        "http://www.local-tunnel.com/api/path"
+      );
+
+      await testBaseUrl(
+        "http://localhost:8080/api/path",
+        "http://www.local-tunnel.com",
+        "http://www.local-tunnel.com/api/path"
+      );
+    });
+
+    test("should replace other url correctly", async () => {
+      await testBaseUrl(
+        "http://www.my-endpoint.com.it/api/path",
+        "http://www.local-tunnel.com.gov.uk",
+        "http://www.local-tunnel.com.gov.uk/api/path"
+      );
     });
   });
 });

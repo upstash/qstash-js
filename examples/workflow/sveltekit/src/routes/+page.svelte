@@ -3,23 +3,15 @@
   import { page } from '$app/stores';
   import { writable } from 'svelte/store';
 
-  let baseUrl = writable("http://localhost:3000");
   let requestBody = writable('{"date":123,"email":"my@mail.com","amount":10}');
   let loading = writable(false);
   let route = writable('path');
-
-  // Ensure baseUrl doesn't have a trailing slash
-  baseUrl.subscribe(value => {
-    if (value.endsWith('/')) {
-      baseUrl.set(value.replace(/\/$/, ''));
-    }
-  });
 
   const routes = ['path', 'sleep', 'sleepWithoutAwait', 'northStarSimple', 'northStar'];
 
   const handleSend = async () => {
     loading.set(true);
-    const url = `${$baseUrl}/-call-qstash`;
+    const url = "/-call-qstash";
     try {
       const response = await fetch(url, {
         headers: {
@@ -27,9 +19,8 @@
         },
         method: "POST",
         body: JSON.stringify({
-          baseUrl: $baseUrl,
           route: $route,
-          payload: $requestBody
+          payload: JSON.parse($requestBody)
         })
       });
       console.log('Response:', await response.json());
@@ -44,15 +35,6 @@
 <div class="min-h-screen flex items-center justify-center bg-gray-100">
   <div class="bg-white p-6 rounded shadow-md w-full max-w-md">
     <h1 class="text-xl font-bold mb-4">Send Request</h1>
-
-    <div class="mb-4">
-      <label class="block text-gray-700">Base URL (replace with deployment URL):</label>
-      <input
-        type="text"
-        bind:value={$baseUrl}
-        class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-      />
-    </div>
 
     <div class="mb-4">
       <label class="block text-gray-700">Route:</label>

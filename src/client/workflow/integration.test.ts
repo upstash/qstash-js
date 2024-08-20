@@ -50,10 +50,11 @@
 /* eslint-disable prefer-const */
 /* eslint-disable @typescript-eslint/no-unnecessary-condition */
 import { serve } from "bun";
-import { serve as workflowServe } from "./serve";
+import { serve as workflowServe } from "../../../platforms/nextjs";
 import { expect, test, describe } from "bun:test";
 import { Client } from "../client";
-import type { RouteFunction } from "./types";
+import type { RouteFunction, WorkflowServeOptions } from "./types";
+import type { NextRequest } from "next/server";
 
 const WORKFLOW_PORT = "3000";
 const THIRD_PARTY_PORT = "3001";
@@ -106,12 +107,14 @@ const testEndpoint = async <TInitialPayload = unknown>({
   initialPayload,
   routeFunction,
   finishState,
+  failureFunction,
 }: {
   finalCount: number;
   waitFor: number;
   initialPayload: TInitialPayload;
   routeFunction: RouteFunction<TInitialPayload>;
   finishState: FinishState;
+  failureFunction?: WorkflowServeOptions["failureFunction"];
 }) => {
   let counter = 0;
 
@@ -119,12 +122,13 @@ const testEndpoint = async <TInitialPayload = unknown>({
     qstashClient,
     url: LOCAL_WORKFLOW_URL,
     verbose: true,
+    failureFunction,
   });
 
   const server = serve({
     async fetch(request) {
       counter += 1;
-      return await endpoint(request);
+      return await endpoint(request as NextRequest);
     },
     port: WORKFLOW_PORT,
   });
@@ -414,6 +418,39 @@ describe.skip("live serve tests", () => {
     },
     {
       timeout: 15_000,
+    }
+  );
+
+  // TODO: remove skip after adding a parameter to set step retries
+  test.skip(
+    "failureFunction",
+    async () => {
+      const finishState = new FinishState();
+      await testEndpoint({
+        finalCount: 3,
+        waitFor: 7000,
+        initialPayload: "my-payload",
+        finishState,
+        routeFunction: async (context) => {
+          const input = context.requestPayload;
+
+          expect(input).toBe("my-payload");
+
+          await context.run("step1", async () => {
+            throw new Error("my-custom-error");
+          });
+        },
+        failureFunction: async (context, failStatus, failResponse) => {
+          expect(failStatus).toBe(500);
+          expect(failResponse).toBe("my-custom-error");
+          expect(context.headers.get("authentication")).toBe("Bearer secretPassword");
+          finishState.finish();
+          return;
+        },
+      });
+    },
+    {
+      timeout: 10_000,
     }
   );
 });

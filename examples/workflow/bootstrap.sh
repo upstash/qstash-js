@@ -10,9 +10,6 @@ fi
 # store project argument
 project_arg="$1"
 
-# Store the path argument
-path_arg="$2"
-
 # Start ngrok and capture the public URL
 ngrok http localhost:3001 --log=stdout > ngrok.log &
 NGROK_PID=$!
@@ -20,38 +17,9 @@ sleep 5  # Allow some time for ngrok to start
 
 # Extract the ngrok URL from the logs
 ngrok_url=$(grep -o 'url=https://[a-zA-Z0-9.-]*\.ngrok-free\.app' ngrok.log | cut -d '=' -f 2 | head -n1)
+export UPSTASH_WORKFLOW_URL=$ngrok_url
 
-# Append the path argument to the ngrok URL
-if [ "$project_arg" == "nuxt" ]; then
-    full_url="${ngrok_url}/api/${path_arg}"
-else
-    full_url="${ngrok_url}/${path_arg}"
-fi
-
-# Navigate to the parent directory
-cd ../..
-
-
-# Update the URL in the context.ts file
-if [[ "$OSTYPE" == "darwin"* ]]; then
-    sed -i '' "s|this\.url = .*|this.url = '$full_url';|" src/client/workflow/context.ts
-else
-    sed -i "s|this\.url = .*|this.url = '$full_url';|" src/client/workflow/context.ts
-fi
-
-# Install dependencies
-bun install
-
-# Build the project
-bun run build
-
-# Navigate to the examples/workflow directory
-cd examples/workflow/${project_arg}
-
-# Install the local package
-npm install @upstash/qstash@file:../../../dist
-
-final_path=$ngrok_url?function=$path_arg
+final_path=$ngrok_url
 echo "Setup complete. Full URL: $final_path"
 echo "ngrok is running. Press Ctrl+C to stop it."
 
@@ -70,6 +38,9 @@ elif [[ "$OSTYPE" == "win32" ]]; then
 else
     echo "Unsupported OS type: $OSTYPE"
 fi
+
+# go to project directory
+cd $project_arg
 
 # Start next.js server
 npm run dev
