@@ -325,7 +325,7 @@ export class AutoExecutor {
           "false",
           this.context.workflowRunId,
           this.context.url,
-          this.context.headers,
+          singleStep.callUrl ? undefined : this.context.headers,
           singleStep,
           this.context.failureUrl
         );
