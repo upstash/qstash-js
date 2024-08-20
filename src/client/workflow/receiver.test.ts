@@ -153,7 +153,7 @@ describe("receiver", () => {
         // eslint-disable-next-line @typescript-eslint/require-await
         execute: async () => {
           expect(throws).toThrow(
-            "Failed to verify that the Workflow request comes from QStash: Error: `Upstash-Signature` header is not passed.\n\nEither disable request verification or start the workflow by publishing your request to QStash.\n\nIf you want to disable request verification, you should clear env variables QSTASH_CURRENT_SIGNING_KEY and QSTASH_NEXT_SIGNING_KEY"
+            "Failed to verify that the Workflow request comes from QStash: Error: `Upstash-Signature` header is not passed.\n\nIf signature is missing, trigger the workflow endpoint by publishing your request to QStash instead of calling it directly.\n\nIf you want to disable QStash Verification, you should clear env variables QSTASH_CURRENT_SIGNING_KEY and QSTASH_NEXT_SIGNING_KEY"
           );
         },
         responseFields: { body: "msgId", status: 200 },
@@ -178,7 +178,7 @@ describe("receiver", () => {
         // eslint-disable-next-line @typescript-eslint/require-await
         execute: async () => {
           expect(throws).toThrow(
-            "Failed to verify that the Workflow request comes from QStash: SignatureError: Invalid Compact JWS\n\nEither disable request verification or start the workflow by publishing your request to QStash.\n\nIf you want to disable request verification, you should clear env variables QSTASH_CURRENT_SIGNING_KEY and QSTASH_NEXT_SIGNING_KEY"
+            "Failed to verify that the Workflow request comes from QStash: SignatureError: Invalid Compact JWS\n\nIf signature is missing, trigger the workflow endpoint by publishing your request to QStash instead of calling it directly.\n\nIf you want to disable QStash Verification, you should clear env variables QSTASH_CURRENT_SIGNING_KEY and QSTASH_NEXT_SIGNING_KEY"
           );
         },
         responseFields: { body: "msgId", status: 200 },
@@ -237,7 +237,7 @@ describe("receiver", () => {
         // eslint-disable-next-line @typescript-eslint/require-await
         execute: async () => {
           expect(throws).toThrow(
-            "Failed to verify that the Workflow request comes from QStash: Error: `Upstash-Signature` header is not passed.\n\nEither disable request verification or start the workflow by publishing your request to QStash.\n\nIf you want to disable request verification, you should clear env variables QSTASH_CURRENT_SIGNING_KEY and QSTASH_NEXT_SIGNING_KEY"
+            "Failed to verify that the Workflow request comes from QStash: Error: `Upstash-Signature` header is not passed.\n\nIf signature is missing, trigger the workflow endpoint by publishing your request to QStash instead of calling it directly.\n\nIf you want to disable QStash Verification, you should clear env variables QSTASH_CURRENT_SIGNING_KEY and QSTASH_NEXT_SIGNING_KEY"
           );
         },
         responseFields: { body: "msgId", status: 200 },
@@ -269,7 +269,7 @@ describe("receiver", () => {
         // eslint-disable-next-line @typescript-eslint/require-await
         execute: async () => {
           expect(throws).toThrow(
-            "Failed to verify that the Workflow request comes from QStash: SignatureError: Invalid Compact JWS\n\nEither disable request verification or start the workflow by publishing your request to QStash.\n\nIf you want to disable request verification, you should clear env variables QSTASH_CURRENT_SIGNING_KEY and QSTASH_NEXT_SIGNING_KEY"
+            "Failed to verify that the Workflow request comes from QStash: SignatureError: Invalid Compact JWS\n\nIf signature is missing, trigger the workflow endpoint by publishing your request to QStash instead of calling it directly.\n\nIf you want to disable QStash Verification, you should clear env variables QSTASH_CURRENT_SIGNING_KEY and QSTASH_NEXT_SIGNING_KEY"
           );
         },
         responseFields: { body: "msgId", status: 200 },
@@ -348,7 +348,7 @@ describe("receiver", () => {
         // eslint-disable-next-line @typescript-eslint/require-await
         execute: async () => {
           expect(throws).toThrow(
-            "Failed to verify that the Workflow request comes from QStash: Error: `Upstash-Signature` header is not passed.\n\nEither disable request verification or start the workflow by publishing your request to QStash.\n\nIf you want to disable request verification, you should clear env variables QSTASH_CURRENT_SIGNING_KEY and QSTASH_NEXT_SIGNING_KEY"
+            "Failed to verify that the Workflow request comes from QStash: Error: `Upstash-Signature` header is not passed.\n\nIf signature is missing, trigger the workflow endpoint by publishing your request to QStash instead of calling it directly.\n\nIf you want to disable QStash Verification, you should clear env variables QSTASH_CURRENT_SIGNING_KEY and QSTASH_NEXT_SIGNING_KEY"
           );
         },
         responseFields: { body: "msgId", status: 200 },
@@ -374,7 +374,7 @@ describe("receiver", () => {
         // eslint-disable-next-line @typescript-eslint/require-await
         execute: async () => {
           expect(throws).toThrow(
-            "Failed to verify that the Workflow request comes from QStash: SignatureError: Invalid Compact JWS\n\nEither disable request verification or start the workflow by publishing your request to QStash.\n\nIf you want to disable request verification, you should clear env variables QSTASH_CURRENT_SIGNING_KEY and QSTASH_NEXT_SIGNING_KEY"
+            "Failed to verify that the Workflow request comes from QStash: SignatureError: Invalid Compact JWS\n\nIf signature is missing, trigger the workflow endpoint by publishing your request to QStash instead of calling it directly.\n\nIf you want to disable QStash Verification, you should clear env variables QSTASH_CURRENT_SIGNING_KEY and QSTASH_NEXT_SIGNING_KEY"
           );
         },
         responseFields: { body: "msgId", status: 200 },
