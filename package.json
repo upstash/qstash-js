@@ -1,5 +1,5 @@
 {
-  "version": "2.5.5",
+  "version": "2.6.4-workflow-alpha.0",
   "name": "@upstash/qstash",
   "description": "Official Typescript client for QStash",
   "author": "Andreas Thomas <dev@chronark.com>",
@@ -45,6 +45,11 @@
       "types": "./solidjs.d.ts",
       "import": "./solidjs.mjs",
       "require": "./solidjs.js"
+    },
+    "./workflow": {
+      "types": "./workflow.d.ts",
+      "import": "./workflow.mjs",
+      "require": "./workflow.js"
     }
   },
   "typesVersions": {
@@ -80,6 +85,7 @@
     "eslint": "^8",
     "eslint-plugin-unicorn": "^51.0.1",
     "husky": "^9.0.10",
+    "neverthrow": "^7.0.1",
     "next": "^14.0.2",
     "prettier": "^3.2.5",
     "tsup": "latest",

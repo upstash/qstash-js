@@ -1,5 +1,8 @@
 import type { RequestHandler } from "@sveltejs/kit";
-import { Receiver } from "../src";
+import { formatWorkflowError, Receiver } from "../src";
+
+import type { RouteFunction, WorkflowServeOptions } from "../src/client/workflow";
+import { serve as serveBase } from "../src/client/workflow";
 
 type VerifySignatureConfig = {
   currentSigningKey: string;
@@ -47,4 +50,25 @@ export const verifySignatureSvelte = <
     return handler(event);
   };
   return wrappedHandler;
+};
+
+export const serve = <TInitialPayload = unknown>(
+  routeFunction: RouteFunction<TInitialPayload>,
+  qstashClient: WorkflowServeOptions["qstashClient"],
+  options?: Omit<WorkflowServeOptions<Response, TInitialPayload>, "onStepFinish" | "qstashClient">
+): RequestHandler => {
+  const handler: RequestHandler = async ({ request }) => {
+    const serveMethod = serveBase<TInitialPayload>(routeFunction, {
+      qstashClient,
+      ...options,
+    });
+    try {
+      return await serveMethod(request);
+    } catch (error) {
+      console.error(error);
+      return new Response(JSON.stringify(formatWorkflowError(error)), { status: 500 });
+    }
+  };
+
+  return handler;
 };

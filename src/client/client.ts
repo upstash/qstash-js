@@ -6,9 +6,10 @@ import { appendLLMOptionsIfNeeded, ensureCallbackPresent } from "./llm/utils";
 import { Messages } from "./messages";
 import { Queue } from "./queue";
 import { Schedules } from "./schedules";
-import type { BodyInit, Event, GetEventsPayload, HeadersInit, State } from "./types";
+import type { BodyInit, Event, GetEventsPayload, HeadersInit, HTTPMethods, State } from "./types";
 import { UrlGroups } from "./url-groups";
 import { getRequestPath, prefixHeaders, processHeaders } from "./utils";
+import { Workflow } from "./workflow";
 
 type ClientConfig = {
   /**
@@ -128,7 +129,7 @@ export type PublishRequest<TBody = BodyInit> = {
    *
    * @default `POST`
    */
-  method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
+  method?: HTTPMethods;
 
   /**
    * The HTTP timeout value to use while calling the destination URL.
@@ -313,6 +314,15 @@ export class Client {
   }
 
   /**
+   * Access the workflow API.
+   *
+   * cancel workflows.
+   */
+  public get workflow(): Workflow {
+    return new Workflow(this.http);
+  }
+
+  /**
    * Access the queue API.
    *
    * Create, read, update or delete queues.
@@ -397,8 +407,9 @@ export class Client {
       },
       method: "POST",
     });
+    const arrayResposne = Array.isArray(response) ? response : [response];
 
-    return response;
+    return arrayResposne;
   }
 
   /**

@@ -4,3 +4,8 @@ dist
 .next
 .env
 .vercel
+
+# workflow
+examples/workflow/*/package-lock.json
+examples/workflow/ngrok.log
+restart.sh
