@@ -145,7 +145,8 @@ export type WorkflowServeOptions<
   failureFunction?: (
     context: Omit<WorkflowContext, "run" | "sleepUntil" | "sleep" | "call">,
     failStatus: number,
-    failResponse: string
+    failResponse: string,
+    failHeader: Record<string, string[]>
   ) => Promise<void>;
   /**
    * Base Url of the workflow endpoint

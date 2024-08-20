@@ -268,7 +268,7 @@ export const handleFailure = async <TInitialPayload>(
   }
 
   try {
-    const { status, sourceHeader, body, workflowRunId, url, sourceBody } = JSON.parse(
+    const { status, header, body, url, sourceHeader, sourceBody, workflowRunId } = JSON.parse(
       requestPayload
     ) as {
       status: number;
@@ -303,7 +303,7 @@ export const handleFailure = async <TInitialPayload>(
       debug,
     });
 
-    await failureFunction(workflowContext, status, errorPayload.message);
+    await failureFunction(workflowContext, status, errorPayload.message, header);
   } catch (error) {
     return err(error as Error);
   }
