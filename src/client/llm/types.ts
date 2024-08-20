@@ -121,12 +121,18 @@ type ChatRequestProviders =
   | {
       provider: ProviderReturnType;
       model: OpenAIChatModel;
+      analytics?: { name: "helicone"; token: string };
     }
   | {
       provider: ProviderReturnType;
       model: string;
+      analytics?: { name: "helicone"; token: string };
     }
-  | { provider: ProviderReturnType; model: ChatModel };
+  | {
+      provider: ProviderReturnType;
+      model: ChatModel;
+      analytics?: { name: "helicone"; token: string };
+    };
 
 export type PromptChatRequest<TStream extends StreamParameter> = ChatRequestProviders &
   PromptChatRequestFields &

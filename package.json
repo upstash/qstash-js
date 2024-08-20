@@ -24,13 +24,11 @@
       "require": "./index.js"
     },
     "./nextjs": {
-      "types": "./nextjs.d.ts",
-      "import": "./nextjs.mjs",
+      "import": "./nextjs.js",
       "require": "./nextjs.js"
     },
     "./dist/nextjs": {
-      "types": "./nextjs.d.ts",
-      "import": "./nextjs.mjs",
+      "import": "./nextjs.js",
       "require": "./nextjs.js"
     },
     "./nuxt": {
@@ -87,7 +85,7 @@
     "eslint": "^8",
     "eslint-plugin-unicorn": "^51.0.1",
     "husky": "^9.0.10",
-    "neverthrow": "^7.0.0",
+    "neverthrow": "^7.0.1",
     "next": "^14.0.2",
     "prettier": "^3.2.5",
     "tsup": "latest",

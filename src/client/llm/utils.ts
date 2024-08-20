@@ -1,36 +1,71 @@
 import type { PublishRequest } from "../client";
+import type { Requester } from "../http";
+import type { AnalyticsConfig, AnalyticsSetup } from "./providers";
+import { setupAnalytics } from "./providers";
 
-/**
- * Appends necessary LLM (Language Model) options such as the required token and authorization header to the request.
- *
- * This function checks the `provider` property in the request to determine which provider
- * to use and appends the appropriate options.
- *
- * @param request - The request object which may contain `provider` that holds `token` and `baseUrl`.
- * @param headers - The Headers object to which the authorization token will be appended.
- *
- * @template TBody - The type of the request body.
- * @template TRequest - The type of the publish request extending `PublishRequest`.
- */
 export function appendLLMOptionsIfNeeded<
   TBody = unknown,
   TRequest extends PublishRequest<TBody> = PublishRequest<TBody>,
->(request: TRequest, headers: Headers) {
-  //If the provider owner is "upstash", switch request API to "llm" and exit the function.
-  if (request.api?.provider?.owner === "upstash") {
-    request.api = { name: "llm" };
+>(request: TRequest, headers: Headers, http: Requester) {
+  if (!request.api) return;
+
+  const provider = request.api.provider;
+  const analytics = request.api.analytics;
+
+  if (provider?.owner === "upstash") {
+    handleUpstashProvider(request, headers, http, analytics);
     return;
   }
 
-  // Append mandatory fields for calling 3rd party providers
-  if (request.api && "provider" in request.api) {
-    const provider = request.api.provider;
+  if (!("provider" in request.api)) return;
 
-    if (!provider?.baseUrl) throw new Error("baseUrl cannot be empty or undefined!");
-    if (!provider.token) throw new Error("token cannot be empty or undefined!");
+  const { baseUrl, token } = validateProviderConfig(provider);
 
-    request.url = `${provider.baseUrl}/v1/chat/completions`;
-    headers.set("Authorization", `Bearer ${provider.token}`);
+  const analyticsConfig = analytics
+    ? setupAnalytics({ name: analytics.name, token: analytics.token }, token, baseUrl, "custom")
+    : undefined;
+  if (analyticsConfig) {
+    setAnalyticsHeaders(headers, analyticsConfig);
+    request.url = analyticsConfig.baseURL;
+  } else {
+    request.url = `${baseUrl}/v1/chat/completions`;
+    headers.set("Authorization", `Bearer ${token}`);
+  }
+}
+
+function handleUpstashProvider(
+  request: PublishRequest<unknown>,
+  headers: Headers,
+  http: Requester,
+  analytics?: AnalyticsConfig
+) {
+  if (analytics) {
+    const analyticsConfig = setupAnalytics(
+      { name: analytics.name, token: analytics.token },
+      //@ts-expect-error hacky way to get bearer token
+      String(http.authorization).split("Bearer ")[1],
+      request.api?.provider?.baseUrl,
+      "upstash"
+    );
+    setAnalyticsHeaders(headers, analyticsConfig);
+    request.url = analyticsConfig.baseURL;
+  } else {
+    request.api = { name: "llm" };
+  }
+}
+
+function validateProviderConfig(provider?: { baseUrl?: string; token?: string }) {
+  if (!provider?.baseUrl) throw new Error("baseUrl cannot be empty or undefined!");
+  if (!provider.token) throw new Error("token cannot be empty or undefined!");
+
+  return { baseUrl: provider.baseUrl, token: provider.token };
+}
+
+function setAnalyticsHeaders(headers: Headers, analyticsConfig: AnalyticsSetup) {
+  headers.set("Helicone-Auth", analyticsConfig.defaultHeaders?.["Helicone-Auth"] ?? "");
+  headers.set("Authorization", analyticsConfig.defaultHeaders?.Authorization ?? "");
+  if (analyticsConfig.defaultHeaders?.["Helicone-Target-Url"]) {
+    headers.set("Helicone-Target-Url", analyticsConfig.defaultHeaders["Helicone-Target-Url"]);
   }
 }
 

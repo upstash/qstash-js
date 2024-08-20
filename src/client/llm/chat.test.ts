@@ -1,9 +1,14 @@
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { describe, expect, test } from "bun:test";
-import { Client } from "../client";
 import { OpenAIStream, StreamingTextResponse } from "ai";
-import type { ChatCompletionChunk } from "./types";
-import { openai, upstash } from "./providers";
+import { describe, expect, mock, test } from "bun:test";
+import { Client } from "../client";
+import { custom, openai, upstash } from "./providers";
+import type { ChatCompletionChunk, ChatRequest } from "./types";
+import type { Requester } from "../http";
 
 async function checkStream(
   stream: AsyncIterable<ChatCompletionChunk>,
@@ -259,7 +264,7 @@ describe("Test Qstash chat with third party LLMs", () => {
     { timeout: 30_000, retry: 3 }
   );
 
-  test("should publish with llm api - todo", async () => {
+  test("should publish with llm api", async () => {
     const result = await client.publishJSON({
       api: { name: "llm", provider: openai({ token: process.env.OPENAI_API_KEY! }) },
       body: {
@@ -331,5 +336,153 @@ describe("Test Qstash chat with third party LLMs", () => {
       callback: "https://example.com/",
     });
     expect(result.messageId).toBeTruthy();
+  });
+});
+
+describe("createThirdParty", () => {
+  // Use a dummy token for testing
+  const client = new Client({ token: "test-token" });
+  const mockHttp = {
+    request: mock((config: unknown) => {
+      return config as Promise<unknown>;
+    }),
+    requestStream: mock((config: unknown) => {
+      return config as AsyncIterable<ChatCompletionChunk>;
+    }),
+  };
+
+  client.http = mockHttp as Requester;
+
+  test("should delete provider, system and analytics to prevent adding them to body", async () => {
+    const mockRequest = {
+      provider: {
+        baseUrl: "https://api.together.xyz",
+        token: "xxx",
+        owner: "together",
+      },
+      model: "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
+      messages: [
+        { role: "system", content: "from now on, foo is whale" },
+        { role: "user", content: "what exactly is foo?" },
+      ],
+      temperature: 0.5,
+      stream: false,
+      analytics: {
+        name: "helicone",
+        token: "helicone-token",
+      },
+      system: "Some system message", // This should be deleted
+    };
+
+    //@ts-expect-error required for tests because createThirdParty is private
+    await client.chat().createThirdParty(mockRequest);
+
+    const requestBody = JSON.parse((mockHttp.request.mock.calls[0][0] as any).body);
+
+    // Explicitly check that deleted properties are not in the body
+    expect(requestBody).not.toHaveProperty("provider");
+    expect(requestBody).not.toHaveProperty("system");
+    expect(requestBody).not.toHaveProperty("analytics");
+
+    // Check that other properties are still present with correct values
+    expect(requestBody).toEqual({
+      model: "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
+      messages: [
+        { role: "system", content: "from now on, foo is whale" },
+        { role: "user", content: "what exactly is foo?" },
+      ],
+      temperature: 0.5,
+      stream: false,
+    });
+  });
+
+  test("should call request with analytics enabled", async () => {
+    const mockRequest = {
+      provider: {
+        baseUrl: "https://api.together.xyz",
+        token: "xxx",
+        owner: "together",
+      },
+      model: "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
+      messages: [
+        { role: "system", content: "from now on, foo is whale" },
+        { role: "user", content: "what exactly is foo?" },
+      ],
+      temperature: 0.5,
+      stream: false,
+      analytics: {
+        name: "helicone",
+        token: "helicone-token",
+      },
+      system: "Some system message", // This will be deleted
+    };
+
+    //@ts-expect-error required for tests because createThirdParty is private
+    await client.chat().createThirdParty(mockRequest);
+
+    expect(mockHttp.request).toHaveBeenCalledWith(
+      expect.objectContaining({
+        path: [],
+        method: "POST",
+        headers: expect.objectContaining({
+          "Content-Type": "application/json",
+          Authorization: "Bearer xxx",
+          "Helicone-Auth": "Bearer helicone-token",
+          "Helicone-Target-Url": "https://api.together.xyz",
+        }),
+        baseUrl: "https://gateway.helicone.ai/v1/chat/completions",
+      })
+    );
+
+    expect(JSON.parse((mockHttp.request.mock.calls[0][0] as any).body)).toEqual({
+      model: "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
+      messages: [
+        { role: "system", content: "from now on, foo is whale" },
+        { role: "user", content: "what exactly is foo?" },
+      ],
+      temperature: 0.5,
+      stream: false,
+    });
+  });
+
+  test("should call requestStream with analytics disabled and stream enabled", async () => {
+    const mockRequest: ChatRequest<{ stream: true }> = {
+      provider: custom({ baseUrl: "https://api.together.xyz", token: "xxx" }),
+      model: "meta-llama/Meta-Llama-3-8B-Instruct",
+      messages: [
+        { role: "system", content: "from now on, foo is whale" },
+        { role: "user", content: "what exactly is foo?" },
+      ],
+      stream: true,
+      temperature: 0.5,
+    };
+
+    //@ts-expect-error required for tests because createThirdParty is private
+    await client.chat().createThirdParty(mockRequest);
+
+    expect(mockHttp.requestStream).toHaveBeenCalledWith(
+      expect.objectContaining({
+        path: ["v1", "chat", "completions"],
+        method: "POST",
+        headers: expect.objectContaining({
+          "Content-Type": "application/json",
+          Authorization: "Bearer xxx",
+          Connection: "keep-alive",
+          Accept: "text/event-stream",
+          "Cache-Control": "no-cache",
+        }),
+        baseUrl: "https://api.together.xyz",
+      })
+    );
+
+    expect(JSON.parse((mockHttp.requestStream.mock.calls[0][0] as any).body)).toEqual({
+      model: "meta-llama/Meta-Llama-3-8B-Instruct",
+      messages: [
+        { role: "system", content: "from now on, foo is whale" },
+        { role: "user", content: "what exactly is foo?" },
+      ],
+      temperature: 0.5,
+      stream: true,
+    });
   });
 });

@@ -55,11 +55,11 @@ import { Client } from "@upstash/qstash";
  */
 import "isomorphic-fetch";
 
-const c = new Client({
+const client = new Client({
   token: "<QSTASH_TOKEN>",
 });
 
-const res = await c.publishJSON({
+const res = await client.publishJSON({
   url: "https://my-api...",
   // or urlGroup: "the name or id of a url group"
   body: {
@@ -100,14 +100,14 @@ const isValid = await r.verify({
 })
 ```
 
-### Publishing a message to Open AI or any Open AI Compatible LLM
+### Publishing a message to an LLM provider
 
 No need for complicated setup your LLM request. We'll call LLM and schedule it for your serverless needs.
 
 ```ts
 import { Client, openai } from "@upstash/qstash";
 
-const c = new Client({
+const client = new Client({
   token: "<QSTASH_TOKEN>",
 });
 
@@ -126,31 +126,6 @@ const result = await client.publishJSON({
 });
 ```
 
-### Chatting with your favorite LLM
-
-You can easily start streaming Upstash or OpenAI responses from your favorite framework(Next.js) or library
-
-```ts
-import { upstash } from "@upstash/qstash";
-
-const response = await client.chat().create({
-  provider: upstash(), // Optionally, provider: "custom({token: "XXX", baseUrl: "https://api.openai.com"})". This will allow you to call every OpenAI compatible API out there.
-  model: "meta-llama/Meta-Llama-3-8B-Instruct", // Optionally, model: "gpt-3.5-turbo",
-  messages: [
-    {
-      role: "system",
-      content: "from now on, foo is whale",
-    },
-    {
-      role: "user",
-      content: "what exactly is foo?",
-    },
-  ],
-  stream: true,
-  temperature: 0.5,
-});
-```
-
 ## Docs
 
 See [the documentation](https://docs.upstash.com/qstash) for details.
@@ -158,3 +133,7 @@ See [the documentation](https://docs.upstash.com/qstash) for details.
 ## Contributing
 
 ### [Install Deno](https://deno.land/#installation)
+
+```
+
+```
