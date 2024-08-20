@@ -24,8 +24,10 @@ import {
  *
  * Default values for:
  * - qstashClient: QStash client created with QSTASH_URL and QSTASH_TOKEN env vars
- * - onFinish: returns a Response with workflowRunId in the body and status: 200
+ * - onStepFinish: returns a Response with workflowRunId & finish condition in the body (status: 200)
  * - initialPayloadParser: calls JSON.parse if initial request body exists.
+ * - receiver: a Receiver if the required env vars are set
+ * - baseUrl: env variable UPSTASH_WORKFLOW_URL
  *
  * @param options options including the client, onFinish and initialPayloadParser
  * @returns
