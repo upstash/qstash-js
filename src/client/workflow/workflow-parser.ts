@@ -10,9 +10,10 @@ import {
 } from "./constants";
 import type { FailureFunctionPayload, RawStep, Step, WorkflowServeOptions } from "./types";
 import { nanoid } from "nanoid";
-import { verifyRequest } from "./workflow-requests";
-import type { Receiver } from "../../receiver";
 import type { WorkflowLogger } from "./logger";
+import type { Client } from "../client";
+import { WorkflowContext } from "./context";
+import { recreateUserHeaders } from "./workflow-requests";
 
 /**
  * Gets the request body. If that fails, returns undefined
@@ -20,7 +21,7 @@ import type { WorkflowLogger } from "./logger";
  * @param request request received in the workflow api
  * @returns request body
  */
-const getPayload = async (request: Request) => {
+export const getPayload = async (request: Request) => {
   try {
     return await request.text();
   } catch {
@@ -200,32 +201,27 @@ export const validateRequest = (
  * @returns raw intial payload and the steps
  */
 export const parseRequest = async (
-  request: Request,
+  requestPayload: string | undefined,
   isFirstInvocation: boolean,
-  verifier?: Receiver,
   debug?: WorkflowLogger
 ): Promise<{
   rawInitialPayload: string;
   steps: Step[];
   isLastDuplicate: boolean;
 }> => {
-  // get payload as raw string
-  const payload = await getPayload(request);
-  await verifyRequest(payload ?? "", request.headers.get("upstash-signature"), verifier);
-
   if (isFirstInvocation) {
     // if first invocation, return and `serve` will handle publishing the JSON to QStash
     return {
-      rawInitialPayload: payload ?? "",
+      rawInitialPayload: requestPayload ?? "",
       steps: [],
       isLastDuplicate: false,
     };
   } else {
     // if not the first invocation, make sure that body is not empty and parse payload
-    if (!payload) {
+    if (!requestPayload) {
       throw new QstashWorkflowError("Only first call can have an empty body");
     }
-    const { rawInitialPayload, steps } = parsePayload(payload);
+    const { rawInitialPayload, steps } = parsePayload(requestPayload);
     const isLastDuplicate = await checkIfLastOneIsDuplicate(steps, debug);
     const deduplicatedSteps = deduplicateSteps(steps);
 
@@ -247,9 +243,15 @@ export const parseRequest = async (
  * @param request incoming request
  * @param failureFunction function to handle the failure
  */
-export const handleFailure = async (
+export const handleFailure = async <TInitialPayload>(
   request: Request,
-  failureFunction?: WorkflowServeOptions["failureFunction"]
+  requestPayload: string,
+  qstashClient: Client,
+  initialPayloadParser: Required<
+    WorkflowServeOptions<Response, TInitialPayload>
+  >["initialPayloadParser"],
+  failureFunction?: WorkflowServeOptions<Response, TInitialPayload>["failureFunction"],
+  debug?: WorkflowLogger
 ): Promise<Ok<"is-failure-callback" | "not-failure-callback", never> | Err<never, Error>> => {
   if (request.headers.get(WORKFLOW_FAILURE_HEADER) !== "true") {
     return ok("not-failure-callback");
@@ -266,17 +268,42 @@ export const handleFailure = async (
   }
 
   try {
-    const { status, header, body, workflowRunId } = (await request.json()) as {
+    const { status, sourceHeader, body, workflowRunId, url, sourceBody } = JSON.parse(
+      requestPayload
+    ) as {
       status: number;
-      header: Record<string, string>;
+      header: Record<string, string[]>;
       body: string;
+      url: string;
+      sourceHeader: Record<string, string[]>;
+      sourceBody: string;
       workflowRunId: string;
     };
+
     const decodedBody = body ? atob(body) : "{}";
+    const errorPayload = JSON.parse(decodedBody) as FailureFunctionPayload;
 
-    const payload = JSON.parse(decodedBody) as FailureFunctionPayload;
+    // parse steps
+    const {
+      rawInitialPayload,
+      steps,
+      isLastDuplicate: _isLastDuplicate,
+    } = await parseRequest(atob(sourceBody), false, debug);
 
-    await failureFunction(status, header, payload, workflowRunId);
+    // create context
+    const workflowContext = new WorkflowContext<TInitialPayload>({
+      qstashClient,
+      workflowRunId,
+      initialPayload: initialPayloadParser(rawInitialPayload),
+      rawInitialPayload,
+      headers: recreateUserHeaders(new Headers(sourceHeader) as Headers),
+      steps,
+      url: url,
+      failureUrl: url,
+      debug,
+    });
+
+    await failureFunction(workflowContext, status, errorPayload.message);
   } catch (error) {
     return err(error as Error);
   }

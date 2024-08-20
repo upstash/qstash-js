@@ -137,16 +137,15 @@ export type WorkflowServeOptions<
    * the workflow. Will overwrite `failureUrl` parameter with the workflow
    * endpoint if passed.
    *
-   * @param status failure status
-   * @param header headers of the request which failed
-   * @param body body which contains the error message
+   * @param context workflow context at the moment of error
+   * @param failStatus error status
+   * @param failResponse error message
    * @returns void
    */
   failureFunction?: (
-    status: number,
-    header: Record<string, string>,
-    body: FailureFunctionPayload,
-    workflowRunId: string
+    context: Omit<WorkflowContext, "run" | "sleepUntil" | "sleep" | "call">,
+    failStatus: number,
+    failResponse: string
   ) => Promise<void>;
   /**
    * Base Url of the workflow endpoint

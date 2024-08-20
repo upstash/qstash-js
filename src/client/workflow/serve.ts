@@ -9,13 +9,14 @@ import type {
   RouteFunction,
   WorkflowServeOptions,
 } from "./types";
-import { handleFailure, parseRequest, validateRequest } from "./workflow-parser";
+import { getPayload, handleFailure, parseRequest, validateRequest } from "./workflow-parser";
 import {
   handleThirdPartyCallResult,
   recreateUserHeaders,
   triggerFirstInvocation,
   triggerRouteFunction,
   triggerWorkflowDelete,
+  verifyRequest,
 } from "./workflow-requests";
 
 /**
@@ -29,7 +30,7 @@ import {
  * @param options options including the client, onFinish and initialPayloadParser
  * @returns
  */
-const processOptions = <TResponse extends Response = Response, TInitialPayload = unknown>(
+export const processOptions = <TResponse extends Response = Response, TInitialPayload = unknown>(
   options?: WorkflowServeOptions<TResponse, TInitialPayload>
 ): RequiredExceptFields<
   WorkflowServeOptions<TResponse, TInitialPayload>,
@@ -140,25 +141,37 @@ export const serve = <
     // set url to call in case of failure
     const workflowFailureUrl = failureFunction ? workflowUrl : failureUrl;
 
+    // get payload as raw string
+    const requestPayload = (await getPayload(request)) ?? "";
+    await verifyRequest(requestPayload, request.headers.get("upstash-signature"), receiver);
+
     await debug?.log("INFO", "ENDPOINT_START");
 
     // check if the request is a failure callback
-    const failureCheck = await handleFailure(request, failureFunction);
+    const failureCheck = await handleFailure<TInitialPayload>(
+      request,
+      requestPayload,
+      qstashClient,
+      initialPayloadParser,
+      failureFunction
+    );
     if (failureCheck.isErr()) {
       // unexpected error during handleFailure
       throw failureCheck.error;
     } else if (failureCheck.value === "is-failure-callback") {
       // is a failure ballback.
+      await debug?.log("WARN", "RESPONSE_DEFAULT", "failureFunction executed");
       return onStepFinish("no-workflow-id", "failure-callback");
     }
 
     // validation & parsing
     const { isFirstInvocation, workflowRunId } = validateRequest(request);
     debug?.setWorkflowRunId(workflowRunId);
+
+    // parse steps
     const { rawInitialPayload, steps, isLastDuplicate } = await parseRequest(
-      request,
+      requestPayload,
       isFirstInvocation,
-      receiver,
       debug
     );
 

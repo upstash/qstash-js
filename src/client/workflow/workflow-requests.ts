@@ -325,7 +325,7 @@ export const verifyRequest = async (
   } catch (error) {
     throw new QstashWorkflowError(
       `Failed to verify that the Workflow request comes from QStash: ${error}\n\n` +
-        "Trigger the workflow endpoint by publishing your request to QStash instead of calling it directly.\n\n" +
+        "If signature is missing, trigger the workflow endpoint by publishing your request to QStash instead of calling it directly.\n\n" +
         "If you want to disable QStash Verification, you should clear env variables QSTASH_CURRENT_SIGNING_KEY and QSTASH_NEXT_SIGNING_KEY"
     );
   }
