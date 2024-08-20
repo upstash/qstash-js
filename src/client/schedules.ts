@@ -103,6 +103,15 @@ export type CreateScheduleRequest = {
    * @default undefined
    */
   timeout?: number;
+
+  /**
+   * Schedule id to use.
+   *
+   * Can be used to updatine the settings of an existing schedule.
+   *
+   * @default undefined
+   */
+  scheduleId?: string;
 };
 
 export class Schedules {
@@ -147,6 +156,10 @@ export class Schedules {
 
     if (request.timeout !== undefined) {
       headers.set("Upstash-Timeout", `${request.timeout}s`);
+    }
+
+    if (request.scheduleId !== undefined) {
+      headers.set("Upstash-Schedule-Id", request.scheduleId);
     }
 
     return await this.http.request({
