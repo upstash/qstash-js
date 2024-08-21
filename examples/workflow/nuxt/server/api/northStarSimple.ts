@@ -1,64 +1,61 @@
-
-import { serve } from "@upstash/qstash/nuxt";
+import { serve } from "@upstash/qstash/h3";
 
 const someWork = (input: string) => {
-  return `processed '${input}'`
-}
+  return `processed '${input}'`;
+};
 
 type Invoice = {
-  date: number,
-  email: string,
-  amount: number
-}
+  date: number;
+  email: string;
+  amount: number;
+};
 
 type Charge = {
-  invoice: Invoice,
-  success: boolean
-}
+  invoice: Invoice;
+  success: boolean;
+};
 
-let counter = 0
+let counter = 0;
 const attemptCharge = (invoice: Invoice) => {
   counter += 1;
-  if (counter  === 3) {
+  if (counter === 3) {
     console.log(" charge success", invoice);
-    counter = 0
+    counter = 0;
     return true;
   }
   console.log(" charge failed", invoice);
   return false;
-}
+};
 
-export default serve<Invoice>(
-  async context => {
-    const invoice = context.requestPayload
-    
-    for (let index = 0; index < 3; index ++) {
-      const charge = await context.run("attemptCharge", async () => {
-        const success = attemptCharge(invoice)
-        const charge: Charge = {invoice, success}
-        return charge
-      })
+export default serve<Invoice>(async (context) => {
+  const invoice = context.requestPayload;
 
-      if (charge.success) {
-        const updateDb = await context.run("updateDb", async () => {
-          console.log("  update db amount", charge.invoice.amount);
-          return 5
-        })
+  for (let index = 0; index < 3; index++) {
+    const charge = await context.run("attemptCharge", async () => {
+      const success = attemptCharge(invoice);
+      const charge: Charge = { invoice, success };
+      return charge;
+    });
 
-        await context.run("sendReceipt", async () => {
-          console.log("  send receipt", charge.invoice.email, updateDb);
-          return 10
-        })
+    if (charge.success) {
+      const updateDb = await context.run("updateDb", async () => {
+        console.log("  update db amount", charge.invoice.amount);
+        return 5;
+      });
 
-        return
-      }
-      await context.sleep("retrySleep", 2)
+      await context.run("sendReceipt", async () => {
+        console.log("  send receipt", charge.invoice.email, updateDb);
+        return 10;
+      });
+
+      return;
     }
-    await context.run("paymentFailed", async () => {
-      console.log(`northStarSimple failed permenantly with input ${JSON.stringify(context.requestPayload)}`);
-      return true
-    })
+    await context.sleep("retrySleep", 2);
   }
-)
-
-
+  await context.run("paymentFailed", async () => {
+    console.log(
+      `northStarSimple failed permenantly with input ${JSON.stringify(context.requestPayload)}`
+    );
+    return true;
+  });
+});

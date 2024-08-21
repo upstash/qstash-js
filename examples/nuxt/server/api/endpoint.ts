@@ -1,6 +1,6 @@
-import { verifySignatureNuxt } from "@upstash/qstash/nuxt";
+import { verifySignatureH3 } from "@upstash/qstash/h3";
 
-export default verifySignatureNuxt(async (event) => {
+export default verifySignatureH3(async (event) => {
   // simulate work
   await new Promise((resolve) => setTimeout(resolve, 1000));
 
