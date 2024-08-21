@@ -12,8 +12,9 @@ export const POST: RequestHandler = async ({ request }) => {
   const { route, payload } = await request.json() as { route: string, payload: unknown };
 
   try {
+    const baseUrl = env.UPSTASH_WORKFLOW_URL ?? request.url.replace("/-call-qstash", "")
     const { messageId } = await client.publishJSON({
-      url: `${env.UPSTASH_WORKFLOW_URL}/${route}`,
+      url: `${baseUrl}/${route}`,
       body: payload
     });
 
