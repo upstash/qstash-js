@@ -1,14 +1,14 @@
 import type { Err, Ok } from "neverthrow";
 import { err, ok } from "neverthrow";
-import type { RouteFunction } from "./types";
+import type { RouteFunction, WorkflowClient } from "./types";
 import { type AsyncStepFunction, type Step } from "./types";
-import { Client } from "../client";
 import { AutoExecutor } from "./auto-executor";
 import type { BaseLazyStep } from "./steps";
 import { LazyCallStep, LazyFunctionStep, LazySleepStep, LazySleepUntilStep } from "./steps";
 import type { HTTPMethods } from "../types";
 import type { WorkflowLogger } from "./logger";
 import { QstashWorkflowAbort } from "../error";
+import { Client } from "../client";
 
 export class WorkflowContext<TInitialPayload = unknown> {
   protected readonly executor: AutoExecutor;
@@ -32,7 +32,7 @@ export class WorkflowContext<TInitialPayload = unknown> {
    * )
    * ```
    */
-  public readonly qstashClient: Client;
+  public readonly qstashClient: WorkflowClient;
   /**
    * Run id of the workflow
    */
@@ -123,7 +123,7 @@ export class WorkflowContext<TInitialPayload = unknown> {
     initialPayload,
     rawInitialPayload,
   }: {
-    qstashClient: Client;
+    qstashClient: WorkflowClient;
     workflowRunId: string;
     headers: Headers;
     steps: Step[];

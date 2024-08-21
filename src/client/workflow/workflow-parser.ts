@@ -8,10 +8,15 @@ import {
   WORKFLOW_PROTOCOL_VERSION,
   WORKFLOW_PROTOCOL_VERSION_HEADER,
 } from "./constants";
-import type { FailureFunctionPayload, RawStep, Step, WorkflowServeOptions } from "./types";
+import type {
+  FailureFunctionPayload,
+  RawStep,
+  Step,
+  WorkflowServeOptions,
+  WorkflowClient,
+} from "./types";
 import { nanoid } from "nanoid";
 import type { WorkflowLogger } from "./logger";
-import type { Client } from "../client";
 import { WorkflowContext } from "./context";
 import { recreateUserHeaders } from "./workflow-requests";
 
@@ -246,7 +251,7 @@ export const parseRequest = async (
 export const handleFailure = async <TInitialPayload>(
   request: Request,
   requestPayload: string,
-  qstashClient: Client,
+  qstashClient: WorkflowClient,
   initialPayloadParser: Required<
     WorkflowServeOptions<Response, TInitialPayload>
   >["initialPayloadParser"],

@@ -2,7 +2,6 @@ import type { Err, Ok } from "neverthrow";
 import { err, ok } from "neverthrow";
 import { QstashWorkflowAbort, QstashWorkflowError } from "../error";
 import type { WorkflowContext } from "./context";
-import type { Client } from "../client";
 import {
   DEFAULT_CONTENT_TYPE,
   WORKFLOW_FAILURE_HEADER,
@@ -12,10 +11,15 @@ import {
   WORKFLOW_PROTOCOL_VERSION_HEADER,
   WORKFLOW_URL_HEADER,
 } from "./constants";
-import type { Step, StepType, WorkflowServeOptions } from "./types";
+import type {
+  Step,
+  StepType,
+  WorkflowClient,
+  WorkflowReceiver,
+  WorkflowServeOptions,
+} from "./types";
 import { StepTypes } from "./types";
 import type { WorkflowLogger } from "./logger";
-import type { Receiver } from "../../receiver";
 
 export const triggerFirstInvocation = async <TInitialPayload>(
   workflowContext: WorkflowContext<TInitialPayload>,
@@ -129,7 +133,7 @@ export const recreateUserHeaders = (headers: Headers): Headers => {
 export const handleThirdPartyCallResult = async (
   request: Request,
   requestPayload: string,
-  client: Client,
+  client: WorkflowClient,
   workflowUrl: string,
   failureUrl: WorkflowServeOptions["failureUrl"],
   debug?: WorkflowLogger
@@ -305,7 +309,7 @@ export const getHeaders = (
 export const verifyRequest = async (
   body: string,
   signature: string | null,
-  verifier?: Receiver
+  verifier?: WorkflowReceiver
 ) => {
   if (!verifier) {
     return;
