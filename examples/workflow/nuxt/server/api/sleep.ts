@@ -1,5 +1,5 @@
 
-import { serve } from "@upstash/qstash/nuxt";
+import { serve } from "@upstash/qstash/h3";
 
 const someWork = (input: string) => {
   return `processed '${JSON.stringify(input)}'`
