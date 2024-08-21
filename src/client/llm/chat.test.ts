@@ -25,7 +25,7 @@ async function checkStream(
   expect(expectInStream.every((token) => text.includes(token))).toBeTrue();
 }
 
-describe("Test Qstash chat", () => {
+describe("Test QStash chat", () => {
   const client = new Client({ token: process.env.QSTASH_TOKEN! });
 
   test(
@@ -173,7 +173,7 @@ describe("Test Qstash chat", () => {
   });
 });
 
-describe("Test Qstash chat with third party LLMs", () => {
+describe("Test QStash chat with third party LLMs", () => {
   const client = new Client({ token: process.env.QSTASH_TOKEN! });
 
   test(

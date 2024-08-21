@@ -1,6 +1,6 @@
 import type { Err, Ok } from "neverthrow";
 import { err, ok } from "neverthrow";
-import { QstashWorkflowError } from "../error";
+import { QStashWorkflowError } from "../error";
 import {
   NO_CONCURRENCY,
   WORKFLOW_FAILURE_HEADER,
@@ -45,11 +45,11 @@ const decodeBase64 = (encodedString: string) => {
 };
 
 /**
- * Parses a request coming from Qstash. First parses the string as JSON, which will result
+ * Parses a request coming from QStash. First parses the string as JSON, which will result
  * in a list of objects with messageId & body fields. Body will be base64 encoded.
  *
  * Body of the first item will be the body of the first request received in the workflow API.
- * Rest are steps in Qstash Workflow Step format.
+ * Rest are steps in QStash Workflow Step format.
  *
  * When returning steps, we add the initial payload as initial step. This is to make it simpler
  * in the rest of the code.
@@ -146,7 +146,7 @@ const checkIfLastOneIsDuplicate = async (
     const step = steps[index];
     if (step.stepId === lastStepId && step.targetStep === lastTargetStepId) {
       const message =
-        `Qstash Workflow: The step '${step.stepName}' with id '${step.stepId}'` +
+        `QStash Workflow: The step '${step.stepName}' with id '${step.stepId}'` +
         "  has run twice during workflow execution. Rest of the workflow will continue running as usual.";
       await debug?.log("WARN", "RESPONSE_DEFAULT", message);
       console.warn(message);
@@ -160,7 +160,7 @@ const checkIfLastOneIsDuplicate = async (
  * Validates the incoming request checking the workflow protocol
  * version and whether it is the first invocation.
  *
- * Raises `QstashWorkflowError` if:
+ * Raises `QStashWorkflowError` if:
  * - it's not the first invocation and expected protocol version doesn't match
  *   the request.
  * - it's not the first invocation but there is no workflow id in the headers.
@@ -176,7 +176,7 @@ export const validateRequest = (
 
   // if it's not the first invocation, verify that the workflow protocal version is correct
   if (!isFirstInvocation && versionHeader !== WORKFLOW_PROTOCOL_VERSION) {
-    throw new QstashWorkflowError(
+    throw new QStashWorkflowError(
       `Incompatible workflow sdk protocol version. Expected ${WORKFLOW_PROTOCOL_VERSION},` +
         ` got ${versionHeader} from the request.`
     );
@@ -187,7 +187,7 @@ export const validateRequest = (
     ? `wfr_${nanoid()}`
     : request.headers.get(WORKFLOW_ID_HEADER) ?? "";
   if (workflowRunId.length === 0) {
-    throw new QstashWorkflowError("Couldn't get workflow id from header");
+    throw new QStashWorkflowError("Couldn't get workflow id from header");
   }
 
   return {
@@ -224,7 +224,7 @@ export const parseRequest = async (
   } else {
     // if not the first invocation, make sure that body is not empty and parse payload
     if (!requestPayload) {
-      throw new QstashWorkflowError("Only first call can have an empty body");
+      throw new QStashWorkflowError("Only first call can have an empty body");
     }
     const { rawInitialPayload, steps } = parsePayload(requestPayload);
     const isLastDuplicate = await checkIfLastOneIsDuplicate(steps, debug);
@@ -243,7 +243,7 @@ export const parseRequest = async (
  * attempts to call the failureFunction function.
  *
  * If the header is set but failureFunction is not passed, returns
- * QstashWorkflowError.
+ * QStashWorkflowError.
  *
  * @param request incoming request
  * @param failureFunction function to handle the failure
@@ -264,7 +264,7 @@ export const handleFailure = async <TInitialPayload>(
 
   if (!failureFunction) {
     return err(
-      new QstashWorkflowError(
+      new QStashWorkflowError(
         "Workflow endpoint is called to handle a failure," +
           " but a failureFunction is not provided in serve options." +
           " Either provide a failureUrl or a failureFunction."

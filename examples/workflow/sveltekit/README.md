@@ -1,6 +1,6 @@
-# Qstash Workflow Sveltekit Example
+# QStash Workflow Sveltekit Example
 
-This project has some routes showcasing how Qstash Workflow can be used in a sveltekit project.
+This project has some routes showcasing how QStash Workflow can be used in a sveltekit project.
 
 Under the `src/routes` directory, you will find 6 folders, each corresponding to a workflow API except the `-call-qstash`.
 

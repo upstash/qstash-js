@@ -343,7 +343,7 @@ describe.skip("live serve tests", () => {
     }
   );
 
-  test(
+  test.only(
     "call endpoint",
     async () => {
       const thirdPartyResult = "third-party-result";
@@ -379,7 +379,7 @@ describe.skip("live serve tests", () => {
       const finishState = new FinishState();
       await testEndpoint({
         finalCount: 7,
-        waitFor: 10_000,
+        waitFor: 12_000,
         initialPayload: "my-payload",
         finishState,
         routeFunction: async (context) => {

@@ -1,6 +1,8 @@
-# Qstash Workflow Nextjs Example
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fupstash%2Fqstash-js%2Ftree%2Fmain%2Fexamples%2Fworkflow%2Fnextjs&env=QSTASH_TOKEN&project-name=qstash-workflow&repository-name=qstash-workflow&demo-title=Upstash%20-%20QStash%20Workflow%20Example&demo-description=A%20Next.js%20Application%20Utilizing%20QStash%20Workflows)
 
-This project has some routes showcasing how Qstash Workflow can be used in a nextjs project.
+# QStash Workflow Nextjs Example
+
+This project has some routes showcasing how QStash Workflow can be used in a nextjs project.
 
 Under the app directory, you will find 10 folders, each corresponding to a workflow API except the `-call-qstash`. The user calls `-call-qstash` with information about which endpoint is to be called in the body. `-call-qstash` publishes a message to QStash. QStash then calls the specified endpoint.
 

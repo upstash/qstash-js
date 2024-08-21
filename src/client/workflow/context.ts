@@ -7,7 +7,7 @@ import type { BaseLazyStep } from "./steps";
 import { LazyCallStep, LazyFunctionStep, LazySleepStep, LazySleepUntilStep } from "./steps";
 import type { HTTPMethods } from "../types";
 import type { WorkflowLogger } from "./logger";
-import { QstashWorkflowAbort } from "../error";
+import { QStashWorkflowAbort } from "../error";
 import { Client } from "../client";
 
 export class WorkflowContext<TInitialPayload = unknown> {
@@ -254,7 +254,7 @@ export class WorkflowContext<TInitialPayload = unknown> {
 }
 
 /**
- * Workflow context which throws QstashWorkflowAbort before running the steps.
+ * Workflow context which throws QStashWorkflowAbort before running the steps.
  *
  * Used for making a dry run before running any steps to check authentication.
  *
@@ -284,14 +284,14 @@ export class DisabledWorkflowContext<
   private static readonly disabledMessage = "disabled-qstash-worklfow-run";
 
   /**
-   * overwrite the WorkflowContext.addStep method to always raise QstashWorkflowAbort
+   * overwrite the WorkflowContext.addStep method to always raise QStashWorkflowAbort
    * error in order to stop the execution whenever we encounter a step.
    *
    * @param _step
    */
   // eslint-disable-next-line @typescript-eslint/require-await
   protected async addStep<TResult = unknown>(_step: BaseLazyStep<TResult>): Promise<TResult> {
-    throw new QstashWorkflowAbort(DisabledWorkflowContext.disabledMessage);
+    throw new QStashWorkflowAbort(DisabledWorkflowContext.disabledMessage);
   }
 
   /**
@@ -323,7 +323,7 @@ export class DisabledWorkflowContext<
     try {
       await routeFunction(disabledContext);
     } catch (error) {
-      if (error instanceof QstashWorkflowAbort && error.stepName === this.disabledMessage) {
+      if (error instanceof QStashWorkflowAbort && error.stepName === this.disabledMessage) {
         return ok("step-found");
       }
       return err(error as Error);

@@ -35,7 +35,7 @@ export type RequestFields = {
  * @param receivesRequest fields of the request sent to QStash as a result of running
  *    `await execute()`. If set to false, we assert that no request is sent.
  */
-export const mockQstashServer = async ({
+export const mockQStashServer = async ({
   execute,
   responseFields,
   receivesRequest,
@@ -120,7 +120,7 @@ export const driveWorkflow = async ({
   const steps: Step[] = [];
   for (const { stepsToAdd, responseFields, receivesRequest } of iterations) {
     steps.push(...stepsToAdd);
-    await mockQstashServer({
+    await mockQStashServer({
       execute: () => execute(initialPayload, steps),
       responseFields,
       receivesRequest,

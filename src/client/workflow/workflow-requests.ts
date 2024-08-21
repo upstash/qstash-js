@@ -1,6 +1,6 @@
 import type { Err, Ok } from "neverthrow";
 import { err, ok } from "neverthrow";
-import { QstashWorkflowAbort, QstashWorkflowError } from "../error";
+import { QStashWorkflowAbort, QStashWorkflowError } from "../error";
 import type { WorkflowContext } from "./context";
 import {
   DEFAULT_CONTENT_TYPE,
@@ -60,14 +60,14 @@ export const triggerRouteFunction = async ({
   onCleanup: () => Promise<void>;
 }): Promise<Ok<"workflow-finished" | "step-finished", never> | Err<never, Error>> => {
   try {
-    // When onStep completes successfully, it throws an exception named `QstashWorkflowAbort`, indicating that the step has been successfully executed.
+    // When onStep completes successfully, it throws an exception named `QStashWorkflowAbort`, indicating that the step has been successfully executed.
     // This ensures that onCleanup is only called when no exception is thrown.
     await onStep();
     await onCleanup();
     return ok("workflow-finished");
   } catch (error) {
     const error_ = error as Error;
-    return error_ instanceof QstashWorkflowAbort ? ok("step-finished") : err(error_);
+    return error_ instanceof QStashWorkflowAbort ? ok("step-finished") : err(error_);
   }
 };
 
@@ -113,7 +113,7 @@ export const recreateUserHeaders = (headers: Headers): Headers => {
 
 /**
  * Checks if the request is from a third party call result. If so,
- * calls qstash to add the result to the ongoing workflow.
+ * calls QStash to add the result to the ongoing workflow.
  *
  * Otherwise, does nothing.
  *
@@ -127,7 +127,7 @@ export const recreateUserHeaders = (headers: Headers): Headers => {
  * If so, we send back the result to QStash as a result step.
  *
  * @param request Incoming request
- * @param client qstash client
+ * @param client QStash client
  * @returns
  */
 export const handleThirdPartyCallResult = async (
@@ -150,7 +150,7 @@ export const handleThirdPartyCallResult = async (
       // eslint-disable-next-line @typescript-eslint/no-magic-numbers
       if (!(callbackMessage.status >= 200 && callbackMessage.status < 300)) {
         await debug?.log("WARN", "SUBMIT_THIRD_PARTY_RESULT", callbackMessage);
-        // this callback will be retried by the qstash, we just ignore it
+        // this callback will be retried by the QStash, we just ignore it
         return ok("call-will-retry");
       }
 
@@ -225,7 +225,7 @@ export const handleThirdPartyCallResult = async (
   } catch (error) {
     const isCallReturn = request.headers.get("Upstash-Workflow-Callback");
     return err(
-      new QstashWorkflowError(
+      new QStashWorkflowError(
         `Error when handling call return (isCallReturn=${isCallReturn}): ${error}`
       )
     );
@@ -327,7 +327,7 @@ export const verifyRequest = async (
       throw new Error("Signature in `Upstash-Signature` header is not valid");
     }
   } catch (error) {
-    throw new QstashWorkflowError(
+    throw new QStashWorkflowError(
       `Failed to verify that the Workflow request comes from QStash: ${error}\n\n` +
         "If signature is missing, trigger the workflow endpoint by publishing your request to QStash instead of calling it directly.\n\n" +
         "If you want to disable QStash Verification, you should clear env variables QSTASH_CURRENT_SIGNING_KEY and QSTASH_NEXT_SIGNING_KEY"

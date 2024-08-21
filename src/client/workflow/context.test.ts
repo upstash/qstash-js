@@ -1,11 +1,11 @@
 /* eslint-disable unicorn/consistent-function-scoping */
 /* eslint-disable @typescript-eslint/no-magic-numbers */
 import { describe, test, expect } from "bun:test";
-import { MOCK_QSTASH_SERVER_URL, mockQstashServer, WORKFLOW_ENDPOINT } from "./test-utils";
+import { MOCK_QSTASH_SERVER_URL, mockQStashServer, WORKFLOW_ENDPOINT } from "./test-utils";
 import { DisabledWorkflowContext, WorkflowContext } from "./context";
 import { Client } from "../client";
 import { nanoid } from "nanoid";
-import { QstashWorkflowAbort, QstashWorkflowError } from "../error";
+import { QStashWorkflowAbort, QStashWorkflowError } from "../error";
 import type { RouteFunction } from "./types";
 
 describe("context tests", () => {
@@ -29,7 +29,7 @@ describe("context tests", () => {
       });
     };
     expect(throws).toThrow(
-      new QstashWorkflowError(
+      new QStashWorkflowError(
         "A step can not be run inside another step. Tried to run 'inner step' inside 'outer step'"
       )
     );
@@ -51,7 +51,7 @@ describe("context tests", () => {
       });
     };
     expect(throws).toThrow(
-      new QstashWorkflowError(
+      new QStashWorkflowError(
         "A step can not be run inside another step. Tried to run 'inner sleep' inside 'outer step'"
       )
     );
@@ -73,7 +73,7 @@ describe("context tests", () => {
       });
     };
     expect(throws).toThrow(
-      new QstashWorkflowError(
+      new QStashWorkflowError(
         "A step can not be run inside another step. Tried to run 'inner sleepUntil' inside 'outer step'"
       )
     );
@@ -95,7 +95,7 @@ describe("context tests", () => {
       });
     };
     expect(throws).toThrow(
-      new QstashWorkflowError(
+      new QStashWorkflowError(
         "A step can not be run inside another step. Tried to run 'inner call' inside 'outer step'"
       )
     );
@@ -111,7 +111,7 @@ describe("context tests", () => {
       workflowRunId: "wfr-id",
     });
 
-    await mockQstashServer({
+    await mockQStashServer({
       // eslint-disable-next-line @typescript-eslint/require-await
       execute: async () => {
         const throws = () =>
@@ -161,13 +161,13 @@ describe("disabled workflow context", () => {
   describe("should throw abort for each step kind", () => {
     test("run", async () => {
       let called = false;
-      await mockQstashServer({
+      await mockQStashServer({
         // eslint-disable-next-line @typescript-eslint/require-await
         execute: async () => {
           const throws = disabledContext.run("run-step", async () => {
             return await Promise.resolve(1);
           });
-          expect(throws).rejects.toThrow(QstashWorkflowAbort);
+          expect(throws).rejects.toThrow(QStashWorkflowAbort);
           called = true;
         },
         responseFields: {
@@ -180,11 +180,11 @@ describe("disabled workflow context", () => {
     });
     test("sleep", async () => {
       let called = false;
-      await mockQstashServer({
+      await mockQStashServer({
         // eslint-disable-next-line @typescript-eslint/require-await
         execute: async () => {
           const throws = disabledContext.sleep("sleep-step", 1);
-          expect(throws).rejects.toThrow(QstashWorkflowAbort);
+          expect(throws).rejects.toThrow(QStashWorkflowAbort);
           called = true;
         },
         responseFields: {
@@ -197,11 +197,11 @@ describe("disabled workflow context", () => {
     });
     test("run", async () => {
       let called = false;
-      await mockQstashServer({
+      await mockQStashServer({
         // eslint-disable-next-line @typescript-eslint/require-await
         execute: async () => {
           const throws = disabledContext.sleepUntil("sleepUntil-step", 1);
-          expect(throws).rejects.toThrow(QstashWorkflowAbort);
+          expect(throws).rejects.toThrow(QStashWorkflowAbort);
           called = true;
         },
         responseFields: {
@@ -214,11 +214,11 @@ describe("disabled workflow context", () => {
     });
     test("run", async () => {
       let called = false;
-      await mockQstashServer({
+      await mockQStashServer({
         // eslint-disable-next-line @typescript-eslint/require-await
         execute: async () => {
           const throws = disabledContext.call("call-step", "some-url", "GET");
-          expect(throws).rejects.toThrow(QstashWorkflowAbort);
+          expect(throws).rejects.toThrow(QStashWorkflowAbort);
           called = true;
         },
         responseFields: {
@@ -247,7 +247,7 @@ describe("disabled workflow context", () => {
       };
 
       let called = false;
-      await mockQstashServer({
+      await mockQStashServer({
         execute: async () => {
           const result = await DisabledWorkflowContext.tryAuthentication(endpoint, disabledContext);
           expect(result.isOk()).toBeTrue();
@@ -270,7 +270,7 @@ describe("disabled workflow context", () => {
       };
 
       let called = false;
-      await mockQstashServer({
+      await mockQStashServer({
         execute: async () => {
           const result = await DisabledWorkflowContext.tryAuthentication(endpoint, disabledContext);
           expect(result.isOk()).toBeTrue();
@@ -293,7 +293,7 @@ describe("disabled workflow context", () => {
       };
 
       let called = false;
-      await mockQstashServer({
+      await mockQStashServer({
         execute: async () => {
           const result = await DisabledWorkflowContext.tryAuthentication(endpoint, disabledContext);
           expect(result.isErr()).toBeTrue();
