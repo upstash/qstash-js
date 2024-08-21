@@ -31,6 +31,11 @@
       "import": "./nextjs.js",
       "require": "./nextjs.js"
     },
+    "./h3": {
+      "types": "./h3.d.ts",
+      "import": "./h3.mjs",
+      "require": "./h3.js"
+    },
     "./nuxt": {
       "types": "./nuxt.d.ts",
       "import": "./nuxt.mjs",
