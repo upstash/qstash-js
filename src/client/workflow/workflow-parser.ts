@@ -15,10 +15,10 @@ import type {
   WorkflowServeOptions,
   WorkflowClient,
 } from "./types";
-import { nanoid } from "nanoid";
 import type { WorkflowLogger } from "./logger";
 import { WorkflowContext } from "./context";
 import { recreateUserHeaders } from "./workflow-requests";
+import { nanoid } from "../utils";
 
 /**
  * Gets the request body. If that fails, returns undefined
