@@ -38,14 +38,16 @@ export const processOptions = <TResponse extends Response = Response, TInitialPa
   WorkflowServeOptions<TResponse, TInitialPayload>,
   "verbose" | "receiver" | "url" | "failureFunction" | "failureUrl" | "baseUrl"
 > => {
+  const environment = typeof process === "undefined" ? ({} as Record<string, string>) : process.env;
+
   const receiverEnvironmentVariablesSet = Boolean(
-    process.env.QSTASH_CURRENT_SIGNING_KEY && process.env.QSTASH_NEXT_SIGNING_KEY
+    environment.QSTASH_CURRENT_SIGNING_KEY && environment.QSTASH_NEXT_SIGNING_KEY
   );
 
   return {
     qstashClient: new Client({
-      baseUrl: process.env.QSTASH_URL!,
-      token: process.env.QSTASH_TOKEN!,
+      baseUrl: environment.QSTASH_URL!,
+      token: environment.QSTASH_TOKEN!,
     }),
     onStepFinish: (workflowRunId: string, finishCondition: FinishCondition) =>
       new Response(JSON.stringify({ workflowRunId, finishCondition }), {
@@ -72,11 +74,11 @@ export const processOptions = <TResponse extends Response = Response, TInitialPa
     },
     receiver: receiverEnvironmentVariablesSet
       ? new Receiver({
-          currentSigningKey: process.env.QSTASH_CURRENT_SIGNING_KEY!,
-          nextSigningKey: process.env.QSTASH_NEXT_SIGNING_KEY!,
+          currentSigningKey: environment.QSTASH_CURRENT_SIGNING_KEY!,
+          nextSigningKey: environment.QSTASH_NEXT_SIGNING_KEY!,
         })
       : undefined,
-    baseUrl: process.env.UPSTASH_WORKFLOW_URL,
+    baseUrl: environment.UPSTASH_WORKFLOW_URL,
     ...options,
   };
 };
