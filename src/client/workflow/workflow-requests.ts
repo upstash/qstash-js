@@ -265,11 +265,12 @@ export const getHeaders = (
 
   if (userHeaders) {
     for (const header of userHeaders.keys()) {
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      baseHeaders[`Upstash-Forward-${header}`] = userHeaders.get(header)!;
       if (step?.callHeaders) {
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         baseHeaders[`Upstash-Callback-Forward-${header}`] = userHeaders.get(header)!;
+      } else {
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        baseHeaders[`Upstash-Forward-${header}`] = userHeaders.get(header)!;
       }
     }
   }

@@ -343,7 +343,7 @@ describe.skip("live serve tests", () => {
     }
   );
 
-  test.only(
+  test(
     "call endpoint",
     async () => {
       const thirdPartyResult = "third-party-result";
