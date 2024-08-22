@@ -9,23 +9,26 @@ export const POST = serve<string>(
   async context => {
     const input = context.requestPayload
 
-    const result1 = await context.run("step1", async () => {
-      const output = someWork(input)
-      console.log("step 1 input", input, "output", output)
-      return output
-    });
+    const response = await context.call<string>(
+      "call open ai",
+      "https://api.openai.com/v1/chat/completions",
+      "POST", 
+      {
+        model: "gpt-4o",
+        messages: [
+          { role: "system", content: "You are a helpful assistant." },
+          { role: "user", content: "Don't you think life is awesome?" }
+        ]
+      },
+      {
+        authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+      }
+    );
 
-    const getResult = await context.call<string>("get call", `${context.url}-endpoint`, "GET")
-
-    const result2 = await context.run("step2", async () => {
-      console.log("get result:", getResult);
-      return someWork(getResult)
+    const processedResponse = await context.run("handle response", async () => {
+      return `model response ${response}`
     })
 
-    const postResult = await context.call<string>("post call", `${context.url}-endpoint`, "POST", "my-payload")
-
-    const result3 = await context.run("step3", async () => {
-      console.log("post result:", postResult)
-    });
+    console.log(processedResponse);    
   }
 )

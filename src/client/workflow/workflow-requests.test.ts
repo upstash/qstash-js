@@ -9,7 +9,7 @@ import {
   triggerRouteFunction,
   triggerWorkflowDelete,
 } from "./workflow-requests";
-import { QstashWorkflowAbort } from "../error";
+import { QStashWorkflowAbort } from "../error";
 import { WorkflowContext } from "./context";
 import { Client } from "../client";
 import type { Step, StepType } from "./types";
@@ -24,7 +24,7 @@ import {
 import {
   MOCK_QSTASH_SERVER_URL,
   MOCK_SERVER_URL,
-  mockQstashServer,
+  mockQStashServer,
   WORKFLOW_ENDPOINT,
 } from "./test-utils";
 
@@ -43,7 +43,7 @@ describe("Workflow Requests", () => {
       url: WORKFLOW_ENDPOINT,
     });
 
-    await mockQstashServer({
+    await mockQStashServer({
       execute: async () => {
         const result = await triggerFirstInvocation(context);
         expect(result.isOk()).toBeTrue();
@@ -62,10 +62,10 @@ describe("Workflow Requests", () => {
   });
 
   describe("triggerRouteFunction", () => {
-    test("should get step-finished when QstashWorkflowAbort is thrown", async () => {
+    test("should get step-finished when QStashWorkflowAbort is thrown", async () => {
       const result = await triggerRouteFunction({
         onStep: () => {
-          throw new QstashWorkflowAbort("name");
+          throw new QStashWorkflowAbort("name");
         },
         onCleanup: async () => {
           await Promise.resolve();
@@ -179,7 +179,7 @@ describe("Workflow Requests", () => {
       });
 
       // create mock server and run the code
-      await mockQstashServer({
+      await mockQStashServer({
         execute: async () => {
           const result = await handleThirdPartyCallResult(
             request,

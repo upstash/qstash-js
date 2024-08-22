@@ -379,7 +379,7 @@ describe.skip("live serve tests", () => {
       const finishState = new FinishState();
       await testEndpoint({
         finalCount: 7,
-        waitFor: 10_000,
+        waitFor: 12_000,
         initialPayload: "my-payload",
         finishState,
         routeFunction: async (context) => {
@@ -440,10 +440,11 @@ describe.skip("live serve tests", () => {
             throw new Error("my-custom-error");
           });
         },
-        failureFunction: async (context, failStatus, failResponse) => {
+        failureFunction: async (context, failStatus, failResponse, failHeaders) => {
           expect(failStatus).toBe(500);
           expect(failResponse).toBe("my-custom-error");
           expect(context.headers.get("authentication")).toBe("Bearer secretPassword");
+          expect(failHeaders["Content-Length"][0]).toBe("45");
           finishState.finish();
           return;
         },

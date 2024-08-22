@@ -1,10 +1,12 @@
-# Qstash Workflow Solid.js Example
+# QStash Workflow Solid.js Example
 
-This project has some routes showcasing how Qstash Workflow can be used in a Solid.js project.
+This project has some routes showcasing how QStash Workflow can be used in a Solid.js project.
 
 Under the `src/routes` directory, you will find 7 files. `index.tsx` is the landing page. Rest except the `-call-qstash` are the routes corresponding to a workflow API.
 
 Here is what these `-call-qstash` endpoint does: The user calls `-call-qstash` with information about which endpoint is to be called in the body. `-call-qstash` publishes a message to QStash. QStash then calls the specified endpoint.
+
+![flow-diagram](../imgs/flow-diagram.png)
 
 To run the app locally, first set the environment variables `QSTASH_URL`, `QSTASH_TOKEN`, `QSTASH_CURRENT_SIGNING_KEY` and `QSTASH_NEXT_SIGNING_KEY`. You can find the values of the env variables from the [Upstash Console](https://console.upstash.com/qstash). `QSTASH_URL` should be `https://qstash.upstash.io`. 
 

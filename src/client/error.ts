@@ -61,27 +61,27 @@ export class QstashDailyRatelimitError extends QstashError {
 /**
  * Error raised during Workflow execution
  */
-export class QstashWorkflowError extends QstashError {
+export class QStashWorkflowError extends QstashError {
   constructor(message: string) {
     super(message);
-    this.name = "QstashWorkflowError";
+    this.name = "QStashWorkflowError";
   }
 }
 
 /**
  * Raised when the workflow executes a function and aborts
  */
-export class QstashWorkflowAbort extends Error {
+export class QStashWorkflowAbort extends Error {
   public stepInfo?: Step;
   public stepName: string;
 
   constructor(stepName: string, stepInfo?: Step) {
     super(
       "This is an QStash Workflow error thrown after a step executes. It is expected to be raised." +
-        " If you are using try/catch blocks, you should not wrap context.run/sleep/sleepUntil/call methods with try/catch." +
+        " Make sure that you await for each step. Also, if you are using try/catch blocks, you should not wrap context.run/sleep/sleepUntil/call methods with try/catch." +
         ` Aborting workflow after executing step '${stepName}'.`
     );
-    this.name = "QstashWorkflowAbort";
+    this.name = "QStashWorkflowAbort";
     this.stepName = stepName;
     this.stepInfo = stepInfo;
   }

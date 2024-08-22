@@ -4,6 +4,25 @@ import type { HTTPMethods } from "../types";
 import type { WorkflowContext } from "./context";
 import type { WorkflowLogger } from "./logger";
 
+/**
+ * Interface for Client with required methods
+ *
+ * Neeeded to resolve import issues
+ */
+export type WorkflowClient = {
+  batchJSON: InstanceType<typeof Client>["batchJSON"];
+  publishJSON: InstanceType<typeof Client>["publishJSON"];
+  http: InstanceType<typeof Client>["http"];
+};
+/**
+ * Interface for Receiver with required methods
+ *
+ * Neeeded to resolve import issues
+ */
+export type WorkflowReceiver = {
+  verify: InstanceType<typeof Receiver>["verify"];
+};
+
 export const StepTypes = ["Initial", "Run", "SleepFor", "SleepUntil", "Call"] as const;
 export type StepType = (typeof StepTypes)[number];
 
@@ -95,7 +114,7 @@ export type WorkflowServeOptions<
   /**
    * QStash client
    */
-  qstashClient?: Client;
+  qstashClient?: WorkflowClient;
   /**
    * Function called to return a response after each step execution
    *
@@ -127,7 +146,7 @@ export type WorkflowServeOptions<
    * By default, a receiver is created from the env variables
    * QSTASH_CURRENT_SIGNING_KEY and QSTASH_NEXT_SIGNING_KEY if they are set.
    */
-  receiver?: Receiver;
+  receiver?: WorkflowReceiver;
   /**
    * Url to call if QStash retries are exhausted while executing the workflow
    */
@@ -145,7 +164,8 @@ export type WorkflowServeOptions<
   failureFunction?: (
     context: Omit<WorkflowContext, "run" | "sleepUntil" | "sleep" | "call">,
     failStatus: number,
-    failResponse: string
+    failResponse: string,
+    failHeader: Record<string, string[]>
   ) => Promise<void>;
   /**
    * Base Url of the workflow endpoint

@@ -13,7 +13,7 @@ import { Workflow } from "./workflow";
 
 type ClientConfig = {
   /**
-   * Url of the qstash api server.
+   * Url of the QStash api server.
    *
    * This is only used for testing.
    *

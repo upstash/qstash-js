@@ -7,7 +7,7 @@ import {
   driveWorkflow,
   getRequest,
   MOCK_QSTASH_SERVER_URL,
-  mockQstashServer,
+  mockQStashServer,
   WORKFLOW_ENDPOINT,
 } from "./test-utils";
 import { nanoid } from "nanoid";
@@ -44,7 +44,7 @@ describe("serve", () => {
 
     const initialPayload = nanoid();
     const request = new Request(WORKFLOW_ENDPOINT, { method: "POST", body: initialPayload });
-    await mockQstashServer({
+    await mockQStashServer({
       execute: async () => {
         await endpoint(request);
       },
@@ -184,7 +184,7 @@ describe("serve", () => {
 
     const request = getRequest(WORKFLOW_ENDPOINT, "wfr-bar", "my-payload", []);
     let called = false;
-    await mockQstashServer({
+    await mockQStashServer({
       execute: async () => {
         // endpoint will throw an error, which will result in a 500 response
         // when used as an actual endpoint
@@ -212,7 +212,7 @@ describe("serve", () => {
 
     const request = getRequest(WORKFLOW_ENDPOINT, "wfr-foo", "my-payload", []);
     let called = false;
-    await mockQstashServer({
+    await mockQStashServer({
       execute: async () => {
         const response = await endpoint(request);
         const { workflowRunId, finishCondition } = (await response.json()) as {
@@ -257,7 +257,7 @@ describe("serve", () => {
       ]
       const request = getRequest(WORKFLOW_ENDPOINT, "wfr-foo", "my-payload", stepsWithDuplicate);
       let called = false;
-      await mockQstashServer({
+      await mockQStashServer({
         execute: async () => {
           const response = await endpoint(request);
           const { workflowRunId, finishCondition } = (await response.json()) as {
@@ -283,7 +283,7 @@ describe("serve", () => {
       ]
       const request = getRequest(WORKFLOW_ENDPOINT, "wfr-foo", "my-payload", stepsWithDuplicate);
       let called = false;
-      await mockQstashServer({
+      await mockQStashServer({
         execute: async () => {
           const response = await endpoint(request);
           const { workflowRunId, finishCondition } = (await response.json()) as {
@@ -332,7 +332,7 @@ describe("serve", () => {
         receiver: undefined,
       });
       let called = false;
-      await mockQstashServer({
+      await mockQStashServer({
         execute: async () => {
           await endpoint(request);
           called = true;
@@ -371,7 +371,7 @@ describe("serve", () => {
         failureUrl: myFailureEndpoint,
       });
       let called = false;
-      await mockQstashServer({
+      await mockQStashServer({
         execute: async () => {
           await endpoint(request);
           called = true;
@@ -419,7 +419,7 @@ describe("serve", () => {
         receiver: undefined,
         failureFunction: myFailureFunction,
       });
-      await mockQstashServer({
+      await mockQStashServer({
         execute: async () => {
           await endpoint(request);
           called = true;

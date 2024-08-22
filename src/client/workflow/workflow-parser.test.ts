@@ -10,7 +10,7 @@ import {
 import { nanoid } from "nanoid";
 import type { RawStep, Step, WorkflowServeOptions } from "./types";
 import { getRequest, WORKFLOW_ENDPOINT } from "./test-utils";
-import { formatWorkflowError, QstashWorkflowError } from "../error";
+import { formatWorkflowError, QStashWorkflowError } from "../error";
 import { Client } from "../client";
 import { processOptions } from "./serve";
 
@@ -51,7 +51,7 @@ describe("Workflow Parser", () => {
       });
 
       const throws = () => validateRequest(request);
-      expect(throws).toThrow(new QstashWorkflowError("Couldn't get workflow id from header"));
+      expect(throws).toThrow(new QStashWorkflowError("Couldn't get workflow id from header"));
     });
 
     test("should throw when protocol version is incompatible", () => {
@@ -64,7 +64,7 @@ describe("Workflow Parser", () => {
 
       const throws = () => validateRequest(request);
       expect(throws).toThrow(
-        new QstashWorkflowError(
+        new QStashWorkflowError(
           `Incompatible workflow sdk protocol version.` +
             ` Expected ${WORKFLOW_PROTOCOL_VERSION}, got ${requestProtocol} from the request.`
         )
@@ -114,7 +114,7 @@ describe("Workflow Parser", () => {
       const requestPayload = (await getPayload(request)) ?? "";
       const throws = parseRequest(requestPayload, false);
       expect(throws).rejects.toThrow(
-        new QstashWorkflowError("Only first call can have an empty body")
+        new QStashWorkflowError("Only first call can have an empty body")
       );
     });
 
@@ -554,7 +554,7 @@ describe("Workflow Parser", () => {
     const body = {
       status: 201,
       header: { myHeader: "value" },
-      body: btoa(JSON.stringify(formatWorkflowError(new QstashWorkflowError(failMessage)))),
+      body: btoa(JSON.stringify(formatWorkflowError(new QStashWorkflowError(failMessage)))),
       url: WORKFLOW_ENDPOINT,
       sourceHeader: {
         Authorization: authorization,
@@ -597,7 +597,7 @@ describe("Workflow Parser", () => {
       expect(result2.isOk() && result2.value === "not-failure-callback").toBeTrue();
     });
 
-    test("should throw QstashWorkflowError if header is set but function is not passed", async () => {
+    test("should throw QStashWorkflowError if header is set but function is not passed", async () => {
       const request = new Request(WORKFLOW_ENDPOINT, {
         headers: {
           [WORKFLOW_FAILURE_HEADER]: "true",
@@ -606,7 +606,7 @@ describe("Workflow Parser", () => {
 
       const result = await handleFailure(request, "", client, initialPayloadParser);
       expect(result.isErr()).toBeTrue();
-      expect(result.isErr() && result.error.name).toBe(QstashWorkflowError.name);
+      expect(result.isErr() && result.error.name).toBe(QStashWorkflowError.name);
       expect(result.isErr() && result.error.message).toBe(
         "Workflow endpoint is called to handle a failure," +
           " but a failureFunction is not provided in serve options." +

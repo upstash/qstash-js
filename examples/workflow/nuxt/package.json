@@ -10,7 +10,7 @@
     "postinstall": "nuxt prepare"
   },
   "dependencies": {
-    "@upstash/qstash": "file:../../../dist",
+    "@upstash/qstash": "^2.7.0-workflow-alpha.3",
     "nuxt": "^3.12.4",
     "vue": "latest"
   },

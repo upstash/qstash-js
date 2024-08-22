@@ -18,7 +18,7 @@ import { serve } from "./serve";
 import {
   getRequestBody,
   MOCK_QSTASH_SERVER_URL,
-  mockQstashServer,
+  mockQStashServer,
   WORKFLOW_ENDPOINT,
 } from "./test-utils";
 import { Client } from "../client";
@@ -149,7 +149,7 @@ describe("receiver", () => {
         await endpoint(requestWithoutSignature);
       };
 
-      await mockQstashServer({
+      await mockQStashServer({
         // eslint-disable-next-line @typescript-eslint/require-await
         execute: async () => {
           expect(throws).toThrow(
@@ -174,7 +174,7 @@ describe("receiver", () => {
         await endpoint(requestWithoutSignature);
       };
 
-      await mockQstashServer({
+      await mockQStashServer({
         // eslint-disable-next-line @typescript-eslint/require-await
         execute: async () => {
           expect(throws).toThrow(
@@ -196,7 +196,7 @@ describe("receiver", () => {
       });
 
       let called = false;
-      await mockQstashServer({
+      await mockQStashServer({
         execute: async () => {
           called = true;
           await endpoint(requestWithHeader);
@@ -233,7 +233,7 @@ describe("receiver", () => {
         await endpoint(thirdPartyRequestWithoutHeader);
       };
 
-      await mockQstashServer({
+      await mockQStashServer({
         // eslint-disable-next-line @typescript-eslint/require-await
         execute: async () => {
           expect(throws).toThrow(
@@ -265,7 +265,7 @@ describe("receiver", () => {
         await endpoint(thirdPartyRequestWithoutHeader);
       };
 
-      await mockQstashServer({
+      await mockQStashServer({
         // eslint-disable-next-line @typescript-eslint/require-await
         execute: async () => {
           expect(throws).toThrow(
@@ -296,7 +296,7 @@ describe("receiver", () => {
       });
 
       let called = false;
-      await mockQstashServer({
+      await mockQStashServer({
         execute: async () => {
           called = true;
           await endpoint(thirdPartyRequestWithHeader);
@@ -344,7 +344,7 @@ describe("receiver", () => {
         await endpoint(requestWithoutHeader);
       };
 
-      await mockQstashServer({
+      await mockQStashServer({
         // eslint-disable-next-line @typescript-eslint/require-await
         execute: async () => {
           expect(throws).toThrow(
@@ -370,7 +370,7 @@ describe("receiver", () => {
         await endpoint(requestWithoutHeader);
       };
 
-      await mockQstashServer({
+      await mockQStashServer({
         // eslint-disable-next-line @typescript-eslint/require-await
         execute: async () => {
           expect(throws).toThrow(
@@ -394,7 +394,7 @@ describe("receiver", () => {
       });
 
       let called = false;
-      await mockQstashServer({
+      await mockQStashServer({
         execute: async () => {
           called = true;
           await endpoint(thirdPartyRequestWithHeader);

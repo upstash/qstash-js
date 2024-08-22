@@ -1,15 +1,18 @@
-# Qstash Workflow Nextjs Example
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fupstash%2Fqstash-js%2Ftree%2Fmain%2Fexamples%2Fworkflow%2Fnextjs&env=QSTASH_TOKEN,OPENAI_API_KEY&envDescription=OPENAI_API_KEY%20is%20only%20required%20for%20the%20%60call%60%20endpoint.%20For%20other%20endpoints%2C%20you%20can%20enter%20a%20random%20OPENAI_API_KEY%20key%20since%20it%20won't%20be%20used.&project-name=qstash-workflow&repository-name=qstash-workflow&demo-title=Upstash%20-%20QStash%20Workflow%20Example&demo-description=A%20Next.js%20Application%20Utilizing%20QStash%20Workflows)
 
-This project has some routes showcasing how Qstash Workflow can be used in a nextjs project.
+# QStash Workflow Nextjs Example
 
-Under the app directory, you will find 10 folders, each corresponding to a workflow API except the `-call-qstash` and `call-endpoint`. Here is what these two endpoints do:
-- `-call-qstash`: the user calls `-call-qstash` with information about which endpoint is to be called in the body. `-call-qstash` publishes a message to QStash. QStash then calls the specified endpoint.
-- `call-endpoint`: used in the `call` endpoint as the third party endpoint called by QStash
-using the `context.call` method.
+This project has some routes showcasing how QStash Workflow can be used in a nextjs project.
 
-In each of these folders, you will find the `route.ts` file which defines the workflow.
+Under the app directory, you will find 8 folders, each corresponding to a workflow API except the `-call-qstash`. In each of these folders, you will find the `route.ts` file which defines the workflow.
+
+The user calls `-call-qstash` with information about which endpoint is to be called in the body. `-call-qstash` publishes a message to QStash. QStash then calls the specified endpoint.
+
+![flow-diagram](../imgs/flow-diagram.png)
 
 ## Deploying the Project at Vercel
+
+To deploy the project, you can simply use the `Deploy with Vercel` button at the top of this README. If you want to edit the project and deploy it, you can read the rest of this section.
 
 To deploy the project at vercel and try the endpoints, you should start with setting up the project by running:
 

@@ -8,8 +8,9 @@ export default defineEventHandler(async (event: H3Event) => {
   const { route, payload } = await readBody(event) as { route: string, payload: unknown };
 
   try {
+    const baseUrl = process.env.UPSTASH_WORKFLOW_URL ?? event.node.req.url?.replace("/api/callQstash", "")
     const { messageId } = await client.publishJSON({
-      url: `${process.env.UPSTASH_WORKFLOW_URL}/api/${route}`,
+      url: `${baseUrl}/api/${route}`,
       body: payload,
     });
 
