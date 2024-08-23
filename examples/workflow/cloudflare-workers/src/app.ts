@@ -1,34 +1,30 @@
 import { Hono } from "hono";
 import { serve, WorkflowBindings } from "@upstash/qstash/hono"
+import { landingPage } from "./page";
 
 const app = new Hono<{ Bindings: WorkflowBindings }>();
 
 app.get("/", (c) => {
-  const landingPage = `
-    <html>
-      <body>
-        <h1>Available Endpoints</h1>
-        <ul>
-          <li><a href="/add-data">Add Data</a></li>
-          <li><a href="/chat">Chat</a></li>
-          <li><a href="/chat-stream">Chat Stream (Upstash)</a></li>
-          <li><a href="/chat-stream-openai">Chat Stream (Open AI)</a></li>
-        </ul>
-      </body>
-    </html>
-  `;
   return c.html(landingPage);
 });
 
-app.post("/workflow", serve<string>(
-  async (context) => {
-    const result = await context.run("step 1", async () => {
-      return "some result" + context.requestPayload
-    })
+const someWork = (input: string) => {
+  return `processed '${JSON.stringify(input)}'`
+}
 
-    await context.run("step 2", async ()=> {
-      console.log(`${result} in step 2`);
-    })
+app.post("/workflow", serve<{text: string}>(
+  async context => {
+    const input = context.requestPayload.text
+    const result1 = await context.run("step1", async () => {
+      const output = someWork(input)
+      console.log("step 1 input", input, "output", output)
+      return output
+    });
+
+    const result2 = await context.run("step2", async () => {
+      const output = someWork(result1)
+      console.log("step 2 input", result1, "output", output)
+    });
   },
   {
     receiver: undefined,
