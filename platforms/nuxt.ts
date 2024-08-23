@@ -67,6 +67,15 @@ function transformHeaders(headers: IncomingHttpHeaders): [string, string][] {
   return formattedHeaders as [string, string][];
 }
 
+/**
+ * Serve method to serve a QStash workflow in a Nextjs project
+ *
+ * See for options https://upstash.com/docs/qstash/workflows/basics/serve
+ *
+ * @param routeFunction workflow function
+ * @param options workflow options
+ * @returns
+ */
 export const serve = <TInitialPayload = unknown>(
   routeFunction: RouteFunction<TInitialPayload>,
   options?: Omit<WorkflowServeOptions<Response, TInitialPayload>, "onStepFinish">

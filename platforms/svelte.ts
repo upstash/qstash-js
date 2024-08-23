@@ -52,6 +52,15 @@ export const verifySignatureSvelte = <
   return wrappedHandler;
 };
 
+/**
+ * Serve method to serve a QStash workflow in a Nextjs project
+ *
+ * See for options https://upstash.com/docs/qstash/workflows/basics/serve
+ *
+ * @param routeFunction workflow function
+ * @param options workflow options
+ * @returns
+ */
 export const serve = <TInitialPayload = unknown>(
   routeFunction: RouteFunction<TInitialPayload>,
   qstashClient: WorkflowServeOptions["qstashClient"],

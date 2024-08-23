@@ -10,6 +10,11 @@ import type { WorkflowLogger } from "./logger";
 import { QStashWorkflowAbort } from "../error";
 import { Client } from "../client";
 
+/**
+ * QStash workflow context
+ *
+ * See the docs for fields and methods https://upstash.com/docs/qstash/workflows/basics/context
+ */
 export class WorkflowContext<TInitialPayload = unknown> {
   protected readonly executor: AutoExecutor;
   protected readonly steps: Step[];
