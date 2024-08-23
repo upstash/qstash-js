@@ -136,7 +136,7 @@ export class WorkflowContext<TInitialPayload = unknown> {
    *
    * Default value is set to `process.env`.
    */
-  public readonly env;
+  public readonly env: Record<string, string | undefined>;
 
   constructor({
     qstashClient,
@@ -169,7 +169,7 @@ export class WorkflowContext<TInitialPayload = unknown> {
     this.headers = headers;
     this.requestPayload = initialPayload;
     this.rawInitialPayload = rawInitialPayload ?? JSON.stringify(this.requestPayload);
-    this.env = env;
+    this.env = env ?? {};
 
     this.executor = new AutoExecutor(this, this.steps, debug);
   }
@@ -347,6 +347,7 @@ export class DisabledWorkflowContext<
       failureUrl: context.failureUrl,
       initialPayload: context.requestPayload,
       rawInitialPayload: context.rawInitialPayload,
+      env: context.env,
     });
 
     try {

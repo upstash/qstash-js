@@ -6,7 +6,6 @@ import { Receiver } from "../src/receiver";
 
 import type { WorkflowServeOptions, RouteFunction } from "../src/client/workflow";
 import { serve as serveBase } from "../src/client/workflow";
-import { formatWorkflowError } from "../src/client/error";
 
 export type VerifySignatureConfig = {
   currentSigningKey?: string;
@@ -216,13 +215,6 @@ export const serve = <TInitialPayload = unknown>(
   });
 
   return async (request: NextRequest) => {
-    try {
-      return await handler(request);
-    } catch (error) {
-      console.error(error);
-      return new NextResponse(JSON.stringify(formatWorkflowError(error)), {
-        status: 500,
-      });
-    }
+    return await handler(request);
   };
 };

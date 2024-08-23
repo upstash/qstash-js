@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { Receiver } from "../../receiver";
 import { Client } from "../client";
+import { formatWorkflowError } from "../error";
 import { DisabledWorkflowContext, WorkflowContext } from "./context";
 import { WorkflowLogger } from "./logger";
 import type {
@@ -38,7 +39,8 @@ export const processOptions = <TResponse extends Response = Response, TInitialPa
   WorkflowServeOptions<TResponse, TInitialPayload>,
   "verbose" | "receiver" | "url" | "failureFunction" | "failureUrl" | "baseUrl"
 > => {
-  const environment = typeof process === "undefined" ? ({} as Record<string, string>) : process.env;
+  const environment =
+    options?.env ?? (typeof process === "undefined" ? ({} as Record<string, string>) : process.env);
 
   const receiverEnvironmentVariablesSet = Boolean(
     environment.QSTASH_CURRENT_SIGNING_KEY && environment.QSTASH_NEXT_SIGNING_KEY
@@ -125,7 +127,7 @@ export const serve = <
    * @param request - The incoming request to handle.
    * @returns A promise that resolves to a response.
    */
-  return async (request: TRequest) => {
+  const handler = async (request: TRequest) => {
     // set the workflow endpoint url. If baseUrl is set and initialWorkflowUrl
     // has localhost, replaces localhost with baseUrl
     const initialWorkflowUrl = url ?? request.url;
@@ -254,5 +256,14 @@ export const serve = <
     // response to QStash in call cases
     await debug?.log("INFO", "RESPONSE_DEFAULT");
     return onStepFinish("no-workflow-id", "fromCallback");
+  };
+
+  return async (request: TRequest) => {
+    try {
+      return await handler(request);
+    } catch (error) {
+      console.error(error);
+      return new Response(JSON.stringify(formatWorkflowError(error)), { status: 500 }) as TResponse;
+    }
   };
 };

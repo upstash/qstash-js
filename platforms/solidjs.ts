@@ -1,5 +1,5 @@
 import type { APIEvent, APIHandler } from "@solidjs/start/server";
-import { formatWorkflowError, Receiver } from "../src";
+import { Receiver } from "../src";
 
 import type { RouteFunction, WorkflowServeOptions } from "../src/client/workflow";
 import { serve as serveBase } from "../src/client/workflow";
@@ -73,14 +73,7 @@ export const serve = <TInitialPayload = unknown>(
     // create serve handler
     const serveHandler = serveBase<TInitialPayload>(routeFunction, options);
 
-    // invoke serve handler and return result
-    try {
-      const result = await serveHandler(event.request);
-      return result;
-    } catch (error) {
-      console.error(error);
-      return new Response(JSON.stringify(formatWorkflowError(error)), { status: 500 });
-    }
+    return await serveHandler(event.request);
   };
   return handler;
 };

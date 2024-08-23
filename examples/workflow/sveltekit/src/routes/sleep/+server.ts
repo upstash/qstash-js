@@ -30,14 +30,7 @@ export const POST = serve<string>(
       console.log("step 3 input", result2, "output", output)
     });
   },
-  new Client({
-    baseUrl: env.QSTASH_URL!,
-    token: env.QSTASH_TOKEN!,
-  }),
   {
-    receiver: new Receiver({
-      currentSigningKey: env.QSTASH_CURRENT_SIGNING_KEY,
-      nextSigningKey: env.QSTASH_NEXT_SIGNING_KEY,
-    })
+    env
   }
 )

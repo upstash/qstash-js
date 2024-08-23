@@ -1,7 +1,7 @@
 import type { Context } from "hono";
 import type { RouteFunction, WorkflowServeOptions } from "../src/client/workflow";
 import { serve as serveBase } from "../src/client/workflow";
-import { Client, formatWorkflowError, Receiver } from "../src";
+import { Client, Receiver } from "../src";
 
 export type WorkflowBindings = {
   QSTASH_TOKEN: string;
@@ -47,15 +47,7 @@ export const serve = <
       env: environment,
       ...options,
     });
-
-    try {
-      return context.json(await serveHandler(request));
-    } catch (error) {
-      console.error(error);
-      // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-      return context.json(formatWorkflowError(error), 500);
-    }
+    return await serveHandler(request);
   };
-
   return handler;
 };

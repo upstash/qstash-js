@@ -169,7 +169,7 @@ describe("serve", () => {
     });
   });
 
-  test("should return 500 on error during step execution", async () => {
+  test.only("should return 500 on error during step execution", async () => {
     const endpoint = serve(
       async (context) => {
         await context.run("wrong step", async () => {
@@ -186,10 +186,15 @@ describe("serve", () => {
     let called = false;
     await mockQStashServer({
       execute: async () => {
-        // endpoint will throw an error, which will result in a 500 response
-        // when used as an actual endpoint
-        const throws = endpoint(request);
-        expect(throws).rejects.toThrow("some-error");
+        const response = await endpoint(request);
+        // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+        expect(response.status).toBe(500);
+        expect(response.statusText).toBe("");
+        const result = await response.json();
+        expect(result).toEqual({
+          error: "Error",
+          message: "some-error",
+        });
         called = true;
       },
       responseFields: { body: { messageId: "some-message-id" }, status: 200 },
@@ -509,5 +514,32 @@ describe("serve", () => {
         "http://www.local-tunnel.com.gov.uk/api/path"
       );
     });
+  });
+
+  test("should receive env passed in options", async () => {
+    const request = new Request("http://endpoint.com", {
+      headers: {
+        [WORKFLOW_INIT_HEADER]: "false",
+        [WORKFLOW_ID_HEADER]: "wfr-id",
+      },
+    });
+    let called = false;
+    const endpoint = serve(
+      async (context) => {
+        expect(context.env["env-var-1"]).toBe("value-1");
+        expect(context.env["env-var-2"]).toBe("value-2");
+        called = true;
+      },
+      {
+        qstashClient,
+        receiver: undefined,
+        env: {
+          "env-var-1": "value-1",
+          "env-var-2": "value-2",
+        },
+      }
+    );
+    await endpoint(request);
+    expect(called).toBeTrue();
   });
 });

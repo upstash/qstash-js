@@ -1,6 +1,5 @@
 import { serve } from "@upstash/qstash/svelte";
 import { env } from '$env/dynamic/private'
-import { Client, Receiver } from "@upstash/qstash";
 
 const someWork = (input: string) => {
   return `processed '${JSON.stringify(input)}'`
@@ -20,14 +19,7 @@ export const POST = serve<string>(
       console.log("step 2 input", result1, "output", output)
     });
   },
-  new Client({
-    baseUrl: env.QSTASH_URL!,
-    token: env.QSTASH_TOKEN!,
-  }),
   {
-    receiver: new Receiver({
-      currentSigningKey: env.QSTASH_CURRENT_SIGNING_KEY,
-      nextSigningKey: env.QSTASH_NEXT_SIGNING_KEY,
-    })
+    env,
   }
 )

@@ -38,7 +38,7 @@ ngrok http 3001
 5. Send a `POST` request to the `/workflow` endpoint of the tunnel url.
 
 ```bash
-curl -X POST "https://<tunnel-url>.app/workflow"
+curl -X POST "https://<tunnel-url>.app/workflow" -d '{"text": "hello world!"}'
 ```
 
 ## Deployment
