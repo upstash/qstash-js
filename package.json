@@ -50,6 +50,11 @@
       "types": "./workflow.d.ts",
       "import": "./workflow.mjs",
       "require": "./workflow.js"
+    },
+    "./hono": {
+      "types": "./hono.d.ts",
+      "import": "./hono.mjs",
+      "require": "./hono.js"
     }
   },
   "typesVersions": {
@@ -98,6 +103,7 @@
     "@sveltejs/kit": "^2.5.18",
     "crypto-js": ">=4.2.0",
     "h3": "^1.12.0",
+    "hono": "^4.5.8",
     "jose": "^ 5.2.3"
   }
 }

@@ -79,6 +79,7 @@ export const processOptions = <TResponse extends Response = Response, TInitialPa
         })
       : undefined,
     baseUrl: environment.UPSTASH_WORKFLOW_URL,
+    env: environment,
     ...options,
   };
 };
@@ -110,6 +111,7 @@ export const serve = <
     failureUrl,
     failureFunction,
     baseUrl,
+    env,
   } = processOptions<TResponse, TInitialPayload>(options);
 
   const debug = WorkflowLogger.getLogger(verbose);
@@ -195,6 +197,7 @@ export const serve = <
       url: workflowUrl,
       failureUrl: workflowFailureUrl,
       debug,
+      env,
     });
 
     // attempt running routeFunction until the first step

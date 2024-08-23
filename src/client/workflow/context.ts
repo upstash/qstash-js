@@ -111,6 +111,27 @@ export class WorkflowContext<TInitialPayload = unknown> {
    * initial payload as a raw string
    */
   public readonly rawInitialPayload: string;
+  /**
+   * Map of environment variables and their values.
+   *
+   * Can be set using the `env` option of serve:
+   *
+   * ```ts
+   * export const POST = serve<MyPayload>(
+   *   async (context) => {
+   *     const key = context.env["API_KEY"];
+   *   },
+   *   {
+   *     env: {
+   *       "API_KEY": "*****";
+   *     }
+   *   }
+   * )
+   * ```
+   *
+   * Default value is set to `process.env`.
+   */
+  public readonly env;
 
   constructor({
     qstashClient,
@@ -122,6 +143,7 @@ export class WorkflowContext<TInitialPayload = unknown> {
     debug,
     initialPayload,
     rawInitialPayload,
+    env,
   }: {
     qstashClient: WorkflowClient;
     workflowRunId: string;
@@ -132,6 +154,7 @@ export class WorkflowContext<TInitialPayload = unknown> {
     debug?: WorkflowLogger;
     initialPayload: TInitialPayload;
     rawInitialPayload?: string; // optional for tests
+    env?: Record<string, string | undefined>;
   }) {
     this.qstashClient = qstashClient;
     this.workflowRunId = workflowRunId;
@@ -141,6 +164,7 @@ export class WorkflowContext<TInitialPayload = unknown> {
     this.headers = headers;
     this.requestPayload = initialPayload;
     this.rawInitialPayload = rawInitialPayload ?? JSON.stringify(this.requestPayload);
+    this.env = env;
 
     this.executor = new AutoExecutor(this, this.steps, debug);
   }

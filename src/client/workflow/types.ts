@@ -180,6 +180,13 @@ export type WorkflowServeOptions<
    * @default undefined
    */
   baseUrl?: string;
+  /**
+   * Optionally, one can pass an env object mapping environment
+   * variables to their keys.
+   *
+   * Useful in cases like cloudflare with hono.
+   */
+  env?: Record<string, string | undefined>;
 };
 
 /**
