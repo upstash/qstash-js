@@ -5,6 +5,7 @@ export default defineConfig({
     index: "./src/index.ts",
     workflow: "./src/client/workflow/index.ts",
     nextjs: "./platforms/nextjs.ts",
+    h3: "./platforms/h3.ts",
     nuxt: "./platforms/nuxt.ts",
     svelte: "./platforms/svelte.ts",
     solidjs: "./platforms/solidjs.ts",
