@@ -24,6 +24,6 @@
 	},
 	"type": "module",
 	"dependencies": {
-		"@upstash/qstash": "^2.7.0-workflow-alpha.3"
+		"@upstash/qstash": "file:../../../dist"
 	}
 }

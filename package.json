@@ -60,6 +60,11 @@
       "types": "./hono.d.ts",
       "import": "./hono.mjs",
       "require": "./hono.js"
+    },
+    "./cloudflare": {
+      "types": "./cloudflare.d.ts",
+      "import": "./cloudflare.mjs",
+      "require": "./cloudflare.js"
     }
   },
   "typesVersions": {

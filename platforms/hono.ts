@@ -1,7 +1,6 @@
 import type { Context } from "hono";
 import type { RouteFunction, WorkflowServeOptions } from "../src/client/workflow";
 import { serve as serveBase } from "../src/client/workflow";
-import { Client, Receiver } from "../src";
 
 export type WorkflowBindings = {
   QSTASH_TOKEN: string;
@@ -32,19 +31,9 @@ export const serve = <
     const request = context.req.raw;
 
     const serveHandler = serveBase(routeFunction, {
-      qstashClient: new Client({
-        baseUrl: environment.QSTASH_URL,
-        token: environment.QSTASH_TOKEN,
-      }),
-      receiver:
-        environment.QSTASH_CURRENT_SIGNING_KEY && environment.QSTASH_NEXT_SIGNING_KEY
-          ? new Receiver({
-              currentSigningKey: environment.QSTASH_CURRENT_SIGNING_KEY,
-              nextSigningKey: environment.QSTASH_NEXT_SIGNING_KEY,
-            })
-          : undefined,
-      baseUrl: environment.UPSTASH_WORKFLOW_URL,
-      env: environment,
+      // when hono is used without cf workers, it sends a DebugHTTPServer
+      // object in `context.env`. don't pass env if this is the case:
+      env: "QSTASH_TOKEN" in environment ? environment : undefined,
       ...options,
     });
     return await serveHandler(request);

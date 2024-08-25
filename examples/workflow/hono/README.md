@@ -1,6 +1,6 @@
-# QStash Workflow Cloudflare Workers Example
+# QStash Workflow Hono Example
 
-This is an example of how to use QStash Workflow with Cloudflare Workers.
+This is an example of how to use QStash Workflow in a Hono project.
 
 ## Development
 
@@ -10,7 +10,7 @@ This is an example of how to use QStash Workflow with Cloudflare Workers.
 > Simply set the environment variables as explained below and run the following command in the `qstash-js/examples/workflow` directory:
 > 
 > ```
-> bash bootstrap.sh cloudflare-workers
+> bash bootstrap.sh hono
 > ```
 
 1. Install the dependencies
@@ -19,7 +19,7 @@ This is an example of how to use QStash Workflow with Cloudflare Workers.
 npm install
 ```
 
-2. Get the credentials from the [Upstash Console](https://console.upstash.com/qstash) and add them to the `.dev.vars` file.
+2. Get the credentials from the [Upstash Console](https://console.upstash.com/qstash) and add them to the `.env` file.
 
 ```bash
 QSTASH_URL=
@@ -40,16 +40,8 @@ Also, set the `UPSTASH_WORKLFOW_URL` environment variable to the public url prov
 npm run dev
 ```
 
-5. Send a `POST` request to the endpoint.
+5. Send a `POST` request to the `/workflow` endpoint.
 
 ```bash
-curl -X POST "http:localhost:3001" -d '{"text": "hello world!"}'
-```
-
-## Deployment
-
-You can use wrangler to deploy the project to Cloudflare Workers.
-
-```bash
-npm run deploy
+curl -X POST "http:localhost:3001/workflow" -d '{"text": "hello world!"}'
 ```

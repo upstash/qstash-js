@@ -10,6 +10,7 @@ export default defineConfig({
     svelte: "./platforms/svelte.ts",
     solidjs: "./platforms/solidjs.ts",
     hono: "./platforms/hono.ts",
+    cloudflare: "./platforms/cloudflare.ts",
   },
   format: ["cjs", "esm"],
   splitting: true,

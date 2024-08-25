@@ -1,11 +1,19 @@
-import { serve } from "@upstash/qstash/cloudflare";
+import { Hono } from "hono";
+import { serve, WorkflowBindings } from "@upstash/qstash/hono"
+import { landingPage } from "./page";
+
+const app = new Hono<{ Bindings: WorkflowBindings }>();
+
+app.get("/", (c) => {
+  return c.html(landingPage);
+});
 
 const someWork = (input: string) => {
   return `processed '${JSON.stringify(input)}'`
 }
 
-export default {
-  fetch: serve<{text: string}>(async context => {
+app.post("/workflow", serve<{text: string}>(
+  async context => {
     const input = context.requestPayload.text
     const result1 = await context.run("step1", async () => {
       const output = someWork(input)
@@ -20,5 +28,7 @@ export default {
   },
   {
     receiver: undefined,
-  })
-};
+  }
+))
+
+export default app
