@@ -440,8 +440,7 @@ describe.skip("live serve tests", () => {
             throw new Error("my-custom-error");
           });
         },
-        // eslint-disable-next-line @typescript-eslint/require-await
-        failureFunction: async (context, failStatus, failResponse, failHeaders) => {
+        failureFunction: (context, failStatus, failResponse, failHeaders) => {
           expect(failStatus).toBe(500);
           expect(failResponse).toBe("my-custom-error");
           expect(context.headers.get("authentication")).toBe("Bearer secretPassword");
