@@ -169,7 +169,7 @@ describe("serve", () => {
     });
   });
 
-  test.only("should return 500 on error during step execution", async () => {
+  test("should return 500 on error during step execution", async () => {
     const endpoint = serve(
       async (context) => {
         await context.run("wrong step", async () => {

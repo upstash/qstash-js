@@ -83,7 +83,7 @@
   ],
   "scripts": {
     "build": "tsup && cp README.md ./dist/ && cp package.json ./dist/ && cp LICENSE ./dist/",
-    "test": "bun test",
+    "test": "bun test src",
     "fmt": "prettier --write .",
     "lint": "tsc && eslint \"src/**/*.{js,ts,tsx}\" --quiet --fix",
     "prepare": "husky install"
