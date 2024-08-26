@@ -421,6 +421,42 @@ describe.skip("live serve tests", () => {
     }
   );
 
+  test(
+    "async/sync run methods",
+    async () => {
+      const finishState = new FinishState();
+      await testEndpoint({
+        finalCount: 5,
+        waitFor: 7000,
+        initialPayload: "my-payload",
+        finishState,
+        routeFunction: async (context) => {
+          const result1 = await context.run("async step", async () => {
+            return await Promise.resolve("result1");
+          });
+
+          expect(result1).toBe("result1");
+
+          const result2 = await context.run("sync step", () => {
+            return "result2";
+          });
+
+          expect(result2).toBe("result2");
+
+          const result3 = await context.run("sync step returning promise", () => {
+            return Promise.resolve("result3");
+          });
+
+          expect(result3).toBe("result3");
+          finishState.finish();
+        },
+      });
+    },
+    {
+      timeout: 10_000,
+    }
+  );
+
   // TODO: remove skip after adding a parameter to set step retries
   test.skip(
     "failureFunction",

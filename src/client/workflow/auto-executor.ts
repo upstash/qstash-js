@@ -93,9 +93,12 @@ export class AutoExecutor {
    * @param stepFunction step function to wrap
    * @returns wrapped step function
    */
-  public async wrapStep<TResult = unknown>(stepName: string, stepFunction: StepFunction<TResult>) {
+  public wrapStep<TResult = unknown>(
+    stepName: string,
+    stepFunction: StepFunction<TResult>
+  ): TResult | Promise<TResult> {
     this.executingStep = stepName;
-    const result = await stepFunction();
+    const result = stepFunction();
     this.executingStep = false;
     return result;
   }

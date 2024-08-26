@@ -60,7 +60,10 @@ export class LazyFunctionStep<TResult = unknown> extends BaseLazyStep<TResult> {
   }
 
   public async getResultStep(concurrent: number, stepId: number): Promise<Step<TResult>> {
-    const result = await this.stepFunction();
+    let result = this.stepFunction();
+    if (result instanceof Promise) {
+      result = await result;
+    }
 
     return {
       stepId,
