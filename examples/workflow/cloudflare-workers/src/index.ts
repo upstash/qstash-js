@@ -1,13 +1,12 @@
-import { serve } from "@upstash/qstash/svelte";
-import { env } from '$env/dynamic/private'
+import { serve } from "@upstash/qstash/cloudflare";
 
 const someWork = (input: string) => {
   return `processed '${JSON.stringify(input)}'`
 }
 
-export const POST = serve<string>(
-  async context => {
-    const input = context.requestPayload
+export default {
+  fetch: serve<{text: string}>(async context => {
+    const input = context.requestPayload.text
     const result1 = await context.run("step1", async () => {
       const output = someWork(input)
       console.log("step 1 input", input, "output", output)
@@ -20,6 +19,6 @@ export const POST = serve<string>(
     });
   },
   {
-    env,
-  }
-)
+    receiver: undefined,
+  })
+};

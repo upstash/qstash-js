@@ -6,7 +6,6 @@ import { Receiver } from "../src/receiver";
 
 import type { WorkflowServeOptions, RouteFunction } from "../src/client/workflow";
 import { serve as serveBase } from "../src/client/workflow";
-import { formatWorkflowError } from "../src/client/error";
 
 export type VerifySignatureConfig = {
   currentSigningKey?: string;
@@ -196,6 +195,15 @@ export function verifySignatureAppRouter(
   };
 }
 
+/**
+ * Serve method to serve a QStash workflow in a Nextjs project
+ *
+ * See for options https://upstash.com/docs/qstash/workflows/basics/serve
+ *
+ * @param routeFunction workflow function
+ * @param options workflow options
+ * @returns
+ */
 export const serve = <TInitialPayload = unknown>(
   routeFunction: RouteFunction<TInitialPayload>,
   options?: Omit<WorkflowServeOptions<NextResponse, TInitialPayload>, "onStepFinish">
@@ -207,13 +215,6 @@ export const serve = <TInitialPayload = unknown>(
   });
 
   return async (request: NextRequest) => {
-    try {
-      return await handler(request);
-    } catch (error) {
-      console.error(error);
-      return new NextResponse(JSON.stringify(formatWorkflowError(error)), {
-        status: 500,
-      });
-    }
+    return await handler(request);
   };
 };

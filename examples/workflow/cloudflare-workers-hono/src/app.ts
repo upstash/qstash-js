@@ -1,13 +1,20 @@
-import { serve } from "@upstash/qstash/svelte";
-import { env } from '$env/dynamic/private'
+import { Hono } from "hono";
+import { serve, WorkflowBindings } from "@upstash/qstash/hono"
+import { landingPage } from "./page";
+
+const app = new Hono<{ Bindings: WorkflowBindings }>();
+
+app.get("/", (c) => {
+  return c.html(landingPage);
+});
 
 const someWork = (input: string) => {
   return `processed '${JSON.stringify(input)}'`
 }
 
-export const POST = serve<string>(
+app.post("/workflow", serve<{text: string}>(
   async context => {
-    const input = context.requestPayload
+    const input = context.requestPayload.text
     const result1 = await context.run("step1", async () => {
       const output = someWork(input)
       console.log("step 1 input", input, "output", output)
@@ -20,6 +27,8 @@ export const POST = serve<string>(
     });
   },
   {
-    env,
+    receiver: undefined,
   }
-)
+))
+
+export default app

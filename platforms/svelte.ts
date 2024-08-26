@@ -1,5 +1,5 @@
 import type { RequestHandler } from "@sveltejs/kit";
-import { formatWorkflowError, Receiver } from "../src";
+import { Receiver } from "../src";
 
 import type { RouteFunction, WorkflowServeOptions } from "../src/client/workflow";
 import { serve as serveBase } from "../src/client/workflow";
@@ -52,22 +52,24 @@ export const verifySignatureSvelte = <
   return wrappedHandler;
 };
 
+/**
+ * Serve method to serve a QStash workflow in a Nextjs project
+ *
+ * See for options https://upstash.com/docs/qstash/workflows/basics/serve
+ *
+ * @param routeFunction workflow function
+ * @param options workflow options
+ * @returns
+ */
 export const serve = <TInitialPayload = unknown>(
   routeFunction: RouteFunction<TInitialPayload>,
-  qstashClient: WorkflowServeOptions["qstashClient"],
-  options?: Omit<WorkflowServeOptions<Response, TInitialPayload>, "onStepFinish" | "qstashClient">
+  options: Omit<WorkflowServeOptions<Response, TInitialPayload>, "onStepFinish"> & {
+    env: WorkflowServeOptions["env"];
+  }
 ): RequestHandler => {
   const handler: RequestHandler = async ({ request }) => {
-    const serveMethod = serveBase<TInitialPayload>(routeFunction, {
-      qstashClient,
-      ...options,
-    });
-    try {
-      return await serveMethod(request);
-    } catch (error) {
-      console.error(error);
-      return new Response(JSON.stringify(formatWorkflowError(error)), { status: 500 });
-    }
+    const serveMethod = serveBase<TInitialPayload>(routeFunction, options);
+    return await serveMethod(request);
   };
 
   return handler;

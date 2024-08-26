@@ -15,10 +15,10 @@ import type {
   WorkflowServeOptions,
   WorkflowClient,
 } from "./types";
-import { nanoid } from "nanoid";
 import type { WorkflowLogger } from "./logger";
 import { WorkflowContext } from "./context";
 import { recreateUserHeaders } from "./workflow-requests";
+import { nanoid } from "../utils";
 
 /**
  * Gets the request body. If that fails, returns undefined
@@ -32,16 +32,6 @@ export const getPayload = async (request: Request) => {
   } catch {
     return;
   }
-};
-
-/**
- * decodes a string encoded in base64
- *
- * @param encodedString base64 encoded string
- * @returns decoded string
- */
-const decodeBase64 = (encodedString: string) => {
-  return Buffer.from(encodedString, "base64").toString();
 };
 
 /**
@@ -61,7 +51,7 @@ const parsePayload = (rawPayload: string) => {
   const [encodedInitialPayload, ...encodedSteps] = JSON.parse(rawPayload) as RawStep[];
 
   // decode initial payload:
-  const rawInitialPayload = decodeBase64(encodedInitialPayload.body);
+  const rawInitialPayload = atob(encodedInitialPayload.body);
   const initialStep: Step = {
     stepId: 0,
     stepName: "init",
@@ -75,7 +65,7 @@ const parsePayload = (rawPayload: string) => {
 
   // decode & parse other steps:
   const otherSteps = stepsToDecode.map((rawStep) => {
-    return JSON.parse(decodeBase64(rawStep.body)) as Step;
+    return JSON.parse(atob(rawStep.body)) as Step;
   });
 
   // join and deduplicate steps:

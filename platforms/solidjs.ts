@@ -1,5 +1,5 @@
 import type { APIEvent, APIHandler } from "@solidjs/start/server";
-import { formatWorkflowError, Receiver } from "../src";
+import { Receiver } from "../src";
 
 import type { RouteFunction, WorkflowServeOptions } from "../src/client/workflow";
 import { serve as serveBase } from "../src/client/workflow";
@@ -48,6 +48,15 @@ export const verifySignatureSolidjs = (
   };
 };
 
+/**
+ * Serve method to serve a QStash workflow in a Nextjs project
+ *
+ * See for options https://upstash.com/docs/qstash/workflows/basics/serve
+ *
+ * @param routeFunction workflow function
+ * @param options workflow options
+ * @returns
+ */
 export const serve = <TInitialPayload = unknown>(
   routeFunction: RouteFunction<TInitialPayload>,
   options?: Omit<WorkflowServeOptions<Response, TInitialPayload>, "onStepFinish">
@@ -64,14 +73,7 @@ export const serve = <TInitialPayload = unknown>(
     // create serve handler
     const serveHandler = serveBase<TInitialPayload>(routeFunction, options);
 
-    // invoke serve handler and return result
-    try {
-      const result = await serveHandler(event.request);
-      return result;
-    } catch (error) {
-      console.error(error);
-      return new Response(JSON.stringify(formatWorkflowError(error)), { status: 500 });
-    }
+    return await serveHandler(event.request);
   };
   return handler;
 };

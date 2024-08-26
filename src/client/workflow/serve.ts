@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { Receiver } from "../../receiver";
 import { Client } from "../client";
+import { formatWorkflowError } from "../error";
 import { DisabledWorkflowContext, WorkflowContext } from "./context";
 import { WorkflowLogger } from "./logger";
 import type {
@@ -38,14 +39,17 @@ export const processOptions = <TResponse extends Response = Response, TInitialPa
   WorkflowServeOptions<TResponse, TInitialPayload>,
   "verbose" | "receiver" | "url" | "failureFunction" | "failureUrl" | "baseUrl"
 > => {
+  const environment =
+    options?.env ?? (typeof process === "undefined" ? ({} as Record<string, string>) : process.env);
+
   const receiverEnvironmentVariablesSet = Boolean(
-    process.env.QSTASH_CURRENT_SIGNING_KEY && process.env.QSTASH_NEXT_SIGNING_KEY
+    environment.QSTASH_CURRENT_SIGNING_KEY && environment.QSTASH_NEXT_SIGNING_KEY
   );
 
   return {
     qstashClient: new Client({
-      baseUrl: process.env.QSTASH_URL!,
-      token: process.env.QSTASH_TOKEN!,
+      baseUrl: environment.QSTASH_URL!,
+      token: environment.QSTASH_TOKEN!,
     }),
     onStepFinish: (workflowRunId: string, finishCondition: FinishCondition) =>
       new Response(JSON.stringify({ workflowRunId, finishCondition }), {
@@ -72,11 +76,12 @@ export const processOptions = <TResponse extends Response = Response, TInitialPa
     },
     receiver: receiverEnvironmentVariablesSet
       ? new Receiver({
-          currentSigningKey: process.env.QSTASH_CURRENT_SIGNING_KEY!,
-          nextSigningKey: process.env.QSTASH_NEXT_SIGNING_KEY!,
+          currentSigningKey: environment.QSTASH_CURRENT_SIGNING_KEY!,
+          nextSigningKey: environment.QSTASH_NEXT_SIGNING_KEY!,
         })
       : undefined,
-    baseUrl: process.env.UPSTASH_WORKFLOW_URL,
+    baseUrl: environment.UPSTASH_WORKFLOW_URL,
+    env: environment,
     ...options,
   };
 };
@@ -108,6 +113,7 @@ export const serve = <
     failureUrl,
     failureFunction,
     baseUrl,
+    env,
   } = processOptions<TResponse, TInitialPayload>(options);
 
   const debug = WorkflowLogger.getLogger(verbose);
@@ -121,7 +127,7 @@ export const serve = <
    * @param request - The incoming request to handle.
    * @returns A promise that resolves to a response.
    */
-  return async (request: TRequest) => {
+  const handler = async (request: TRequest) => {
     // set the workflow endpoint url. If baseUrl is set and initialWorkflowUrl
     // has localhost, replaces localhost with baseUrl
     const initialWorkflowUrl = url ?? request.url;
@@ -193,6 +199,7 @@ export const serve = <
       url: workflowUrl,
       failureUrl: workflowFailureUrl,
       debug,
+      env,
     });
 
     // attempt running routeFunction until the first step
@@ -249,5 +256,14 @@ export const serve = <
     // response to QStash in call cases
     await debug?.log("INFO", "RESPONSE_DEFAULT");
     return onStepFinish("no-workflow-id", "fromCallback");
+  };
+
+  return async (request: TRequest) => {
+    try {
+      return await handler(request);
+    } catch (error) {
+      console.error(error);
+      return new Response(JSON.stringify(formatWorkflowError(error)), { status: 500 }) as TResponse;
+    }
   };
 };

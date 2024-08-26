@@ -1,0 +1,22 @@
+{
+  "name": "cloudflare-workers",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev --port 3001 --var UPSTASH_WORKFLOW_URL:$UPSTASH_WORKFLOW_URL",
+    "start": "wrangler dev --port 3001 --var UPSTASH_WORKFLOW_URL:$UPSTASH_WORKFLOW_URL",
+    "test": "vitest",
+    "cf-typegen": "wrangler types"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "^0.4.5",
+    "@cloudflare/workers-types": "^4.20240821.1",
+    "typescript": "^5.5.2",
+    "vitest": "1.5.0",
+    "wrangler": "^3.60.3"
+  },
+  "dependencies": {
+    "@upstash/qstash": "file:../../../dist"
+  }
+}

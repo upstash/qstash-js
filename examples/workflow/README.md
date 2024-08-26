@@ -24,18 +24,15 @@ bash bootstrap.sh <example-framework>
 Here is an example call:
 
 ```
-bash bootstrap.sh nextjs path
+bash bootstrap.sh nextjs
 ```
-
-You will still be able to use endpoints other than `path`. `path` will simply be what the home page will have as default endpoint.
 
 Here is what the script does in a nutshell:
 - create a Ngrok tunnel from `localhost:3001`
-- Public URL of the tunnel is inferred from Ngrok logs.
-- `context.ts` file in `@upstash/qstash` is updated with the URL from Ngrok.
-- `@upstash/qstash` is built and installed in the picked framework example
+- Public URL of the tunnel is inferred from Ngrok logs. This URL is set to the `UPSTASH_WORKFLOW_URL` environment variable.
+- `npm install` and `npm run dev` are executed in the example directory
 - a web browser is opened with the picked endpoint
 
-To use the app, simply enter the ngrok URL to the `Base URL` field of the form and send a request.
+To use the app, simply send a request through the opened interface.
 
-You will be able to see the workflow executing in the console logs. You can also monitor the events in [the QStash tab of Upstash Console](https://console.upstash.com/qstash?tab=events).
+You will be able to see the workflow executing in the console logs. You can also monitor the events in [the QStash tab of Upstash Console](https://console.upstash.com/qstash?tab=workflow).

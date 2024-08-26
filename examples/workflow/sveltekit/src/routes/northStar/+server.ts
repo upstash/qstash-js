@@ -66,14 +66,7 @@ export const POST = serve<Invoice>(
       return true
     })
   },
-  new Client({
-    baseUrl: env.QSTASH_URL!,
-    token: env.QSTASH_TOKEN!,
-  }),
   {
-    receiver: new Receiver({
-      currentSigningKey: env.QSTASH_CURRENT_SIGNING_KEY,
-      nextSigningKey: env.QSTASH_NEXT_SIGNING_KEY,
-    })
+    env
   }
 )

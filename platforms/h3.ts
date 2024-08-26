@@ -1,6 +1,6 @@
 import type { H3Event } from "h3";
 import { defineEventHandler, getHeader, readRawBody } from "h3";
-import { formatWorkflowError, Receiver } from "../src";
+import { Receiver } from "../src";
 
 import type { RouteFunction, WorkflowServeOptions } from "../src/client/workflow";
 import { serve as serveBase } from "../src/client/workflow";
@@ -93,12 +93,7 @@ export const serve = <TInitialPayload = unknown>(
     });
 
     const serveHandler = serveBase<TInitialPayload>(routeFunction, options);
-    try {
-      return await serveHandler(request);
-    } catch (error) {
-      console.error(error);
-      return new Response(JSON.stringify(formatWorkflowError(error)), { status: 500 });
-    }
+    return await serveHandler(request);
   });
   return handler;
 };

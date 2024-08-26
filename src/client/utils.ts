@@ -67,3 +67,12 @@ export function getRequestPath(
 ): string {
   return request.url ?? request.urlGroup ?? request.topic ?? `api/${request.api?.name}`;
 }
+
+const NANOID_CHARS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_";
+const NANOID_LENGTH = 21;
+
+export function nanoid() {
+  return [...crypto.getRandomValues(new Uint8Array(NANOID_LENGTH))]
+    .map((x) => NANOID_CHARS[x % NANOID_CHARS.length])
+    .join("");
+}

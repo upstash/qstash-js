@@ -8,7 +8,13 @@ export default defineEventHandler(async (event: H3Event) => {
   const { route, payload } = await readBody(event) as { route: string, payload: unknown };
 
   try {
-    const baseUrl = process.env.UPSTASH_WORKFLOW_URL ?? event.node.req.url?.replace("/api/callQstash", "")
+    const request_ = event.node.req;
+    const protocol = request_.headers["x-forwarded-proto"];
+    const host = request_.headers.host;
+    const url = `${protocol}://${host}${event.path}`;
+
+    const baseUrl = process.env.UPSTASH_WORKFLOW_URL ?? url?.replace("/api/callQstash", "")
+  
     const { messageId } = await client.publishJSON({
       url: `${baseUrl}/api/${route}`,
       body: payload,
