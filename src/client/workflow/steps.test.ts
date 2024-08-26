@@ -12,9 +12,8 @@ describe("test steps", () => {
 
   describe("function step", () => {
     const result = nanoid();
-    // eslint-disable-next-line unicorn/consistent-function-scoping
-    const stepFunction = async () => {
-      return await Promise.resolve(result);
+    const stepFunction = () => {
+      return result;
     };
     const step = new LazyFunctionStep(stepName, stepFunction);
 

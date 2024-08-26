@@ -1,5 +1,5 @@
 import type { HTTPMethods } from "../types";
-import type { AsyncStepFunction, Step, StepType } from "./types";
+import type { Step, StepFunction, StepType } from "./types";
 
 /**
  * Base class outlining steps. Basically, each step kind (run/sleep/sleepUntil)
@@ -39,10 +39,10 @@ export abstract class BaseLazyStep<TResult = unknown> {
  * Lazy step definition for `context.run` case
  */
 export class LazyFunctionStep<TResult = unknown> extends BaseLazyStep<TResult> {
-  private readonly stepFunction: AsyncStepFunction<TResult>;
+  private readonly stepFunction: StepFunction<TResult>;
   stepType: StepType = "Run";
 
-  constructor(stepName: string, stepFunction: AsyncStepFunction<TResult>) {
+  constructor(stepName: string, stepFunction: StepFunction<TResult>) {
     super(stepName);
     this.stepFunction = stepFunction;
   }

@@ -1,6 +1,6 @@
 import { QStashWorkflowAbort, QStashWorkflowError } from "../error";
 import type { WorkflowContext } from "./context";
-import type { AsyncStepFunction, ParallelCallState, Step } from "./types";
+import type { StepFunction, ParallelCallState, Step } from "./types";
 import { type BaseLazyStep } from "./steps";
 import { getHeaders } from "./workflow-requests";
 import type { WorkflowLogger } from "./logger";
@@ -93,10 +93,7 @@ export class AutoExecutor {
    * @param stepFunction step function to wrap
    * @returns wrapped step function
    */
-  public async wrapStep<TResult = unknown>(
-    stepName: string,
-    stepFunction: AsyncStepFunction<TResult>
-  ) {
+  public async wrapStep<TResult = unknown>(stepName: string, stepFunction: StepFunction<TResult>) {
     this.executingStep = stepName;
     const result = await stepFunction();
     this.executingStep = false;
