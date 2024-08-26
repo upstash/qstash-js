@@ -166,7 +166,7 @@ export type WorkflowServeOptions<
     failStatus: number,
     failResponse: string,
     failHeader: Record<string, string[]>
-  ) => Promise<void>;
+  ) => Promise<void> | void;
   /**
    * Base Url of the workflow endpoint
    *

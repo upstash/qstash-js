@@ -44,7 +44,6 @@
  * You may want to increase the `waitFor` and `timeout` parameters of the tests
  * because network takes some time.
  */
-/* eslint-disable @typescript-eslint/require-await */
 /* eslint-disable no-console */
 /* eslint-disable @typescript-eslint/no-magic-numbers */
 /* eslint-disable prefer-const */
@@ -199,7 +198,7 @@ describe.skip("live serve tests", () => {
           const input = context.requestPayload;
           expect(input).toBeUndefined();
 
-          const result1 = await context.run("step1", async () => {
+          const result1 = await context.run("step1", () => {
             const output = 123;
             return output;
           });
@@ -207,7 +206,7 @@ describe.skip("live serve tests", () => {
 
           await context.sleepUntil("sleep1", Date.now() / 1000 + 3);
 
-          const result2 = await context.run("step2", async () => {
+          const result2 = await context.run("step2", () => {
             const output = 234;
             return output;
           });
@@ -215,7 +214,7 @@ describe.skip("live serve tests", () => {
 
           await context.sleep("sleep2", 2);
 
-          const result3 = await context.run("step3", async () => {
+          const result3 = await context.run("step3", () => {
             const output = 345;
             return output;
           });
@@ -244,7 +243,7 @@ describe.skip("live serve tests", () => {
           expect(invoice).toEqual(payload);
 
           for (let index = 0; index < 3; index++) {
-            const charge = await context.run("attemptCharge", async () => {
+            const charge = await context.run("attemptCharge", () => {
               const success = attemptCharge();
               const charge: Charge = { invoice, success };
               return charge;
@@ -252,10 +251,10 @@ describe.skip("live serve tests", () => {
 
             if (charge.success) {
               const [updateDb, receipt, sleepResult] = await Promise.all([
-                context.run("updateDb", async () => {
+                context.run("updateDb", () => {
                   return charge.invoice.amount;
                 }),
-                context.run("sendReceipt", async () => {
+                context.run("sendReceipt", () => {
                   return charge.invoice.email;
                 }),
                 context.sleep("sleep", 5),
@@ -268,7 +267,7 @@ describe.skip("live serve tests", () => {
             }
             await context.sleep("retrySleep", 2);
           }
-          await context.run("paymentFailed", async () => {
+          await context.run("paymentFailed", () => {
             return true;
           });
         },
@@ -298,15 +297,15 @@ describe.skip("live serve tests", () => {
 
           expect(input).toBe("my-payload");
 
-          const result1 = await context.run("step1", async () => {
-            return await Promise.resolve(someWork(input));
+          const result1 = await context.run("step1", () => {
+            return someWork(input);
           });
 
           expect(result1).toBe("processed 'my-payload'");
 
-          const result2 = await context.run("step2", async () => {
+          const result2 = await context.run("step2", () => {
             const result = someWork(result1);
-            return await Promise.resolve(result);
+            return result;
           });
 
           expect(result2).toBe("processed 'processed 'my-payload''");
@@ -328,6 +327,7 @@ describe.skip("live serve tests", () => {
         waitFor: 4500,
         initialPayload: "my-payload",
         finishState,
+        // eslint-disable-next-line @typescript-eslint/require-await
         routeFunction: async (context) => {
           if (context.headers.get("authentication") !== "Bearer aDifferentPassword") {
             console.error("Authentication failed.");
@@ -421,6 +421,42 @@ describe.skip("live serve tests", () => {
     }
   );
 
+  test(
+    "async/sync run methods",
+    async () => {
+      const finishState = new FinishState();
+      await testEndpoint({
+        finalCount: 5,
+        waitFor: 7000,
+        initialPayload: "my-payload",
+        finishState,
+        routeFunction: async (context) => {
+          const result1 = await context.run("async step", async () => {
+            return await Promise.resolve("result1");
+          });
+
+          expect(result1).toBe("result1");
+
+          const result2 = await context.run("sync step", () => {
+            return "result2";
+          });
+
+          expect(result2).toBe("result2");
+
+          const result3 = await context.run("sync step returning promise", () => {
+            return Promise.resolve("result3");
+          });
+
+          expect(result3).toBe("result3");
+          finishState.finish();
+        },
+      });
+    },
+    {
+      timeout: 10_000,
+    }
+  );
+
   // TODO: remove skip after adding a parameter to set step retries
   test.skip(
     "failureFunction",
@@ -436,11 +472,11 @@ describe.skip("live serve tests", () => {
 
           expect(input).toBe("my-payload");
 
-          await context.run("step1", async () => {
+          await context.run("step1", () => {
             throw new Error("my-custom-error");
           });
         },
-        failureFunction: async (context, failStatus, failResponse, failHeaders) => {
+        failureFunction: (context, failStatus, failResponse, failHeaders) => {
           expect(failStatus).toBe(500);
           expect(failResponse).toBe("my-custom-error");
           expect(context.headers.get("authentication")).toBe("Bearer secretPassword");

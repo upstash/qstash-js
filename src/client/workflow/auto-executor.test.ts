@@ -102,10 +102,9 @@ describe("auto-executor", () => {
       const spyRunParallel = spyOn(context.executor, "runParallel");
 
       await mockQStashServer({
-        // eslint-disable-next-line @typescript-eslint/require-await
-        execute: async () => {
-          const throws = context.run("attemptCharge", async () => {
-            return await Promise.resolve({ input: context.requestPayload, success: false });
+        execute: () => {
+          const throws = context.run("attemptCharge", () => {
+            return { input: context.requestPayload, success: false };
           });
           expect(throws).rejects.toThrowError(QStashWorkflowAbort);
         },
@@ -152,8 +151,8 @@ describe("auto-executor", () => {
         execute: async () => {
           expect(context.executor.stepCount).toBe(0);
           expect(context.executor.planStepCount).toBe(0);
-          const result = await context.run("attemptCharge", async () => {
-            return await Promise.resolve({ input: context.requestPayload, success: false });
+          const result = await context.run("attemptCharge", () => {
+            return { input: context.requestPayload, success: false };
           });
           expect(context.executor.stepCount).toBe(1);
           expect(context.executor.planStepCount).toBe(0);
@@ -183,8 +182,7 @@ describe("auto-executor", () => {
       const spyRunParallel = spyOn(context.executor, "runParallel");
 
       await mockQStashServer({
-        // eslint-disable-next-line @typescript-eslint/require-await
-        execute: async () => {
+        execute: () => {
           expect(context.executor.getParallelCallState(2, 1)).toBe("first");
           const throws = Promise.all([
             context.sleep("sleep for some time", 123),
@@ -249,8 +247,7 @@ describe("auto-executor", () => {
       const spyRunParallel = spyOn(context.executor, "runParallel");
 
       await mockQStashServer({
-        // eslint-disable-next-line @typescript-eslint/require-await
-        execute: async () => {
+        execute: () => {
           expect(context.executor.getParallelCallState(2, 1)).toBe("partial");
           const throws = Promise.all([
             context.sleep("sleep for some time", 123),
@@ -301,8 +298,7 @@ describe("auto-executor", () => {
       const spyRunParallel = spyOn(context.executor, "runParallel");
 
       await mockQStashServer({
-        // eslint-disable-next-line @typescript-eslint/require-await
-        execute: async () => {
+        execute: () => {
           expect(context.executor.getParallelCallState(2, 1)).toBe("partial");
           const throws = Promise.all([
             context.sleep("sleep for some time", 123),
@@ -353,8 +349,7 @@ describe("auto-executor", () => {
       const spyRunParallel = spyOn(context.executor, "runParallel");
 
       await mockQStashServer({
-        // eslint-disable-next-line @typescript-eslint/require-await
-        execute: async () => {
+        execute: () => {
           expect(context.executor.getParallelCallState(2, 1)).toBe("discard");
           const throws = Promise.all([
             context.sleep("sleep for some time", 123),
@@ -387,7 +382,6 @@ describe("auto-executor", () => {
       const spyRunParallel = spyOn(context.executor, "runParallel");
 
       await mockQStashServer({
-        // eslint-disable-next-line @typescript-eslint/require-await
         execute: async () => {
           expect(context.executor.getParallelCallState(2, 1)).toBe("last");
           expect(context.executor.stepCount).toBe(0);
@@ -425,8 +419,8 @@ describe("auto-executor", () => {
       test("step name", () => {
         const context = getContext([initialStep, singleStep]);
 
-        const throws = context.run("wrongName", async () => {
-          return await Promise.resolve(true);
+        const throws = context.run("wrongName", () => {
+          return true;
         });
         expect(throws).rejects.toThrow(
           new QStashWorkflowError(

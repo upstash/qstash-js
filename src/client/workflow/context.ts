@@ -1,7 +1,7 @@
 import type { Err, Ok } from "neverthrow";
 import { err, ok } from "neverthrow";
 import type { RouteFunction, WorkflowClient } from "./types";
-import { type AsyncStepFunction, type Step } from "./types";
+import { type StepFunction, type Step } from "./types";
 import { AutoExecutor } from "./auto-executor";
 import type { BaseLazyStep } from "./steps";
 import { LazyCallStep, LazyFunctionStep, LazySleepStep, LazySleepUntilStep } from "./steps";
@@ -178,8 +178,8 @@ export class WorkflowContext<TInitialPayload = unknown> {
    * Executes a workflow step
    *
    * ```typescript
-   * const result = await context.run("step 1", async () => {
-   *   return await Promise.resolve("result")
+   * const result = await context.run("step 1", () => {
+   *   return "result"
    * })
    * ```
    *
@@ -188,11 +188,11 @@ export class WorkflowContext<TInitialPayload = unknown> {
    *
    * ```typescript
    * const [result1, result2] = await Promise.all([
-   *   context.run("step 1", async () => {
-   *     return await Promise.resolve("result1")
+   *   context.run("step 1", () => {
+   *     return "result1"
    *   })
    *   context.run("step 2", async () => {
-   *     return await Promise.resolve("result2")
+   *     return await fetchResults()
    *   })
    * ])
    * ```
@@ -203,9 +203,10 @@ export class WorkflowContext<TInitialPayload = unknown> {
    */
   public async run<TResult>(
     stepName: string,
-    stepFunction: AsyncStepFunction<TResult>
+    stepFunction: StepFunction<TResult>
   ): Promise<TResult> {
-    const wrappedStepFunction = async () => this.executor.wrapStep(stepName, stepFunction);
+    const wrappedStepFunction = (() =>
+      this.executor.wrapStep(stepName, stepFunction)) as StepFunction<TResult>;
     return this.addStep<TResult>(new LazyFunctionStep(stepName, wrappedStepFunction));
   }
 

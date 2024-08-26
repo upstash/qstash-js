@@ -40,7 +40,7 @@ export const mockQStashServer = async ({
   responseFields,
   receivesRequest,
 }: {
-  execute: () => Promise<unknown>;
+  execute: () => unknown;
   responseFields: ResponseFields;
   receivesRequest: RequestFields | false;
 }) => {

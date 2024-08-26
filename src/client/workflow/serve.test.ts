@@ -237,14 +237,14 @@ describe("serve", () => {
   describe("duplicate checks", () => {
     const endpoint = serve(
       async (context) => {
-        const result1 = await context.run("step 1", async () => {
-          return await Promise.resolve("result 1");
+        const result1 = await context.run("step 1", () => {
+          return "result 1";
         });
-        const result2 = await context.run("step 2", async () => {
-          return await Promise.resolve("result 2");
+        const result2 = await context.run("step 2", () => {
+          return "result 2";
         });
-        await context.run("step 3", async () => {
-          return await Promise.resolve(`combined results: ${[result1, result2]}`);
+        await context.run("step 3", () => {
+          return `combined results: ${[result1, result2]}`;
         });
       },
       {

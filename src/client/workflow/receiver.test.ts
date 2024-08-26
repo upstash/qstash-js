@@ -47,8 +47,6 @@ async function createSignedRequest({
   key: string;
   headers?: Record<string, string>;
 }) {
-  // const base64body = btoa(body);
-
   const payload = {
     iss: "Upstash",
     sub: url,
@@ -88,8 +86,8 @@ const receiver = new Receiver({ currentSigningKey, nextSigningKey });
  */
 const endpoint = serve(
   async (context) => {
-    await context.run("step 1", async () => {
-      return await Promise.resolve("result");
+    await context.run("step 1", () => {
+      return "result";
     });
   },
   {
@@ -146,7 +144,6 @@ describe("receiver", () => {
       });
 
       await mockQStashServer({
-        // eslint-disable-next-line @typescript-eslint/require-await
         execute: async () => {
           const response = await endpoint(requestWithoutSignature);
           const body = (await response.json()) as FailureFunctionPayload;
@@ -169,7 +166,6 @@ describe("receiver", () => {
       });
 
       await mockQStashServer({
-        // eslint-disable-next-line @typescript-eslint/require-await
         execute: async () => {
           const response = await endpoint(requestWithoutSignature);
           const body = (await response.json()) as FailureFunctionPayload;
@@ -226,7 +222,6 @@ describe("receiver", () => {
       });
 
       await mockQStashServer({
-        // eslint-disable-next-line @typescript-eslint/require-await
         execute: async () => {
           const response = await endpoint(thirdPartyRequestWithoutHeader);
           const body = (await response.json()) as FailureFunctionPayload;
@@ -256,7 +251,6 @@ describe("receiver", () => {
       });
 
       await mockQStashServer({
-        // eslint-disable-next-line @typescript-eslint/require-await
         execute: async () => {
           const response = await endpoint(thirdPartyRequestWithoutHeader);
           const body = (await response.json()) as FailureFunctionPayload;
@@ -333,7 +327,6 @@ describe("receiver", () => {
       });
 
       await mockQStashServer({
-        // eslint-disable-next-line @typescript-eslint/require-await
         execute: async () => {
           const response = await endpoint(requestWithoutHeader);
           const body = (await response.json()) as FailureFunctionPayload;
@@ -357,7 +350,6 @@ describe("receiver", () => {
       });
 
       await mockQStashServer({
-        // eslint-disable-next-line @typescript-eslint/require-await
         execute: async () => {
           const response = await endpoint(requestWithoutHeader);
           const body = (await response.json()) as FailureFunctionPayload;
