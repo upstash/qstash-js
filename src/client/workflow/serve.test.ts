@@ -212,6 +212,9 @@ describe("serve", () => {
       {
         qstashClient,
         receiver: undefined,
+        onStepFinish(workflowRunId, finishCondition) {
+          return new Response(JSON.stringify({ workflowRunId, finishCondition }), { status: 200 });
+        },
       }
     );
 
@@ -250,6 +253,9 @@ describe("serve", () => {
       {
         qstashClient,
         receiver: undefined,
+        onStepFinish(workflowRunId, finishCondition) {
+          return new Response(JSON.stringify({ workflowRunId, finishCondition }), { status: 200 });
+        },
       }
     );
 
