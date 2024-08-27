@@ -1,8 +1,8 @@
 import { Hono } from "hono";
-import { serve, WorkflowBindings } from "@upstash/qstash/hono"
+import { serve } from "@upstash/qstash/hono"
 import { landingPage } from "./page";
 
-const app = new Hono<{ Bindings: WorkflowBindings }>();
+const app = new Hono();
 
 app.get("/", (c) => {
   return c.html(landingPage);
