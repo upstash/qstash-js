@@ -51,8 +51,8 @@ export const processOptions = <TResponse extends Response = Response, TInitialPa
       baseUrl: environment.QSTASH_URL!,
       token: environment.QSTASH_TOKEN!,
     }),
-    onStepFinish: (workflowRunId: string, finishCondition: FinishCondition) =>
-      new Response(JSON.stringify({ workflowRunId, finishCondition }), {
+    onStepFinish: (workflowRunId: string, _finishCondition: FinishCondition) =>
+      new Response(JSON.stringify({ workflowRunId }), {
         status: 200,
       }) as TResponse,
     initialPayloadParser: (initialRequest: string) => {
