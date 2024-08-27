@@ -1,6 +1,6 @@
 # QStash Workflow Sveltekit Example
 
-This project has some routes showcasing how QStash Workflow can be used in a sveltekit project.
+This project has some routes showcasing how QStash Workflow can be used in a sveltekit project. You can learn more in [Workflow documentation for Svelte](https://upstash.com/docs/qstash/workflow/quickstarts/svelte).
 
 Under the `src/routes` directory, you will find 6 folders, each corresponding to a workflow API except the `-call-qstash`. In each of these folders, you will find the `+server.ts` file which defines the workflow.
 

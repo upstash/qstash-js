@@ -10,6 +10,11 @@ fi
 # store project argument
 project_arg="$1"
 
+# install dependencies
+cd $project_arg
+npm install
+cd ..
+
 # Start ngrok and capture the public URL
 ngrok http localhost:3001 --log=stdout > ngrok.log &
 NGROK_PID=$!

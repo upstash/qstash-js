@@ -1,6 +1,6 @@
 # QStash Workflow Cloudflare Workers Example (with Hono)
 
-This is an example of how to use QStash Workflow with Cloudflare Workers with Hono router.
+This is an example of how to use QStash Workflow with Cloudflare Workers with Hono router. You can learn more in [Workflow documentation for Hono](https://upstash.com/docs/qstash/workflow/quickstarts/hono).
 
 ## Development
 
