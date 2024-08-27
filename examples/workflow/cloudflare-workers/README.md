@@ -1,6 +1,6 @@
 # QStash Workflow Cloudflare Workers Example
 
-This is an example of how to use QStash Workflow with Cloudflare Workers.
+This is an example of how to use QStash Workflow with Cloudflare Workers. You can learn more in [Workflow documentation for Cloudflare Workers](https://upstash.com/docs/qstash/workflow/quickstarts/cloudflare-workers).
 
 ## Development
 

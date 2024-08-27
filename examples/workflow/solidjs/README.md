@@ -1,6 +1,6 @@
 # QStash Workflow Solid.js Example
 
-This project has some routes showcasing how QStash Workflow can be used in a Solid.js project.
+This project has some routes showcasing how QStash Workflow can be used in a Solid.js project. You can learn more in [Workflow documentation for Solid.js](https://upstash.com/docs/qstash/workflow/quickstarts/solidjs).
 
 Under the `src/routes` directory, you will find 7 files. `index.tsx` is the landing page. Rest except the `-call-qstash` are the routes corresponding to a workflow API.
 

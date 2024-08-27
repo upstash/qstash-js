@@ -1,6 +1,6 @@
 # QStash Workflow Nuxt Example
 
-This project has some routes showcasing how QStash Workflow can be used in a nuxt project.
+This project has some routes showcasing how QStash Workflow can be used in a nuxt project. You can learn more in [Workflow documentation for Nuxt](https://upstash.com/docs/qstash/workflow/quickstarts/nuxt).
 
 Under the `server/api` directory, you will find 6 files, each corresponding to a workflow API except the `callQstash`.
 
