@@ -6,9 +6,9 @@ This is an example of how to use QStash Workflow in a Hono project. You can lear
 
 > [!TIP]
 > You can use [the `bootstrap.sh` script](https://github.com/upstash/qstash-js/tree/main/examples/workflow) to run this example with a local tunnel.
-> 
+>
 > Simply set the environment variables as explained below and run the following command in the `qstash-js/examples/workflow` directory:
-> 
+>
 > ```
 > bash bootstrap.sh hono
 > ```
@@ -43,5 +43,5 @@ npm run dev
 5. Send a `POST` request to the `/workflow` endpoint.
 
 ```bash
-curl -X POST "http:localhost:3001/workflow" -d '{"text": "hello world!"}'
+curl -X POST "http://localhost:3001/workflow" -d '{"text": "hello world!"}'
 ```
