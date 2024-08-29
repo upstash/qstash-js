@@ -13,7 +13,7 @@ fi
 project_arg="$1"
 
 # install dependencies
-cd $project_arg
+cd "$project_arg"
 npm install
 cd ..
 
@@ -47,7 +47,7 @@ else
 fi
 
 # go to project directory
-cd $project_arg
+cd "$project_arg"
 
 # Start next.js server
 npm run dev
