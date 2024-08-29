@@ -33,7 +33,7 @@ echo "ngrok is running. Press Ctrl+C to stop it."
 
 # Open the URL in Chrome
 if [[ "$OSTYPE" == "darwin"* ]]; then
-    open -a "Google Chrome" "$final_path"
+    open "$final_path"
 elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
     xdg-open "$final_path"
 elif [[ "$OSTYPE" == "cygwin" ]]; then
