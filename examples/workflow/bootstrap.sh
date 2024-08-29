@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 # Check if an argument is provided
 if [ $# -eq 0 ]; then
     echo "Please provide a path argument."
