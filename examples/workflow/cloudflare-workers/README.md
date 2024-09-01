@@ -3,6 +3,9 @@
 This is an example of how to use QStash Workflow with Cloudflare Workers. You can learn more in [Workflow documentation for Cloudflare Workers](https://upstash.com/docs/qstash/workflow/quickstarts/cloudflare-workers).
 
 [![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/upstash/qstash-js/tree/main/examples/workflow/cloudflare-workers)
+[![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/upstash/qstash-js/tree/DX-1224/examples/workflow/cloudflare-workers)
+
+
 
 ## Development
 
