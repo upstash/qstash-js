@@ -175,7 +175,7 @@ export const validateRequest = (
   // get workflow id
   const workflowRunId = isFirstInvocation
     ? `wfr_${nanoid()}`
-    : request.headers.get(WORKFLOW_ID_HEADER) ?? "";
+    : (request.headers.get(WORKFLOW_ID_HEADER) ?? "");
   if (workflowRunId.length === 0) {
     throw new QStashWorkflowError("Couldn't get workflow id from header");
   }
