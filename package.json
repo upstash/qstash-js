@@ -25,7 +25,10 @@
       "require": "./dist/base/index.js"
     },
     "./nextjs": {
-      "types": "./dist/nextjs/index.ts",
+      "import": "./dist/nextjs/index.js",
+      "require": "./dist/nextjs/index.js"
+    },
+    "./dist/nextjs": {
       "import": "./dist/nextjs/index.js",
       "require": "./dist/nextjs/index.js"
     },
