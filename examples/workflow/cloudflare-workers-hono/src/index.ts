@@ -1,4 +1,3 @@
-
 import app from "./app";
 
 export type Env = {
@@ -8,8 +7,4 @@ export type Env = {
   QSTASH_NEXT_SIGNING_KEY: string;
 };
 
-export default {
-  async fetch(request: Request, environment: Env, context: ExecutionContext): Promise<Response> {
-    return app.fetch(request, environment, context);
-  },
-};
+export default app;

@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 # Check if an argument is provided
 if [ $# -eq 0 ]; then
     echo "Please provide a path argument."
@@ -11,7 +13,7 @@ fi
 project_arg="$1"
 
 # install dependencies
-cd $project_arg
+cd "$project_arg"
 npm install
 cd ..
 
@@ -31,7 +33,7 @@ echo "ngrok is running. Press Ctrl+C to stop it."
 
 # Open the URL in Chrome
 if [[ "$OSTYPE" == "darwin"* ]]; then
-    open -a "Google Chrome" "$final_path"
+    open "$final_path"
 elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
     xdg-open "$final_path"
 elif [[ "$OSTYPE" == "cygwin" ]]; then
@@ -45,7 +47,7 @@ else
 fi
 
 # go to project directory
-cd $project_arg
+cd "$project_arg"
 
 # Start next.js server
 npm run dev

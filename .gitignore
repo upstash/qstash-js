@@ -4,6 +4,7 @@ dist
 .next
 .env
 .vercel
+.DS_Store
 
 # workflow
 examples/workflow/*/package-lock.json

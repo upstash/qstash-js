@@ -37,26 +37,28 @@
     <h1 class="text-xl font-bold mb-4">Send Request</h1>
 
     <div class="mb-4">
-      <label class="block text-gray-700">Route:</label>
-      <select
-        bind:value={$route}
-        class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-      >
-        <option value="" disabled>Select route</option>
-        {#each routes as r}
-          <option value={r}>
-            {r}
-          </option>
-        {/each}
-      </select>
+      <label class="block text-gray-700">Route:
+        <select
+          bind:value={$route}
+          class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+        >
+          <option value="" disabled>Select route</option>
+          {#each routes as r}
+            <option value={r}>
+              {r}
+            </option>
+          {/each}
+        </select>
+      </label>
     </div>
 
     <div class="mb-4">
-      <label class="block text-gray-700">Request Body:</label>
-      <textarea
-        bind:value={$requestBody}
-        class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-      />
+      <label class="block text-gray-700">Request Body:
+        <textarea
+          bind:value={$requestBody}
+          class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+        />
+      </label>
     </div>
 
     <button

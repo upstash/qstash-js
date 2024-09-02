@@ -6,6 +6,8 @@ const someWork = (input: string) => {
 
 export default {
   fetch: serve<{text: string}>(async context => {
+		if (!context.requestPayload) throw new Error('No payload given, send a curl request to start the workflow');
+
     const input = context.requestPayload.text
     const result1 = await context.run("step1", async () => {
       const output = someWork(input)
