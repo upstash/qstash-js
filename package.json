@@ -15,57 +15,48 @@
   "files": [
     "dist"
   ],
-  "main": "./dist/base/index.js",
+  "main": "./dist/base/index.mjs",
   "module": "./dist/base/index.mjs",
-  "types": "./dist/base/index.d.ts",
+  "types": "./dist/base/index.d.mts",
   "exports": {
     ".": {
-      "types": "./dist/base/index.d.ts",
+      "types": "./dist/base/index.d.mts",
       "import": "./dist/base/index.mjs",
       "require": "./dist/base/index.js"
     },
     "./nextjs": {
-      "import": "./dist/nextjs/index.js",
-      "require": "./dist/nextjs/index.js"
+      "import": "./dist/nextjs/index.mjs"
     },
     "./dist/nextjs": {
-      "import": "./dist/nextjs/index.js",
-      "require": "./dist/nextjs/index.js"
+      "import": "./dist/nextjs/index.mjs"
     },
     "./h3": {
-      "types": "./dist/h3/index.ts",
-      "import": "./dist/h3/index.mjs",
-      "require": "./dist/h3/index.js"
+      "types": "./dist/h3/index.d.mts",
+      "import": "./dist/h3/index.mjs"
     },
     "./nuxt": {
-      "types": "./dist/h3/index.ts",
-      "import": "./dist/h3/index.mjs",
-      "require": "./dist/h3/index.js"
+      "types": "./dist/h3/index.d.mts",
+      "import": "./dist/h3/index.mjs"
     },
     "./svelte": {
-      "types": "./dist/svelte/index.ts",
-      "import": "./dist/svelte/index.mjs",
-      "require": "./dist/svelte/index.js"
+      "types": "./dist/svelte/index.d.mts",
+      "import": "./dist/svelte/index.mjs"
     },
     "./solidjs": {
-      "types": "./dist/solidjs/index.ts",
-      "import": "./dist/solidjs/index.mjs",
-      "require": "./dist/solidjs/index.js"
+      "types": "./dist/solidjs/index.d.mts",
+      "import": "./dist/solidjs/index.mjs"
     },
     "./workflow": {
-      "types": "./dist/workflow/index.ts",
-      "import": "./dist/workflow/index.mjs",
-      "require": "./dist/workflow/index.js"
+      "types": "./dist/workflow/index.d.mts",
+      "import": "./dist/workflow/index.mjs"
     },
     "./hono": {
-      "types": "./dist/hono/index.ts",
-      "import": "./dist/hono/index.mjs",
-      "require": "./dist/hono/index.js"
+      "types": "./dist/hono/index.d.mts",
+      "import": "./dist/hono/index.mjs"
     },
     "./cloudflare": {
-      "types": "./dist/cloudflare/index.ts",
-      "import": "./dist/cloudflare/index.mjs",
-      "require": "./dist/cloudflare/index.js"
+      "types": "./dist/cloudflare/index.d.mts",
+      "import": "./dist/cloudflare/index.mjs"
     }
   },
   "keywords": [
