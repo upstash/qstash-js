@@ -148,8 +148,8 @@ type VerifySignatureAppRouterResponse =
 
 export function verifySignatureAppRouter(
   handler:
-    | ((request: Request) => VerifySignatureAppRouterResponse)
-    | ((request: NextRequest) => VerifySignatureAppRouterResponse),
+    | ((request: Request, params?: unknown) => VerifySignatureAppRouterResponse)
+    | ((request: NextRequest, params?: unknown) => VerifySignatureAppRouterResponse),
   config?: VerifySignatureConfig
 ) {
   const currentSigningKey = config?.currentSigningKey ?? process.env.QSTASH_CURRENT_SIGNING_KEY;
@@ -169,7 +169,7 @@ export function verifySignatureAppRouter(
     nextSigningKey,
   });
 
-  return async (request: NextRequest | Request) => {
+  return async (request: NextRequest | Request, params?: unknown) => {
     const requestClone = request.clone() as NextRequest;
     const signature = request.headers.get("upstash-signature");
     if (!signature) {
@@ -191,7 +191,7 @@ export function verifySignatureAppRouter(
       return new NextResponse(new TextEncoder().encode("invalid signature"), { status: 403 });
     }
 
-    return handler(request as NextRequest);
+    return handler(request as NextRequest, params);
   };
 }
 
