@@ -3,7 +3,7 @@ export default defineConfig([
   {
     entry: ["src/index.ts"],
     outDir: "dist/base",
-    format: ["esm", "cjs"],
+    format: "esm",
     sourcemap: false,
     clean: true,
     dts: true,
@@ -14,7 +14,7 @@ export default defineConfig([
       index: "src/client/workflow/index.ts",
     },
     outDir: "dist/workflow",
-    format: ["esm", "cjs"],
+    format: "esm",
     sourcemap: false,
     clean: true,
     dts: true,

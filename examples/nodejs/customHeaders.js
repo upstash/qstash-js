@@ -1,5 +1,5 @@
-const { Client, Receiver } = require("@upstash/qstash");
-require("isomorphic-fetch");
+import { Client, Receiver } from "@upstash/qstash/base/index.mjs";
+import "isomorphic-fetch";
 
 async function main() {
   const q = new Client({
