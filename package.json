@@ -16,13 +16,17 @@
     "dist"
   ],
   "main": "./dist/base/index.mjs",
-  "module": "./dist/base/index.mjs",
-  "types": "./dist/base/index.d.mts",
+  "types": "./dist/base/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/base/index.d.mts",
+      "types": "./dist/base/index.d.ts",
       "import": "./dist/base/index.mjs",
       "require": "./dist/base/index.js"
+    },
+    "./workflow": {
+      "types": "./dist/workflow/index.d.ts",
+      "import": "./dist/workflow/index.mjs",
+      "require": "./dist/workflow/index.js"
     },
     "./nextjs": {
       "import": "./dist/nextjs/index.mjs"
@@ -45,10 +49,6 @@
     "./solidjs": {
       "types": "./dist/solidjs/index.d.mts",
       "import": "./dist/solidjs/index.mjs"
-    },
-    "./workflow": {
-      "types": "./dist/workflow/index.d.mts",
-      "import": "./dist/workflow/index.mjs"
     },
     "./hono": {
       "types": "./dist/hono/index.d.mts",
