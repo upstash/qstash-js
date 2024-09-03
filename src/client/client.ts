@@ -1,4 +1,5 @@
 import { DLQ } from "./dlq";
+import type { Duration } from "./duration";
 import { HttpClient, type Requester, type RetryConfig } from "./http";
 import { Chat } from "./llm/chat";
 import type { ProviderReturnType } from "./llm/providers";
@@ -61,7 +62,7 @@ export type PublishRequest<TBody = BodyInit> = {
    *
    * @default undefined
    */
-  delay?: number;
+  delay?: Duration | number;
 
   /**
    * Optionally set the absolute delay of this message.

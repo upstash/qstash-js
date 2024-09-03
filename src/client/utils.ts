@@ -28,7 +28,14 @@ export function processHeaders(request: PublishRequest) {
   headers.set("Upstash-Method", request.method ?? "POST");
 
   if (request.delay !== undefined) {
-    headers.set("Upstash-Delay", `${request.delay.toFixed(0)}s`);
+    // Handle both string (Duration type) and number inputs for delay
+    if (typeof request.delay === "string") {
+      // If delay is a string (e.g., "20s", "1h"), use it directly
+      headers.set("Upstash-Delay", request.delay);
+    } else {
+      // If delay is a number, convert it to seconds and append 's'
+      headers.set("Upstash-Delay", `${request.delay.toFixed(0)}s`);
+    }
   }
 
   if (request.notBefore !== undefined) {
