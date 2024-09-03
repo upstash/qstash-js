@@ -137,7 +137,13 @@ This project requires [Bun](https://bun.sh/) to be installed. Please see the [Bu
 Once you have cloned the project, you will need to install the dependencies and then you can run the project.
 ```sh
 bun install
-bun build
+bun run build
+```
+
+### Testing
+To begin testing, environment variables will need to be setup. First, create a `.env` file in the root of the project. [`.env.template`](/.env.template) can be used as a template. Your values can be found in the [Qstash Console](https://console.upstash.com/qstash).
+```sh
+bun run test
 ```
 
 ### Committing
