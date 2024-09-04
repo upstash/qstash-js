@@ -8,6 +8,7 @@ import { LazyCallStep, LazyFunctionStep, LazySleepStep, LazySleepUntilStep } fro
 import type { HTTPMethods } from "../types";
 import type { WorkflowLogger } from "./logger";
 import { QStashWorkflowAbort } from "../error";
+import type { PublishRequest } from "../client";
 import { Client } from "../client";
 
 /**
@@ -217,7 +218,7 @@ export class WorkflowContext<TInitialPayload = unknown> {
    * @param duration sleep duration in seconds
    * @returns undefined
    */
-  public async sleep(stepName: string, duration: number): Promise<void> {
+  public async sleep(stepName: string, duration: PublishRequest["delay"]): Promise<void> {
     await this.addStep(new LazySleepStep(stepName, duration));
   }
 

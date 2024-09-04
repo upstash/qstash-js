@@ -1,5 +1,5 @@
 import type { Receiver } from "../../receiver";
-import type { Client } from "../client";
+import type { Client, PublishRequest } from "../client";
 import type { HTTPMethods } from "../types";
 import type { WorkflowContext } from "./context";
 import type { WorkflowLogger } from "./logger";
@@ -65,7 +65,7 @@ export type Step<TResult = unknown, TBody = unknown> = {
   /**
    * sleep duration in seconds. Set when context.sleep is used.
    */
-  sleepFor?: number;
+  sleepFor?: PublishRequest["delay"];
   /**
    * unix timestamp (in seconds) to wait until. Set when context.sleepUntil is used.
    */

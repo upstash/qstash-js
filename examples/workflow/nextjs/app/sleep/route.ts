@@ -22,12 +22,15 @@ export const POST = serve<string>(
       return output
     });
 
-    await context.sleep("sleep2", 2)
+    await context.sleep("sleep2", "2s")
 
     const result3 = await context.run("step3", async () => {
       const output = someWork(result2)
       console.log("step 3 input", result2, "output", output)
     });
+  },
+  {
+    verbose: true
   }
 )
 

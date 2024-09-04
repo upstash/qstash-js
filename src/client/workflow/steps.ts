@@ -1,3 +1,4 @@
+import type { PublishRequest } from "../client";
 import type { HTTPMethods } from "../types";
 import type { Step, StepFunction, StepType } from "./types";
 
@@ -79,10 +80,10 @@ export class LazyFunctionStep<TResult = unknown> extends BaseLazyStep<TResult> {
  * Lazy step definition for `context.sleep` case
  */
 export class LazySleepStep extends BaseLazyStep {
-  private readonly sleep: number;
+  private readonly sleep: PublishRequest["delay"];
   stepType: StepType = "SleepFor";
 
-  constructor(stepName: string, sleep: number) {
+  constructor(stepName: string, sleep: PublishRequest["delay"]) {
     super(stepName);
     this.sleep = sleep;
   }
