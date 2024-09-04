@@ -22,7 +22,7 @@
     ".": {
       "types": "./dist/base/index.d.mts",
       "import": "./dist/base/index.mjs",
-      "require": "./dist/base/index.js"
+      "require": "./dist/base/index.mjs"
     },
     "./nextjs": {
       "import": "./dist/nextjs/index.mjs"
