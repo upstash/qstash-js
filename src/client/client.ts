@@ -142,7 +142,7 @@ export type PublishRequest<TBody = BodyInit> = {
    *
    * @default undefined
    */
-  timeout?: number;
+  timeout?: Duration | number;
 } & (
   | {
       /**

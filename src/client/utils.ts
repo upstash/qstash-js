@@ -63,7 +63,14 @@ export function processHeaders(request: PublishRequest) {
   }
 
   if (request.timeout !== undefined) {
-    headers.set("Upstash-Timeout", `${request.timeout}s`);
+    // Handle both string (Duration type) and number inputs for timeout
+    if (typeof request.timeout === "string") {
+      // If timeout is a string (e.g., "20s", "1h"), use it directly
+      headers.set("Upstash-Timeout", request.timeout);
+    } else {
+      // If timeout is a number, convert it to seconds and append 's'
+      headers.set("Upstash-Timeout", `${request.timeout}s`);
+    }
   }
 
   return headers;
