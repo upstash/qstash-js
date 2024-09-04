@@ -1,6 +1,7 @@
 import { prefixHeaders } from "./utils";
 import type { Requester } from "./http";
 import type { BodyInit, HeadersInit, HTTPMethods } from "./types";
+import type { Duration } from "./duration";
 
 export type Schedule = {
   scheduleId: string;
@@ -50,7 +51,7 @@ export type CreateScheduleRequest = {
    *
    * @default undefined
    */
-  delay?: number;
+  delay?: Duration | number;
 
   /**
    * In case your destination server is unavailable or returns a status code outside of the 200-299
@@ -102,7 +103,7 @@ export type CreateScheduleRequest = {
    *
    * @default undefined
    */
-  timeout?: number;
+  timeout?: Duration | number;
 
   /**
    * Schedule id to use.
@@ -139,7 +140,14 @@ export class Schedules {
     }
 
     if (request.delay !== undefined) {
-      headers.set("Upstash-Delay", `${request.delay.toFixed(0)}s`);
+      // Handle both string (Duration type) and number inputs for delay
+      if (typeof request.delay === "string") {
+        // If delay is a string (e.g., "20s", "1h"), use it directly
+        headers.set("Upstash-Delay", request.delay);
+      } else {
+        // If delay is a number, convert it to seconds and append 's'
+        headers.set("Upstash-Delay", `${request.delay.toFixed(0)}s`);
+      }
     }
 
     if (request.retries !== undefined) {
@@ -155,7 +163,14 @@ export class Schedules {
     }
 
     if (request.timeout !== undefined) {
-      headers.set("Upstash-Timeout", `${request.timeout}s`);
+      // Handle both string (Duration type) and number inputs for timeout
+      if (typeof request.timeout === "string") {
+        // If timeout is a string (e.g., "20s", "1h"), use it directly
+        headers.set("Upstash-Timeout", request.timeout);
+      } else {
+        // If timeout is a number, convert it to seconds and append 's'
+        headers.set("Upstash-Timeout", `${request.timeout}s`);
+      }
     }
 
     if (request.scheduleId !== undefined) {

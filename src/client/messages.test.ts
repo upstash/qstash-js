@@ -69,7 +69,7 @@ describe("Messages", () => {
           url: `https://example.com`,
           body: { hello: "world" },
           timeout: 90,
-          delay: 10,
+          delay: "10d",
         },
       ]);
 
