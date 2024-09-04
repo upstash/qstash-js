@@ -1,6 +1,7 @@
 import { prefixHeaders } from "./utils";
 import type { Requester } from "./http";
 import type { BodyInit, HeadersInit, HTTPMethods } from "./types";
+import type { Duration } from "./duration";
 
 export type Schedule = {
   scheduleId: string;
@@ -50,7 +51,7 @@ export type CreateScheduleRequest = {
    *
    * @default undefined
    */
-  delay?: number;
+  delay?: Duration | number;
 
   /**
    * In case your destination server is unavailable or returns a status code outside of the 200-299
@@ -102,7 +103,7 @@ export type CreateScheduleRequest = {
    *
    * @default undefined
    */
-  timeout?: number;
+  timeout?: Duration | number;
 
   /**
    * Schedule id to use.
