@@ -198,7 +198,7 @@ export const handleThirdPartyCallResult = async (
         stepId: Number(stepIdString),
         stepName,
         stepType,
-        out: Buffer.from(callbackMessage.body, "base64").toString(),
+        out: atob(callbackMessage.body),
         concurrent: Number(concurrentString),
       };
 
