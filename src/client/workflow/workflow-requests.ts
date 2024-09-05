@@ -102,7 +102,8 @@ export const recreateUserHeaders = (headers: Headers): Headers => {
     if (
       !headerLowerCase.startsWith("upstash-workflow-") &&
       !headerLowerCase.startsWith("x-vercel-") &&
-      !headerLowerCase.startsWith("x-forwarded-")
+      !headerLowerCase.startsWith("x-forwarded-") &&
+      headerLowerCase !== "cf-connecting-ip"
     ) {
       filteredHeaders.append(header, value);
     }
