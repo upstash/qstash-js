@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-magic-numbers */
+/* eslint-disable unicorn/prevent-abbreviations */
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 import type { NextApiHandler, NextApiRequest, NextApiResponse } from "next";
 import { type NextRequest } from "next/server";
@@ -207,14 +209,43 @@ export function verifySignatureAppRouter(
 export const serve = <TInitialPayload = unknown>(
   routeFunction: RouteFunction<TInitialPayload>,
   options?: Omit<WorkflowServeOptions<NextResponse, TInitialPayload>, "onStepFinish">
-): ((request: NextRequest) => Promise<NextResponse>) => {
-  const handler = serveBase<TInitialPayload, NextRequest, NextResponse>(routeFunction, {
+): ((request: Request) => Promise<NextResponse>) => {
+  const handler = serveBase<TInitialPayload, Request, NextResponse>(routeFunction, {
     onStepFinish: (workflowRunId: string) =>
       new NextResponse(JSON.stringify({ workflowRunId }), { status: 200 }),
     ...options,
   });
 
-  return async (request: NextRequest) => {
+  return async (request: Request) => {
     return await handler(request);
+  };
+};
+
+export const servePagesRouter = <TInitialPayload = unknown>(
+  routeFunction: RouteFunction<TInitialPayload>,
+  options?: Omit<WorkflowServeOptions<Response, TInitialPayload>, "onStepFinish">
+): NextApiHandler => {
+  const handler = serveBase(routeFunction, options);
+
+  return async (req: NextApiRequest, res: NextApiResponse) => {
+    if (req.method?.toUpperCase() !== "POST") {
+      res.status(405).json("Only POST requests are allowed in worklfows");
+      return;
+    } else if (!req.url) {
+      res.status(400).json("url not found in the request");
+      return;
+    }
+
+    const protocol = req.headers["x-forwarded-proto"];
+    const baseUrl = options?.baseUrl ?? `${protocol}://${req.headers.host}`;
+
+    const request = new Request(options?.url ?? `${baseUrl}${req.url}`, {
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      body: JSON.stringify(req.body) ?? "",
+      headers: new Headers(req.headersDistinct as Record<string, string[]>),
+      method: "POST",
+    });
+    const response = await handler(request);
+    res.status(response.status).json(await response.json());
   };
 };
