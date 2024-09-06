@@ -40,7 +40,7 @@ function Home() {
             </p>
             <br/>
             <p>
-            Each example will have it's own payload structure. To find the related payload type, navigate to the route file in the left sidebar.
+            Each example will have its own payload structure. To find the related payload type, navigate to the route file in the left sidebar.
             </p>
             <br/>
             <p>
