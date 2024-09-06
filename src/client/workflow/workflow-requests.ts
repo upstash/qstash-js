@@ -150,8 +150,16 @@ export const handleThirdPartyCallResult = async (
 
       // eslint-disable-next-line @typescript-eslint/no-magic-numbers
       if (!(callbackMessage.status >= 200 && callbackMessage.status < 300)) {
-        await debug?.log("WARN", "SUBMIT_THIRD_PARTY_RESULT", callbackMessage);
+        await debug?.log("WARN", "SUBMIT_THIRD_PARTY_RESULT", {
+          status: callbackMessage.status,
+          body: atob(callbackMessage.body),
+        });
         // this callback will be retried by the QStash, we just ignore it
+        console.warn(
+          `Workflow Warning: "context.call" failed with status ${callbackMessage.status}` +
+            ` and will retry (if there are retries remaining).` +
+            ` Error Message:\n${atob(callbackMessage.body)}`
+        );
         return ok("call-will-retry");
       }
 
