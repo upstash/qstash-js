@@ -255,12 +255,16 @@ export class WorkflowContext<TInitialPayload = unknown> {
    * );
    * ```
    *
+   * tries to parse the result of the request as JSON. If it's
+   * not a JSON which can be parsed, simply returns the response
+   * body as it is.
+   *
    * @param stepName
    * @param url url to call
    * @param method call method
    * @param body call body
    * @param headers call headers
-   * @returns call result
+   * @returns call result (parsed as JSON if possible)
    */
   public async call<TResult = unknown, TBody = unknown>(
     stepName: string,
@@ -269,9 +273,15 @@ export class WorkflowContext<TInitialPayload = unknown> {
     body?: TBody,
     headers?: Record<string, string>
   ) {
-    return await this.addStep(
-      new LazyCallStep<TResult>(stepName, url, method, body, headers ?? {})
+    const result = await this.addStep(
+      new LazyCallStep<string>(stepName, url, method, body, headers ?? {})
     );
+
+    try {
+      return JSON.parse(result) as TResult;
+    } catch {
+      return result as TResult;
+    }
   }
 
   /**
