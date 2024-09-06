@@ -46,15 +46,15 @@ function Home() {
           <div className="w-full max-w-md p-6 rounded-xl">
             <h1 className="mb-4 text-3xl font-bold">Get Started with <br/>Upstash Workflow</h1>
             <p>
-              This is a simple example to show how to use Upstash Workflow with Next.js. You can send requests to the workflow by selecting a route and providing a request body.
+              This is a simple example to demonstrate Upstash Workflow with Next.js. Start a workflow by selecting a route and providing a request body.
             </p>
             <br/>
             <p>
-            Each example will have its own payload structure. To find the related payload type, navigate to the route file in the left sidebar.
+            Each example has its own payload structure. To find the related payload type, navigate to the corresponding route file in your left sidebar.
             </p>
             <br/>
             <p>
-              After you run the workflow, you can navigate to <a className='font-semibold text-emerald-500' href='https://console.upstash.com/qstash?tab=workflow'>Upstash Console</a> and see the related logs.
+              After running a workflow, navigate to the <a className='font-semibold text-emerald-500' href='https://console.upstash.com/qstash?tab=workflow'>Upstash Console</a> to see the related logs.
             </p>
             <Image src="/console.jpeg" alt='upstash console' height={400} width={400} className='mt-4 rounded-xl'/>
             <div className='flex w-full gap-2 mt-4'>
