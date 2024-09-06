@@ -17,7 +17,7 @@
     "@solidjs/meta": "0.29.4",
     "@solidjs/router": "^0.13.6",
     "@solidjs/start": "^1.0.2",
-    "@upstash/qstash": "^2.7.0-workflow-alpha.4",
+    "@upstash/qstash": "^2.7.4",
     "solid-js": "^1.8.17"
   },
   "engines": {

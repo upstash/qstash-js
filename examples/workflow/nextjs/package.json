@@ -9,7 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@upstash/qstash": "^2.7.0-workflow-alpha.4",
+    "@upstash/qstash": "^2.7.4",
     "next": "14.2.4",
     "react": "^18",
     "react-dom": "^18"
