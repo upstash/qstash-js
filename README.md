@@ -131,29 +131,36 @@ const result = await client.publishJSON({
 See [the documentation](https://docs.upstash.com/qstash) for details.
 
 ## Contributing
+
 ### Setup
+
 This project requires [Bun](https://bun.sh/) to be installed. Please see the [Bun installation documentation](https://bun.sh/docs/installation) for further instructions.
 
 Once you have cloned the project, you will need to install the dependencies and then you can run the project.
+
 ```sh
 bun install
 bun run build
 ```
 
 ### Testing
+
 To begin testing, environment variables will need to be setup. First, create a `.env` file in the root of the project. [`.env.template`](/.env.template) can be used as a template. Your values can be found in the [Qstash Console](https://console.upstash.com/qstash).
+
 ```sh
 bun run test
 ```
 
 ### Committing
-This project uses [commitlint](https://commitlint.js.org/). When committing, please ensure your commit message is formatted to include an appropriate prefix with the message. 
 
-#### Examples ####
+This project uses [commitlint](https://commitlint.js.org/). When committing, please ensure your commit message is formatted to include an appropriate prefix with the message.
+
+#### Examples
+
 ```
 fix: typescript bug
 feat: use new logger
 perf: refactor cache
 ```
-For a full list of options, please see the [`commitlint.config.js`](/commitlint.config.js) file.
 
+For a full list of options, please see the [`commitlint.config.js`](/commitlint.config.js) file.
