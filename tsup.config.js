@@ -10,9 +10,7 @@ export default defineConfig([
     minify: true,
   },
   {
-    entry: {
-      index: "src/client/workflow/index.ts",
-    },
+    entry: ["src/client/workflow/index.ts"],
     outDir: "dist/workflow",
     format: ["cjs", "esm"],
     sourcemap: false,
@@ -21,9 +19,7 @@ export default defineConfig([
     minify: true,
   },
   {
-    entry: {
-      index: "platforms/nextjs.ts",
-    },
+    entry: ["platforms/nextjs.ts"],
     outDir: "dist/nextjs",
     format: ["cjs", "esm"],
     sourcemap: false,
@@ -33,9 +29,7 @@ export default defineConfig([
     external: ["next"],
   },
   {
-    entry: {
-      index: "platforms/h3.ts",
-    },
+    entry: ["platforms/h3.ts"],
     outDir: "dist/h3",
     format: ["cjs", "esm"],
     sourcemap: false,
@@ -45,9 +39,7 @@ export default defineConfig([
     external: ["h3"],
   },
   {
-    entry: {
-      index: "platforms/svelte.ts",
-    },
+    entry: ["platforms/svelte.ts"],
     outDir: "dist/svelte",
     format: ["cjs", "esm"],
     sourcemap: false,
@@ -57,9 +49,7 @@ export default defineConfig([
     external: ["@sveltejs/kit"],
   },
   {
-    entry: {
-      index: "platforms/solidjs.ts",
-    },
+    entry: ["platforms/solidjs.ts"],
     outDir: "dist/solidjs",
     format: ["cjs", "esm"],
     sourcemap: false,
@@ -69,9 +59,7 @@ export default defineConfig([
     external: ["@solidjs/start"],
   },
   {
-    entry: {
-      index: "platforms/hono.ts",
-    },
+    entry: ["platforms/hono.ts"],
     outDir: "dist/hono",
     format: ["cjs", "esm"],
     sourcemap: false,
@@ -81,9 +69,7 @@ export default defineConfig([
     external: ["hono"],
   },
   {
-    entry: {
-      index: "platforms/cloudflare.ts",
-    },
+    entry: ["platforms/cloudflare.ts"],
     outDir: "dist/cloudlfare",
     format: ["cjs", "esm"],
     sourcemap: false,
