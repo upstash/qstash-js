@@ -114,6 +114,6 @@
   },
   "dependencies": {
     "crypto-js": ">=4.2.0",
-    "jose": "^ 5.2.3"
+    "jose": "^5.2.3"
   }
 }
