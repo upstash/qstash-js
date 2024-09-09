@@ -62,7 +62,7 @@ export const verifySignatureH3 = (
 function transformHeaders(headers: IncomingHttpHeaders): [string, string][] {
   const formattedHeaders = Object.entries(headers).map(([key, value]) => [
     key,
-    Array.isArray(value) ? value.join(", ") : (value ?? ""),
+    Array.isArray(value) ? value.join(", ") : value ?? "",
   ]);
   return formattedHeaders as [string, string][];
 }

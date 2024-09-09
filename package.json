@@ -12,57 +12,66 @@
   "bugs": {
     "url": "https://github.com/upstash/sdk-qstash-ts/issues"
   },
+  "main": "./index.js",
+  "module": "./index.mjs",
+  "types": "./index.d.ts",
   "files": [
-    "dist"
+    "./**"
   ],
-  "main": "./dist/base/index.js",
-  "module": "./dist/base/index.mjs",
-  "types": "./dist/base/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/base/index.d.ts",
-      "import": "./dist/base/index.mjs",
-      "require": "./dist/base/index.js"
+      "import": "./index.mjs",
+      "require": "./index.js"
     },
     "./nextjs": {
-      "types": "./dist/nextjs/index.ts",
-      "import": "./dist/nextjs/index.js",
-      "require": "./dist/nextjs/index.js"
+      "import": "./nextjs.js",
+      "require": "./nextjs.js"
+    },
+    "./dist/nextjs": {
+      "import": "./nextjs.js",
+      "require": "./nextjs.js"
     },
     "./h3": {
-      "types": "./dist/h3/index.ts",
-      "import": "./dist/h3/index.mjs",
-      "require": "./dist/h3/index.js"
+      "types": "./h3.d.ts",
+      "import": "./h3.mjs",
+      "require": "./h3.js"
     },
     "./nuxt": {
-      "types": "./dist/h3/index.ts",
-      "import": "./dist/h3/index.mjs",
-      "require": "./dist/h3/index.js"
+      "types": "./nuxt.d.ts",
+      "import": "./nuxt.mjs",
+      "require": "./nuxt.js"
     },
     "./svelte": {
-      "types": "./dist/svelte/index.ts",
-      "import": "./dist/svelte/index.mjs",
-      "require": "./dist/svelte/index.js"
+      "types": "./svelte.d.ts",
+      "import": "./svelte.mjs",
+      "require": "./svelte.js"
     },
     "./solidjs": {
-      "types": "./dist/solidjs/index.ts",
-      "import": "./dist/solidjs/index.mjs",
-      "require": "./dist/solidjs/index.js"
+      "types": "./solidjs.d.ts",
+      "import": "./solidjs.mjs",
+      "require": "./solidjs.js"
     },
     "./workflow": {
-      "types": "./dist/workflow/index.ts",
-      "import": "./dist/workflow/index.mjs",
-      "require": "./dist/workflow/index.js"
+      "types": "./workflow.d.ts",
+      "import": "./workflow.mjs",
+      "require": "./workflow.js"
     },
     "./hono": {
-      "types": "./dist/hono/index.ts",
-      "import": "./dist/hono/index.mjs",
-      "require": "./dist/hono/index.js"
+      "types": "./hono.d.ts",
+      "import": "./hono.mjs",
+      "require": "./hono.js"
     },
     "./cloudflare": {
-      "types": "./dist/cloudflare/index.ts",
-      "import": "./dist/cloudflare/index.mjs",
-      "require": "./dist/cloudflare/index.js"
+      "types": "./cloudflare.d.ts",
+      "import": "./cloudflare.mjs",
+      "require": "./cloudflare.js"
+    }
+  },
+  "typesVersions": {
+    "*": {
+      "nextjs": [
+        "./nextjs.d.ts"
+      ]
     }
   },
   "keywords": [
@@ -73,7 +82,7 @@
     "upstash"
   ],
   "scripts": {
-    "build": "tsup",
+    "build": "tsup && cp README.md ./dist/ && cp package.json ./dist/ && cp LICENSE ./dist/",
     "test": "bun test src",
     "fmt": "prettier --write .",
     "lint": "tsc && eslint \"src/**/*.{js,ts,tsx}\" --quiet --fix",
@@ -97,14 +106,14 @@
     "tsup": "latest",
     "typescript": "^5.4.5",
     "undici-types": "^6.16.0",
-    "@solidjs/start": "^1.0.6",
-    "@sveltejs/kit": "^2.5.18",
-    "hono": "^4.5.8",
-    "h3": "^1.12.0",
     "vitest": "latest"
   },
   "dependencies": {
+    "@solidjs/start": "^1.0.6",
+    "@sveltejs/kit": "^2.5.18",
     "crypto-js": ">=4.2.0",
+    "h3": "^1.12.0",
+    "hono": "^4.5.8",
     "jose": "^ 5.2.3"
   }
 }
