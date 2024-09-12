@@ -147,6 +147,7 @@ export default function HomePage() {
               <a
                 className="inline-flex items-center gap-1 rounded-md bg-gray-100 px-3 py-2 hover:bg-emerald-100"
                 href="https://upstash.com/docs/qstash/workflow/howto/local-development"
+                target="_blank"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -160,10 +161,9 @@ export default function HomePage() {
                   strokeLinejoin="round"
                 >
                   <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-                  <path d="M14 3v4a1 1 0 0 0 1 1h4" />
-                  <path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z" />
-                  <path d="M10 13l-1 2l1 2" />
-                  <path d="M14 13l1 2l-1 2" />
+                  <path d="M12 6h-6a2 2 0 0 0 -2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-6" />
+                  <path d="M11 13l9 -9" />
+                  <path d="M15 4h5v5" />
                 </svg>
                 ngrog setup
               </a>
@@ -237,16 +237,36 @@ export default function HomePage() {
             </StepDesc>
 
             <StepContent>
-              <Img src="/ss.png" width={1564} height={476} alt="s" />
-
-              <div>
-                <a
-                  className="underline"
-                  href="https://console.upstash.com/qstash?tab=workflow"
+              <a
+                className="inline-flex items-center gap-1 rounded-md bg-gray-100 px-3 py-2 hover:bg-emerald-100"
+                href="https://console.upstash.com/qstash?tab=workflow"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
                 >
-                  Upstash Console
-                </a>
-              </div>
+                  <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                  <path d="M12 6h-6a2 2 0 0 0 -2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-6" />
+                  <path d="M11 13l9 -9" />
+                  <path d="M15 4h5v5" />
+                </svg>
+                Upstash Console
+              </a>
+
+              <Img
+                className="mt-4 block"
+                src="/ss.png"
+                width={1564}
+                height={476}
+                alt="s"
+              />
             </StepContent>
           </StepItem>
         </Step>
