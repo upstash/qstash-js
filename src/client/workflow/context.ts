@@ -1,6 +1,6 @@
 import type { Err, Ok } from "neverthrow";
 import { err, ok } from "neverthrow";
-import type { RouteFunction, WorkflowClient } from "./types";
+import type { RouteFunction, StepOptions, WorkflowClient } from "./types";
 import { type StepFunction, type Step } from "./types";
 import { AutoExecutor } from "./auto-executor";
 import type { BaseLazyStep } from "./steps";
@@ -203,11 +203,12 @@ export class WorkflowContext<TInitialPayload = unknown> {
    */
   public async run<TResult>(
     stepName: string,
-    stepFunction: StepFunction<TResult>
+    stepFunction: StepFunction<TResult>,
+    options?: Omit<StepOptions, "stepName">
   ): Promise<TResult> {
     const wrappedStepFunction = (() =>
       this.executor.wrapStep(stepName, stepFunction)) as StepFunction<TResult>;
-    return this.addStep<TResult>(new LazyFunctionStep(stepName, wrappedStepFunction));
+    return this.addStep<TResult>(new LazyFunctionStep(stepName, wrappedStepFunction, options));
   }
 
   /**
@@ -217,8 +218,12 @@ export class WorkflowContext<TInitialPayload = unknown> {
    * @param duration sleep duration in seconds
    * @returns undefined
    */
-  public async sleep(stepName: string, duration: number): Promise<void> {
-    await this.addStep(new LazySleepStep(stepName, duration));
+  public async sleep(
+    stepName: string,
+    duration: number,
+    options?: Omit<StepOptions, "stepName" | "concurrency">
+  ): Promise<void> {
+    await this.addStep(new LazySleepStep(stepName, duration, options));
   }
 
   /**

@@ -237,7 +237,13 @@ export const serve = <
       const result = isFirstInvocation
         ? await triggerFirstInvocation(workflowContext, debug)
         : await triggerRouteFunction({
-            onStep: async () => routeFunction(workflowContext),
+            onStep: async () => {
+              await routeFunction(workflowContext);
+
+              // @ts-expect-error accessing executor which we don't want in public api
+              // but we need to access it here
+              await workflowContext.executor.submitStoredStep();
+            },
             onCleanup: async () => {
               await triggerWorkflowDelete(workflowContext, debug);
             },

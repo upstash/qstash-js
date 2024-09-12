@@ -13,6 +13,7 @@ export type WorkflowClient = {
   batchJSON: InstanceType<typeof Client>["batchJSON"];
   publishJSON: InstanceType<typeof Client>["publishJSON"];
   http: InstanceType<typeof Client>["http"];
+  queue: Client["queue"];
 };
 /**
  * Interface for Receiver with required methods
@@ -83,7 +84,11 @@ export type Step<TResult = unknown, TBody = unknown> = {
    * set to the target step.
    */
   targetStep?: number;
-} & (ThirdPartyCallFields<TBody> | { [P in keyof ThirdPartyCallFields]?: never });
+} & (ThirdPartyCallFields<TBody> | { [P in keyof ThirdPartyCallFields]?: never }) & {
+    nextStepOptions?: StepOptions;
+  };
+
+export type StepOptions = { concurrency?: number; retry?: number; stepName?: string };
 
 export type RawStep = {
   messageId: string;

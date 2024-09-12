@@ -1,5 +1,5 @@
 import type { HTTPMethods } from "../types";
-import type { Step, StepFunction, StepType } from "./types";
+import type { Step, StepFunction, StepOptions, StepType } from "./types";
 
 /**
  * Base class outlining steps. Basically, each step kind (run/sleep/sleepUntil)
@@ -10,9 +10,13 @@ import type { Step, StepFunction, StepType } from "./types";
  */
 export abstract class BaseLazyStep<TResult = unknown> {
   public readonly stepName;
+  public readonly options: StepOptions;
+
   public abstract readonly stepType: StepType; // will be set in the subclasses
-  constructor(stepName: string) {
+
+  constructor(stepName: string, options?: StepOptions) {
     this.stepName = stepName;
+    this.options = { stepName: this.stepName, ...options };
   }
 
   /**
@@ -42,8 +46,8 @@ export class LazyFunctionStep<TResult = unknown> extends BaseLazyStep<TResult> {
   private readonly stepFunction: StepFunction<TResult>;
   stepType: StepType = "Run";
 
-  constructor(stepName: string, stepFunction: StepFunction<TResult>) {
-    super(stepName);
+  constructor(stepName: string, stepFunction: StepFunction<TResult>, options?: StepOptions) {
+    super(stepName, options);
     this.stepFunction = stepFunction;
   }
 
@@ -55,6 +59,7 @@ export class LazyFunctionStep<TResult = unknown> extends BaseLazyStep<TResult> {
         stepType: this.stepType,
         concurrent,
         targetStep,
+        nextStepOptions: this.options,
       };
     }
   }
@@ -82,8 +87,8 @@ export class LazySleepStep extends BaseLazyStep {
   private readonly sleep: number;
   stepType: StepType = "SleepFor";
 
-  constructor(stepName: string, sleep: number) {
-    super(stepName);
+  constructor(stepName: string, sleep: number, options?: StepOptions) {
+    super(stepName, options);
     this.sleep = sleep;
   }
 
@@ -96,6 +101,7 @@ export class LazySleepStep extends BaseLazyStep {
         sleepFor: this.sleep,
         concurrent,
         targetStep,
+        nextStepOptions: this.options,
       };
     }
   }
@@ -118,8 +124,8 @@ export class LazySleepUntilStep extends BaseLazyStep {
   private readonly sleepUntil: number;
   stepType: StepType = "SleepUntil";
 
-  constructor(stepName: string, sleepUntil: number) {
-    super(stepName);
+  constructor(stepName: string, sleepUntil: number, options?: StepOptions) {
+    super(stepName, options);
     this.sleepUntil = sleepUntil;
   }
 
@@ -132,6 +138,7 @@ export class LazySleepUntilStep extends BaseLazyStep {
         sleepUntil: this.sleepUntil,
         concurrent,
         targetStep,
+        nextStepOptions: this.options,
       };
     }
   }
@@ -159,9 +166,10 @@ export class LazyCallStep<TResult = unknown, TBody = unknown> extends BaseLazySt
     url: string,
     method: HTTPMethods,
     body: TBody,
-    headers: Record<string, string>
+    headers: Record<string, string>,
+    options?: StepOptions
   ) {
-    super(stepName);
+    super(stepName, options);
     this.url = url;
     this.method = method;
     this.body = body;
@@ -176,6 +184,7 @@ export class LazyCallStep<TResult = unknown, TBody = unknown> extends BaseLazySt
         stepType: this.stepType,
         concurrent,
         targetStep,
+        nextStepOptions: this.options,
       };
     }
   }

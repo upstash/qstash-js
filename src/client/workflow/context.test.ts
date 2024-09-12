@@ -113,10 +113,18 @@ describe("context tests", () => {
 
     await mockQStashServer({
       execute: () => {
-        const throws = () =>
-          context.run("my-step", () => {
+        const throws = async () => {
+          const result = await context.run("my-step", () => {
             return "my-result";
           });
+          expect(result).toBe("my-result");
+
+          await context.run("next-step", () => {
+            return "won't run";
+          });
+        };
+        // should not throw with next-step, as it's not the step that ran.
+        // It should say my-step:
         expect(throws).toThrowError("Aborting workflow after executing step 'my-step'.");
       },
       responseFields: {
