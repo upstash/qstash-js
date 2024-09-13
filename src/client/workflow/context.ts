@@ -9,6 +9,7 @@ import type { HTTPMethods } from "../types";
 import type { WorkflowLogger } from "./logger";
 import { QStashWorkflowAbort } from "../error";
 import { Client } from "../client";
+import { DEFAULT_RETRIES } from "./constants";
 
 /**
  * QStash workflow context
@@ -137,6 +138,10 @@ export class WorkflowContext<TInitialPayload = unknown> {
    * Default value is set to `process.env`.
    */
   public readonly env: Record<string, string | undefined>;
+  /**
+   * Number of retries
+   */
+  public readonly retries: number;
 
   constructor({
     qstashClient,
@@ -149,6 +154,7 @@ export class WorkflowContext<TInitialPayload = unknown> {
     initialPayload,
     rawInitialPayload,
     env,
+    retries,
   }: {
     qstashClient: WorkflowClient;
     workflowRunId: string;
@@ -160,6 +166,7 @@ export class WorkflowContext<TInitialPayload = unknown> {
     initialPayload: TInitialPayload;
     rawInitialPayload?: string; // optional for tests
     env?: Record<string, string | undefined>;
+    retries?: number;
   }) {
     this.qstashClient = qstashClient;
     this.workflowRunId = workflowRunId;
@@ -170,6 +177,7 @@ export class WorkflowContext<TInitialPayload = unknown> {
     this.requestPayload = initialPayload;
     this.rawInitialPayload = rawInitialPayload ?? JSON.stringify(this.requestPayload);
     this.env = env ?? {};
+    this.retries = retries ?? DEFAULT_RETRIES;
 
     this.executor = new AutoExecutor(this, this.steps, debug);
   }
@@ -359,6 +367,7 @@ export class DisabledWorkflowContext<
       initialPayload: context.requestPayload,
       rawInitialPayload: context.rawInitialPayload,
       env: context.env,
+      retries: context.retries,
     });
 
     try {

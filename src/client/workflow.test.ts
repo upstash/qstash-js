@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-magic-numbers */
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { describe, test, expect } from "bun:test";
 import { triggerFirstInvocation } from "./workflow/workflow-requests";
@@ -18,7 +19,8 @@ describe("workflow tests", () => {
         steps: [],
         url: "https://some-url.com",
         initialPayload: undefined,
-      })
+      }),
+      3
     );
     expect(result.isOk()).toBeTrue();
 
