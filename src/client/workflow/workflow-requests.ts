@@ -23,6 +23,7 @@ import type { WorkflowLogger } from "./logger";
 
 export const triggerFirstInvocation = async <TInitialPayload>(
   workflowContext: WorkflowContext<TInitialPayload>,
+  retries: number,
   debug?: WorkflowLogger
 ): Promise<Ok<"success", never> | Err<never, Error>> => {
   const headers = getHeaders(
@@ -31,7 +32,8 @@ export const triggerFirstInvocation = async <TInitialPayload>(
     workflowContext.url,
     workflowContext.headers,
     undefined,
-    workflowContext.failureUrl
+    workflowContext.failureUrl,
+    retries
   );
   await debug?.log("SUBMIT", "SUBMIT_FIRST_INVOCATION", {
     headers,
@@ -137,6 +139,7 @@ export const handleThirdPartyCallResult = async (
   client: WorkflowClient,
   workflowUrl: string,
   failureUrl: WorkflowServeOptions["failureUrl"],
+  retries: number,
   debug?: WorkflowLogger
 ): Promise<
   Ok<"is-call-return" | "continue-workflow" | "call-will-retry", never> | Err<never, Error>
@@ -199,7 +202,8 @@ export const handleThirdPartyCallResult = async (
         workflowUrl,
         userHeaders,
         undefined,
-        failureUrl
+        failureUrl,
+        retries
       );
 
       const callResultStep: Step = {
@@ -257,7 +261,8 @@ export const getHeaders = (
   workflowUrl: string,
   userHeaders?: Headers,
   step?: Step,
-  failureUrl?: WorkflowServeOptions["failureUrl"]
+  failureUrl?: WorkflowServeOptions["failureUrl"],
+  retries?: number
 ): Record<string, string> => {
   const baseHeaders: Record<string, string> = {
     [WORKFLOW_INIT_HEADER]: initHeaderValue,
@@ -270,6 +275,11 @@ export const getHeaders = (
           "Upstash-Failure-Callback": failureUrl,
         }
       : {}),
+    ...(retries === undefined
+      ? {}
+      : {
+          "Upstash-Retries": retries.toString(),
+        }),
   };
 
   if (userHeaders) {

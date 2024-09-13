@@ -137,6 +137,10 @@ export class WorkflowContext<TInitialPayload = unknown> {
    * Default value is set to `process.env`.
    */
   public readonly env: Record<string, string | undefined>;
+  /**
+   * Number of retries
+   */
+  public readonly retries: number;
 
   constructor({
     qstashClient,
@@ -149,6 +153,7 @@ export class WorkflowContext<TInitialPayload = unknown> {
     initialPayload,
     rawInitialPayload,
     env,
+    retries,
   }: {
     qstashClient: WorkflowClient;
     workflowRunId: string;
@@ -160,6 +165,7 @@ export class WorkflowContext<TInitialPayload = unknown> {
     initialPayload: TInitialPayload;
     rawInitialPayload?: string; // optional for tests
     env?: Record<string, string | undefined>;
+    retries?: number;
   }) {
     this.qstashClient = qstashClient;
     this.workflowRunId = workflowRunId;
@@ -170,6 +176,8 @@ export class WorkflowContext<TInitialPayload = unknown> {
     this.requestPayload = initialPayload;
     this.rawInitialPayload = rawInitialPayload ?? JSON.stringify(this.requestPayload);
     this.env = env ?? {};
+    // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+    this.retries = retries ?? 3;
 
     this.executor = new AutoExecutor(this, this.steps, debug);
   }
@@ -359,6 +367,7 @@ export class DisabledWorkflowContext<
       initialPayload: context.requestPayload,
       rawInitialPayload: context.rawInitialPayload,
       env: context.env,
+      retries: context.retries,
     });
 
     try {

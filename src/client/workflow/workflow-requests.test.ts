@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-magic-numbers */
 import { describe, expect, spyOn, test } from "bun:test";
 import { nanoid } from "nanoid";
 
@@ -45,7 +46,7 @@ describe("Workflow Requests", () => {
 
     await mockQStashServer({
       execute: async () => {
-        const result = await triggerFirstInvocation(context);
+        const result = await triggerFirstInvocation(context, 0);
         expect(result.isOk()).toBeTrue();
       },
       responseFields: {
@@ -57,6 +58,9 @@ describe("Workflow Requests", () => {
         url: `${MOCK_QSTASH_SERVER_URL}/v2/publish/https://www.my-website.com/api`,
         token,
         body: initialPayload,
+        headers: {
+          "upstash-retries": "0",
+        },
       },
     });
   });
@@ -186,7 +190,8 @@ describe("Workflow Requests", () => {
             await request.text(),
             client,
             WORKFLOW_ENDPOINT,
-            WORKFLOW_ENDPOINT
+            WORKFLOW_ENDPOINT,
+            2
           );
           expect(result.isOk());
           // @ts-expect-error value will be set since stepFinish isOk
@@ -206,6 +211,9 @@ describe("Workflow Requests", () => {
             stepType: stepType,
             out: thirdPartyCallResult,
             concurrent: 1,
+          },
+          headers: {
+            "upstash-retries": "2",
           },
         },
       });
@@ -250,7 +258,8 @@ describe("Workflow Requests", () => {
         await request.text(),
         client,
         WORKFLOW_ENDPOINT,
-        WORKFLOW_ENDPOINT
+        WORKFLOW_ENDPOINT,
+        3
       );
       expect(result.isOk()).toBeTrue();
       // @ts-expect-error value will be set since stepFinish isOk
@@ -299,7 +308,8 @@ describe("Workflow Requests", () => {
         await initialRequest.text(),
         client,
         WORKFLOW_ENDPOINT,
-        WORKFLOW_ENDPOINT
+        WORKFLOW_ENDPOINT,
+        5
       );
       expect(initialResult.isOk());
       // @ts-expect-error value will be set since stepFinish isOk
@@ -312,7 +322,8 @@ describe("Workflow Requests", () => {
         await workflowRequest.text(),
         client,
         WORKFLOW_ENDPOINT,
-        WORKFLOW_ENDPOINT
+        WORKFLOW_ENDPOINT,
+        0
       );
       expect(result.isOk()).toBeTrue();
       // @ts-expect-error value will be set since stepFinish isOk

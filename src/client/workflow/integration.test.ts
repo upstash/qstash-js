@@ -107,6 +107,7 @@ const testEndpoint = async <TInitialPayload = unknown>({
   routeFunction,
   finishState,
   failureFunction,
+  retries,
 }: {
   finalCount: number;
   waitFor: number;
@@ -114,6 +115,7 @@ const testEndpoint = async <TInitialPayload = unknown>({
   routeFunction: RouteFunction<TInitialPayload>;
   finishState: FinishState;
   failureFunction?: WorkflowServeOptions["failureFunction"];
+  retries?: number;
 }) => {
   let counter = 0;
 
@@ -122,6 +124,7 @@ const testEndpoint = async <TInitialPayload = unknown>({
     url: LOCAL_WORKFLOW_URL,
     verbose: true,
     failureFunction,
+    retries,
   });
 
   const server = serve({
@@ -457,8 +460,7 @@ describe.skip("live serve tests", () => {
     }
   );
 
-  // TODO: remove skip after adding a parameter to set step retries
-  test.skip(
+  test(
     "failureFunction",
     async () => {
       const finishState = new FinishState();
@@ -476,6 +478,7 @@ describe.skip("live serve tests", () => {
             throw new Error("my-custom-error");
           });
         },
+        retries: 0,
         failureFunction: (context, failStatus, failResponse, failHeaders) => {
           expect(failStatus).toBe(500);
           expect(failResponse).toBe("my-custom-error");

@@ -82,6 +82,7 @@ export const processOptions = <TResponse extends Response = Response, TInitialPa
       : undefined,
     baseUrl: environment.UPSTASH_WORKFLOW_URL,
     env: environment,
+    retries: 3,
     ...options,
   };
 };
@@ -114,6 +115,7 @@ export const serve = <
     failureFunction,
     baseUrl,
     env,
+    retries,
   } = processOptions<TResponse, TInitialPayload>(options);
 
   const debug = WorkflowLogger.getLogger(verbose);
@@ -224,6 +226,7 @@ export const serve = <
       qstashClient,
       workflowUrl,
       workflowFailureUrl,
+      retries,
       debug
     );
     if (callReturnCheck.isErr()) {
@@ -235,7 +238,7 @@ export const serve = <
     } else if (callReturnCheck.value === "continue-workflow") {
       // request is not third party call. Continue workflow as usual
       const result = isFirstInvocation
-        ? await triggerFirstInvocation(workflowContext, debug)
+        ? await triggerFirstInvocation(workflowContext, retries, debug)
         : await triggerRouteFunction({
             onStep: async () => routeFunction(workflowContext),
             onCleanup: async () => {

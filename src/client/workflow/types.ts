@@ -187,6 +187,12 @@ export type WorkflowServeOptions<
    * Useful in cases like cloudflare with hono.
    */
   env?: Record<string, string | undefined>;
+  /**
+   * Number of retries to use in workflow requests
+   *
+   * 3 by default
+   */
+  retries?: number;
 };
 
 /**
