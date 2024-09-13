@@ -531,4 +531,33 @@ describe.skip("live serve tests", () => {
       timeout: 22_000,
     }
   );
+
+  test(
+    "unicode payload",
+    async () => {
+      const finishState = new FinishState();
+      const payload = "“unicode-quotes”";
+      await testEndpoint({
+        finalCount: 3,
+        waitFor: 5000,
+        initialPayload: payload,
+        finishState,
+        routeFunction: async (context) => {
+          const input = context.requestPayload;
+
+          expect(input).toBe(payload);
+
+          const result = await context.run("step1", () => {
+            return `result: ${input}`;
+          });
+
+          expect(result).toBe(`result: ${payload}`);
+          finishState.finish();
+        },
+      });
+    },
+    {
+      timeout: 7000,
+    }
+  );
 });

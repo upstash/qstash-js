@@ -18,7 +18,7 @@ import type {
 import type { WorkflowLogger } from "./logger";
 import { WorkflowContext } from "./context";
 import { recreateUserHeaders } from "./workflow-requests";
-import { nanoid } from "../utils";
+import { decodeBase64, nanoid } from "../utils";
 
 /**
  * Gets the request body. If that fails, returns undefined
@@ -51,7 +51,7 @@ const parsePayload = (rawPayload: string) => {
   const [encodedInitialPayload, ...encodedSteps] = JSON.parse(rawPayload) as RawStep[];
 
   // decode initial payload:
-  const rawInitialPayload = atob(encodedInitialPayload.body);
+  const rawInitialPayload = decodeBase64(encodedInitialPayload.body);
   const initialStep: Step = {
     stepId: 0,
     stepName: "init",
@@ -65,7 +65,7 @@ const parsePayload = (rawPayload: string) => {
 
   // decode & parse other steps:
   const otherSteps = stepsToDecode.map((rawStep) => {
-    return JSON.parse(atob(rawStep.body)) as Step;
+    return JSON.parse(decodeBase64(rawStep.body)) as Step;
   });
 
   // join and deduplicate steps:
@@ -275,7 +275,7 @@ export const handleFailure = async <TInitialPayload>(
       workflowRunId: string;
     };
 
-    const decodedBody = body ? atob(body) : "{}";
+    const decodedBody = body ? decodeBase64(body) : "{}";
     const errorPayload = JSON.parse(decodedBody) as FailureFunctionPayload;
 
     // parse steps
@@ -283,7 +283,7 @@ export const handleFailure = async <TInitialPayload>(
       rawInitialPayload,
       steps,
       isLastDuplicate: _isLastDuplicate,
-    } = await parseRequest(atob(sourceBody), false, debug);
+    } = await parseRequest(decodeBase64(sourceBody), false, debug);
 
     // create context
     const workflowContext = new WorkflowContext<TInitialPayload>({
