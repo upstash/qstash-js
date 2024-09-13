@@ -5,6 +5,7 @@ export * from "./client/messages";
 export * from "./client/schedules";
 export * from "./client/url-groups";
 export * from "./client/types";
+export { decodeBase64 } from "./client/utils";
 
 export * from "./client/llm/chat";
 export * from "./client/llm/types";
