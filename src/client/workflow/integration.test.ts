@@ -493,4 +493,42 @@ describe.skip("live serve tests", () => {
       timeout: 10_000,
     }
   );
+
+  test(
+    "retry",
+    async () => {
+      const finishState = new FinishState();
+      let counter = 0;
+
+      await testEndpoint({
+        finalCount: 4,
+        waitFor: 20_000,
+        initialPayload: "my-payload",
+        finishState,
+        routeFunction: async (context) => {
+          const input = context.requestPayload;
+
+          expect(input).toBe("my-payload");
+
+          await context.run("step1", () => {
+            counter += 1;
+            throw new Error("my-custom-error");
+          });
+        },
+        retries: 1,
+        failureFunction: (context, failStatus, failResponse, failHeaders) => {
+          expect(failStatus).toBe(500);
+          expect(failResponse).toBe("my-custom-error");
+          expect(context.headers.get("authentication")).toBe("Bearer secretPassword");
+          expect(failHeaders["Content-Length"][0]).toBe("45");
+          finishState.finish();
+          return;
+        },
+      });
+      expect(counter).toBe(2);
+    },
+    {
+      timeout: 22_000,
+    }
+  );
 });

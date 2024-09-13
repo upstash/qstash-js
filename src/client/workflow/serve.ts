@@ -2,6 +2,7 @@
 import { Receiver } from "../../receiver";
 import { Client } from "../client";
 import { formatWorkflowError } from "../error";
+import { DEFAULT_RETRIES } from "./constants";
 import { DisabledWorkflowContext, WorkflowContext } from "./context";
 import { WorkflowLogger } from "./logger";
 import type {
@@ -82,7 +83,7 @@ export const processOptions = <TResponse extends Response = Response, TInitialPa
       : undefined,
     baseUrl: environment.UPSTASH_WORKFLOW_URL,
     env: environment,
-    retries: 3,
+    retries: DEFAULT_RETRIES,
     ...options,
   };
 };

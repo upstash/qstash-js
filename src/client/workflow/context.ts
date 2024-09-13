@@ -9,6 +9,7 @@ import type { HTTPMethods } from "../types";
 import type { WorkflowLogger } from "./logger";
 import { QStashWorkflowAbort } from "../error";
 import { Client } from "../client";
+import { DEFAULT_RETRIES } from "./constants";
 
 /**
  * QStash workflow context
@@ -176,8 +177,7 @@ export class WorkflowContext<TInitialPayload = unknown> {
     this.requestPayload = initialPayload;
     this.rawInitialPayload = rawInitialPayload ?? JSON.stringify(this.requestPayload);
     this.env = env ?? {};
-    // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-    this.retries = retries ?? 3;
+    this.retries = retries ?? DEFAULT_RETRIES;
 
     this.executor = new AutoExecutor(this, this.steps, debug);
   }
