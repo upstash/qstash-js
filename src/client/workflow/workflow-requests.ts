@@ -308,6 +308,8 @@ export const getHeaders = (
       "Upstash-Callback-Forward-Upstash-Workflow-StepName": step.stepName,
       "Upstash-Callback-Forward-Upstash-Workflow-StepType": step.stepType,
       "Upstash-Callback-Forward-Upstash-Workflow-Concurrent": step.concurrent.toString(),
+      "Upstash-Callback-Forward-Upstash-Workflow-Retry":
+        step.nextStepOptions?.retry?.toString() ?? "",
       "Upstash-Callback-Forward-Upstash-Workflow-ContentType": contentType ?? DEFAULT_CONTENT_TYPE,
       "Upstash-Workflow-CallType": "toCallback",
     };

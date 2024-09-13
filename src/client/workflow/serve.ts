@@ -2,7 +2,7 @@
 import { Receiver } from "../../receiver";
 import { Client } from "../client";
 import { formatWorkflowError } from "../error";
-import { DisabledWorkflowContext, WorkflowContext } from "./context";
+import { WorkflowContext, DisabledWorkflowContext } from "./context";
 import { WorkflowLogger } from "./logger";
 import type {
   FinishCondition,
@@ -14,7 +14,6 @@ import { getPayload, handleFailure, parseRequest, validateRequest } from "./work
 import {
   handleThirdPartyCallResult,
   recreateUserHeaders,
-  triggerFirstInvocation,
   triggerRouteFunction,
   triggerWorkflowDelete,
   verifyRequest,
@@ -234,14 +233,18 @@ export const serve = <
       throw callReturnCheck.error;
     } else if (callReturnCheck.value === "continue-workflow") {
       // request is not third party call. Continue workflow as usual
-      const result = isFirstInvocation
-        ? await triggerFirstInvocation(workflowContext, debug)
-        : await triggerRouteFunction({
-            onStep: async () => routeFunction(workflowContext),
-            onCleanup: async () => {
-              await triggerWorkflowDelete(workflowContext, debug);
-            },
-          });
+      const result = await triggerRouteFunction({
+        onStep: async () => {
+          await routeFunction(workflowContext);
+
+          // @ts-expect-error accessing executor which we don't want in public api
+          // but we need to access it here
+          await workflowContext.executor.submitStoredStep();
+        },
+        onCleanup: async () => {
+          await triggerWorkflowDelete(workflowContext, debug);
+        },
+      });
 
       if (result.isErr()) {
         // error while running the workflow or when cleaning up

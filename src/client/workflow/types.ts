@@ -83,7 +83,11 @@ export type Step<TResult = unknown, TBody = unknown> = {
    * set to the target step.
    */
   targetStep?: number;
-} & (ThirdPartyCallFields<TBody> | { [P in keyof ThirdPartyCallFields]?: never });
+} & (ThirdPartyCallFields<TBody> | { [P in keyof ThirdPartyCallFields]?: never }) & {
+    nextStepOptions?: StepOptions;
+  };
+
+export type StepOptions = { retry?: number; stepName?: string };
 
 export type RawStep = {
   messageId: string;

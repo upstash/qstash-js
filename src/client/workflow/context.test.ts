@@ -1,7 +1,12 @@
 /* eslint-disable unicorn/consistent-function-scoping */
 /* eslint-disable @typescript-eslint/no-magic-numbers */
 import { describe, test, expect } from "bun:test";
-import { MOCK_QSTASH_SERVER_URL, mockQStashServer, WORKFLOW_ENDPOINT } from "./test-utils";
+import {
+  FinishState,
+  MOCK_QSTASH_SERVER_URL,
+  mockQStashServer,
+  WORKFLOW_ENDPOINT,
+} from "./test-utils";
 import { DisabledWorkflowContext, WorkflowContext } from "./context";
 import { Client } from "../client";
 import { nanoid } from "nanoid";
@@ -11,11 +16,20 @@ import type { RouteFunction } from "./types";
 describe("context tests", () => {
   const token = nanoid();
   const qstashClient = new Client({ baseUrl: MOCK_QSTASH_SERVER_URL, token });
+
   test("should raise when there are nested steps (with run)", () => {
     const context = new WorkflowContext({
       qstashClient,
       initialPayload: "my-payload",
-      steps: [],
+      steps: [
+        {
+          stepId: 0,
+          stepName: "initial",
+          stepType: "Initial",
+          out: "my-payload",
+          concurrent: 1,
+        },
+      ],
       url: WORKFLOW_ENDPOINT,
       headers: new Headers() as Headers,
       workflowRunId: "wfr-id",
@@ -39,7 +53,15 @@ describe("context tests", () => {
     const context = new WorkflowContext({
       qstashClient,
       initialPayload: "my-payload",
-      steps: [],
+      steps: [
+        {
+          stepId: 0,
+          stepName: "initial",
+          stepType: "Initial",
+          out: "my-payload",
+          concurrent: 1,
+        },
+      ],
       url: WORKFLOW_ENDPOINT,
       headers: new Headers() as Headers,
       workflowRunId: "wfr-id",
@@ -61,7 +83,15 @@ describe("context tests", () => {
     const context = new WorkflowContext({
       qstashClient,
       initialPayload: "my-payload",
-      steps: [],
+      steps: [
+        {
+          stepId: 0,
+          stepName: "initial",
+          stepType: "Initial",
+          out: "my-payload",
+          concurrent: 1,
+        },
+      ],
       url: WORKFLOW_ENDPOINT,
       headers: new Headers() as Headers,
       workflowRunId: "wfr-id",
@@ -83,7 +113,15 @@ describe("context tests", () => {
     const context = new WorkflowContext({
       qstashClient,
       initialPayload: "my-payload",
-      steps: [],
+      steps: [
+        {
+          stepId: 0,
+          stepName: "initial",
+          stepType: "Initial",
+          out: "my-payload",
+          concurrent: 1,
+        },
+      ],
       url: WORKFLOW_ENDPOINT,
       headers: new Headers() as Headers,
       workflowRunId: "wfr-id",
@@ -105,18 +143,34 @@ describe("context tests", () => {
     const context = new WorkflowContext({
       qstashClient,
       initialPayload: "my-payload",
-      steps: [],
+      steps: [
+        {
+          stepId: 0,
+          stepName: "initial",
+          stepType: "Initial",
+          out: "my-payload",
+          concurrent: 1,
+        },
+      ],
       url: WORKFLOW_ENDPOINT,
       headers: new Headers() as Headers,
       workflowRunId: "wfr-id",
     });
-
+    const finished = new FinishState();
     await mockQStashServer({
       execute: () => {
-        const throws = () =>
-          context.run("my-step", () => {
+        const throws = async () => {
+          const result = await context.run("my-step", () => {
             return "my-result";
           });
+          expect(result).toBe("my-result");
+          finished.finish();
+          await context.run("next-step", () => {
+            return "won't run";
+          });
+        };
+        // should not throw with next-step, as it's not the step that ran.
+        // It should say my-step:
         expect(throws).toThrowError("Aborting workflow after executing step 'my-step'.");
       },
       responseFields: {
@@ -143,6 +197,7 @@ describe("context tests", () => {
         ],
       },
     });
+    finished.check();
   });
 });
 
@@ -153,7 +208,15 @@ describe("disabled workflow context", () => {
     qstashClient,
     workflowRunId: "wfr-foo",
     headers: new Headers() as Headers,
-    steps: [],
+    steps: [
+      {
+        stepId: 0,
+        stepName: "initial",
+        stepType: "Initial",
+        out: "my-payload",
+        concurrent: 1,
+      },
+    ],
     url: WORKFLOW_ENDPOINT,
     initialPayload: "my-payload",
   });
@@ -231,7 +294,15 @@ describe("disabled workflow context", () => {
       qstashClient,
       workflowRunId: "wfr-foo",
       headers: new Headers() as Headers,
-      steps: [],
+      steps: [
+        {
+          stepId: 0,
+          stepName: "initial",
+          stepType: "Initial",
+          out: "my-payload",
+          concurrent: 1,
+        },
+      ],
       url: WORKFLOW_ENDPOINT,
       initialPayload: "my-payload",
     });
@@ -310,7 +381,15 @@ describe("disabled workflow context", () => {
         qstashClient,
         workflowRunId: "wfr-bar",
         headers: new Headers() as Headers,
-        steps: [],
+        steps: [
+          {
+            stepId: 0,
+            stepName: "initial",
+            stepType: "Initial",
+            out: "my-payload",
+            concurrent: 1,
+          },
+        ],
         url: WORKFLOW_ENDPOINT,
         initialPayload: "my-payload",
       });
@@ -356,7 +435,15 @@ describe("disabled workflow context", () => {
         qstashClient,
         workflowRunId: "wfr-bar",
         headers: new Headers() as Headers,
-        steps: [],
+        steps: [
+          {
+            stepId: 0,
+            stepName: "initial",
+            stepType: "Initial",
+            out: "my-payload",
+            concurrent: 1,
+          },
+        ],
         url: WORKFLOW_ENDPOINT,
         initialPayload: "my-payload",
       });
@@ -402,7 +489,15 @@ describe("disabled workflow context", () => {
         qstashClient,
         workflowRunId: "wfr-bar",
         headers: new Headers() as Headers,
-        steps: [],
+        steps: [
+          {
+            stepId: 0,
+            stepName: "initial",
+            stepType: "Initial",
+            out: "my-payload",
+            concurrent: 1,
+          },
+        ],
         url: WORKFLOW_ENDPOINT,
         initialPayload: "my-payload",
       });

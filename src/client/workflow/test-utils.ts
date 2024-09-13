@@ -177,3 +177,13 @@ export const getRequest = (
     },
   });
 };
+
+export class FinishState {
+  public finished = false;
+  public finish() {
+    this.finished = true;
+  }
+  public check() {
+    expect(this.finished).toBeTrue();
+  }
+}

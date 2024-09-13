@@ -137,7 +137,7 @@ const checkIfLastOneIsDuplicate = async (
     if (step.stepId === lastStepId && step.targetStep === lastTargetStepId) {
       const message =
         `QStash Workflow: The step '${step.stepName}' with id '${step.stepId}'` +
-        "  has run twice during workflow execution. Rest of the workflow will continue running as usual.";
+        " has run twice during workflow execution. Rest of the workflow will continue running as usual.";
       await debug?.log("WARN", "RESPONSE_DEFAULT", message);
       console.warn(message);
       return true;
@@ -175,7 +175,7 @@ export const validateRequest = (
   // get workflow id
   const workflowRunId = isFirstInvocation
     ? `wfr_${nanoid()}`
-    : (request.headers.get(WORKFLOW_ID_HEADER) ?? "");
+    : request.headers.get(WORKFLOW_ID_HEADER) ?? "";
   if (workflowRunId.length === 0) {
     throw new QStashWorkflowError("Couldn't get workflow id from header");
   }

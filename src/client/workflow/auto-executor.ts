@@ -2,9 +2,10 @@ import { QStashWorkflowAbort, QStashWorkflowError } from "../error";
 import type { WorkflowContext } from "./context";
 import type { StepFunction, ParallelCallState, Step } from "./types";
 import { type BaseLazyStep } from "./steps";
-import { getHeaders } from "./workflow-requests";
+import { getHeaders, triggerFirstInvocation } from "./workflow-requests";
 import type { WorkflowLogger } from "./logger";
 import { NO_CONCURRENCY } from "./constants";
+import type { PublishBatchRequest, PublishToUrlGroupsResponse } from "../client";
 
 export class AutoExecutor {
   private context: WorkflowContext;
@@ -20,10 +21,23 @@ export class AutoExecutor {
 
   protected executingStep: string | false = false;
 
+  private submitOnNextStep?:
+    | {
+        isFirstInvocation?: true;
+        step?: never;
+      }
+    | {
+        isFirstInvocation?: never;
+        step?: Step;
+      };
+
   constructor(context: WorkflowContext, steps: Step[], debug?: WorkflowLogger) {
     this.context = context;
     this.debug = debug;
     this.steps = steps;
+    if (this.steps.length === 0) {
+      this.submitOnNextStep = { isFirstInvocation: true };
+    }
     this.nonPlanStepCount = this.steps.filter((step) => !step.targetStep).length;
   }
 
@@ -69,9 +83,6 @@ export class AutoExecutor {
         const promise = this.getExecutionPromise(lazyStepList);
         this.promises.set(lazyStepList, promise);
         this.activeLazyStepList = undefined;
-
-        // if there are more than 1 functions, increment the plan step count
-        this.planStepCount += lazyStepList.length > 1 ? lazyStepList.length : 0;
       }
       const promise = this.promises.get(lazyStepList);
       return promise;
@@ -103,6 +114,23 @@ export class AutoExecutor {
     return result;
   }
 
+  public async submitStoredStep(nextStep?: BaseLazyStep) {
+    if (this.submitOnNextStep) {
+      if (this.submitOnNextStep.step) {
+        await this.submitStepsToQStash([
+          {
+            ...this.submitOnNextStep.step,
+            nextStepOptions: nextStep && { ...nextStep.options, stepName: nextStep.stepName },
+          },
+        ]);
+      } else {
+        const result = await triggerFirstInvocation(this.context, this.debug);
+        const error = result.isOk() ? new QStashWorkflowAbort("initial step") : result.error;
+        throw error;
+      }
+    }
+  }
+
   /**
    * Executes a step:
    * - If the step result is available in the steps, returns the result
@@ -124,14 +152,16 @@ export class AutoExecutor {
       return step.out as TResult;
     }
 
+    await this.submitStoredStep(lazyStep);
+
     const resultStep = await lazyStep.getResultStep(NO_CONCURRENCY, this.stepCount);
+    this.submitOnNextStep = { step: resultStep };
 
     await this.debug?.log("INFO", "RUN_SINGLE", {
       fromRequest: false,
       step: resultStep,
       stepCount: this.stepCount,
     });
-    await this.submitStepsToQStash([resultStep]);
 
     return resultStep.out as TResult;
   }
@@ -146,6 +176,7 @@ export class AutoExecutor {
   protected async runParallel<TResults extends unknown[]>(parallelSteps: {
     [K in keyof TResults]: BaseLazyStep<TResults[K]>;
   }): Promise<TResults> {
+    await this.submitStoredStep();
     // get the step count before the parallel steps were added + 1
     // so if there are two initial steps followed by a parallel step,
     // initialStepCount would be 3.
@@ -164,6 +195,10 @@ export class AutoExecutor {
           ` Expected ${parallelSteps.length}, got ${plannedParallelStepCount} from the request.`
       );
     }
+
+    const parallelResultSteps = sortedSteps
+      .filter((step) => step.stepId >= initialStepCount) // filter out plan steps
+      .slice(0, parallelSteps.length); // get the result steps of parallel run
 
     await this.debug?.log("INFO", "RUN_PARALLEL", {
       parallelCallState,
@@ -215,7 +250,19 @@ export class AutoExecutor {
             parallelSteps.length,
             planStep.targetStep
           );
-          await this.submitStepsToQStash([resultStep]);
+
+          if (parallelResultSteps.length + 1 === plannedParallelStepCount) {
+            this.submitOnNextStep = { step: resultStep };
+
+            const resortedSteps = sortSteps([...sortedSteps, resultStep]);
+            const parallelResultSteps = resortedSteps
+              .filter((step) => step.stepId >= initialStepCount) // filter out plan steps
+              .slice(0, parallelSteps.length); // get the result steps of parallel run
+
+            return parallelResultSteps.map((step) => step.out) as TResults;
+          } else {
+            await this.submitStepsToQStash([resultStep]);
+          }
         } catch (error) {
           if (error instanceof QStashWorkflowAbort) {
             throw error;
@@ -244,11 +291,9 @@ export class AutoExecutor {
          * validate the results and return them
          */
 
-        const parallelResultSteps = sortedSteps
-          .filter((step) => step.stepId >= initialStepCount) // filter out plan steps
-          .slice(0, parallelSteps.length); // get the result steps of parallel run
-
         validateParallelSteps(parallelSteps, parallelResultSteps);
+        // if there are more than 1 functions, increment the plan step count
+        this.planStepCount += plannedParallelStepCount;
 
         return parallelResultSteps.map((step) => step.out) as TResults;
       }
@@ -319,46 +364,61 @@ export class AutoExecutor {
 
     await this.debug?.log("SUBMIT", "SUBMIT_STEP", { length: steps.length, steps });
 
-    const result = await this.context.qstashClient.batchJSON(
-      steps.map((singleStep) => {
-        const headers = getHeaders(
-          "false",
-          this.context.workflowRunId,
-          this.context.url,
-          this.context.headers,
-          singleStep,
-          this.context.failureUrl
-        );
+    const payload: PublishBatchRequest<unknown>[] = steps.map((singleStep) => {
+      const headers = getHeaders(
+        "false",
+        this.context.workflowRunId,
+        this.context.url,
+        this.context.headers,
+        singleStep,
+        this.context.failureUrl
+      );
 
-        // if the step is a single step execution or a plan step, we can add sleep headers
-        const willWait = singleStep.concurrent === NO_CONCURRENCY || singleStep.stepId === 0;
+      // if the step is a single step execution or a plan step, we can add sleep headers
+      const willWait = singleStep.concurrent === NO_CONCURRENCY || singleStep.stepId === 0;
 
-        return singleStep.callUrl
-          ? // if the step is a third party call, we call the third party
-            // url (singleStep.callUrl) and pass information about the workflow
-            // in the headers (handled in getHeaders). QStash makes the request
-            // to callUrl and returns the result to Workflow endpoint.
-            // handleThirdPartyCallResult method sends the result of the third
-            // party call to QStash.
-            {
-              headers,
-              method: singleStep.callMethod,
-              body: singleStep.callBody,
-              url: singleStep.callUrl,
-            }
-          : // if the step is not a third party call, we use workflow
-            // endpoint (context.url) as URL when calling QStash. QStash
-            // calls us back with the updated steps list.
-            {
-              headers,
-              method: "POST",
-              body: singleStep,
-              url: this.context.url,
-              notBefore: willWait ? singleStep.sleepUntil : undefined,
-              delay: willWait ? singleStep.sleepFor : undefined,
-            };
-      })
-    );
+      // make sure that queue exists with correct concurrency
+      const { nextStepOptions: _, ...step } = singleStep;
+
+      return singleStep.callUrl
+        ? // if the step is a third party call, we call the third party
+          // url (singleStep.callUrl) and pass information about the workflow
+          // in the headers (handled in getHeaders). QStash makes the request
+          // to callUrl and returns the result to Workflow endpoint.
+          // handleThirdPartyCallResult method sends the result of the third
+          // party call to QStash.
+          {
+            headers,
+            method: singleStep.callMethod,
+            body: singleStep.callBody,
+            url: singleStep.callUrl,
+            ...(singleStep.stepId === 0
+              ? {}
+              : {
+                  retries: singleStep.nextStepOptions?.retry,
+                }),
+          }
+        : // if the step is not a third party call, we use workflow
+          // endpoint (context.url) as URL when calling QStash. QStash
+          // calls us back with the updated steps list.
+          {
+            headers,
+            method: "POST",
+            body: step,
+            url: this.context.url,
+            notBefore: willWait ? singleStep.sleepUntil : undefined,
+            delay: willWait ? singleStep.sleepFor : undefined,
+            ...(singleStep.stepId === 0
+              ? {}
+              : {
+                  retries: singleStep.nextStepOptions?.retry,
+                }),
+          };
+    });
+
+    const result = (await this.context.qstashClient.batchJSON(
+      payload
+    )) as PublishToUrlGroupsResponse;
 
     await this.debug?.log("INFO", "SUBMIT_STEP", {
       messageIds: result.map((message) => {

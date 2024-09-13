@@ -54,6 +54,7 @@ import { expect, test, describe } from "bun:test";
 import { Client } from "../client";
 import type { RouteFunction, WorkflowServeOptions } from "./types";
 import type { NextRequest } from "next/server";
+import { FinishState } from "./test-utils";
 
 const WORKFLOW_PORT = "3000";
 const THIRD_PARTY_PORT = "3001";
@@ -74,16 +75,6 @@ type Charge = {
   invoice: Invoice;
   success: boolean;
 };
-
-class FinishState {
-  public finished = false;
-  public finish() {
-    this.finished = true;
-  }
-  public check() {
-    expect(this.finished).toBeTrue();
-  }
-}
 
 let counter = 0;
 const attemptCharge = () => {
@@ -149,7 +140,7 @@ const testEndpoint = async <TInitialPayload = unknown>({
   expect(counter).toBe(finalCount);
 };
 
-describe.skip("live serve tests", () => {
+describe("live serve tests", () => {
   test(
     "path endpoint",
     async () => {
@@ -343,7 +334,7 @@ describe.skip("live serve tests", () => {
     }
   );
 
-  test(
+  test.only(
     "call endpoint",
     async () => {
       const thirdPartyResult = "third-party-result";
@@ -457,8 +448,7 @@ describe.skip("live serve tests", () => {
     }
   );
 
-  // TODO: remove skip after adding a parameter to set step retries
-  test.skip(
+  test(
     "failureFunction",
     async () => {
       const finishState = new FinishState();
@@ -472,9 +462,13 @@ describe.skip("live serve tests", () => {
 
           expect(input).toBe("my-payload");
 
-          await context.run("step1", () => {
-            throw new Error("my-custom-error");
-          });
+          await context.run(
+            "step1",
+            () => {
+              throw new Error("my-custom-error");
+            },
+            { retry: 0 }
+          );
         },
         failureFunction: (context, failStatus, failResponse, failHeaders) => {
           expect(failStatus).toBe(500);

@@ -102,11 +102,21 @@ describe("auto-executor", () => {
       const spyRunParallel = spyOn(context.executor, "runParallel");
 
       await mockQStashServer({
-        execute: () => {
-          const throws = context.run("attemptCharge", () => {
+        execute: async () => {
+          const result = await context.run("attemptCharge", () => {
             return { input: context.requestPayload, success: false };
           });
-          expect(throws).rejects.toThrowError(QStashWorkflowAbort);
+          expect(spyRunSingle).toHaveBeenCalledTimes(1);
+          expect(result).toEqual({ input: context.requestPayload, success: false });
+
+          const nextStepPromise = context.run(
+            "next step",
+            () => {
+              return "some-other-result";
+            },
+            { retry: 2 }
+          );
+          expect(nextStepPromise).rejects.toThrowError(QStashWorkflowAbort);
         },
         responseFields: {
           status: 200,
@@ -126,6 +136,7 @@ describe("auto-executor", () => {
                 "upstash-workflow-runid": workflowRunId,
                 "upstash-workflow-init": "false",
                 "upstash-workflow-url": WORKFLOW_ENDPOINT,
+                "upstash-retries": "2",
               },
               body: JSON.stringify(singleStep),
             },
@@ -133,7 +144,7 @@ describe("auto-executor", () => {
         },
       });
 
-      expect(spyRunSingle).toHaveBeenCalledTimes(1);
+      expect(spyRunSingle).toHaveBeenCalledTimes(2);
       const lazyStep = spyRunSingle.mock.calls[0][0];
       expect(lazyStep.stepName).toBe("attemptCharge");
       expect(lazyStep.stepType).toBe("Run");

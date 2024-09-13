@@ -1,6 +1,6 @@
 import type { Err, Ok } from "neverthrow";
 import { err, ok } from "neverthrow";
-import type { RouteFunction, WorkflowClient } from "./types";
+import type { RouteFunction, StepOptions, WorkflowClient } from "./types";
 import { type StepFunction, type Step } from "./types";
 import { AutoExecutor } from "./auto-executor";
 import type { BaseLazyStep } from "./steps";
@@ -203,11 +203,12 @@ export class WorkflowContext<TInitialPayload = unknown> {
    */
   public async run<TResult>(
     stepName: string,
-    stepFunction: StepFunction<TResult>
+    stepFunction: StepFunction<TResult>,
+    options?: Omit<StepOptions, "stepName">
   ): Promise<TResult> {
     const wrappedStepFunction = (() =>
       this.executor.wrapStep(stepName, stepFunction)) as StepFunction<TResult>;
-    return this.addStep<TResult>(new LazyFunctionStep(stepName, wrappedStepFunction));
+    return this.addStep<TResult>(new LazyFunctionStep(stepName, wrappedStepFunction, options));
   }
 
   /**
@@ -217,8 +218,12 @@ export class WorkflowContext<TInitialPayload = unknown> {
    * @param duration sleep duration in seconds
    * @returns undefined
    */
-  public async sleep(stepName: string, duration: number): Promise<void> {
-    await this.addStep(new LazySleepStep(stepName, duration));
+  public async sleep(
+    stepName: string,
+    duration: number,
+    options?: Omit<StepOptions, "stepName">
+  ): Promise<void> {
+    await this.addStep(new LazySleepStep(stepName, duration, options));
   }
 
   /**
@@ -229,7 +234,11 @@ export class WorkflowContext<TInitialPayload = unknown> {
    *   as a Date object or a string (passed to `new Date(datetimeString)`)
    * @returns undefined
    */
-  public async sleepUntil(stepName: string, datetime: Date | string | number): Promise<void> {
+  public async sleepUntil(
+    stepName: string,
+    datetime: Date | string | number,
+    options?: Omit<StepOptions, "stepName">
+  ): Promise<void> {
     let time: number;
     if (typeof datetime === "number") {
       time = datetime;
@@ -239,7 +248,7 @@ export class WorkflowContext<TInitialPayload = unknown> {
       // eslint-disable-next-line @typescript-eslint/no-magic-numbers
       time = Math.round(datetime.getTime() / 1000);
     }
-    await this.addStep(new LazySleepUntilStep(stepName, time));
+    await this.addStep(new LazySleepUntilStep(stepName, time, options));
   }
 
   /**
@@ -264,6 +273,7 @@ export class WorkflowContext<TInitialPayload = unknown> {
    * @param method call method
    * @param body call body
    * @param headers call headers
+   * @param options TODO
    * @returns call result (parsed as JSON if possible)
    */
   public async call<TResult = unknown, TBody = unknown>(
@@ -271,10 +281,11 @@ export class WorkflowContext<TInitialPayload = unknown> {
     url: string,
     method: HTTPMethods,
     body?: TBody,
-    headers?: Record<string, string>
+    headers?: Record<string, string>,
+    options?: Omit<StepOptions, "stepName">
   ) {
     const result = await this.addStep(
-      new LazyCallStep<string>(stepName, url, method, body, headers ?? {})
+      new LazyCallStep<string>(stepName, url, method, body, headers ?? {}, options)
     );
 
     try {
