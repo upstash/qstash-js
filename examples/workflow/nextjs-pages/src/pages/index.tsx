@@ -18,9 +18,7 @@ const routes = [
 function Home() {
   const [requestBody, setRequestBody] = useState('{"date":123,"email":"my@mail.com","amount":10}');
   const [loading, setLoading] = useState(false);
-  const router = useRouter()
-  const search = router.query['search']
-  const [route, setRoute] = useState(search ?? 'path')
+  const [route, setRoute] = useState('path')
   const handleSend = async () => {
     setLoading(true);
     try {
