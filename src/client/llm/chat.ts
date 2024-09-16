@@ -171,7 +171,7 @@ export class Chat {
   private getAuthorizationToken(): string {
     //@ts-expect-error hacky way to get token from http module
     const authHeader = String(this.http.authorization);
-    const match = authHeader.match(/Bearer (.+)/);
+    const match = /Bearer (.+)/.exec(authHeader);
     if (!match) {
       throw new Error("Invalid authorization header format");
     }
