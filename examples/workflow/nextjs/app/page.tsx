@@ -11,7 +11,6 @@ import {
   StepContent,
   StepDesc,
 } from 'components/step-list'
-import * as process from 'node:process'
 
 const routes = [
   'path',
@@ -60,27 +59,27 @@ export default function HomePage() {
 
   return (
     <main className="h-screen">
-      <div className="mx-auto max-w-screen-sm px-8 pb-44 pt-16">
+      <div className="max-w-screen-sm px-8 pt-16 mx-auto pb-44">
         {/* header */}
         <header>
           <img
-            className="mb-8 w-10"
+            className="w-10 mb-8"
             src="/upstash-logo.svg"
             alt="upstash logo"
           />
 
-          <h1 className="text-balance text-2xl font-semibold">
+          <h1 className="text-2xl font-semibold text-balance">
             Get Started with Upstash Workflow
           </h1>
-          <h2 className="text-balance text-lg opacity-60">
+          <h2 className="text-lg text-balance opacity-60">
             This is a simple example to demonstrate Upstash Workflow with
             Next.js. Start a workflow by selecting a route and providing a
             request body.
           </h2>
 
-          <div className="mt-4 flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 mt-4">
             <a
-              className="inline-flex items-center gap-1 rounded-md bg-gray-100 px-3 py-2 hover:bg-emerald-100"
+              className="inline-flex items-center gap-1 px-3 py-2 bg-gray-100 rounded-md hover:bg-emerald-100"
               href="https://upstash.com/docs/qstash/workflow/quickstarts/vercel-nextjs"
             >
               <svg
@@ -103,7 +102,7 @@ export default function HomePage() {
               Docs
             </a>
             <a
-              className="inline-flex items-center gap-1 rounded-md bg-gray-100 px-3 py-2 hover:bg-emerald-100"
+              className="inline-flex items-center gap-1 px-3 py-2 bg-gray-100 rounded-md hover:bg-emerald-100"
               href="https://github.com/upstash/qstash-js/tree/main/examples/workflow/nextjs"
             >
               <svg
@@ -139,13 +138,13 @@ export default function HomePage() {
                 function.
               </p>
               <p className="underline">
-                lokalde çalışmıyorsanız bu adımı atlayın.
+                if you are not working on local server, skip this step.
               </p>
             </StepDesc>
 
             <StepContent>
               <a
-                className="inline-flex items-center gap-1 rounded-md bg-gray-100 px-3 py-2 hover:bg-emerald-100"
+                className="inline-flex items-center gap-1 px-3 py-2 bg-gray-100 rounded-md hover:bg-emerald-100"
                 href="https://upstash.com/docs/qstash/workflow/howto/local-development"
                 target="_blank"
               >
@@ -184,14 +183,14 @@ export default function HomePage() {
             <StepContent>
               <form
                 onSubmit={handleSend}
-                className="grid gap-4 rounded-xl bg-emerald-500/10 p-6"
+                className="grid gap-4 p-6 rounded-xl bg-emerald-500/10"
               >
                 <div>
                   <label className="text-xs uppercase opacity-60">Route</label>
                   <select
                     value={route}
                     onChange={(e) => setRoute(e.target.value)}
-                    className="mt-1 block h-8 w-full rounded-md border border-gray-300 bg-white px-2"
+                    className="block w-full h-8 px-2 mt-1 bg-white border border-gray-300 rounded-md"
                   >
                     <option value="" disabled>
                       Select route
@@ -210,7 +209,7 @@ export default function HomePage() {
                     value={requestBody}
                     onChange={(e) => setRequestBody(e.target.value)}
                     rows={2}
-                    className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-2 py-2"
+                    className="block w-full px-2 py-2 mt-1 bg-white border border-gray-300 rounded-md"
                   />
                 </div>
 
@@ -238,7 +237,7 @@ export default function HomePage() {
 
             <StepContent>
               <a
-                className="inline-flex items-center gap-1 rounded-md bg-gray-100 px-3 py-2 hover:bg-emerald-100"
+                className="inline-flex items-center gap-1 px-3 py-2 bg-gray-100 rounded-md hover:bg-emerald-100"
                 href="https://console.upstash.com/qstash?tab=workflow"
               >
                 <svg
@@ -261,7 +260,7 @@ export default function HomePage() {
               </a>
 
               <Img
-                className="mt-4 block"
+                className="block mt-4"
                 src="/ss.png"
                 width={1564}
                 height={476}
