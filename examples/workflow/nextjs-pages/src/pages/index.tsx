@@ -9,7 +9,6 @@ import {
   StepDesc,
 } from '@/components/step-list'
 import { Suspense, useState } from 'react';
-import { useRouter } from 'next/router';
 
 const routes = [
   'path',
