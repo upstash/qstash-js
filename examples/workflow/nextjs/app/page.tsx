@@ -2,7 +2,7 @@
 
 import Img from 'next/image'
 import { useSearchParams } from 'next/navigation'
-import { FormEvent, useState } from 'react'
+import { FormEvent, Suspense, useState } from 'react'
 import {
   Step,
   StepItem,
@@ -19,8 +19,14 @@ const routes = [
   'northStarSimple',
   'northStar',
 ]
-
 export default function HomePage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <Page />
+    </Suspense>
+  )
+}
+const Page = () => {
   const [requestBody, setRequestBody] = useState(
     '{"date":123,"email":"my@mail.com","amount":10}',
   )
