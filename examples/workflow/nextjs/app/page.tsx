@@ -18,7 +18,6 @@ const routes = [
   'sleepWithoutAwait',
   'northStarSimple',
   'northStar',
-  'call',
 ]
 
 export default function HomePage() {
