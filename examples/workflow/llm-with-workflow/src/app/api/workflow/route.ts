@@ -8,7 +8,7 @@ import { ratelimit, redis } from "../utils"
 
 const getTimeKey = (key: string) => `time-${key}`
 
-export const serveMethod = serve<string>(async (context) => {
+const serveMethod = serve<string>(async (context) => {
   const result = await context.call<OpenAiResponse>(
     "call open ai",
     "https://api.openai.com/v1/chat/completions",
