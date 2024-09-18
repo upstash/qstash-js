@@ -1,5 +1,5 @@
 // const PROMPT = `What is the meaning of life? Please write an article exploring different philosophical, religious, and scientific perspectives on the purpose of human existence, and include reflections on how individuals can find personal meaning in their lives.`
-const PROMPT = "Can you write a bot for farming cows?"
+const PROMPT = "Can you explain how an LLM model works?"
 // const PROMPT = "say yes"
 
 export const MESSAGES = [
@@ -42,6 +42,7 @@ export const REGULAR_CODE = `export const POST = async () => {
       body: JSON.stringify({
         "model": ${MODEL},
         "messages": ${JSON.stringify(MESSAGES)},
+        "temperature": 0
       }),
       headers: {
         "authorization": \`Bearer \${process.env.OPENAI_API_KEY}\`,
@@ -63,6 +64,7 @@ export const WORKFLOW_CODE = `export const POST = serve<string>(async (context) 
     {
       "model": ${MODEL},
       "messages": ${JSON.stringify(MESSAGES)},
+      "temperature": 0
     },
     {
       "authorization": \`Bearer \${process.env.OPENAI_API_KEY}\`,

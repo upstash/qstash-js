@@ -11,7 +11,9 @@
   "dependencies": {
     "@tabler/icons-react": "^3.17.0",
     "@upstash/qstash": "^2.7.8",
+    "@upstash/ratelimit": "^2.0.3",
     "@upstash/redis": "^1.34.0",
+    "@vercel/functions": "^1.4.1",
     "antd": "^5.20.6",
     "next": "14.2.12",
     "react": "^18",
@@ -23,6 +25,7 @@
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
+    "@types/react-syntax-highlighter": "^15.5.13",
     "eslint": "^8",
     "eslint-config-next": "14.2.12",
     "postcss": "^8",

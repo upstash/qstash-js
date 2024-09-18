@@ -3,7 +3,10 @@ import { CallInfo, REDIS_PREFIX, RedisEntry } from '../utils/constants';
 import ResultInfo from './result';
 
 async function triggerWorkflow(key: string) {
-  await fetch("/api/workflow", { method: "POST", body: key });
+  const response = await fetch("/api/workflow", { method: "POST", body: key });
+  if (response.status === 429) {
+    throw new Error("Your request was rejected because you surpassed the ratelimit. Please try again later.")
+  }
 }
 
 async function checkRedisForResult(key: string) {
@@ -12,7 +15,15 @@ async function checkRedisForResult(key: string) {
   return result;
 }
 
-export default function WorkflowCall({ state, setState }: { state: number, setState: (val: number) => void }) {
+export default function WorkflowCall({
+  state,
+  setState,
+  onScrollClick
+}: {
+  state: number,
+  setState: (val: number) => void,
+  onScrollClick: () => void
+}) {
   const [response, setResponse] = useState<CallInfo>({
     empty: true, duration: 0, functionTime: 0, result: ""
   });
@@ -22,32 +33,46 @@ export default function WorkflowCall({ state, setState }: { state: number, setSt
   useEffect(() => {
     if (state === 2) {
       const startTime = performance.now()
+      let checkCount = 0
 
       setActiveKey(undefined);
       setResponse({...response, empty: true, result: "pending..."});
-      triggerWorkflow(key).then(() => {
-        const pollData = async () => {
-          const result = await checkRedisForResult(key);
-          setResponse({...response, empty: true, result: "waiting for workflow to finish..."});
-          
-          if (!result) {
-            setTimeout(pollData, 1000);
-          } else {
-            // setCollapseDisabled(false); // Enable collapse when result is available
-            setActiveKey("1"); // Open the collapse panel
-            setResponse({
-              empty: false,
-              duration: performance.now() - startTime,
-              functionTime: result.time,
-              result: result.result
-            });
-            // @ts-expect-error
-            setState((prevState) => prevState - 1); // Decrement state by 1
-          }
-        };
+      triggerWorkflow(key)
+        .then(() => {
+          const pollData = async () => {
+            if (checkCount > 45) {
+              const errorMessage = "Workflow request got timeout. Please try again later."
+              setResponse({...response, empty: true, result: errorMessage})
+              return
+            }
+            const result = await checkRedisForResult(key);
+            checkCount += 1;
+            setResponse({...response, empty: true, result: "waiting for workflow to finish..."});
+            
+            if (!result) {
+              setTimeout(pollData, 1000);
+            } else {
+              // setCollapseDisabled(false); // Enable collapse when result is available
+              setActiveKey("1"); // Open the collapse panel
+              setResponse({
+                empty: false,
+                duration: performance.now() - startTime,
+                functionTime: Number(result.time),
+                result: result.result
+              });
+              // @ts-expect-error
+              setState((prevState) => prevState - 1); // Decrement state by 1
+            }
+          };
 
-        pollData();
-      });
+          pollData();
+        })
+        .catch(error => {
+          setResponse({...response, empty: true, result: "You are rate limited. Please retry later"})
+          console.error(error)
+          // @ts-expect-error
+          setState((prevState) => prevState - 1); // Decrement state by 1
+        })
     }
   }, [state, setState]);
 
@@ -59,6 +84,7 @@ export default function WorkflowCall({ state, setState }: { state: number, setSt
       setActiveKey={setActiveKey}
       state={state} 
       response={response}
+      onScrollClick={onScrollClick}
     />
   );
 }

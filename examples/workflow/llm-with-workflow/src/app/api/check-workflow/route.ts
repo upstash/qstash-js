@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from "next/server"
-import { Redis } from "@upstash/redis"
-import { OpenAiResponse, RedisEntry } from "@/app/utils/constants";
+import { RedisEntry } from "@/app/utils/constants";
+import { checkRatelimit, redis } from "../utils";
 
-const redis = Redis.fromEnv()
+export const POST = async (request: NextRequest) => {
+  const ip = request.ip ?? "ip-missing"
+  const { success } = await checkRatelimit.limit(ip)
+  if (!success) {
+    return new NextResponse("You have reached the rate limit. Please try again later.", {status: 429})
+  }
 
-export const POST = async (request: NextRequest) => {  
   const key = await request.text();
   const result = await redis.get(key) as RedisEntry | undefined
   if (result) {

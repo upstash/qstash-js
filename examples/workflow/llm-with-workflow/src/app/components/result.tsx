@@ -3,7 +3,6 @@ import { CallInfo, REGULAR_CODE, WORKFLOW_CODE } from "../utils/constants"
 import Markdown from 'react-markdown'
 
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter"
-import { xcode } from "react-syntax-highlighter/dist/cjs/styles/prism"
 
 export default function ResultInfo({
   title,
@@ -11,16 +10,17 @@ export default function ResultInfo({
   activeKey,
   setActiveKey,
   state,
-  response
+  response,
+  onScrollClick
 } : {
   title: string,
   isWorkflow: boolean,
   activeKey: string | string[] | undefined,
   setActiveKey: (val: string | string[]) => void,
   state: number,
-  response: CallInfo
+  response: CallInfo,
+  onScrollClick: () => void
 }) {
-  const isCostReliable = response.functionTime !== undefined
   const cost = 0.00_005 * ((response.functionTime ?? 0) / 1000) + (isWorkflow ? 0.00004 : 0)
   
   return (
@@ -31,7 +31,7 @@ export default function ResultInfo({
         </div>
         }
       >
-        <SyntaxHighlighter language="js" style={xcode} >
+        <SyntaxHighlighter language="js" >
           {isWorkflow ? WORKFLOW_CODE : REGULAR_CODE}
         </SyntaxHighlighter>
       </Collapse.Panel>
@@ -45,7 +45,10 @@ export default function ResultInfo({
         key="1"
         collapsible="disabled"
       >
-        <div className="rounded-lg bg-gray-100 overflow-x-auto text-xs w-fit py-1 px-2">
+        <div
+          className="rounded-lg bg-gray-100 overflow-x-auto text-xs w-fit py-1 px-2 cursor-pointer"
+          onClick={onScrollClick}
+        >
           <table className="min-w-72 table-auto">
             <tbody>
               <tr>
@@ -56,11 +59,11 @@ export default function ResultInfo({
                 <>
                   <tr>
                     <td className="font-medium">Vercel Function Duration:</td>
-                    <td>{response.functionTime?.toFixed(2)} ms</td>
+                    <td>{response.functionTime.toFixed(2)} ms</td>
                   </tr>
                   <tr>
                     <td className="font-medium">Cost for 1M Requests:</td>
-                    <td>~{response.functionTime ? (1_000_000 * cost).toFixed(2) : "-"}$</td>
+                    <td>~{(1_000_000 * cost).toFixed(2)}$</td>
                   </tr>
                 </>}
             </tbody>
