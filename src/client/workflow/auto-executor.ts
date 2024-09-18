@@ -327,7 +327,8 @@ export class AutoExecutor {
           this.context.url,
           this.context.headers,
           singleStep,
-          this.context.failureUrl
+          this.context.failureUrl,
+          this.context.retries
         );
 
         // if the step is a single step execution or a plan step, we can add sleep headers

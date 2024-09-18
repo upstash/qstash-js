@@ -107,6 +107,7 @@ const testEndpoint = async <TInitialPayload = unknown>({
   routeFunction,
   finishState,
   failureFunction,
+  retries,
 }: {
   finalCount: number;
   waitFor: number;
@@ -114,6 +115,7 @@ const testEndpoint = async <TInitialPayload = unknown>({
   routeFunction: RouteFunction<TInitialPayload>;
   finishState: FinishState;
   failureFunction?: WorkflowServeOptions["failureFunction"];
+  retries?: number;
 }) => {
   let counter = 0;
 
@@ -122,6 +124,7 @@ const testEndpoint = async <TInitialPayload = unknown>({
     url: LOCAL_WORKFLOW_URL,
     verbose: true,
     failureFunction,
+    retries,
   });
 
   const server = serve({
@@ -457,8 +460,7 @@ describe.skip("live serve tests", () => {
     }
   );
 
-  // TODO: remove skip after adding a parameter to set step retries
-  test.skip(
+  test(
     "failureFunction",
     async () => {
       const finishState = new FinishState();
@@ -476,6 +478,7 @@ describe.skip("live serve tests", () => {
             throw new Error("my-custom-error");
           });
         },
+        retries: 0,
         failureFunction: (context, failStatus, failResponse, failHeaders) => {
           expect(failStatus).toBe(500);
           expect(failResponse).toBe("my-custom-error");
@@ -488,6 +491,73 @@ describe.skip("live serve tests", () => {
     },
     {
       timeout: 10_000,
+    }
+  );
+
+  test(
+    "retry",
+    async () => {
+      const finishState = new FinishState();
+      let counter = 0;
+
+      await testEndpoint({
+        finalCount: 4,
+        waitFor: 20_000,
+        initialPayload: "my-payload",
+        finishState,
+        routeFunction: async (context) => {
+          const input = context.requestPayload;
+
+          expect(input).toBe("my-payload");
+
+          await context.run("step1", () => {
+            counter += 1;
+            throw new Error("my-custom-error");
+          });
+        },
+        retries: 1,
+        failureFunction: (context, failStatus, failResponse, failHeaders) => {
+          expect(failStatus).toBe(500);
+          expect(failResponse).toBe("my-custom-error");
+          expect(context.headers.get("authentication")).toBe("Bearer secretPassword");
+          expect(failHeaders["Content-Length"][0]).toBe("45");
+          finishState.finish();
+          return;
+        },
+      });
+      expect(counter).toBe(2);
+    },
+    {
+      timeout: 22_000,
+    }
+  );
+
+  test(
+    "unicode payload",
+    async () => {
+      const finishState = new FinishState();
+      const payload = "“unicode-quotes”";
+      await testEndpoint({
+        finalCount: 3,
+        waitFor: 5000,
+        initialPayload: payload,
+        finishState,
+        routeFunction: async (context) => {
+          const input = context.requestPayload;
+
+          expect(input).toBe(payload);
+
+          const result = await context.run("step1", () => {
+            return `result: ${input}`;
+          });
+
+          expect(result).toBe(`result: ${payload}`);
+          finishState.finish();
+        },
+      });
+    },
+    {
+      timeout: 7000,
     }
   );
 });

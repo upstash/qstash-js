@@ -109,6 +109,7 @@ describe("context tests", () => {
       url: WORKFLOW_ENDPOINT,
       headers: new Headers() as Headers,
       workflowRunId: "wfr-id",
+      retries: 2,
     });
 
     await mockQStashServer({
@@ -135,6 +136,7 @@ describe("context tests", () => {
               "content-type": "application/json",
               "upstash-forward-upstash-workflow-sdk-version": "1",
               "upstash-method": "POST",
+              "upstash-retries": "2",
               "upstash-workflow-init": "false",
               "upstash-workflow-runid": "wfr-id",
               "upstash-workflow-url": WORKFLOW_ENDPOINT,
@@ -313,6 +315,7 @@ describe("disabled workflow context", () => {
         steps: [],
         url: WORKFLOW_ENDPOINT,
         initialPayload: "my-payload",
+        retries: 0,
       });
 
       let called = false;
@@ -340,6 +343,7 @@ describe("disabled workflow context", () => {
                 "content-type": "application/json",
                 "upstash-forward-upstash-workflow-sdk-version": "1",
                 "upstash-method": "POST",
+                "upstash-retries": "0",
                 "upstash-workflow-init": "false",
                 "upstash-workflow-runid": "wfr-bar",
                 "upstash-workflow-url": WORKFLOW_ENDPOINT,
@@ -386,6 +390,7 @@ describe("disabled workflow context", () => {
                 "content-type": "application/json",
                 "upstash-forward-upstash-workflow-sdk-version": "1",
                 "upstash-method": "POST",
+                "upstash-retries": "3",
                 "upstash-workflow-init": "false",
                 "upstash-workflow-runid": "wfr-bar",
                 "upstash-workflow-url": WORKFLOW_ENDPOINT,
@@ -433,6 +438,7 @@ describe("disabled workflow context", () => {
                 "content-type": "application/json",
                 "upstash-forward-upstash-workflow-sdk-version": "1",
                 "upstash-method": "POST",
+                "upstash-retries": "3",
                 "upstash-workflow-init": "false",
                 "upstash-workflow-runid": "wfr-bar",
                 "upstash-workflow-url": WORKFLOW_ENDPOINT,

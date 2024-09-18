@@ -2,6 +2,7 @@
 import { Receiver } from "../../receiver";
 import { Client } from "../client";
 import { formatWorkflowError } from "../error";
+import { DEFAULT_RETRIES } from "./constants";
 import { DisabledWorkflowContext, WorkflowContext } from "./context";
 import { WorkflowLogger } from "./logger";
 import type {
@@ -82,6 +83,7 @@ export const processOptions = <TResponse extends Response = Response, TInitialPa
       : undefined,
     baseUrl: environment.UPSTASH_WORKFLOW_URL,
     env: environment,
+    retries: DEFAULT_RETRIES,
     ...options,
   };
 };
@@ -114,6 +116,7 @@ export const serve = <
     failureFunction,
     baseUrl,
     env,
+    retries,
   } = processOptions<TResponse, TInitialPayload>(options);
 
   const debug = WorkflowLogger.getLogger(verbose);
@@ -224,6 +227,7 @@ export const serve = <
       qstashClient,
       workflowUrl,
       workflowFailureUrl,
+      retries,
       debug
     );
     if (callReturnCheck.isErr()) {
@@ -235,7 +239,7 @@ export const serve = <
     } else if (callReturnCheck.value === "continue-workflow") {
       // request is not third party call. Continue workflow as usual
       const result = isFirstInvocation
-        ? await triggerFirstInvocation(workflowContext, debug)
+        ? await triggerFirstInvocation(workflowContext, retries, debug)
         : await triggerRouteFunction({
             onStep: async () => routeFunction(workflowContext),
             onCleanup: async () => {
