@@ -12,10 +12,14 @@ export const POST = async (request: NextRequest) => {
     payload: unknown
   }
 
+  console.log('Route:', route)
+  console.log('Payload:', payload)
+
   try {
     const baseUrl =
       process.env.UPSTASH_WORKFLOW_URL ??
       request.url.replace('/-call-qstash', '')
+
     const { messageId } = await client.publishJSON({
       url: `${baseUrl}/${route}`,
       body: payload,
