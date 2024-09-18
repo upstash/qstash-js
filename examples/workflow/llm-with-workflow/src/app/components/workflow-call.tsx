@@ -60,7 +60,7 @@ export default function WorkflowCall({
                 functionTime: Number(result.time),
                 result: result.result
               });
-              // @ts-expect-error
+              // @ts-expect-error this works but shows an error
               setState((prevState) => prevState - 1); // Decrement state by 1
             }
           };

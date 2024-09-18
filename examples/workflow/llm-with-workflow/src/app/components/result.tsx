@@ -68,7 +68,7 @@ export default function ResultInfo({
                 </>}
             </tbody>
           </table>
-          {response.functionTime ? undefined : <p className="mt-2">Function Duration and Cost calculation wasn't reliable. Please Try again.</p>}
+          {response.functionTime ? undefined : <p className="mt-2">Function Duration and Cost calculation wasn&apos;t reliable. Please Try again.</p>}
         </div>
         <br/>
         <Markdown className="overflow-hidden">{response.result}</Markdown>

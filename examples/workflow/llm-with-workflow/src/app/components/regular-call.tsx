@@ -36,9 +36,8 @@ export default function RegularCall({
             functionTime: Number(data.time),
             result: data.result
           });
-          // setCollapseDisabled(false); // Enable collapse when response is set
           setActiveKey("1"); // Open the collapse panel
-          // @ts-expect-error
+          // @ts-expect-error this works but shows an error
           setState((prevState) => prevState - 1); // Decrement state by 1
         })
         .catch(error => {
