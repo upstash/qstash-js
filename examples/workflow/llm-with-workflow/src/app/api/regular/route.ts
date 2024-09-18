@@ -1,4 +1,4 @@
-import { MESSAGES, OpenAiResponse } from "@/app/utils/constants"
+import { MESSAGES, MODEL, OpenAiResponse } from "@/app/utils/constants"
 import { NextRequest, NextResponse } from "next/server"
 
 const makeLLMCall = async () => {
@@ -7,7 +7,7 @@ const makeLLMCall = async () => {
     {
       method: "POST",
       body: JSON.stringify({
-        "model": "gpt-4o-mini",
+        "model": MODEL,
         "messages": MESSAGES,
       }),
       headers: {

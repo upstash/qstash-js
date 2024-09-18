@@ -1,4 +1,4 @@
-import { MESSAGES, OpenAiResponse, REDIS_PREFIX, RedisEntry } from "@/app/utils/constants"
+import { MESSAGES, MODEL, OpenAiResponse, REDIS_PREFIX, RedisEntry } from "@/app/utils/constants"
 import { serve } from "@upstash/qstash/nextjs"
 import { Redis } from "@upstash/redis"
 import { NextRequest } from "next/server"
@@ -12,7 +12,7 @@ export const serveMethod = serve<string>(async (context) => {
     "https://api.openai.com/v1/chat/completions",
     "POST",
     {
-      "model": "gpt-4o-mini",
+      "model": MODEL,
       "messages": MESSAGES,
     },
     {
@@ -23,12 +23,12 @@ export const serveMethod = serve<string>(async (context) => {
 
   await context.run("save results in redis", async () => {
     const key = context.requestPayload;
+    console.log("OUT", key, timeAccumulator, timeAccumulator[key]);
     
     await redis.set<RedisEntry>(key, {
       time: timeAccumulator[key],
-      timestamp: performance.now(),
       result: result.choices[0].message.content,
-    });
+    }, { ex: 120 }); // expire in 120 seconds
     delete timeAccumulator[key]
   })
 })
@@ -40,7 +40,11 @@ export const POST = async (request: NextRequest) => {
   const t1 = performance.now()
   const result = await serveMethod(request)
 
+  // console.log(timeAccumulator);
+
   if (key.startsWith(REDIS_PREFIX)) {
+    // console.log("IN", key, timeAccumulator);
+    
     const duration = performance.now() - t1
     timeAccumulator[key] = (timeAccumulator[key] ? timeAccumulator[key] : 0) + duration
   }
