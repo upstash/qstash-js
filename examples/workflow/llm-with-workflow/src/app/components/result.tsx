@@ -26,9 +26,9 @@ export default function ResultInfo({
   return (
     <Collapse activeKey={activeKey} onChange={setActiveKey}>
       <Collapse.Panel key="0" header={
-        <div className="flex justify-between items-center">
-          <Typography.Title level={5}>{title} Call Code</Typography.Title>
-        </div>
+        <h5 className=" text-black dark:text-white">
+          {title} Call Code
+        </h5>
         }
       >
         <SyntaxHighlighter language="js" >
@@ -37,8 +37,8 @@ export default function ResultInfo({
       </Collapse.Panel>
       <Collapse.Panel
         header={
-          <div className="flex justify-between items-center">
-            <Typography.Title level={5}>{title} Call Response</Typography.Title>
+          <div className="flex justify-between items-center text-black dark:text-white">
+            <h5>{title} Call Response</h5>
             {state !== 0 && response.empty && <Typography.Text className="text-gray-400 text-sm mb-2">{response.result}</Typography.Text>}
           </div>
         }

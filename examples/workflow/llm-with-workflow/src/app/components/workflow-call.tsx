@@ -3,14 +3,21 @@ import { CallInfo, REDIS_PREFIX, RedisEntry } from '../utils/constants';
 import ResultInfo from './result';
 
 async function triggerWorkflow(key: string) {
-  const response = await fetch("/api/workflow", { method: "POST", body: key });
+  const response = await fetch("/api/workflow", { method: "POST", body: key, headers: { 
+    callKey: key
+   } });
   if (response.status === 429) {
     throw new Error("Your request was rejected because you surpassed the ratelimit. Please try again later.")
   }
 }
 
 async function checkRedisForResult(key: string) {
-  const response = await fetch("/api/check-workflow", { method: "POST", body: key });
+  const response = await fetch(
+    "/api/check-workflow",
+    {
+      method: "POST",
+      body: key,
+    });
   const result = (await response.json()) as RedisEntry;
   return result;
 }
@@ -42,6 +49,8 @@ export default function WorkflowCall({
           const pollData = async () => {
             if (checkCount > 45) {
               const errorMessage = "Workflow request got timeout. Please try again later."
+              // @ts-expect-error this works but raises error
+              setState((prevState) => prevState - 1); // Decrement state by 1
               setResponse({...response, empty: true, result: errorMessage})
               return
             }
@@ -52,7 +61,6 @@ export default function WorkflowCall({
             if (!result) {
               setTimeout(pollData, 1000);
             } else {
-              // setCollapseDisabled(false); // Enable collapse when result is available
               setActiveKey("1"); // Open the collapse panel
               setResponse({
                 empty: false,
@@ -60,7 +68,7 @@ export default function WorkflowCall({
                 functionTime: Number(result.time),
                 result: result.result
               });
-              // @ts-expect-error this works but shows an error
+              // @ts-expect-error this works but raises error
               setState((prevState) => prevState - 1); // Decrement state by 1
             }
           };
@@ -70,7 +78,7 @@ export default function WorkflowCall({
         .catch(error => {
           setResponse({...response, empty: true, result: "You are rate limited. Please retry later"})
           console.error(error)
-          // @ts-expect-error
+          // @ts-expect-error this works but raises error
           setState((prevState) => prevState - 1); // Decrement state by 1
         })
     }

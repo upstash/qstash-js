@@ -1,6 +1,6 @@
 import { MESSAGES, MODEL, OpenAiResponse } from "@/app/utils/constants"
 import { NextRequest, NextResponse } from "next/server"
-import { ratelimit } from "../utils"
+import { ratelimit, validateRequest } from "../utils"
 
 const makeLLMCall = async () => {
   const response = await fetch(
@@ -24,11 +24,8 @@ const makeLLMCall = async () => {
 }
 
 export const POST = async (request: NextRequest) => {
-  const ip = request.ip ?? "ip-missing"
-  const { success } = await ratelimit.limit(ip)
-  if (!success) {
-    return new NextResponse("You have reached the rate limit. Please try again later.", {status: 429})
-  }
+  const response = await validateRequest(request, ratelimit)
+  if (response) return response;
 
   const t1 = performance.now()
   const callResult = await makeLLMCall()

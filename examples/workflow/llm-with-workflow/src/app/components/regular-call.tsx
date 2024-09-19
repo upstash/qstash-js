@@ -3,7 +3,11 @@ import { CallInfo } from '../utils/constants';
 import ResultInfo from './result';
 
 async function fetchRegularResponse() {
-  const response = await fetch("/api/regular", { method: "POST" });
+  const response = await fetch(
+    "/api/regular",
+    {
+      method: "POST",
+    });
   if (response.status === 429) {
     throw new Error("Your request was rejected because you surpassed the ratelimit. Please try again later.")
   }
@@ -37,13 +41,14 @@ export default function RegularCall({
             result: data.result
           });
           setActiveKey("1"); // Open the collapse panel
-          // @ts-expect-error this works but shows an error
+
+          // @ts-expect-error this works but raises error
           setState((prevState) => prevState - 1); // Decrement state by 1
         })
         .catch(error => {
           setResponse({...response, empty: true, result: "You are rate limited. Please retry later"})
           console.error(error)
-          // @ts-expect-error
+          // @ts-expect-error this works but raises error
           setState((prevState) => prevState - 1); // Decrement state by 1
         })
     }

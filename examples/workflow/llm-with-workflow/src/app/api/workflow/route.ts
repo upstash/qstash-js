@@ -1,10 +1,10 @@
 import { serve } from "@upstash/qstash/nextjs"
 
-import { NextRequest, NextResponse } from "next/server"
+import { NextRequest } from "next/server"
 import { waitUntil } from "@vercel/functions"
 
-import { MESSAGES, MODEL, OpenAiResponse, REDIS_PREFIX, RedisEntry } from "@/app/utils/constants"
-import { ratelimit, redis } from "../utils"
+import { MESSAGES, MODEL, OpenAiResponse, RedisEntry } from "@/app/utils/constants"
+import { ratelimit, redis, validateRequest } from "../utils"
 
 const getTimeKey = (key: string) => `time-${key}`
 
@@ -35,27 +35,24 @@ const serveMethod = serve<string>(async (context) => {
 })
 
 export const POST = async (request: NextRequest) => {
-  const ip = request.ip ?? "ip-missing"
-  const { success } = await ratelimit.limit(ip)
-  if (!success) {
-    return new NextResponse("You have reached the rate limit. Please try again later.", {status: 429})
-  }
-
-  const requestClone = request.clone()
-  const key = await requestClone.text()
+  const response = await validateRequest(request, ratelimit)
+  if (response) return response;
   
   const t1 = performance.now()
   const result = await serveMethod(request)
 
-  if (key.startsWith(REDIS_PREFIX)) {
-    
-    const duration = performance.now() - t1
+  const key = request.headers.get("callKey")
+  
+  if (key) {
+    const duration = performance.now() - t1    
 
     const pipe = redis.pipeline()
     const timeKey = getTimeKey(key)
     pipe.incrbyfloat(timeKey, duration)
     pipe.expire(timeKey, 120) // expire in 120 seconds
     waitUntil(pipe.exec())
+  } else {
+    console.warn("callKey header was missing. couldn't log the time for the call.")
   }
 
   return result

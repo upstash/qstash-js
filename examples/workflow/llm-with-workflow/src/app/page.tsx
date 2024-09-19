@@ -33,7 +33,6 @@ export default function Page() {
           src="/upstash-logo.svg"
           alt="upstash logo"
         />
-
         <h1 className="text-2xl font-semibold">
           Calling LLMs with/without Workflow
         </h1>
@@ -53,10 +52,12 @@ export default function Page() {
         <Button
           onClick={handleClick} 
           disabled={state !== 0}
-          className="px-4 py-2 rounded-lg bg-emerald-500 text-white flex items-center justify-center"
+          className="text-white px-4 py-2 rounded-lg bg-emerald-500 dark:bg-emerald-600"
         >
+          <div className='flex items-center justify-center gap-2'>
           {state !== 0 && <IconLoader2 className="animate-spin" />}
           Call Endpoints
+          </div>
         </Button>
       </div>
 
@@ -86,7 +87,7 @@ export default function Page() {
           <span className="font-bold">Vercel Function Duration</span> stands for the amount of time a vercel function has been awake, executing or waiting for a response. It&apos;s much higher in the Regular Call case because the function has to wait for LLM to finish. In the case of Upstash Workflow, QStash waits for the LLM so function duration is much lower.
         </p>
         <p className='opacity-80 text-sm mb-2'>
-          <span className="font-bold">Approximate Cost</span> is calculated by multipliying the vercel function duration with the cost per second for the Basic Function in Vercel. The lowest possible cost per second for Vercel&apos;s cheapest 1 GB function is calculated as <a href="https://vercel.com/docs/functions/usage-and-pricing#node.js-python-ruby-and-go-runtimes" target="_blank" className='text-emerald-500'>$0.18</a> ÷ 3600, which equals $0.00005 per second. For the calculation of Workflow, we also include <a href='https://upstash.com/pricing/qstash' target='_blank' className='text-emerald-500'>the QStash cost, which is $1 per 100k messages</a>. Each workflow in this example makes 4 QStash requests.
+          <span className="font-bold">Approximate Cost</span> is calculated by multipliying the vercel function duration with the cost per second for the Basic Function in Vercel. The lowest possible cost per second for Vercel&apos;s cheapest 1 GB function is calculated as <a href="https://vercel.com/docs/functions/usage-and-pricing#node.js-python-ruby-and-go-runtimes" target="_blank" className='text-emerald-500'>$0.18</a> ÷ 3600, which equals $0.00005 per second. For the calculation of Workflow, we also include <a href='https://upstash.com/pricing/qstash' target='_blank' className='text-emerald-500'>the QStash cost, which is $1 per 100k messages</a>. Each workflow in this example makes 4 QStash requests. Cost of OpenAI is not included.
         </p>
       </div>
     </div>
