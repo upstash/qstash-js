@@ -65,9 +65,11 @@ export default function Page() {
       <div className="w-full h-3/4 flex justify-center">
         <Row gutter={16} className="w-3/4">
           <Col span={12}>
+            {/* TODO pass prompt parameter */}
             <RegularCall state={state} setState={setState} onScrollClick={() => scrollToSection(bottomRef)}/>
           </Col>
           <Col span={12}>
+            {/* TODO pass prompt parameter */}
             <WorkflowCall state={state} setState={setState} onScrollClick={() => scrollToSection(bottomRef)}/>
           </Col>
         </Row>

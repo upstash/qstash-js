@@ -2,21 +2,25 @@ import { useState, useEffect } from 'react';
 import { CallInfo, REDIS_PREFIX, RedisEntry } from '../utils/constants';
 import ResultInfo from './result';
 
-async function triggerWorkflow(key: string) {
-  const response = await fetch("/api/workflow", { method: "POST", body: key, headers: { 
-    callKey: key
-   } });
+async function triggerWorkflow({callKey, prompt}: {callKey: string, prompt: string}) {
+  const response = await fetch("/api/workflow", {
+    method: "POST",
+    body: JSON.stringify({ callKey, prompt }),
+    headers: { 
+      callKey
+    }
+  });
   if (response.status === 429) {
     throw new Error("Your request was rejected because you surpassed the ratelimit. Please try again later.")
   }
 }
 
-async function checkRedisForResult(key: string) {
+async function checkRedisForResult(callKey: string) {
   const response = await fetch(
     "/api/check-workflow",
     {
       method: "POST",
-      body: key,
+      body: JSON.stringify({ callKey }),
     });
   const result = (await response.json()) as RedisEntry;
   return result;
@@ -35,7 +39,7 @@ export default function WorkflowCall({
     empty: true, duration: 0, functionTime: 0, result: ""
   });
   const [activeKey, setActiveKey] = useState<string | string[]>();
-  const key = `${REDIS_PREFIX}-${Math.ceil(Math.random() * 1000000)}`;
+  const callKey = `${REDIS_PREFIX}-${Math.ceil(Math.random() * 1000000)}`;
 
   useEffect(() => {
     if (state === 2) {
@@ -44,7 +48,10 @@ export default function WorkflowCall({
 
       setActiveKey(undefined);
       setResponse({...response, empty: true, result: "pending..."});
-      triggerWorkflow(key)
+      triggerWorkflow({
+        callKey,
+        prompt: "A supersonic jet rising to the stars in 1980s propaganda posters style,. as color, use a contrast between a calm white/blue and a striking red"
+      })
         .then(() => {
           const pollData = async () => {
             if (checkCount > 45) {
@@ -54,7 +61,7 @@ export default function WorkflowCall({
               setResponse({...response, empty: true, result: errorMessage})
               return
             }
-            const result = await checkRedisForResult(key);
+            const result = await checkRedisForResult(callKey);
             checkCount += 1;
             setResponse({...response, empty: true, result: "waiting for workflow to finish..."});
             
@@ -66,7 +73,7 @@ export default function WorkflowCall({
                 empty: false,
                 duration: performance.now() - startTime,
                 functionTime: Number(result.time),
-                result: result.result
+                result: result.url
               });
               // @ts-expect-error this works but raises error
               setState((prevState) => prevState - 1); // Decrement state by 1

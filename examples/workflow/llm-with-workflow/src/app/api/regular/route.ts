@@ -1,26 +1,22 @@
-import { MESSAGES, MODEL, OpenAiResponse } from "@/app/utils/constants"
 import { NextRequest, NextResponse } from "next/server"
 import { ratelimit, validateRequest } from "../utils"
+import { getFetchParameters, getImageUrl, ImageResponse } from "@/app/utils/request"
+import { RedisEntry } from "@/app/utils/constants"
 
-const makeLLMCall = async () => {
+const makeRequest = async (prompt: string) => {
+  const parameters = getFetchParameters(prompt)
+  
   const response = await fetch(
-    "https://api.openai.com/v1/chat/completions",
+    parameters.url,
     {
-      method: "POST",
-      body: JSON.stringify({
-        "model": MODEL,
-        "messages": MESSAGES,
-        "temperature": 0
-      }),
-      headers: {
-        authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-        "content-type": "application/json",
-      }
+      method: parameters.method,
+      body: JSON.stringify(parameters.body),
+      headers: parameters.headers
     }
   )
 
-  const payload = await response.json() as OpenAiResponse
-  return payload.choices[0].message.content
+  const payload = await response.json() as ImageResponse  
+  return getImageUrl(payload)
 }
 
 export const POST = async (request: NextRequest) => {
@@ -28,11 +24,14 @@ export const POST = async (request: NextRequest) => {
   if (response) return response;
 
   const t1 = performance.now()
-  const callResult = await makeLLMCall()
+  const payload = await request.json() as { prompt: string }
+  const callResult = await makeRequest(payload.prompt)
   const time = performance.now() - t1
 
-  return new NextResponse(JSON.stringify({
+  const result: RedisEntry = {
     time,
-    result: callResult,
-  }), { status: 200 })
+    url: callResult,
+  }
+
+  return new NextResponse(JSON.stringify(result), { status: 200 })
 }

@@ -6,10 +6,10 @@ export const POST = async (request: NextRequest) => {
   const response = await validateRequest(request, checkRatelimit)
   if (response) return response;
 
-  const key = await request.text();
-  const result = await redis.get(key) as RedisEntry | undefined
+  const { callKey } = await request.json() as { callKey: string };
+  const result = await redis.get(callKey) as RedisEntry | undefined
   if (result) {
-    await redis.del(key)
+    await redis.del(callKey)
   }
   return new NextResponse(JSON.stringify(result), { status: 200 })
 }

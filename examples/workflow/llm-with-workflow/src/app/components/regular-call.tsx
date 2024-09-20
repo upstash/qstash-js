@@ -1,17 +1,18 @@
 import { useState, useEffect } from 'react';
-import { CallInfo } from '../utils/constants';
+import { CallInfo, RedisEntry } from '../utils/constants';
 import ResultInfo from './result';
 
-async function fetchRegularResponse() {
+async function fetchRegularResponse({ prompt }: { prompt: string }) {
   const response = await fetch(
     "/api/regular",
     {
       method: "POST",
+      body: JSON.stringify({prompt})
     });
   if (response.status === 429) {
     throw new Error("Your request was rejected because you surpassed the ratelimit. Please try again later.")
   }
-  return await response.json() as { time: number, result: string };
+  return await response.json() as RedisEntry;
 }
 
 export default function RegularCall({
@@ -32,13 +33,15 @@ export default function RegularCall({
     if (state === 2) {
       setActiveKey(undefined);
       setResponse({...response, empty: true, result: "pending..."});
-      fetchRegularResponse()
+      fetchRegularResponse({
+        prompt: "A supersonic jet rising to the stars in 1980s propaganda posters style,. as color, use a contrast between a calm white/blue and a striking red"
+      })
         .then((data) => {
           setResponse({
             empty: false,
             duration: Number(data.time),
             functionTime: Number(data.time),
-            result: data.result
+            result: data.url
           });
           setActiveKey("1"); // Open the collapse panel
 

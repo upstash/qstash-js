@@ -1,5 +1,5 @@
 import { Collapse, Typography } from "antd"
-import { CallInfo, REGULAR_CODE, WORKFLOW_CODE } from "../utils/constants"
+import { CallInfo } from "../utils/constants"
 import Markdown from 'react-markdown'
 
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter"
@@ -25,16 +25,6 @@ export default function ResultInfo({
   
   return (
     <Collapse activeKey={activeKey} onChange={setActiveKey}>
-      <Collapse.Panel key="0" header={
-        <h5 className=" text-black dark:text-white">
-          {title} Call Code
-        </h5>
-        }
-      >
-        <SyntaxHighlighter language="js" >
-          {isWorkflow ? WORKFLOW_CODE : REGULAR_CODE}
-        </SyntaxHighlighter>
-      </Collapse.Panel>
       <Collapse.Panel
         header={
           <div className="flex justify-between items-center text-black dark:text-white">
@@ -71,7 +61,10 @@ export default function ResultInfo({
           {response.functionTime ? undefined : <p className="mt-2">Function Duration and Cost calculation wasn&apos;t reliable. Please Try again.</p>}
         </div>
         <br/>
-        <Markdown className="overflow-hidden">{response.result}</Markdown>
+        <img
+          src={response.result}
+          alt="generated-image"
+        />
       </Collapse.Panel>
     </Collapse>
   )

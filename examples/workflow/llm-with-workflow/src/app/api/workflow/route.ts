@@ -3,38 +3,39 @@ import { serve } from "@upstash/qstash/nextjs"
 import { NextRequest } from "next/server"
 import { waitUntil } from "@vercel/functions"
 
-import { MESSAGES, MODEL, OpenAiResponse, RedisEntry } from "@/app/utils/constants"
+import { RedisEntry } from "@/app/utils/constants"
 import { ratelimit, redis, validateRequest } from "../utils"
+import { getFetchParameters, getImageUrl, ImageResponse } from "@/app/utils/request"
 
 const getTimeKey = (key: string) => `time-${key}`
 
-const serveMethod = serve<string>(async (context) => {
-  const result = await context.call<OpenAiResponse>(
+const serveMethod = serve<{
+  callKey: string,
+  prompt: string
+}>(async (context) => {
+  const payload = context.requestPayload
+
+  const parameters = getFetchParameters(payload.prompt)
+  const result = await context.call<ImageResponse>(
     "call open ai",
-    "https://api.openai.com/v1/chat/completions",
-    "POST",
-    {
-      "model": MODEL,
-      "messages": MESSAGES,
-      "temperature": 0
-    },
-    {
-      authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-      "content-type": "application/json",
-    }
+    parameters.url,
+    parameters.method,
+    parameters.body,
+    parameters.headers
   )
 
   await context.run("save results in redis", async () => {
-    const key = context.requestPayload;
-    await redis.set<RedisEntry>(key, {
-      time: await redis.get(getTimeKey(key)) ?? 0,
-      result: result.choices[0].message.content,
+    // save the final time key and result
+    await redis.set<RedisEntry>(payload.callKey, {
+      time: await redis.get(getTimeKey(payload.callKey)) ?? 0,
+      url: getImageUrl(result),
     }, { ex: 120 }); // expire in 120 seconds
-    await redis.del(getTimeKey(key))
+
+    await redis.del(getTimeKey(payload.callKey))
   })
 })
 
-export const POST = async (request: NextRequest) => {
+export const POST = async (request: NextRequest) => {    
   const response = await validateRequest(request, ratelimit)
   if (response) return response;
   
@@ -54,6 +55,5 @@ export const POST = async (request: NextRequest) => {
   } else {
     console.warn("callKey header was missing. couldn't log the time for the call.")
   }
-
   return result
 }
