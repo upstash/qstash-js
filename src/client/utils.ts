@@ -117,3 +117,13 @@ export function decodeBase64(base64: string) {
     return atob(base64);
   }
 }
+
+export function parseCursor(cursor: string) {
+  const [timestamp, sequence] = cursor.split("-");
+
+  return {
+    timestamp: Number.parseInt(timestamp, 10),
+    sequence: Number.parseInt(sequence, 10),
+  };
+  
+}

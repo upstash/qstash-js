@@ -19,7 +19,7 @@ export type Event = {
 export type EventPayload = Omit<Event, "urlGroup"> & { topicName: string };
 
 export type GetEventsPayload = {
-  cursor?: number;
+  cursor?: string;
   events: EventPayload[];
 };
 
