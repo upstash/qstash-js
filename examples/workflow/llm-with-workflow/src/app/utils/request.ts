@@ -6,7 +6,7 @@ type FetchParameters = {
   headers: Record<string, string>
 }
 
-export const getFetchParameters = (prompt: string): FetchParameters => {
+export const getFetchParameters = (prompt: string): FetchParameters | undefined => {
 
   if (process.env.OPENAI_API_KEY) {
     return {
@@ -38,9 +38,10 @@ export const getFetchParameters = (prompt: string): FetchParameters => {
         "Api-Key": process.env.IDEOGRAM_API_KEY
       }
     }
+  } else {
+    console.warn("No credential env var is set. Using placeholder.");
+    return
   }
-  
-  throw new Error("Please configure the app to use OpenAI or Ideogram.")
 }
 
 type IdeogramResponse = {

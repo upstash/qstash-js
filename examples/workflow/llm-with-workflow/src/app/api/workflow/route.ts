@@ -3,7 +3,7 @@ import { serve } from "@upstash/qstash/nextjs"
 import { NextRequest } from "next/server"
 import { waitUntil } from "@vercel/functions"
 
-import { RedisEntry } from "@/app/utils/constants"
+import { PLACEHOLDER_IMAGE, RedisEntry } from "@/app/utils/constants"
 import { ratelimit, redis, validateRequest } from "../utils"
 import { getFetchParameters, getImageUrl, ImageResponse } from "@/app/utils/request"
 
@@ -16,13 +16,25 @@ const serveMethod = serve<{
   const payload = context.requestPayload
 
   const parameters = getFetchParameters(payload.prompt)
-  const result = await context.call<ImageResponse>(
-    "call open ai",
-    parameters.url,
-    parameters.method,
-    parameters.body,
-    parameters.headers
-  )
+  if (parameters) {
+    var result = await context.call<ImageResponse>(
+      "call open ai",
+      parameters.url,
+      parameters.method,
+      parameters.body,
+      parameters.headers
+    )
+  } else {
+    await context.sleep("mock call", 2)
+    var result: ImageResponse = {
+      created: "",
+      data: [{
+        prompt: payload.prompt,
+        url: PLACEHOLDER_IMAGE
+      }] 
+    }
+  }
+  
 
   await context.run("save results in redis", async () => {
     // save the final time key and result
