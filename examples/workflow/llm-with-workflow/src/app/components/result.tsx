@@ -1,8 +1,5 @@
 import { Collapse, Typography } from "antd"
 import { CallInfo } from "../utils/constants"
-import Markdown from 'react-markdown'
-
-import { Prism as SyntaxHighlighter } from "react-syntax-highlighter"
 
 export default function ResultInfo({
   title,

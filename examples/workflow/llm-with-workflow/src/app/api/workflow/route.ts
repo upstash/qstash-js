@@ -16,8 +16,9 @@ const serveMethod = serve<{
   const payload = context.requestPayload
 
   const parameters = getFetchParameters(payload.prompt)
+  let result: ImageResponse
   if (parameters) {
-    var result = await context.call<ImageResponse>(
+    result = await context.call<ImageResponse>(
       "call open ai",
       parameters.url,
       parameters.method,
@@ -26,7 +27,7 @@ const serveMethod = serve<{
     )
   } else {
     await context.sleep("mock call", 2)
-    var result: ImageResponse = {
+    result = {
       created: "",
       data: [{
         prompt: payload.prompt,
