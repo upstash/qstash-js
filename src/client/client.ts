@@ -227,7 +227,7 @@ export type PublishJsonRequest = Omit<PublishRequest, "body"> & {
 };
 
 export type EventsRequest = {
-  cursor?: string;
+  cursor?: string | number;
   filter?: EventsRequestFilter;
 };
 
@@ -464,7 +464,10 @@ export class Client {
    */
   public async events(request?: EventsRequest): Promise<GetEventsResponse> {
     const query: Record<string, string> = {};
-    if (request?.cursor && request.cursor !== "") {
+
+    if (typeof request?.cursor === "number" && request.cursor > 0) {
+      query.cursor = request.cursor.toString();
+    }else if (typeof request?.cursor === "string" && request.cursor !== "") {
       query.cursor = request.cursor;
     }
 
