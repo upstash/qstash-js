@@ -28,10 +28,12 @@ export const getFetchParameters = (prompt: string): FetchParameters | undefined 
       url: "https://api.ideogram.ai/generate",
       method: "POST",
       body: {
-        model: "V_2",
-        prompt,
-        aspect_ratio: "ASPECT_1_1",
-        magic_prompt_option: "AUTO"
+        image_request: {
+          model: "V_2",
+          prompt,
+          aspect_ratio: "ASPECT_1_1",
+          magic_prompt_option: "AUTO"
+        }
       },
       headers: {
         "Content-Type": "application/json",
