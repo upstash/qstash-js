@@ -7,11 +7,11 @@ a {
 }
 
 button {
-  @apply shadow-[3px_3px_0_#000] bg-emerald-500 px-2 py-0.5 font-bold text-white;
+  @apply shadow-[4px_4px_0_#000] bg-emerald-500 px-2 py-0.5 font-bold text-white;
 }
 
 fieldset {
-  @apply border-2 border-emerald-500 p-4 shadow-[3px_3px_0_#000];
+  @apply border-2 border-emerald-800 p-4 shadow-[4px_4px_0_#000];
 }
 
 legend {
