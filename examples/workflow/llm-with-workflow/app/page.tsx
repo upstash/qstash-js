@@ -5,6 +5,7 @@ import CallRegular from 'components/call-regular'
 import CallWorkflow from 'components/call-workflow'
 import Footer from 'components/footer'
 import Header from 'components/header'
+import cx from 'utils/cx'
 
 export default function Page() {
   const [start, setStart] = useState<boolean>(false)
@@ -13,28 +14,27 @@ export default function Page() {
   )
 
   return (
-    <main className="mx-auto min-h-screen max-w-screen-md px-8 py-12">
+    <main className="mx-auto min-h-screen max-w-screen-sm px-8 py-12">
       <Header />
 
-      {!start && (
-        <div className="mt-10">
-          <button
-            type="button"
-            onClick={() => setStart(true)}
-            className="rounded bg-emerald-500 px-4 py-2 font-bold text-white"
-          >
-            Call Endpoints
-          </button>
-        </div>
-      )}
+      <div className="mt-8">
+        <button
+          type="button"
+          onClick={() => setStart(true)}
+          className={cx(start && 'opacity-30')}
+        >
+          Call Endpoints
+        </button>
+      </div>
 
-      <div className="mt-10 grid grid-cols-2 gap-4">
-        <div className="border p-4">
+      <div className="mt-8 grid gap-6 lg:-mx-48 lg:grid-cols-2">
+        <fieldset>
           <CallRegular prompt={prompt} start={start} />
-        </div>
-        <div className="border p-4">
+        </fieldset>
+
+        <fieldset>
           <CallWorkflow prompt={prompt} start={start} />
-        </div>
+        </fieldset>
       </div>
 
       <Footer />

@@ -2,7 +2,7 @@
 
 export default function Footer({}: {}) {
   return (
-    <footer className="mt-10 grid gap-4 text-sm opacity-80">
+    <footer className="mt-10 space-y-4 text-xs">
       <p>
         <b>Total Duration</b> stands for the amount of time passed between the
         initial request and the llm result arriving in the UI. It depends on the
@@ -26,17 +26,12 @@ export default function Footer({}: {}) {
         <a
           href="https://vercel.com/docs/functions/usage-and-pricing#node.js-python-ruby-and-go-runtimes"
           target="_blank"
-          className="underline"
         >
           $0.18
         </a>{' '}
         ÷ 3600, which equals $0.00005 per second. For the calculation of
         Workflow, we also include{' '}
-        <a
-          href="https://upstash.com/pricing/qstash"
-          target="_blank"
-          className="underline"
-        >
+        <a href="https://upstash.com/pricing/qstash" target="_blank">
           the QStash cost, which is $1 per 100k messages
         </a>
         . Each workflow in this example makes 4 QStash requests. Cost of OpenAI

@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
+import { Reddit_Mono } from 'next/font/google'
 import cx from 'utils/cx'
 import './globals.css'
 
@@ -11,10 +11,11 @@ export const metadata: Metadata = {
   },
 }
 
-const defaultFont = Inter({
-  variable: '--font-inter',
+const defaultFont = Reddit_Mono({
+  variable: '--font-default',
   display: 'swap',
-  style: 'normal',
+  style: ['normal'],
+  weight: ['400', '700'],
   subsets: ['latin-ext'],
 })
 
@@ -25,7 +26,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={cx('scroll-smooth', defaultFont.variable)}>
-      <body className="antialiased">{children}</body>
+      <body
+        className={cx(
+          'bg-gradient-to-b from-white to-emerald-50 text-sm text-zinc-800 antialiased',
+          'selection:bg-emerald-200 selection:text-emerald-800',
+        )}
+      >
+        {children}
+      </body>
     </html>
   )
 }

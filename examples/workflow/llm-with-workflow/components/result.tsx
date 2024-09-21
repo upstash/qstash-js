@@ -1,60 +1,80 @@
 import { CallInfo } from 'utils/types'
-import { costCalc } from 'utils/helper'
 import prettyMilliseconds from 'pretty-ms'
+import { IconLoader } from '@tabler/icons-react'
 
 export default function ResultInfo({
-  title,
-  isWorkflow = false,
+  cost = 0,
   data,
+  loading = false,
 }: {
-  title: string
-  isWorkflow: boolean
+  cost: number
   data: null | CallInfo
+  loading: boolean
 }) {
-  const cost = costCalc(data?.functionTime, isWorkflow)
+  if (!data)
+    return (
+      <div>
+        <Table />
+        {loading && (
+          <div className="mt-4">
+            <IconLoader size={24} className="animate-spin" />
+          </div>
+        )}
+      </div>
+    )
 
   return (
-    <div>
-      <div className="flex items-center justify-between text-black dark:text-white">
-        <h5>{title} Call Response</h5>
-      </div>
+    <>
+      <Table
+        duration={prettyMilliseconds(data.duration)}
+        functionTime={prettyMilliseconds(data.functionTime)}
+        cost={(1_000_000 * cost).toFixed(2)}
+      />
 
-      {data && (
-        <>
-          <div className="w-fit cursor-pointer overflow-x-auto rounded-lg bg-gray-100 px-2 py-1 text-xs">
-            <table className="">
-              <tbody>
-                <tr>
-                  <td className="font-medium">Total Duration:</td>
-                  <td>{prettyMilliseconds(data.duration)}</td>
-                </tr>
-                <tr>
-                  <td className="font-medium">Vercel Function Duration:</td>
-                  <td>{prettyMilliseconds(data.functionTime)}</td>
-                </tr>
-                <tr>
-                  <td className="font-medium">Cost for 1M Requests:</td>
-                  <td>~{(1_000_000 * cost).toFixed(2)}$</td>
-                </tr>
-              </tbody>
-            </table>
-
-            {data.functionTime ? undefined : (
-              <p className="mt-2">
-                Function Duration and Cost calculation wasn&apos;t reliable.
-                Please Try again.
-              </p>
-            )}
-          </div>
-
-          <img
-            src={data.result}
-            width={500}
-            height={500}
-            alt="generated-image"
-          />
-        </>
+      {!data.functionTime && (
+        <p className="mt-2">
+          Function Duration and Cost calculation wasn&apos;t reliable. Please
+          Try again.
+        </p>
       )}
+
+      <img
+        className="mt-4 block w-full"
+        src={data.result}
+        width={500}
+        height={500}
+        alt="generated-image"
+      />
+    </>
+  )
+}
+
+function Table({
+  duration,
+  functionTime,
+  cost,
+}: {
+  cost?: string
+  duration?: string
+  functionTime?: string
+}) {
+  return (
+    <div className="">
+      <div className="flex items-baseline">
+        <span className="text-left">Total Duration:</span>
+        <span className="grow border-b-2 border-dotted" />
+        <span className="text-right">{duration}</span>
+      </div>
+      <div className="flex items-baseline">
+        <span className="text-left">Vercel Function Duration:</span>
+        <span className="grow border-b-2 border-dotted" />
+        <span className="text-right">{functionTime}</span>
+      </div>
+      <div className="flex items-baseline">
+        <span className="text-left">Cost for 1M Requests:</span>
+        <span className="grow border-b-2 border-dotted" />
+        <span className="text-right">{cost && `~$${cost}`}</span>
+      </div>
     </div>
   )
 }

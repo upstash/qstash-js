@@ -3,8 +3,8 @@
 import { useEffect, useState } from 'react'
 import { CallInfo, RedisEntry } from 'utils/types'
 import ResultInfo from './result'
-import { IconLoader } from '@tabler/icons-react'
 import { RATELIMIT_CODE } from 'utils/constants'
+import { costCalc } from 'utils/helper'
 
 export default function CallRegular({
   prompt,
@@ -58,10 +58,16 @@ export default function CallRegular({
   }, [start])
 
   return (
-    <div>
-      {loading && <IconLoader size={24} className="animate-spin" />}
+    <>
+      <legend>Regular Call Response</legend>
+
       {error && <div>{error}</div>}
-      <ResultInfo title="Regular" isWorkflow={false} data={data} />
-    </div>
+
+      <ResultInfo
+        cost={costCalc(data?.functionTime, false)}
+        data={data}
+        loading={loading}
+      />
+    </>
   )
 }

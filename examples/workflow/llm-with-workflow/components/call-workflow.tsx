@@ -2,10 +2,9 @@
 
 import { useEffect, useState } from 'react'
 import { RATELIMIT_CODE } from 'utils/constants'
-import { generateCallKey } from 'utils/helper'
+import { costCalc, generateCallKey } from 'utils/helper'
 import { CallInfo, RedisEntry } from 'utils/types'
 import ResultInfo from './result'
-import { IconLoader } from '@tabler/icons-react'
 
 async function checkRedisForResult(callKey: string) {
   const response = await fetch('/api/check-workflow', {
@@ -93,10 +92,16 @@ export default function CallWorkflow({
   }, [start])
 
   return (
-    <div>
-      {loading && <IconLoader size={24} className="animate-spin" />}
+    <>
+      <legend>Workflow Call Response</legend>
+
       {error && <div>{error}</div>}
-      <ResultInfo title="Workflow" isWorkflow={true} data={data} />
-    </div>
+
+      <ResultInfo
+        cost={costCalc(data?.functionTime, true)}
+        data={data}
+        loading={loading}
+      />
+    </>
   )
 }
