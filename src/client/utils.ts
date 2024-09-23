@@ -125,5 +125,4 @@ export function parseCursor(cursor: string) {
     timestamp: Number.parseInt(timestamp, 10),
     sequence: Number.parseInt(sequence, 10),
   };
-  
 }
