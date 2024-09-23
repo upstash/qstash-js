@@ -1,8 +1,7 @@
 {
   "name": "aws-lambda",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "version": "0.0.0",
+  "private": true,
   "scripts": {
     "build": "rm -rf dist && esbuild index.ts --bundle --minify --sourcemap --platform=node --target=es2020 --outfile=dist/index.js",
     "push": "cd dist && zip -r index.zip index.js* && aws lambda update-function-code --function-name sdks-qstash-quickstart-typescript --zip-file fileb://index.zip"
@@ -16,6 +15,6 @@
     "esbuild": "^0.19.2"
   },
   "dependencies": {
-    "@upstash/qstash": "workspace:2.0.0-canary.16"
+    "@upstash/qstash": "latest"
   }
 }

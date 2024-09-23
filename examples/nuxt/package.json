@@ -10,7 +10,7 @@
     "postinstall": "nuxt prepare"
   },
   "dependencies": {
-    "@upstash/qstash": "file:../../dist",
+    "@upstash/qstash": "latest",
     "nuxt": "^3.12.4",
     "vue": "latest"
   },
