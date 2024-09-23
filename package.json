@@ -12,66 +12,52 @@
   "bugs": {
     "url": "https://github.com/upstash/sdk-qstash-ts/issues"
   },
-  "main": "./index.js",
-  "module": "./index.mjs",
-  "types": "./index.d.ts",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
   "files": [
-    "./**"
+    "dist"
   ],
   "exports": {
     ".": {
-      "import": "./index.mjs",
-      "require": "./index.js"
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
     },
     "./nextjs": {
-      "import": "./nextjs.js",
-      "require": "./nextjs.js"
+      "import": "./dist/nextjs.mjs",
+      "require": "./dist/nextjs.js"
     },
     "./dist/nextjs": {
-      "import": "./nextjs.js",
-      "require": "./nextjs.js"
+      "import": "./dist/nextjs.mjs",
+      "require": "./dist/nextjs.js"
     },
     "./h3": {
-      "types": "./h3.d.ts",
-      "import": "./h3.mjs",
-      "require": "./h3.js"
+      "import": "./dist/h3.mjs",
+      "require": "./dist/h3.js"
     },
     "./nuxt": {
-      "types": "./nuxt.d.ts",
-      "import": "./nuxt.mjs",
-      "require": "./nuxt.js"
+      "import": "./dist/nuxt.mjs",
+      "require": "./dist/nuxt.js"
     },
     "./svelte": {
-      "types": "./svelte.d.ts",
-      "import": "./svelte.mjs",
-      "require": "./svelte.js"
+      "import": "./dist/svelte.mjs",
+      "require": "./dist/svelte.js"
     },
     "./solidjs": {
-      "types": "./solidjs.d.ts",
-      "import": "./solidjs.mjs",
-      "require": "./solidjs.js"
+      "import": "./dist/solidjs.mjs",
+      "require": "./dist/solidjs.js"
     },
     "./workflow": {
-      "types": "./workflow.d.ts",
-      "import": "./workflow.mjs",
-      "require": "./workflow.js"
+      "import": "./dist/workflow.mjs",
+      "require": "./dist/workflow.js"
     },
     "./hono": {
-      "types": "./hono.d.ts",
-      "import": "./hono.mjs",
-      "require": "./hono.js"
+      "import": "./dist/hono.mjs",
+      "require": "./dist/hono.js"
     },
     "./cloudflare": {
-      "types": "./cloudflare.d.ts",
-      "import": "./cloudflare.mjs",
-      "require": "./cloudflare.js"
-    }
-  },
-  "typesVersions": {
-    "*": {
-      "nextjs": [
-        "./nextjs.d.ts"
-      ]
+      "import": "./dist/cloudflare.mjs",
+      "require": "./dist/cloudflare.js"
     }
   },
   "keywords": [
@@ -82,7 +68,7 @@
     "upstash"
   ],
   "scripts": {
-    "build": "tsup && cp README.md ./dist/ && cp package.json ./dist/ && cp LICENSE ./dist/",
+    "build": "tsup",
     "test": "bun test src",
     "fmt": "prettier --write .",
     "lint": "tsc && eslint \"src/**/*.{js,ts,tsx}\" --quiet --fix",

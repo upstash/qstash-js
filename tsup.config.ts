@@ -13,10 +13,6 @@ export default defineConfig({
     cloudflare: "./platforms/cloudflare.ts",
   },
   format: ["cjs", "esm"],
-  splitting: true,
-  sourcemap: false,
   clean: true,
-  bundle: true,
   dts: true,
-  external: ["next"],
 });
