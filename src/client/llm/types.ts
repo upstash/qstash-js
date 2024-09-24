@@ -1,4 +1,4 @@
-import type { ProviderReturnType } from "./providers";
+import { type ProviderReturnType } from "./providers";
 
 export type ChatCompletionMessage = {
   role: "system" | "assistant" | "user";
@@ -119,17 +119,17 @@ type ChatRequestFields = ChatRequestCommonFields & {
 
 type ChatRequestProviders =
   | {
-      provider: ProviderReturnType;
+      provider: ProviderReturnType<"openai">;
       model: OpenAIChatModel;
       analytics?: { name: "helicone"; token: string };
     }
   | {
-      provider: ProviderReturnType;
+      provider: ProviderReturnType<"custom">;
       model: string;
       analytics?: { name: "helicone"; token: string };
     }
   | {
-      provider: ProviderReturnType;
+      provider: ProviderReturnType<"upstash">;
       model: ChatModel;
       analytics?: { name: "helicone"; token: string };
     };

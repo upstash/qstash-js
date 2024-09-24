@@ -180,7 +180,10 @@ describe("Test QStash chat with third party LLMs", () => {
     "should respond to prompt",
     async () => {
       const response = await client.chat().prompt({
-        provider: openai({ token: process.env.OPENAI_API_KEY! }),
+        provider: openai({
+          token: process.env.OPENAI_API_KEY!,
+          organization: process.env.OPENAI_ORGANIZATION!,
+        }),
         model: "gpt-3.5-turbo",
         system: "from now on, foo is whale",
         user: "what exactly is foo?",
@@ -199,7 +202,10 @@ describe("Test QStash chat with third party LLMs", () => {
     "should respond to create",
     async () => {
       const response = await client.chat().create({
-        provider: openai({ token: process.env.OPENAI_API_KEY! }),
+        provider: openai({
+          token: process.env.OPENAI_API_KEY!,
+          organization: process.env.OPENAI_ORGANIZATION!,
+        }),
         model: "gpt-3.5-turbo",
         messages: [
           {
@@ -226,7 +232,10 @@ describe("Test QStash chat with third party LLMs", () => {
     "should stream prompt",
     async () => {
       const response = await client.chat().prompt({
-        provider: openai({ token: process.env.OPENAI_API_KEY! }),
+        provider: openai({
+          token: process.env.OPENAI_API_KEY!,
+          organization: process.env.OPENAI_ORGANIZATION!,
+        }),
         model: "gpt-3.5-turbo",
         system: "from now on, foo is whale",
         user: "what exactly is foo?",
@@ -243,7 +252,10 @@ describe("Test QStash chat with third party LLMs", () => {
     "should stream create",
     async () => {
       const response = await client.chat().create({
-        provider: openai({ token: process.env.OPENAI_API_KEY! }),
+        provider: openai({
+          token: process.env.OPENAI_API_KEY!,
+          organization: process.env.OPENAI_ORGANIZATION!,
+        }),
         model: "gpt-3.5-turbo",
         messages: [
           {
@@ -266,7 +278,13 @@ describe("Test QStash chat with third party LLMs", () => {
 
   test("should publish with llm api", async () => {
     const result = await client.publishJSON({
-      api: { name: "llm", provider: openai({ token: process.env.OPENAI_API_KEY! }) },
+      api: {
+        name: "llm",
+        provider: openai({
+          token: process.env.OPENAI_API_KEY!,
+          organization: process.env.OPENAI_ORGANIZATION!,
+        }),
+      },
       body: {
         model: "gpt-3.5-turbo",
         messages: [
@@ -284,7 +302,13 @@ describe("Test QStash chat with third party LLMs", () => {
   test("should publish with llm api", () => {
     //@ts-expect-error We intentionally omit the callback to ensure the function fails as expected
     const resultPromise = client.publishJSON({
-      api: { name: "llm", provider: openai({ token: process.env.OPENAI_API_KEY! }) },
+      api: {
+        name: "llm",
+        provider: openai({
+          token: process.env.OPENAI_API_KEY!,
+          organization: process.env.OPENAI_ORGANIZATION!,
+        }),
+      },
       body: {
         model: "gpt-3.5-turbo",
         messages: [
@@ -302,7 +326,13 @@ describe("Test QStash chat with third party LLMs", () => {
   test("should batch with llm api", async () => {
     const result = await client.batchJSON([
       {
-        api: { name: "llm", provider: openai({ token: process.env.OPENAI_API_KEY! }) },
+        api: {
+          name: "llm",
+          provider: openai({
+            token: process.env.OPENAI_API_KEY!,
+            organization: process.env.OPENAI_ORGANIZATION!,
+          }),
+        },
         body: {
           model: "gpt-3.5-turbo",
           messages: [
@@ -323,7 +353,13 @@ describe("Test QStash chat with third party LLMs", () => {
     const queueName = "upstash-queue";
     const queue = client.queue({ queueName });
     const result = await queue.enqueueJSON({
-      api: { name: "llm", provider: openai({ token: process.env.OPENAI_API_KEY! }) },
+      api: {
+        name: "llm",
+        provider: openai({
+          token: process.env.OPENAI_API_KEY!,
+          organization: process.env.OPENAI_ORGANIZATION!,
+        }),
+      },
       body: {
         model: "gpt-3.5-turbo",
         messages: [
@@ -397,11 +433,13 @@ describe("createThirdParty", () => {
   });
 
   test("should call request with analytics enabled", async () => {
+    const testOrganization = "my-org";
     const mockRequest = {
       provider: {
         baseUrl: "https://api.together.xyz",
         token: "xxx",
         owner: "together",
+        organization: testOrganization,
       },
       model: "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
       messages: [
@@ -429,6 +467,7 @@ describe("createThirdParty", () => {
           Authorization: "Bearer xxx",
           "Helicone-Auth": "Bearer helicone-token",
           "Helicone-Target-Url": "https://api.together.xyz",
+          "OpenAI-Organization": testOrganization,
         }),
         baseUrl: "https://gateway.helicone.ai/v1/chat/completions",
       })
