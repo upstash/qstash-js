@@ -274,6 +274,7 @@ export class WorkflowContext<TInitialPayload = unknown> {
    * @param headers call headers
    * @returns call result (parsed as JSON if possible)
    */
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
   public async call<TResult = unknown, TBody = unknown>(
     stepName: string,
     url: string,

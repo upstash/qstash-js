@@ -392,6 +392,7 @@ export class AutoExecutor {
    * @param index index of the current step
    * @returns result[index] if lazyStepList > 1, otherwise result
    */
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
   private static getResult<TResult>(lazyStepList: BaseLazyStep[], result: unknown, index: number) {
     if (lazyStepList.length === 1) {
       return result as TResult;

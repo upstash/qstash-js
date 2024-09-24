@@ -98,6 +98,7 @@ export const processOptions = <TResponse extends Response = Response, TInitialPa
  */
 export const serve = <
   TInitialPayload = unknown,
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
   TRequest extends Request = Request,
   TResponse extends Response = Response,
 >(
