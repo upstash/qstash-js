@@ -46,9 +46,6 @@ jobs:
       - name: Build
         run: bun run build
 
-      - name: Change directory to examples/cloudflare-workers
-        run: cd examples/cloudflare-workers
-
       - name: Install Node.js
         uses: actions/setup-node@v4
         with:
@@ -58,6 +55,8 @@ jobs:
         name: Install pnpm
         with:
           version: 9
+      - name: Change directory to examples/cloudflare-workers
+        run: cd examples/cloudflare-workers
 
       - name: Install Dependencies
         run: pnpm install
@@ -84,9 +83,6 @@ jobs:
       - name: Build
         run: bun run build
 
-      - name: Change directory to examples/cloudflare-workers
-        run: cd examples/nextjs
-
       - name: Install Node.js
         uses: actions/setup-node@v4
         with:
@@ -96,6 +92,9 @@ jobs:
         name: Install pnpm
         with:
           version: 9
+
+      - name: Change directory to examples/cloudflare-workers
+        run: cd examples/nextjs
 
       - name: Install Dependencies
         run: pnpm install
