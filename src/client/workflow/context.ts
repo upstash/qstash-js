@@ -251,38 +251,38 @@ export class WorkflowContext<TInitialPayload = unknown> {
   }
 
   /**
-   * Makes a third party call through QStash in order to make a
-   * network call without consuming any runtime.
+   * Makes an HTTP request without consuming any runtime.
    *
+   * Automatically parses the response as JSON, falling back to returning the raw response if parsing fails.
+   *
+   * @example
    * ```ts
-   * const postResult = await context.call<string>(
-   *   "post call step",
-   *   `https://www.some-endpoint.com/api`,
-   *   "POST",
-   *   "my-payload"
-   * );
+   * const response = await context.call("create-post", {
+   *   url: "https://jsonplaceholder.typicode.com/posts",
+   *   method: "POST",
+   *   body: JSON.stringify({
+   *     title: 'foo',
+   *     body: 'bar',
+   *     userId: 1,
+   *   }),
+   *   headers: {
+   *     'Content-type': 'application/json; charset=UTF-8',
+   *   },
+   * });
    * ```
    *
-   * tries to parse the result of the request as JSON. If it's
-   * not a JSON which can be parsed, simply returns the response
-   * body as it is.
-   *
-   * @param stepName
-   * @param url url to call
-   * @param method call method
-   * @param body call body
-   * @param headers call headers
-   * @returns call result (parsed as JSON if possible)
+   * @param stepName - A unique identifier for this step in the workflow
+   * @param opts - The options for the HTTP request
+   * @returns A promise that resolves to the parsed JSON response,
+   *          or the raw response if parsing fails
+   * @throws {Error} If the HTTP request fails or if there's an issue with QStash
    */
   public async call<TResult = unknown, TBody = unknown>(
     stepName: string,
-    url: string,
-    method: HTTPMethods,
-    body?: TBody,
-    headers?: Record<string, string>
+    opts: { url: string; method: HTTPMethods; body?: TBody; headers?: Record<string, string> }
   ) {
     const result = await this.addStep(
-      new LazyCallStep<string>(stepName, url, method, body, headers ?? {})
+      new LazyCallStep<string>(stepName, opts.url, opts.method, opts.body, opts.headers ?? {})
     );
 
     try {

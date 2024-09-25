@@ -91,7 +91,7 @@ describe("context tests", () => {
 
     const throws = async () => {
       await context.run("outer step", async () => {
-        await context.call("inner call", "https://some-url.com", "GET");
+        await context.call("inner call", { url: "https://some-url.com", method: "GET" });
       });
     };
     expect(throws).toThrow(
@@ -214,7 +214,10 @@ describe("disabled workflow context", () => {
       let called = false;
       await mockQStashServer({
         execute: () => {
-          const throws = disabledContext.call("call-step", "some-url", "GET");
+          const throws = disabledContext.call("call-step", {
+            url: "https://some-url.com",
+            method: "GET",
+          });
           expect(throws).rejects.toThrow(QStashWorkflowAbort);
           called = true;
         },

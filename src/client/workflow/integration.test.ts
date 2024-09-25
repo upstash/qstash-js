@@ -391,26 +391,24 @@ describe.skip("live serve tests", () => {
             return;
           }
 
-          const postResult = await context.call<string>(
-            "post call",
-            LOCAL_THIRD_PARTY_URL,
-            "POST",
-            "post-payload",
-            postHeader
-          );
+          const postResult = await context.call<string>("post call", {
+            url: LOCAL_THIRD_PARTY_URL,
+            method: "POST",
+            body: "post-payload",
+            headers: postHeader,
+          });
           expect(postResult).toBe(
             "called POST 'third-party-result' 'post-header-value-x' '\"post-payload\"'"
           );
 
           await context.sleep("sleep 1", 2);
 
-          const getResult = await context.call<string>(
-            "get call",
-            LOCAL_THIRD_PARTY_URL,
-            "GET",
-            undefined,
-            getHeader
-          );
+          const getResult = await context.call<string>("get call", {
+            url: LOCAL_THIRD_PARTY_URL,
+            method: "GET",
+            body: undefined,
+            headers: getHeader,
+          });
 
           expect(getResult).toBe("called GET 'third-party-result' 'get-header-value-x'");
           finishState.finish();
