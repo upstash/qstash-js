@@ -11,10 +11,10 @@ import Button from 'components/button'
 export default function Page() {
   const [start, setStart] = useState<boolean>(false)
   const [showCode, setShowCode] = useState<boolean>(false)
-  const [prompt, setPrompt] = useState<number>(1)
+  const [promptIndex, setPromptIndex] = useState<number>(1)
 
   useEffect(() => {
-    setPrompt(Math.floor(Math.random() * PROMPTS.length))
+    setPromptIndex(Math.floor(Math.random() * PROMPTS.length))
   }, [])
 
   return (
@@ -27,23 +27,23 @@ export default function Page() {
             onClick={() => setStart(true)}
             className={cx(start && 'opacity-30')}
           >
-            Call Endpoints
+            Start Comparison
           </Button>
           <Button variant="secondary" onClick={() => setShowCode(!showCode)}>
             Show Code
           </Button>
         </div>
 
-        <p className="mt-4 text-sm text-zinc-500">Prompt: {PROMPTS[prompt]}</p>
+        <p className="mt-4 text-sm text-zinc-500">Prompt: {PROMPTS[promptIndex]}</p>
       </div>
 
       <div className="mt-8 grid items-start gap-6 lg:-mx-48 lg:grid-cols-2">
         <fieldset>
-          <CallRegular prompt={prompt} start={start} showCode={showCode} />
+          <CallRegular promptIndex={promptIndex} start={start} showCode={showCode} />
         </fieldset>
 
         <fieldset>
-          <CallWorkflow prompt={prompt} start={start} showCode={showCode} />
+          <CallWorkflow promptIndex={promptIndex} start={start} showCode={showCode} />
         </fieldset>
       </div>
     </main>

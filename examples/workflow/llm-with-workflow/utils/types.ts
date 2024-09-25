@@ -33,3 +33,7 @@ export type OpenAIResponse = {
 }
 
 export type ImageResponse = IdeogramResponse | OpenAIResponse
+
+export type CallPayload = {
+  promptIndex: number  
+}

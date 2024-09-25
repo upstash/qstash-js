@@ -1,18 +1,18 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { CallInfo, RedisEntry } from 'utils/types'
+import { CallInfo, RedisEntry, CallPayload } from 'utils/types'
 import ResultInfo from './result'
 import { RATELIMIT_CODE } from 'utils/constants'
 import { costCalc } from 'utils/helper'
 import CodeBlock from './codeblock'
 
 export default function CallRegular({
-  prompt,
+  promptIndex,
   start = false,
   showCode = false,
 }: {
-  prompt: number
+  promptIndex: number
   start?: boolean
   showCode?: boolean
 }) {
@@ -26,9 +26,10 @@ export default function CallRegular({
       setError(null)
       setData(null)
 
+      const payload: CallPayload = { promptIndex }
       const response = await fetch('/api/regular', {
         method: 'POST',
-        body: JSON.stringify({ prompt }),
+        body: JSON.stringify(payload),
       })
 
       if (response.status === RATELIMIT_CODE) {
@@ -62,7 +63,7 @@ export default function CallRegular({
 
   return (
     <>
-      <legend>Regular Call Response</legend>
+      <legend>Traditional Serverless Function</legend>
 
       {error && <div>{error}</div>}
 
@@ -85,27 +86,33 @@ export const POST = async (request: NextRequest) => {
   const prompt = params.prompt as string
 
   // make the fetch request
-  const response = await fetch("https://api.ideogram.ai/generate", {
-    method: "POST",
-    body: JSON.stringify({
-      image_request: {
-        model: 'V_2',
-        prompt,
-        aspect_ratio: 'ASPECT_1_1',
-        magic_prompt_option: 'AUTO',
+  const response = await fetch(
+    "https://api.ideogram.ai/generate",
+    {
+      method: "POST",
+      body: JSON.stringify({
+        image_request: {
+          model: 'V_2',
+          prompt,
+          aspect_ratio: 'ASPECT_1_1',
+          magic_prompt_option: 'AUTO',
+        },
+      }),
+      headers: {
+        'Content-Type': 'application/json',
+        'Api-Key': process.env.IDEOGRAM_API_KEY!
       },
-    }),
-    headers: {
-      'Content-Type': 'application/json',
-      'Api-Key': process.env.IDEOGRAM_API_KEY!
-    },
-  })
+    }
+  )
 
   // get the image url
   const payload = await response.json() as ImageResponse
   const url = payload.data[0].url
 
-  return new NextResponse(JSON.stringify({ url }), { status: 200 })
+  return new NextResponse(
+    JSON.stringify({ url }),
+    { status: 200 }
+  )
 }`}
         </CodeBlock>
       </details>

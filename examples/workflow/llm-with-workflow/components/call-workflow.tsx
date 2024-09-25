@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { RATELIMIT_CODE } from 'utils/constants'
 import { costCalc, generateCallKey } from 'utils/helper'
-import { CallInfo, RedisEntry } from 'utils/types'
+import { CallInfo, CallPayload, RedisEntry } from 'utils/types'
 import ResultInfo from './result'
 import CodeBlock from './codeblock'
 
@@ -16,11 +16,11 @@ async function checkRedisForResult(callKey: string) {
 }
 
 export default function CallWorkflow({
-  prompt,
+  promptIndex,
   start = false,
   showCode = false,
 }: {
-  prompt: number
+  promptIndex: number
   start?: boolean
   showCode?: boolean
 }) {
@@ -35,9 +35,10 @@ export default function CallWorkflow({
       setError(null)
       setData(null)
 
+      const payload: CallPayload = { promptIndex }
       const response = await fetch('/api/workflow', {
         method: 'POST',
-        body: JSON.stringify({ callKey, prompt }),
+        body: JSON.stringify(payload),
         headers: {
           callKey,
         },
@@ -94,7 +95,7 @@ export default function CallWorkflow({
 
   return (
     <>
-      <legend>Workflow Call Response</legend>
+      <legend>Serverless Function with Upstash Workflow</legend>
 
       {error && <div>{error}</div>}
 
@@ -113,42 +114,44 @@ import { ImageResponse } from "utils/types"
 
 const redis = Redis.fromEnv()
 
-type RequestPayload = {
-  callKey: string
-  prompt: string
-}
+export const POST = serve<{ prompt: string }>(
+  async (context) => {
+    // get prompt from request
+    const { prompt } = context.requestPayload
 
-export const POST = serve<RequestPayload>(async (context) => {
-  const { prompt, callKey } = context.requestPayload
-
-  // make the call to Idogram through QStash
-  const result = await context.call<ImageResponse>(
-    'call Ideogram',
-    "https://api.ideogram.ai/generate",
-    "POST",
-    {
-      image_request: {
-        model: 'V_2',
-        prompt,
-        aspect_ratio: 'ASPECT_1_1',
-        magic_prompt_option: 'AUTO',
+    // make the call to Idogram through QStash
+    const result = await context.call<ImageResponse>(
+      'call Ideogram',
+      "https://api.ideogram.ai/generate",
+      "POST",
+      {
+        image_request: {
+          model: 'V_2',
+          prompt,
+          aspect_ratio: 'ASPECT_1_1',
+          magic_prompt_option: 'AUTO',
+        },
       },
-    },
-    {
-      'Content-Type': 'application/json',
-      'Api-Key': process.env.IDEOGRAM_API_KEY!,
-    },
-  )
-
-  // save the image url in redis so that UI can access it
-  await context.run('save results in redis', async () => {
-    await redis.set<string>(
-      callKey,
-      result.data[0].url,
-      { ex: 120 }, // expire in 120 seconds
+      {
+        'Content-Type': 'application/json',
+        'Api-Key': process.env.IDEOGRAM_API_KEY!,
+      },
     )
-  })
-})`}
+
+    // save the image url in redis
+    // so that UI can access it
+    await context.run(
+      'save results in redis',
+      async () => {
+        await redis.set<string>(
+          context.headers.get('callKey')!,
+          result.data[0].url,
+          { ex: 120 }, // expire in 120 seconds
+        )
+      }
+    )
+  }
+)`}
         </CodeBlock>
       </details>
     </>
