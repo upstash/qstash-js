@@ -16,10 +16,10 @@ async function checkRedisForResult(callKey: string) {
 }
 
 export default function CallWorkflow({
-  promptIndex,
-  start = false,
-  showCode = false,
-}: {
+                                       promptIndex,
+                                       start = false,
+                                       showCode = false,
+                                     }: {
   promptIndex: number
   start?: boolean
   showCode?: boolean
@@ -105,8 +105,8 @@ export default function CallWorkflow({
         loading={loading}
       />
 
-      <details className="mt-4 bg-black text-white" open={showCode}>
-        <summary className="block px-2 py-1 text-sm">Workflow Function</summary>
+      <details className="mt-4 bg-zinc-800 text-white" open={showCode}>
+        <summary className="select-none block px-2 py-1 text-sm">Workflow Function</summary>
         <CodeBlock>
           {`import { serve } from "@upstash/qstash/nextjs"
 import { Redis } from "@upstash/redis"

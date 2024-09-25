@@ -1,6 +1,6 @@
 /**
  * Route which calls Ideogram using Upstash Workflow
- * 
+ *
  * The code here is essentially the same code as the one shown in the
  * UI. On top of the code on the UI, it has:
  * - some logic to calculate the running time of the Vercel Function for each workflow.
@@ -13,7 +13,7 @@ import { waitUntil } from '@vercel/functions'
 
 import { ratelimit, redis, validateRequest } from 'utils/redis'
 import { getFetchParameters } from 'utils/request'
-import { ImageResponse, RedisEntry, CallPayload } from 'utils/types'
+import { CallPayload, ImageResponse, RedisEntry } from 'utils/types'
 import { PLACEHOLDER_IMAGE, PROMPTS, RATELIMIT_CODE } from 'utils/constants'
 
 // get key to store the time for each workflow run
@@ -55,11 +55,11 @@ export const POST = async (request: NextRequest) => {
 /**
  * Workflow serve method. Usually, it's possible to assign it directly
  * to POST like:
- * 
+ *
  * ```ts
  * export const POST = serve(...)
  * ```
- * 
+ *
  * See docs to learn more https://upstash.com/docs/qstash/workflow/basics/serve
  */
 const serveMethod = serve<CallPayload>(async (context) => {
@@ -101,7 +101,7 @@ const serveMethod = serve<CallPayload>(async (context) => {
     // get callKey from headers
     const callKey = context.headers.get('callKey')
     if (!callKey) {
-      console.warn("Failed to get the call key from headers");
+      console.warn('Failed to get the call key from headers')
       return
     }
 

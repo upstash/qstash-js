@@ -2,10 +2,15 @@
 @tailwind components;
 @tailwind utilities;
 
+*:focus {
+  @apply outline-dotted outline-2 outline-offset-2 outline-emerald-500;
+}
+
 @layer utilities {
   .shadow {
     @apply shadow-[4px_4px_0_#00000030];
   }
+
   .shadow-0 {
     @apply shadow-[0_0_0_#00000000];
   }
@@ -21,8 +26,4 @@ fieldset {
 
 legend {
   @apply px-2 font-bold text-emerald-800;
-}
-
-.shiki {
-  @apply px-2 py-1 text-sm;
 }

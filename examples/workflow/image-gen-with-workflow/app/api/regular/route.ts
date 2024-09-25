@@ -2,7 +2,7 @@ export const maxDuration = 30
 
 /**
  * Route which calls Ideogram directly
- * 
+ *
  * The code here is essentially the same code as the one shown in the
  * UI. On top of the code on the UI, it has:
  * - some logic to calculate the running time of the Vercel Function for each workflow.
@@ -11,7 +11,7 @@ export const maxDuration = 30
 import { NextRequest, NextResponse } from 'next/server'
 import { ratelimit, validateRequest } from 'utils/redis'
 import { getFetchParameters } from 'utils/request'
-import { ImageResponse, RedisEntry, CallPayload } from 'utils/types'
+import { CallPayload, ImageResponse, RedisEntry } from 'utils/types'
 import { PLACEHOLDER_IMAGE, PROMPTS, RATELIMIT_CODE } from 'utils/constants'
 
 export const POST = async (request: NextRequest) => {
@@ -21,7 +21,7 @@ export const POST = async (request: NextRequest) => {
 
   // record the start time and get the prompt
   const t1 = performance.now()
-  const params = await request.json() as CallPayload
+  const params = (await request.json()) as CallPayload
   const promptIndex = params.promptIndex
   const prompt = PROMPTS[promptIndex]
 
@@ -41,12 +41,11 @@ export const POST = async (request: NextRequest) => {
 
 /**
  * Calls Ideogram to get an image and returns its URL
- * 
+ *
  * @param prompt prompt to use
  * @returns image url
  */
 const makeRequest = async (prompt: string) => {
-  
   // get parameters for fetch
   const parameters = getFetchParameters(prompt)
 

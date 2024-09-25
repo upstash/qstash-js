@@ -16,7 +16,7 @@ export default function CodeBlock({
 
   return (
     <pre
-      className="!m-0 border-t border-t-zinc-800 !bg-transparent !p-2 !font-[inherit] !text-sm"
+      className="!m-0 border-t border-t-zinc-800 !bg-transparent !p-4 !text-sm"
       {...props}
     >
       <code ref={ref} className="lang-js !whitespace-break-spaces">

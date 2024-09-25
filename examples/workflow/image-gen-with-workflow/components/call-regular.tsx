@@ -8,10 +8,10 @@ import { costCalc } from 'utils/helper'
 import CodeBlock from './codeblock'
 
 export default function CallRegular({
-  promptIndex,
-  start = false,
-  showCode = false,
-}: {
+                                      promptIndex,
+                                      start = false,
+                                      showCode = false,
+                                    }: {
   promptIndex: number
   start?: boolean
   showCode?: boolean
@@ -73,8 +73,8 @@ export default function CallRegular({
         loading={loading}
       />
 
-      <details className="mt-4 bg-black text-white" open={showCode}>
-        <summary className="px-2 py-1 text-sm">Vercel Function</summary>
+      <details className="mt-4 bg-zinc-800 text-white" open={showCode}>
+        <summary className="select-none block px-2 py-1 text-sm">Vercel Function</summary>
 
         <CodeBlock>
           {`import { NextRequest, NextResponse } from 'next/server'
