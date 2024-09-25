@@ -16,11 +16,12 @@ export default function CodeBlock({
 
   return (
     <pre
-      className="!m-0 w-full !whitespace-break-spaces border-t border-t-zinc-800 !bg-transparent !p-2 !font-[inherit] !text-sm"
-      ref={ref}
+      className="!m-0 border-t border-t-zinc-800 !bg-transparent !p-2 !font-[inherit] !text-sm"
       {...props}
     >
-      {children}
+      <code ref={ref} className="lang-js !whitespace-break-spaces">
+        {children}
+      </code>
     </pre>
   )
 }

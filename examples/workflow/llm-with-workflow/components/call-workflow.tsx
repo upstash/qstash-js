@@ -107,7 +107,48 @@ export default function CallWorkflow({
       <details className="mt-4 bg-black text-white" open={showCode}>
         <summary className="block px-2 py-1 text-sm">Workflow Function</summary>
         <CodeBlock>
-          <code className="lang-js">{`console.log("Rendered on server")`}</code>
+          {`import { serve } from "@upstash/qstash/nextjs"
+import { Redis } from "@upstash/redis"
+import { ImageResponse } from "utils/types"
+
+const redis = Redis.fromEnv()
+
+type RequestPayload = {
+  callKey: string
+  prompt: string
+}
+
+export const POST = serve<RequestPayload>(async (context) => {
+  const { prompt, callKey } = context.requestPayload
+
+  // make the call to Idogram through QStash
+  const result = await context.call<ImageResponse>(
+    'call Ideogram',
+    "https://api.ideogram.ai/generate",
+    "POST",
+    {
+      image_request: {
+        model: 'V_2',
+        prompt,
+        aspect_ratio: 'ASPECT_1_1',
+        magic_prompt_option: 'AUTO',
+      },
+    },
+    {
+      'Content-Type': 'application/json',
+      'Api-Key': process.env.IDEOGRAM_API_KEY!,
+    },
+  )
+
+  // save the image url in redis so that UI can access it
+  await context.run('save results in redis', async () => {
+    await redis.set<string>(
+      callKey,
+      result.data[0].url,
+      { ex: 120 }, // expire in 120 seconds
+    )
+  })
+})`}
         </CodeBlock>
       </details>
     </>

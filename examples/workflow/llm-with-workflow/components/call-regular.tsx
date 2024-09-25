@@ -76,7 +76,7 @@ export default function CallRegular({
         <summary className="px-2 py-1 text-sm">Vercel Function</summary>
 
         <CodeBlock>
-          <code className="lang-js">{`import { NextRequest, NextResponse } from 'next/server'
+          {`import { NextRequest, NextResponse } from 'next/server'
 import { ImageResponse } from 'utils/types'
 
 export const POST = async (request: NextRequest) => {
@@ -106,7 +106,7 @@ export const POST = async (request: NextRequest) => {
   const url = payload.data[0].url
 
   return new NextResponse(JSON.stringify({ url }), { status: 200 })
-}`}</code>
+}`}
         </CodeBlock>
       </details>
     </>
