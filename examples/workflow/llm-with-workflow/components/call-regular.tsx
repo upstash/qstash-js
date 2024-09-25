@@ -5,13 +5,16 @@ import { CallInfo, RedisEntry } from 'utils/types'
 import ResultInfo from './result'
 import { RATELIMIT_CODE } from 'utils/constants'
 import { costCalc } from 'utils/helper'
+import CodeBlock from './codeblock'
 
 export default function CallRegular({
   prompt,
   start = false,
+  showCode = false,
 }: {
   prompt: string
   start?: boolean
+  showCode?: boolean
 }) {
   const [data, setData] = useState<CallInfo | null>(null)
   const [error, setError] = useState<null | string>(null)
@@ -68,6 +71,14 @@ export default function CallRegular({
         data={data}
         loading={loading}
       />
+
+      <details className="mt-4 bg-black text-white" open={showCode}>
+        <summary className="px-2 py-1 text-sm">Vercel Function</summary>
+
+        <CodeBlock>
+          <code className="lang-js">{`console.log("Rendered on server")`}</code>
+        </CodeBlock>
+      </details>
     </>
   )
 }

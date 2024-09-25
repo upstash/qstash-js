@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Reddit_Mono } from 'next/font/google'
 import cx from 'utils/cx'
 import './globals.css'
+import 'prismjs/themes/prism-tomorrow.css'
 
 export const metadata: Metadata = {
   title: 'LLM with Workflow',
@@ -28,7 +29,7 @@ export default function RootLayout({
     <html lang="en" className={cx('scroll-smooth', defaultFont.variable)}>
       <body
         className={cx(
-          'bg-gradient-to-b from-white to-emerald-50 text-sm text-zinc-800 antialiased',
+          'bg-gradient-to-b from-white to-emerald-50 text-sm text-zinc-800 antialiased sm:text-base',
           'selection:bg-emerald-200 selection:text-emerald-800',
         )}
       >

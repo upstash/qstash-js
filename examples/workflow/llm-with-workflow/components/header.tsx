@@ -2,9 +2,9 @@
 
 export default function Header({}: {}) {
   return (
-    <header className="space-y-4">
+    <header className="space-y-6">
       <img
-        className="inline-flex w-8"
+        className="inline-flex w-10"
         src="/upstash-logo.svg"
         alt="upstash logo"
       />

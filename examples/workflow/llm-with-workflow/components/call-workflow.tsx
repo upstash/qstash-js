@@ -1,10 +1,9 @@
-'use client'
-
 import { useEffect, useState } from 'react'
 import { RATELIMIT_CODE } from 'utils/constants'
 import { costCalc, generateCallKey } from 'utils/helper'
 import { CallInfo, RedisEntry } from 'utils/types'
 import ResultInfo from './result'
+import CodeBlock from './codeblock'
 
 async function checkRedisForResult(callKey: string) {
   const response = await fetch('/api/check-workflow', {
@@ -19,9 +18,11 @@ async function checkRedisForResult(callKey: string) {
 export default function CallWorkflow({
   prompt,
   start = false,
+  showCode = false,
 }: {
   prompt: string
   start?: boolean
+  showCode?: boolean
 }) {
   const [data, setData] = useState<CallInfo | null>(null)
   const [error, setError] = useState<null | string>(null)
@@ -102,6 +103,13 @@ export default function CallWorkflow({
         data={data}
         loading={loading}
       />
+
+      <details className="mt-4 bg-black text-white" open={showCode}>
+        <summary className="block px-2 py-1 text-sm">Workflow Function</summary>
+        <CodeBlock>
+          <code className="lang-js">{`console.log("Rendered on server")`}</code>
+        </CodeBlock>
+      </details>
     </>
   )
 }
