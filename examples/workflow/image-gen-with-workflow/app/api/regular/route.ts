@@ -1,3 +1,5 @@
+export const maxDuration = 30
+
 /**
  * Route which calls Ideogram directly
  * 
