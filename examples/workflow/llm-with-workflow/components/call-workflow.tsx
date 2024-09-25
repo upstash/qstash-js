@@ -20,7 +20,7 @@ export default function CallWorkflow({
   start = false,
   showCode = false,
 }: {
-  prompt: string
+  prompt: number
   start?: boolean
   showCode?: boolean
 }) {

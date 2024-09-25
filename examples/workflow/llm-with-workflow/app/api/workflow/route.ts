@@ -3,10 +3,10 @@ import { serve } from '@upstash/qstash/nextjs'
 import { NextRequest } from 'next/server'
 import { waitUntil } from '@vercel/functions'
 
-import { ratelimit, validateRequest, redis } from 'utils/redis'
+import { ratelimit, redis, validateRequest } from 'utils/redis'
 import { getFetchParameters } from 'utils/request'
 import { ImageResponse, RedisEntry } from 'utils/types'
-import { PLACEHOLDER_IMAGE, RATELIMIT_CODE } from 'utils/constants'
+import { PLACEHOLDER_IMAGE, PROMPTS, RATELIMIT_CODE } from 'utils/constants'
 
 const getTimeKey = (key: string) => `time-${key}`
 
@@ -38,11 +38,12 @@ export const POST = async (request: NextRequest) => {
 
 const serveMethod = serve<{
   callKey: string
-  prompt: string
+  prompt: number
 }>(async (context) => {
   const payload = context.requestPayload
+  const prompt = PROMPTS[payload.prompt]
 
-  const parameters = getFetchParameters(payload.prompt)
+  const parameters = getFetchParameters(prompt)
   let result: ImageResponse
 
   if (parameters) {
@@ -59,7 +60,7 @@ const serveMethod = serve<{
       created: '',
       data: [
         {
-          prompt: payload.prompt,
+          prompt,
           url: PLACEHOLDER_IMAGE,
         },
       ],

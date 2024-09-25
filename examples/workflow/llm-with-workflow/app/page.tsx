@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import cx from 'utils/cx'
 import { PROMPTS } from 'utils/constants'
 import CallRegular from 'components/call-regular'
@@ -11,8 +11,11 @@ import Button from 'components/button'
 export default function Page() {
   const [start, setStart] = useState<boolean>(false)
   const [showCode, setShowCode] = useState<boolean>(false)
+  const [prompt, setPrompt] = useState<number>(1)
 
-  const prompt = PROMPTS[Math.floor(Math.random() * PROMPTS.length)]
+  useEffect(() => {
+    setPrompt(Math.floor(Math.random() * PROMPTS.length))
+  }, [])
 
   return (
     <main className="mx-auto min-h-screen max-w-screen-md px-8 py-12">
@@ -31,10 +34,10 @@ export default function Page() {
           </Button>
         </div>
 
-        <p className="mt-4 text-sm text-zinc-500">Prompt: {prompt}</p>
+        <p className="mt-4 text-sm text-zinc-500">Prompt: {PROMPTS[prompt]}</p>
       </div>
 
-      <div className="mt-8 grid gap-6 lg:-mx-48 lg:grid-cols-2">
+      <div className="mt-8 grid items-start gap-6 lg:-mx-48 lg:grid-cols-2">
         <fieldset>
           <CallRegular prompt={prompt} start={start} showCode={showCode} />
         </fieldset>
