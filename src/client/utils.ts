@@ -112,7 +112,7 @@ export function decodeBase64(base64: string) {
     // this error should never happen essentially. It's only a failsafe
     console.warn(
       `Upstash Qstash: Failed while decoding base64 "${base64}".` +
-        ` Decoding with atob and returning it instead. Error: ${error}`
+        ` Decoding with atob and returning it instead. ${error}`
     );
     return atob(base64);
   }
@@ -125,5 +125,4 @@ export function parseCursor(cursor: string) {
     timestamp: Number.parseInt(timestamp, 10),
     sequence: Number.parseInt(sequence, 10),
   };
-  
 }

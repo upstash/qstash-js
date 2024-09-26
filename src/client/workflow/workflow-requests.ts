@@ -20,7 +20,6 @@ import type {
 } from "./types";
 import { StepTypes } from "./types";
 import type { WorkflowLogger } from "./logger";
-import { decodeBase64 } from "../utils";
 
 export const triggerFirstInvocation = async <TInitialPayload>(
   workflowContext: WorkflowContext<TInitialPayload>,
@@ -156,13 +155,13 @@ export const handleThirdPartyCallResult = async (
       if (!(callbackMessage.status >= 200 && callbackMessage.status < 300)) {
         await debug?.log("WARN", "SUBMIT_THIRD_PARTY_RESULT", {
           status: callbackMessage.status,
-          body: decodeBase64(callbackMessage.body),
+          body: atob(callbackMessage.body),
         });
         // this callback will be retried by the QStash, we just ignore it
         console.warn(
           `Workflow Warning: "context.call" failed with status ${callbackMessage.status}` +
             ` and will retry (if there are retries remaining).` +
-            ` Error Message:\n${decodeBase64(callbackMessage.body)}`
+            ` Error Message:\n${atob(callbackMessage.body)}`
         );
         return ok("call-will-retry");
       }
@@ -211,7 +210,7 @@ export const handleThirdPartyCallResult = async (
         stepId: Number(stepIdString),
         stepName,
         stepType,
-        out: decodeBase64(callbackMessage.body),
+        out: atob(callbackMessage.body),
         concurrent: Number(concurrentString),
       };
 
