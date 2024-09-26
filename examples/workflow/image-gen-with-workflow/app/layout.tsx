@@ -5,10 +5,10 @@ import './globals.css'
 import 'prismjs/themes/prism-tomorrow.css'
 
 export const metadata: Metadata = {
-  title: 'LLM with Workflow',
-  description: 'LLM call with and without Workflow',
+  title: 'Image Generation with Workflow',
+  description: 'Optimizing Vercel Functions With Upstash Workflow',
   icons: {
-    icon: '/favicon-32x32.png',
+    icon: '/upstash-logo.svg',
   },
 }
 
