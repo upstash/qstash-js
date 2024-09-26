@@ -66,10 +66,7 @@ function Table({
           <Tooltip
             title={
               <>
-                <b>Total Duration</b> stands for the amount of time passed
-                between the initial request and the llm result arriving in the
-                UI. It&apos;s expected to be higher in Upstash Workflow because
-                it consists of several requests.
+                <b>Total Duration</b> measures the full process time, from sending the initial request to receiving the generated image from the API. This time is typically longer for Upstash Workflow because it involves multiple steps.
               </>
             }
           >
@@ -84,12 +81,7 @@ function Table({
           <Tooltip
             title={
               <>
-                <b>Vercel Function Duration</b> stands for the amount of time a
-                vercel function has been awake, executing or waiting for a
-                response. It&apos;s much higher in the Regular Call case because
-                the function has to wait for LLM to finish. In the case of
-                Upstash Workflow, QStash waits for the LLM so function duration
-                is much lower.
+                <b>Vercel Function Duration</b> is the total active time of a Vercel function, including processing and waiting. A standard Vercel function stays active while waiting for the image generation. You're billed for the entire time, including waiting. With Upstash Workflow, a function finishes quickly after sending the request to Upstash and you're not billed for idle waiting time.
               </>
             }
           >
@@ -104,7 +96,7 @@ function Table({
           <Tooltip
             title={
               <>
-                <b>Approximate Cost</b> is calculated by multipliying the vercel
+                <b>Approximate Cost</b> is calculated by multipliying the Vercel
                 function duration with the cost per second for the Basic
                 Function in Vercel. The lowest possible cost per second for
                 Vercel&apos;s cheapest 1 GB function is calculated as{' '}
@@ -119,8 +111,7 @@ function Table({
                 <a href="https://upstash.com/pricing/qstash" target="_blank">
                   the QStash cost, which is $1 per 100k messages
                 </a>
-                . Each workflow in this example makes 4 QStash requests. Cost of
-                OpenAI is not included.
+                . Each workflow in this example makes 4 QStash requests. Image generation cost is not included in either method.
               </>
             }
           >

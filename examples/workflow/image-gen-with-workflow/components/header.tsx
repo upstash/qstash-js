@@ -9,20 +9,18 @@ export default function Header({}: {}) {
         alt="upstash logo"
       />
 
-      <h1 className="text-xl font-bold">Optimizing Image Generation with Upstash Workflow</h1>
+      <h1 className="text-xl font-bold">Optimizing Vercel Functions With Upstash Workflow</h1>
 
       <h2>
-        In this demo, we highlight the cost-saving benefits of using Upstash Workflow
-        for serverless image generation.
+      This demo shows the cost-saving benefits of using Upstash Workflow for Vercel functions. <span className="font-bold">It compares two methods of calling an image generation API:</span>
       </h2>
 
-      <p>
-        <b>Click the button below to see the comparison in action.</b>
-        <br />
-        On click, two requests will be made simultaneously to the Ideogram API. The first request will call the API
-        directly, returning the image URL. The second will invoke the same API through Upstash Workflow, demonstrating
-        how Workflow reduces serverless function runtime.
-      </p>
+      <ul>
+        <li>- Method 1: Calling the API in a standard Vercel function</li>
+        <li>- Method 2: Calling the API using Upstash Workflow</li>
+      </ul>
+
+      <p>Both methods start at the same time and take about the same time to finish. The key difference is the estimated cost per 1M requests (hover for details).</p>
 
     </header>
   )
