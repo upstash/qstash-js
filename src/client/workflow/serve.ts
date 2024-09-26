@@ -143,7 +143,7 @@ export const serve = <
     // log workflow url change
     if (workflowUrl !== initialWorkflowUrl) {
       await debug?.log("WARN", "ENDPOINT_START", {
-        warning: `QStash Workflow: replacing the base of the url with "${baseUrl}" and using it as workflow endpoint.`,
+        warning: `Upstash Workflow: replacing the base of the url with "${baseUrl}" and using it as workflow endpoint.`,
         originalURL: initialWorkflowUrl,
         updatedURL: workflowUrl,
       });
