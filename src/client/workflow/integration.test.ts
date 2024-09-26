@@ -44,10 +44,9 @@
  * You may want to increase the `waitFor` and `timeout` parameters of the tests
  * because network takes some time.
  */
-/* eslint-disable no-console */
+
 /* eslint-disable @typescript-eslint/no-magic-numbers */
-/* eslint-disable prefer-const */
-/* eslint-disable @typescript-eslint/no-unnecessary-condition */
+
 import { serve } from "bun";
 import { serve as workflowServe } from "../../../platforms/nextjs";
 import { expect, test, describe } from "bun:test";
