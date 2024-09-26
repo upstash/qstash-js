@@ -147,10 +147,10 @@ export class LazySleepUntilStep extends BaseLazyStep {
   }
 }
 
-export class LazyCallStep<TResult = unknown, TBody = unknown> extends BaseLazyStep<TResult> {
+export class LazyCallStep<TResult = unknown> extends BaseLazyStep<TResult> {
   private readonly url: string;
   private readonly method: HTTPMethods;
-  private readonly body: TBody;
+  private readonly body: string | undefined;
   private readonly headers: Record<string, string>;
   stepType: StepType = "Call";
 
@@ -158,7 +158,7 @@ export class LazyCallStep<TResult = unknown, TBody = unknown> extends BaseLazySt
     stepName: string,
     url: string,
     method: HTTPMethods,
-    body: TBody,
+    body: string | undefined,
     headers: Record<string, string>
   ) {
     super(stepName);

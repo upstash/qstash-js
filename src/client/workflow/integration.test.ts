@@ -44,10 +44,9 @@
  * You may want to increase the `waitFor` and `timeout` parameters of the tests
  * because network takes some time.
  */
-/* eslint-disable no-console */
+
 /* eslint-disable @typescript-eslint/no-magic-numbers */
-/* eslint-disable prefer-const */
-/* eslint-disable @typescript-eslint/no-unnecessary-condition */
+
 import { serve } from "bun";
 import { serve as workflowServe } from "../../../platforms/nextjs";
 import { expect, test, describe } from "bun:test";
@@ -152,7 +151,7 @@ const testEndpoint = async <TInitialPayload = unknown>({
   expect(counter).toBe(finalCount);
 };
 
-describe.skip("live serve tests", () => {
+describe("live serve tests", () => {
   test(
     "path endpoint",
     async () => {
@@ -346,7 +345,7 @@ describe.skip("live serve tests", () => {
     }
   );
 
-  test(
+  test.only(
     "call endpoint",
     async () => {
       const thirdPartyResult = "third-party-result";
@@ -366,8 +365,11 @@ describe.skip("live serve tests", () => {
               }
             );
           } else if (request.method === "POST") {
+            const data = (await request.json()) as { payload: string };
+
+            const payload = data.payload;
             return new Response(
-              `called POST '${thirdPartyResult}' '${request.headers.get("post-header")}' '${await request.text()}'`,
+              `called POST '${thirdPartyResult}' '${request.headers.get("post-header")}' '${payload}'`,
               {
                 status: 200,
               }
@@ -394,7 +396,7 @@ describe.skip("live serve tests", () => {
           const postResult = await context.call<string>("post call", {
             url: LOCAL_THIRD_PARTY_URL,
             method: "POST",
-            body: "post-payload",
+            body: JSON.stringify({ payload: "post-payload" }),
             headers: postHeader,
           });
           expect(postResult).toBe(

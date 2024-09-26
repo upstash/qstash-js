@@ -1,6 +1,6 @@
 import type { Err, Ok } from "neverthrow";
 import { err, ok } from "neverthrow";
-import type { RouteFunction, WorkflowClient } from "./types";
+import type { CallOptions, RouteFunction, WorkflowClient } from "./types";
 import { type StepFunction, type Step } from "./types";
 import { AutoExecutor } from "./auto-executor";
 import type { BaseLazyStep } from "./steps";
@@ -277,12 +277,67 @@ export class WorkflowContext<TInitialPayload = unknown> {
    *          or the raw response if parsing fails
    * @throws {Error} If the HTTP request fails or if there's an issue with QStash
    */
+  public async call<TResult = unknown>(stepName: string, options: CallOptions): Promise<TResult>;
+  /**
+   * Makes an HTTP request without consuming any runtime.
+   *
+   * Automatically parses the response as JSON, falling back to returning the raw response if parsing fails.
+   *
+   * @example
+   * ```ts
+   * const response = await context.call("create-post", {
+   *   url: "https://jsonplaceholder.typicode.com/posts",
+   *   method: "POST",
+   *   body: JSON.stringify({
+   *     title: 'foo',
+   *     body: 'bar',
+   *     userId: 1,
+   *   }),
+   *   headers: {
+   *     'Content-type': 'application/json; charset=UTF-8',
+   *   },
+   * });
+   * ```
+   *
+   * @param stepName - A unique identifier for this step in the workflow
+   * @param opts - The options for the HTTP request
+   * @returns A promise that resolves to the parsed JSON response,
+   *          or the raw response if parsing fails
+   * @throws {Error} If the HTTP request fails or if there's an issue with QStash
+   */
+  public async call<TResult = unknown>(
+    stepName: string,
+    url: string,
+    method: HTTPMethods,
+    body?: unknown,
+    headers?: Record<string, string>
+  ): Promise<TResult>;
+
   public async call<TResult = unknown, TBody = unknown>(
     stepName: string,
-    opts: { url: string; method: HTTPMethods; body?: TBody; headers?: Record<string, string> }
+    urlOrOptions: CallOptions | string,
+    method?: HTTPMethods,
+    body?: TBody,
+    headers?: Record<string, string>
   ) {
+    const options =
+      typeof urlOrOptions === "object"
+        ? urlOrOptions
+        : {
+            url: urlOrOptions,
+            method,
+            body: JSON.stringify(body),
+            headers,
+          };
+
     const result = await this.addStep(
-      new LazyCallStep<string>(stepName, opts.url, opts.method, opts.body, opts.headers ?? {})
+      new LazyCallStep<string>(
+        stepName,
+        options.url,
+        options.method ?? "GET",
+        options.body,
+        options.headers ?? {}
+      )
     );
 
     try {

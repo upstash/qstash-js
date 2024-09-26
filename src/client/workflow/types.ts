@@ -213,3 +213,10 @@ export type FailureFunctionPayload = {
  * Makes all fields except the ones selected required
  */
 export type RequiredExceptFields<T, K extends keyof T> = Omit<Required<T>, K> & Partial<Pick<T, K>>;
+
+export type CallOptions = {
+  url: string;
+  method: HTTPMethods;
+  body?: string;
+  headers?: Record<string, string>;
+};
