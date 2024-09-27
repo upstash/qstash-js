@@ -18,8 +18,6 @@ export default function Page() {
     setPromptIndex(Math.floor(Math.random() * PROMPTS.length))
   }, [])
 
-  const onGitHubClick = () => {}
-
   return (
     <main className="mx-auto min-h-screen max-w-screen-md px-8 py-12">
       <Header />
@@ -37,7 +35,7 @@ export default function Page() {
             variant="secondary"
             onClick={() => {
               window.open(
-                'https://github.com/upstash/qstash-js/tree/DX-1295-llm-cost-comparison/examples/workflow/image-gen-with-workflow',
+                'https://github.com/upstash/qstash-js/tree/master/examples/workflow/image-gen-with-workflow',
                 '_blank',
               )
             }}

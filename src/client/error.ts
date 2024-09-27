@@ -77,7 +77,7 @@ export class QStashWorkflowAbort extends Error {
 
   constructor(stepName: string, stepInfo?: Step) {
     super(
-      "This is an QStash Workflow error thrown after a step executes. It is expected to be raised." +
+      "This is an Upstash Workflow error thrown after a step executes. It is expected to be raised." +
         " Make sure that you await for each step. Also, if you are using try/catch blocks, you should not wrap context.run/sleep/sleepUntil/call methods with try/catch." +
         ` Aborting workflow after executing step '${stepName}'.`
     );

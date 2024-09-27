@@ -1,6 +1,6 @@
-# QStash Workflow Cloudflare Workers Example (with Hono)
+# Upstash Workflow Cloudflare Workers Example (with Hono)
 
-This is an example of how to use QStash Workflow with Cloudflare Workers with Hono router. You can learn more in [Workflow documentation for Hono](https://upstash.com/docs/qstash/workflow/quickstarts/hono).
+This is an example of how to use Upstash Workflow with Cloudflare Workers with Hono router. You can learn more in [Workflow documentation for Hono](https://upstash.com/docs/qstash/workflow/quickstarts/hono).
 
 [![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/upstash/qstash-workflow-example-cloudflare-workers-hono) <br/>
 **Note:** After deploying with the button above, you need to set the environment variables `QSTASH_URL` and `QSTASH_TOKEN`.

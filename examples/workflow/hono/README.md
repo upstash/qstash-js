@@ -1,6 +1,6 @@
-# QStash Workflow Hono Example
+# Upstash Workflow Hono Example
 
-This is an example of how to use QStash Workflow in a Hono project. You can learn more in [Workflow documentation for Hono](https://upstash.com/docs/qstash/workflow/quickstarts/hono).
+This is an example of how to use Upstash Workflow in a Hono project. You can learn more in [Workflow documentation for Hono](https://upstash.com/docs/qstash/workflow/quickstarts/hono).
 
 ## Development
 

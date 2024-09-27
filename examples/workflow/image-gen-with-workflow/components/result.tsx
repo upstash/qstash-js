@@ -111,7 +111,10 @@ function Table({
                 <a href="https://upstash.com/pricing/qstash" target="_blank">
                   the QStash cost, which is $1 per 100k messages
                 </a>
-                . Each workflow in this example makes 4 QStash requests. Image generation cost is not included in either method.
+                . 
+                <a href="https://upstash.com/docs/qstash/workflow/pricing" target="_blank">
+                  Each workflow run in this example makes 4 QStash requests
+                </a>. Image generation cost is not included in either method.
               </>
             }
           >
