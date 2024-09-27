@@ -18,8 +18,6 @@ export default function Page() {
     setPromptIndex(Math.floor(Math.random() * PROMPTS.length))
   }, [])
 
-  const onGitHubClick = () => {}
-
   return (
     <main className="mx-auto min-h-screen max-w-screen-md px-8 py-12">
       <Header />
