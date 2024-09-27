@@ -1,8 +1,8 @@
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fupstash%2Fqstash-js%2Ftree%2Fmain%2Fexamples%2Fworkflow%2Fnextjs-pages&env=QSTASH_TOKEN&envDescription=You%20can%20access%20this%20variable%20from%20Upstash%20Console%2C%20under%20QStash%20page.%20&project-name=qstash-workflow-nextjs&repository-name=qstash-workflow-nextjs&demo-title=Upstash%20QStash%20Workflow%20Example&demo-description=A%20Next.js%20application%20utilizing%20QStash%20Workflows)
 
-# QStash Workflow Nextjs (Pages Router) Example
+# Upstash Workflow Nextjs (Pages Router) Example
 
-This is an example of how to use QStash Workflow with Nextjs (using Pages Router). You can learn more in [Workflow documentation for Nextjs](https://upstash.com/docs/qstash/workflow/quickstarts/vercel-nextjs).
+This is an example of how to use Upstash Workflow with Nextjs (using Pages Router). You can learn more in [Workflow documentation for Nextjs](https://upstash.com/docs/qstash/workflow/quickstarts/vercel-nextjs).
 
 In the `src/pages/api/path.sh` file, you can find out how one can define endpoints serving Upstash Workflow.
 

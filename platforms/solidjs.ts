@@ -49,7 +49,7 @@ export const verifySignatureSolidjs = (
 };
 
 /**
- * Serve method to serve a QStash workflow in a Nextjs project
+ * Serve method to serve a Upstash Workflow in a Nextjs project
  *
  * See for options https://upstash.com/docs/qstash/workflows/basics/serve
  *

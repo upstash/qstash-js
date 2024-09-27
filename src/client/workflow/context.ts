@@ -12,7 +12,7 @@ import { Client } from "../client";
 import { DEFAULT_RETRIES } from "./constants";
 
 /**
- * QStash workflow context
+ * Upstash Workflow context
  *
  * See the docs for fields and methods https://upstash.com/docs/qstash/workflows/basics/context
  */

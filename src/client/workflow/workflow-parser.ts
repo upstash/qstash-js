@@ -39,7 +39,7 @@ export const getPayload = async (request: Request) => {
  * in a list of objects with messageId & body fields. Body will be base64 encoded.
  *
  * Body of the first item will be the body of the first request received in the workflow API.
- * Rest are steps in QStash Workflow Step format.
+ * Rest are steps in Upstash Workflow Step format.
  *
  * When returning steps, we add the initial payload as initial step. This is to make it simpler
  * in the rest of the code.
@@ -136,7 +136,7 @@ const checkIfLastOneIsDuplicate = async (
     const step = steps[index];
     if (step.stepId === lastStepId && step.targetStep === lastTargetStepId) {
       const message =
-        `QStash Workflow: The step '${step.stepName}' with id '${step.stepId}'` +
+        `Upstash Workflow: The step '${step.stepName}' with id '${step.stepId}'` +
         "  has run twice during workflow execution. Rest of the workflow will continue running as usual.";
       await debug?.log("WARN", "RESPONSE_DEFAULT", message);
       console.warn(message);

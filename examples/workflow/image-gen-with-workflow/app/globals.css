@@ -1,0 +1,29 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+*:focus {
+  @apply outline-dotted outline-2 outline-offset-2 outline-emerald-500;
+}
+
+@layer utilities {
+  .shadow {
+    @apply shadow-[4px_4px_0_#00000030];
+  }
+
+  .shadow-0 {
+    @apply shadow-[0_0_0_#00000000];
+  }
+}
+
+a {
+  @apply font-bold text-emerald-800 underline decoration-emerald-800 hover:bg-emerald-200;
+}
+
+fieldset {
+  @apply border-2 border-emerald-800 p-4 shadow;
+}
+
+legend {
+  @apply px-2 font-bold text-emerald-800;
+}

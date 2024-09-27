@@ -1,6 +1,6 @@
-# QStash Workflow Cloudflare Workers Example
+# Upstash Workflow Cloudflare Workers Example
 
-This is an example of how to use QStash Workflow with Cloudflare Workers. You can learn more in [Workflow documentation for Cloudflare Workers](https://upstash.com/docs/qstash/workflow/quickstarts/cloudflare-workers).
+This is an example of how to use Upstash Workflow with Cloudflare Workers. You can learn more in [Workflow documentation for Cloudflare Workers](https://upstash.com/docs/qstash/workflow/quickstarts/cloudflare-workers).
 
 [![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/upstash/qstash-workflow-example-cloudflare-workers) <br/>
 **Note:** After deploying with the button above, you need to set the environment variables `QSTASH_URL` and `QSTASH_TOKEN`.
