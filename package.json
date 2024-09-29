@@ -12,52 +12,52 @@
   "bugs": {
     "url": "https://github.com/upstash/sdk-qstash-ts/issues"
   },
-  "main": "./dist/index.js",
-  "module": "./dist/index.mjs",
-  "types": "./dist/index.d.ts",
+  "main": "./index.js",
+  "module": "./index.mjs",
+  "types": "./index.d.ts",
   "files": [
-    "dist"
+    "./*"
   ],
   "exports": {
     ".": {
-      "import": "./dist/index.mjs",
-      "require": "./dist/index.js"
-    },
-    "./nextjs": {
-      "import": "./dist/nextjs.mjs",
-      "require": "./dist/nextjs.js"
+      "import": "./index.mjs",
+      "require": "./index.js"
     },
     "./dist/nextjs": {
-      "import": "./dist/nextjs.mjs",
-      "require": "./dist/nextjs.js"
+      "import": "./nextjs.mjs",
+      "require": "./nextjs.js"
+    },
+    "./nextjs": {
+      "import": "./nextjs.mjs",
+      "require": "./nextjs.js"
     },
     "./h3": {
-      "import": "./dist/h3.mjs",
-      "require": "./dist/h3.js"
+      "import": "./h3.mjs",
+      "require": "./h3.js"
     },
     "./nuxt": {
-      "import": "./dist/nuxt.mjs",
-      "require": "./dist/nuxt.js"
+      "import": "./nuxt.mjs",
+      "require": "./nuxt.js"
     },
     "./svelte": {
-      "import": "./dist/svelte.mjs",
-      "require": "./dist/svelte.js"
+      "import": "./svelte.mjs",
+      "require": "./svelte.js"
     },
     "./solidjs": {
-      "import": "./dist/solidjs.mjs",
-      "require": "./dist/solidjs.js"
+      "import": "./solidjs.mjs",
+      "require": "./solidjs.js"
     },
     "./workflow": {
-      "import": "./dist/workflow.mjs",
-      "require": "./dist/workflow.js"
+      "import": "./workflow.mjs",
+      "require": "./workflow.js"
     },
     "./hono": {
-      "import": "./dist/hono.mjs",
-      "require": "./dist/hono.js"
+      "import": "./hono.mjs",
+      "require": "./hono.js"
     },
     "./cloudflare": {
-      "import": "./dist/cloudflare.mjs",
-      "require": "./dist/cloudflare.js"
+      "import": "./cloudflare.mjs",
+      "require": "./cloudflare.js"
     }
   },
   "keywords": [
@@ -68,10 +68,11 @@
     "upstash"
   ],
   "scripts": {
-    "build": "tsup",
+    "build": "tsup && cp ./package.json ./dist",
     "test": "bun test src",
     "fmt": "prettier --write .",
     "lint": "tsc && eslint \"src/**/*.{js,ts,tsx}\" --quiet --fix",
+    "check-import": "bun run build && cd dist && attw -P",
     "prepare": "husky"
   },
   "devDependencies": {
