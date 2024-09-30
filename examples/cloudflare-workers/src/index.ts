@@ -14,6 +14,10 @@ export default {
 
     const body = await request.text();
 
+    if (!request.headers.has("Upstash-Signature")) {
+      return new Response("Missing Upstash-Signature header", { status: 401 });
+    }
+
     const isValid = await c.verify({
       signature: request.headers.get("Upstash-Signature")!,
       body,
