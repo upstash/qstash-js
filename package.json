@@ -72,7 +72,7 @@
     "test": "bun test src",
     "fmt": "prettier --write .",
     "lint": "tsc && eslint \"src/**/*.{js,ts,tsx}\" --quiet --fix",
-    "check-import": "bun run build && cd dist && attw -P",
+    "check-exports": "bun run build && cd dist && attw -P",
     "prepare": "husky"
   },
   "devDependencies": {
