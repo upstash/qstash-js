@@ -15,4 +15,7 @@ export default defineConfig({
   format: ["cjs", "esm"],
   clean: true,
   dts: true,
+  // This should optimally be an optional peer dependency,
+  // we can change it in a future release
+  external: ["next"],
 });
