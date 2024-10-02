@@ -13,10 +13,9 @@ export default defineConfig({
     cloudflare: "./platforms/cloudflare.ts",
   },
   format: ["cjs", "esm"],
-  splitting: true,
-  sourcemap: false,
   clean: true,
-  bundle: true,
   dts: true,
+  // This should optimally be an optional peer dependency,
+  // we can change it in a future release
   external: ["next"],
 });

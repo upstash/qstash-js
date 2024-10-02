@@ -56,3 +56,10 @@ You can use wrangler to deploy the project to Cloudflare Workers.
 ```bash
 npm run deploy
 ```
+
+Then, go to cloudflare dashboard and find your project. Add the
+`QSTASH_TOKEN` environment variable and re-deploy the project.
+
+Once the project is re-deployed, you can send a curl request
+like the one above (after replacing the localhost with the
+deployment URL).

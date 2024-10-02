@@ -4,7 +4,7 @@
     "dev": "bun run --hot -p 3001 src/index.ts"
   },
   "dependencies": {
-    "@upstash/qstash": "^2.7.4",
+    "@upstash/qstash": "latest",
     "hono": "^4.5.8"
   },
   "devDependencies": {

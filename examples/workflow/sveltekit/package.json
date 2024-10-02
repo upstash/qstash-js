@@ -1,6 +1,6 @@
 {
 	"name": "sveltekit",
-	"version": "0.0.1",
+	"version": "0.0.0",
 	"private": true,
 	"scripts": {
 		"dev": "vite dev",
@@ -24,6 +24,6 @@
 	},
 	"type": "module",
 	"dependencies": {
-		"@upstash/qstash": "^2.7.4"
+		"@upstash/qstash": "latest"
 	}
 }

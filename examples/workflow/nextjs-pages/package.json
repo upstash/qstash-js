@@ -1,6 +1,6 @@
 {
   "name": "nextjs-pages",
-  "version": "0.1.0",
+  "version": "0.0.0",
   "private": true,
   "scripts": {
     "dev": "next dev -p 3001",
@@ -9,7 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@upstash/qstash": "^2.7.4",
+    "@upstash/qstash": "latest",
     "clsx": "^2.1.1",
     "next": "14.2.8",
     "react": "^18",

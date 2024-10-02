@@ -21,6 +21,7 @@ export type WorkflowBindings = {
  */
 export const serve = <
   TInitialPayload = unknown,
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
   TBindings extends WorkflowBindings = WorkflowBindings,
 >(
   routeFunction: RouteFunction<TInitialPayload>,

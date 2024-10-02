@@ -1,17 +1,17 @@
 {
   "name": "cloudflare-workers",
   "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler publish"
+  },
   "dependencies": {
-    "@upstash/qstash": "../../dist"
+    "@upstash/qstash": "latest"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20230821.0",
     "typescript": "^5.2.2",
-    "wrangler": "3.6.0"
-  },
-  "private": true,
-  "scripts": {
-    "start": "wrangler dev",
-    "deploy": "wrangler publish"
+    "wrangler": "^3.6.0"
   }
 }

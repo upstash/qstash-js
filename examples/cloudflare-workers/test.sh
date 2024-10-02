@@ -5,7 +5,7 @@ handle_error() {
     exit 1
 }
 
-pnpm run start &
+pnpm run dev &
 NPM_PID=$!
 
 

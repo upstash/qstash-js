@@ -44,6 +44,7 @@ export const verifySignatureSolidjs = (
     if (!isValid) {
       return new Response("invalid signature", { status: 403 });
     }
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return handler(event);
   };
 };

@@ -17,6 +17,6 @@
     "wrangler": "^3.60.3"
   },
   "dependencies": {
-    "@upstash/qstash": "^2.7.4"
+    "@upstash/qstash": "latest"
   }
 }

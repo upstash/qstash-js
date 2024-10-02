@@ -467,7 +467,7 @@ export class Client {
 
     if (typeof request?.cursor === "number" && request.cursor > 0) {
       query.cursor = request.cursor.toString();
-    }else if (typeof request?.cursor === "string" && request.cursor !== "") {
+    } else if (typeof request?.cursor === "string" && request.cursor !== "") {
       query.cursor = request.cursor;
     }
 

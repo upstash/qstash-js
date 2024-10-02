@@ -3,6 +3,7 @@ node_modules
 dist
 .next
 .env
+.dev.vars
 .vercel
 .DS_Store
 .idea
