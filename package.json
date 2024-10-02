@@ -71,7 +71,7 @@
     "build": "tsup && cp ./package.json ./dist",
     "test": "bun test src",
     "fmt": "prettier --write .",
-    "lint": "tsc && eslint \"src/**/*.{js,ts,tsx}\" --quiet --fix",
+    "lint": "tsc && eslint \"{src,platforms}/**/*.{js,ts,tsx}\"  --quiet --fix",
     "check-exports": "bun run build && cd dist && attw -P",
     "prepare": "husky"
   },
