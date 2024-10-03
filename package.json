@@ -68,7 +68,7 @@
     "upstash"
   ],
   "scripts": {
-    "build": "tsup && cp ./package.json ./dist",
+    "build": "tsup && cp README.md ./dist/ && cp package.json ./dist/ && cp LICENSE ./dist/",
     "test": "bun test src",
     "fmt": "prettier --write .",
     "lint": "tsc && eslint \"{src,platforms}/**/*.{js,ts,tsx}\"  --quiet --fix",
