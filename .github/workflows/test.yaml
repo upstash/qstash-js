@@ -52,24 +52,77 @@ jobs:
         with:
           node-version: 20
 
-      - uses: pnpm/action-setup@v4
-        name: Install pnpm
-        with:
-          version: 9
-      - name: Change directory to examples/cloudflare-workers
-        run: cd examples/cloudflare-workers
-
       - name: Install Dependencies
-        run: pnpm install
+        run: bun install
         working-directory: examples/cloudflare-workers
 
       - name: Install local package
-        run: pnpm install ../../dist
+        run: bun install @upstash/qstash-js@file:../../dist
         working-directory: examples/cloudflare-workers
 
-      - name: Local build
-        run: sh ./test.sh
+      - name: Change main file to ci.ts
+        run: sed -i 's/main = "src\/index.ts"/main = "src\/ci.ts"/' wrangler.toml
         working-directory: examples/cloudflare-workers
+
+      - name: Run example
+        run: bun dev &
+        working-directory: examples/cloudflare-workers
+
+      - name: Test
+        run: bun test ci.test.ts
+        working-directory: examples/cloudflare-workers
+        env:
+          DEPLOYMENT_URL: http://127.0.0.1:8787
+
+  cloudflare-workers-deployed:
+    concurrency: cloudflare-workers-deployed
+    needs:
+      - release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup repo
+        uses: actions/checkout@v3
+      - name: Setup nodejs
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Install example
+        run: |
+          bun add @upstash/qstash-js@${{needs.release.outputs.version}}
+          npm i -g wrangler
+        working-directory: examples/cloudflare-workers
+
+      - name: Add account ID
+        run: echo 'account_id = "${{ secrets.CLOUDFLARE_ACCOUNT_ID }}"' >> wrangler.toml
+        working-directory: examples/cloudflare-workers
+
+      - name: Add environment
+        run: |
+          echo '[vars]' >> wrangler.toml
+          echo "QSTASH_TOKEN = \"$QSTASH_TOKEN\"" >> ./wrangler.toml
+        working-directory: examples/cloudflare-workers
+
+      - name: Change main file to ci.ts
+        run: sed -i 's/main = "src\/index.ts"/main = "src\/ci.ts"/' wrangler.toml
+        working-directory: examples/cloudflare-workers
+
+      - name: Deploy
+        run: wrangler publish
+        working-directory: examples/cloudflare-workers
+        env:
+          CLOUDFLARE_API_TOKEN: ${{secrets.CLOUDFLARE_API_TOKEN}}
+
+      - name: Test
+        run: bun test ci.test.ts
+        working-directory: examples/cloudflare-workers
+        env:
+          DEPLOYMENT_URL: https://upstash-qstash.upsdev.workers.dev
 
   nextjs-local-build:
     runs-on: ubuntu-latest
@@ -112,3 +165,52 @@ jobs:
 
       - name: Local build
         run: pnpm run build
+
+  release:
+    concurrency: release
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    needs:
+      - cloudflare-workers-local-build
+      - nextjs-local-build
+
+    name: Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v3
+
+      - name: Get version
+        id: version
+        run: echo "::set-output name=version::v0.0.0-ci.${GITHUB_SHA}-$(date +%Y%m%d%H%M%S)"
+
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Set version
+        run: |
+          echo $(jq --arg v "${{ steps.version.outputs.version }}" '(.version) = $v' package.json) > package.json
+
+      - name: Install Dependencies
+        run: bun install
+
+      - name: Build
+        run: bun run build
+
+      - name: Set NPM_TOKEN
+        run: npm config set //registry.npmjs.org/:_authToken=${{secrets.NPM_TOKEN}}
+
+      - name: Publish ci version
+        run: npm publish --tag=ci --verbose
+        working-directory: ./dist
+
+      - name: Sleep for 10s
+        run: sleep 10s
+        shell: bash
