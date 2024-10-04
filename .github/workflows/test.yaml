@@ -57,7 +57,7 @@ jobs:
         working-directory: examples/cloudflare-workers
 
       - name: Install local package
-        run: bun install @upstash/qstash-js@file:../../dist
+        run: bun install @upstash/qstash@file:../../dist
         working-directory: examples/cloudflare-workers
 
       - name: Change main file to ci.ts
@@ -100,7 +100,7 @@ jobs:
 
       - name: Install example
         run: |
-          bun add @upstash/qstash-js@${{needs.release.outputs.version}}
+          bun add @upstash/qstash@${{needs.release.outputs.version}}
           npm i -g wrangler
         working-directory: examples/cloudflare-workers
 
