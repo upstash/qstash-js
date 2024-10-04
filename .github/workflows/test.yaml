@@ -64,6 +64,12 @@ jobs:
         run: sed -i 's/main = "src\/index.ts"/main = "src\/ci.ts"/' wrangler.toml
         working-directory: examples/cloudflare-workers
 
+      - name: Add environment
+        run: |
+          echo '[vars]' >> wrangler.toml
+          echo "QSTASH_TOKEN = \"$QSTASH_TOKEN\"" >> ./wrangler.toml
+        working-directory: examples/cloudflare-workers
+
       - name: Run example
         run: bun dev &
         working-directory: examples/cloudflare-workers
@@ -173,6 +179,7 @@ jobs:
     needs:
       - cloudflare-workers-local-build
       - nextjs-local-build
+      - local-tests
 
     name: Release
     runs-on: ubuntu-latest
