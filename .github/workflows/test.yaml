@@ -64,7 +64,7 @@ jobs:
         working-directory: examples/cloudflare-workers
 
       - name: Install local package
-        run: pnpm install
+        run: pnpm install ../../dist
         working-directory: examples/cloudflare-workers
 
       - name: Local build
