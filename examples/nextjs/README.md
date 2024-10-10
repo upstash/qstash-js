@@ -10,6 +10,9 @@ Routes in the project:
 
 - `/edge` (app router)
 - `/serverless` (app router)
+- '/publish' (app router)
+
+On the landing page of the project, you will find an introduction to QStash. You can click a button to call the `/publish` endpoint and observe the requests delivered by QStash.
 
 ## Local Development
 
