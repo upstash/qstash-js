@@ -3,7 +3,7 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 import type { NextApiHandler, NextApiRequest, NextApiResponse } from "next";
 import { type NextRequest } from "next/server";
-import { type NextFetchEvent, NextResponse } from "next/server";
+import { type NextFetchEvent } from "next/server";
 import { Receiver } from "../src/receiver";
 
 import type { WorkflowServeOptions, RouteFunction } from "../src/client/workflow";
@@ -95,7 +95,7 @@ export function verifySignature(
 }
 
 export function verifySignatureEdge(
-  handler: (request: NextRequest, nfe?: NextFetchEvent) => NextResponse | Promise<NextResponse>,
+  handler: (request: NextRequest, nfe?: NextFetchEvent) => Response | Promise<Response>,
   config?: VerifySignatureConfig
 ) {
   const currentSigningKey = config?.currentSigningKey ?? process.env.QSTASH_CURRENT_SIGNING_KEY;
@@ -120,7 +120,7 @@ export function verifySignatureEdge(
     const requestClone = request.clone() as NextRequest;
     const signature = request.headers.get("upstash-signature");
     if (!signature) {
-      return new NextResponse(new TextEncoder().encode("`Upstash-Signature` header is missing"), {
+      return new Response(new TextEncoder().encode("`Upstash-Signature` header is missing"), {
         status: 403,
       });
     }
@@ -135,18 +135,14 @@ export function verifySignatureEdge(
       clockTolerance: config?.clockTolerance,
     });
     if (!isValid) {
-      return new NextResponse(new TextEncoder().encode("invalid signature"), { status: 403 });
+      return new Response(new TextEncoder().encode("invalid signature"), { status: 403 });
     }
 
     return handler(request, nfe);
   };
 }
 
-type VerifySignatureAppRouterResponse =
-  | NextResponse
-  | Promise<NextResponse>
-  | Response
-  | Promise<Response>;
+type VerifySignatureAppRouterResponse = Response | Promise<Response>;
 
 export function verifySignatureAppRouter(
   handler:
@@ -175,7 +171,7 @@ export function verifySignatureAppRouter(
     const requestClone = request.clone() as NextRequest;
     const signature = request.headers.get("upstash-signature");
     if (!signature) {
-      return new NextResponse(new TextEncoder().encode("`Upstash-Signature` header is missing"), {
+      return new Response(new TextEncoder().encode("`Upstash-Signature` header is missing"), {
         status: 403,
       });
     }
@@ -190,7 +186,7 @@ export function verifySignatureAppRouter(
       clockTolerance: config?.clockTolerance,
     });
     if (!isValid) {
-      return new NextResponse(new TextEncoder().encode("invalid signature"), { status: 403 });
+      return new Response(new TextEncoder().encode("invalid signature"), { status: 403 });
     }
 
     return handler(request as NextRequest, params);
@@ -208,11 +204,11 @@ export function verifySignatureAppRouter(
  */
 export const serve = <TInitialPayload = unknown>(
   routeFunction: RouteFunction<TInitialPayload>,
-  options?: Omit<WorkflowServeOptions<NextResponse, TInitialPayload>, "onStepFinish">
-): ((request: Request) => Promise<NextResponse>) => {
-  const handler = serveBase<TInitialPayload, Request, NextResponse>(routeFunction, {
+  options?: Omit<WorkflowServeOptions<Response, TInitialPayload>, "onStepFinish">
+): ((request: Request) => Promise<Response>) => {
+  const handler = serveBase<TInitialPayload>(routeFunction, {
     onStepFinish: (workflowRunId: string) =>
-      new NextResponse(JSON.stringify({ workflowRunId }), { status: 200 }),
+      new Response(JSON.stringify({ workflowRunId }), { status: 200 }),
     ...options,
   });
 
