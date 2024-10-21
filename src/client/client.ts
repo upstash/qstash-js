@@ -1,4 +1,4 @@
-import { appendAPIOptions } from "./api";
+import { appendAPIOptions } from "./api/utils";
 import type { EmailProviderReturnType } from "./api/email";
 import { DLQ } from "./dlq";
 import type { Duration } from "./duration";
