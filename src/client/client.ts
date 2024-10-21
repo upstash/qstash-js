@@ -1,3 +1,5 @@
+import { appendAPIOptions } from "./api";
+import type { EmailProviderReturnType } from "./api/email";
 import { DLQ } from "./dlq";
 import type { Duration } from "./duration";
 import { HttpClient, type Requester, type RetryConfig } from "./http";
@@ -179,7 +181,7 @@ export type PublishRequest<TBody = BodyInit> = {
       callback?: string;
     }
   | {
-      url?: string;
+      url?: never;
       urlGroup?: never;
       /**
        * The api endpoint the request should be sent to.
@@ -196,15 +198,30 @@ export type PublishRequest<TBody = BodyInit> = {
        *
        * @default undefined
        */
-      callback: string;
       topic?: never;
+      callback: string;
     }
   | {
       url?: never;
       urlGroup?: never;
-      api: never;
+      /**
+       * The api endpoint the request should be sent to.
+       */
+      api: {
+        name: "email";
+        provider: EmailProviderReturnType;
+      };
+      topic?: never;
+      callback?: string;
+    }
+  | {
+      url?: never;
+      urlGroup?: never;
+      api?: never;
       /**
        * Deprecated. The topic the message should be sent to. Same as urlGroup
+       *
+       * @deprecated
        */
       topic?: string;
       /**
@@ -370,6 +387,8 @@ export class Client {
     ensureCallbackPresent<TBody>(request);
     //If needed, this allows users to directly pass their requests to any open-ai compatible 3rd party llm directly from sdk.
     appendLLMOptionsIfNeeded<TBody, TRequest>(request, headers, this.http);
+    // append api options
+    appendAPIOptions(request, headers);
 
     // @ts-expect-error it's just internal
     const response = await this.publish<TRequest>({

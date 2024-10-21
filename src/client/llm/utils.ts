@@ -8,7 +8,7 @@ export function appendLLMOptionsIfNeeded<
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
   TRequest extends PublishRequest<TBody> = PublishRequest<TBody>,
 >(request: TRequest, headers: Headers, http: Requester) {
-  if (!request.api) return;
+  if (request.api?.name !== "llm") return;
 
   const provider = request.api.provider;
   const analytics = request.api.analytics;
