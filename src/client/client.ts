@@ -181,7 +181,7 @@ export type PublishRequest<TBody = BodyInit> = {
       callback?: string;
     }
   | {
-      url?: never;
+      url?: string;
       urlGroup?: never;
       /**
        * The api endpoint the request should be sent to.
@@ -191,6 +191,7 @@ export type PublishRequest<TBody = BodyInit> = {
         provider?: ProviderReturnType;
         analytics?: { name: "helicone"; token: string };
       };
+      topic?: never;
       /**
        * Use a callback url to forward the response of your destination server to your callback url.
        *
@@ -198,7 +199,6 @@ export type PublishRequest<TBody = BodyInit> = {
        *
        * @default undefined
        */
-      topic?: never;
       callback: string;
     }
   | {
