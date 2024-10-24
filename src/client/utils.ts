@@ -1,4 +1,5 @@
 import type { PublishRequest } from "./client";
+import { QstashError } from "./error";
 
 const isIgnoredHeader = (header: string) => {
   const lowerCaseHeader = header.toLowerCase();
@@ -79,7 +80,18 @@ export function processHeaders(request: PublishRequest) {
 export function getRequestPath(
   request: Pick<PublishRequest, "url" | "urlGroup" | "api" | "topic">
 ): string {
-  return request.url ?? request.urlGroup ?? request.topic ?? `api/${request.api?.name}`;
+  // eslint-disable-next-line @typescript-eslint/no-deprecated
+  const nonApiPath = request.url ?? request.urlGroup ?? request.topic;
+  if (nonApiPath) return nonApiPath;
+
+  // return llm api
+  if (request.api?.name === "llm") return `api/${request.api.name}`;
+  // return email api
+  if (request.api?.name === "email") {
+    return request.api.provider.baseUrl;
+  }
+
+  throw new QstashError(`Failed to infer request path for ${JSON.stringify(request)}`);
 }
 
 const NANOID_CHARS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_";
@@ -110,11 +122,19 @@ export function decodeBase64(base64: string) {
     return new TextDecoder().decode(intArray);
   } catch (error) {
     // this error should never happen essentially. It's only a failsafe
-    console.warn(
-      `Upstash Qstash: Failed while decoding base64 "${base64}".` +
-        ` Decoding with atob and returning it instead. ${error}`
-    );
-    return atob(base64);
+    try {
+      const result = atob(base64);
+      console.warn(
+        `Upstash QStash: Failed while decoding base64 "${base64}".` +
+          ` Decoding with atob and returning it instead. ${error}`
+      );
+      return result;
+    } catch (error) {
+      console.warn(
+        `Upstash QStash: Failed to decode base64 "${base64}" with atob. Returning it as it is. ${error}`
+      );
+      return base64;
+    }
   }
 }
 
