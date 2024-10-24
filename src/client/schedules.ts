@@ -113,6 +113,11 @@ export type CreateScheduleRequest = {
    * @default undefined
    */
   scheduleId?: string;
+
+  /**
+   * Queue name to schedule the message over.
+   */
+  queueName?: string;
 };
 
 export class Schedules {
@@ -175,6 +180,10 @@ export class Schedules {
 
     if (request.scheduleId !== undefined) {
       headers.set("Upstash-Schedule-Id", request.scheduleId);
+    }
+
+    if (request.queueName !== undefined) {
+      headers.set("Upstash-Queue-Name", request.queueName);
     }
 
     return await this.http.request({
