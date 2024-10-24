@@ -1,3 +1,4 @@
+import { appendAPIOptions } from "./api/utils";
 import type { PublishRequest, PublishResponse } from "./client";
 import type { Requester } from "./http";
 import { appendLLMOptionsIfNeeded, ensureCallbackPresent } from "./llm/utils";
@@ -139,6 +140,8 @@ export class Queue {
     ensureCallbackPresent<TBody>(request);
     // If needed, this allows users to directly pass their requests to any open-ai compatible 3rd party llm directly from sdk.
     appendLLMOptionsIfNeeded<TBody, TRequest>(request, headers, this.http);
+
+    appendAPIOptions(request, headers);
 
     const response = await this.enqueue({
       ...request,

@@ -453,6 +453,11 @@ export class Client {
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       //@ts-ignore this is required otherwise message header prevent ts to compile
       appendLLMOptionsIfNeeded<TBody, TRequest>(message, message.headers, this.http);
+
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      //@ts-ignore this is required otherwise message header prevent ts to compile
+      appendAPIOptions(message, message.headers);
+
       (message.headers as Headers).set("Content-Type", "application/json");
     }
 
