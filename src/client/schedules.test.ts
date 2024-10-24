@@ -32,6 +32,7 @@ describe("Schedules", () => {
         failureCallback: "https://example.com/failure",
         delay: 10,
         retries: 5,
+        queueName: "scheduleQueue",
         cron: "*/10 * * * * ",
       });
 
@@ -51,6 +52,7 @@ describe("Schedules", () => {
           delay: 10,
           callback: "https://example.com",
           failureCallback: "https://example.com/failure",
+          queueName: "scheduleQueue",
         }) as Schedule
       );
 
