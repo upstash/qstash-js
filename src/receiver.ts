@@ -69,17 +69,20 @@ export class Receiver {
    * If that fails, the signature is invalid and a `SignatureError` is thrown.
    */
   public async verify(request: VerifyRequest): Promise<boolean> {
-    const isValid = await this.verifyWithKey(this.currentSigningKey, request);
-    if (isValid) {
-      return true;
+    let payload: jose.JWTPayload;
+    try {
+      payload = await this.verifyWithKey(this.currentSigningKey, request);
+    } catch {
+      payload = await this.verifyWithKey(this.nextSigningKey, request);
     }
-    return this.verifyWithKey(this.nextSigningKey, request);
+    this.verifyBodyAndUrl(payload, request);
+    return true;
   }
 
   /**
    * Verify signature with a specific signing key
    */
-  private async verifyWithKey(key: string, request: VerifyRequest): Promise<boolean> {
+  private async verifyWithKey(key: string, request: VerifyRequest): Promise<jose.JWTPayload> {
     const jwt = await jose
       .jwtVerify(request.signature, new TextEncoder().encode(key), {
         issuer: "Upstash",
@@ -89,7 +92,11 @@ export class Receiver {
         throw new SignatureError((error as Error).message);
       });
 
-    const p = jwt.payload as {
+    return jwt.payload;
+  }
+
+  private verifyBodyAndUrl(payload: jose.JWTPayload, request: VerifyRequest) {
+    const p = payload as {
       iss: string;
       sub: string;
       exp: number;
@@ -110,7 +117,5 @@ export class Receiver {
     if (p.body.replace(padding, "") !== bodyHash.replace(padding, "")) {
       throw new SignatureError(`body hash does not match, want: ${p.body}, got: ${bodyHash}`);
     }
-
-    return true;
   }
 }
