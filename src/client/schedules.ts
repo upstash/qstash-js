@@ -18,6 +18,7 @@ export type Schedule = {
   failureCallback?: string;
   callerIp?: string;
   isPaused: boolean;
+  queueName?: string;
 };
 
 export type CreateScheduleRequest = {
@@ -108,7 +109,7 @@ export type CreateScheduleRequest = {
   /**
    * Schedule id to use.
    *
-   * Can be used to updatine the settings of an existing schedule.
+   * Can be used to update the settings of an existing schedule.
    *
    * @default undefined
    */

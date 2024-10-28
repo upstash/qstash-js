@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-magic-numbers */
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { afterEach, describe, expect, test } from "bun:test";
 import { Client } from "./client";
