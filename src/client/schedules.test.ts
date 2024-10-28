@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-magic-numbers */
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { afterEach, describe, expect, test } from "bun:test";
 import { Client } from "./client";
@@ -32,6 +31,7 @@ describe("Schedules", () => {
         failureCallback: "https://example.com/failure",
         delay: 10,
         retries: 5,
+        queueName: "scheduleQueue",
         cron: "*/10 * * * * ",
       });
 
@@ -51,6 +51,7 @@ describe("Schedules", () => {
           delay: 10,
           callback: "https://example.com",
           failureCallback: "https://example.com/failure",
+          queueName: "scheduleQueue",
         }) as Schedule
       );
 

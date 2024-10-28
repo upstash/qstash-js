@@ -18,6 +18,7 @@ export type Schedule = {
   failureCallback?: string;
   callerIp?: string;
   isPaused: boolean;
+  queueName?: string;
 };
 
 export type CreateScheduleRequest = {
@@ -108,11 +109,16 @@ export type CreateScheduleRequest = {
   /**
    * Schedule id to use.
    *
-   * Can be used to updatine the settings of an existing schedule.
+   * Can be used to update the settings of an existing schedule.
    *
    * @default undefined
    */
   scheduleId?: string;
+
+  /**
+   * Queue name to schedule the message over.
+   */
+  queueName?: string;
 };
 
 export class Schedules {
@@ -175,6 +181,10 @@ export class Schedules {
 
     if (request.scheduleId !== undefined) {
       headers.set("Upstash-Schedule-Id", request.scheduleId);
+    }
+
+    if (request.queueName !== undefined) {
+      headers.set("Upstash-Queue-Name", request.queueName);
     }
 
     return await this.http.request({
