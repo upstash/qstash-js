@@ -1,11 +1,7 @@
-import { appendAPIOptions } from "./api/utils";
-import type { EmailProviderReturnType } from "./api/email";
 import { DLQ } from "./dlq";
 import type { Duration } from "./duration";
 import { HttpClient, type Requester, type RetryConfig } from "./http";
 import { Chat } from "./llm/chat";
-import type { ProviderReturnType } from "./llm/providers";
-import { appendLLMOptionsIfNeeded, ensureCallbackPresent } from "./llm/utils";
 import { Messages } from "./messages";
 import { Queue } from "./queue";
 import { Schedules } from "./schedules";
@@ -13,6 +9,8 @@ import type { BodyInit, Event, GetEventsPayload, HeadersInit, HTTPMethods, State
 import { UrlGroups } from "./url-groups";
 import { getRequestPath, prefixHeaders, processHeaders } from "./utils";
 import { Workflow } from "./workflow";
+import type { PublishEmailApi, PublishLLMApi } from "./api/types";
+import { processApi } from "./api/utils";
 
 type ClientConfig = {
   /**
@@ -186,11 +184,7 @@ export type PublishRequest<TBody = BodyInit> = {
       /**
        * The api endpoint the request should be sent to.
        */
-      api: {
-        name: "llm";
-        provider?: ProviderReturnType;
-        analytics?: { name: "helicone"; token: string };
-      };
+      api: PublishLLMApi;
       topic?: never;
       /**
        * Use a callback url to forward the response of your destination server to your callback url.
@@ -207,10 +201,7 @@ export type PublishRequest<TBody = BodyInit> = {
       /**
        * The api endpoint the request should be sent to.
        */
-      api: {
-        name: "email";
-        provider: EmailProviderReturnType;
-      };
+      api: PublishEmailApi;
       topic?: never;
       callback?: string;
     }
@@ -383,18 +374,15 @@ export class Client {
     const headers = prefixHeaders(new Headers(request.headers));
     headers.set("Content-Type", "application/json");
 
-    // Using LLMs without callbacks is meaningless, that's why we check before going further.
-    ensureCallbackPresent<TBody>(request);
-    //If needed, this allows users to directly pass their requests to any open-ai compatible 3rd party llm directly from sdk.
-    appendLLMOptionsIfNeeded<TBody, TRequest>(request, headers, this.http);
-    // append api options
-    appendAPIOptions(request, headers);
+    //@ts-expect-error hacky way to get bearer token
+    const upstashToken = String(this.http.authorization).split("Bearer ")[1];
+    const nonApiRequest = processApi(request, upstashToken);
 
     // @ts-expect-error it's just internal
     const response = await this.publish<TRequest>({
-      ...request,
+      ...nonApiRequest,
       headers,
-      body: JSON.stringify(request.body),
+      body: JSON.stringify(nonApiRequest.body),
     } as PublishRequest);
 
     return response;
@@ -439,31 +427,25 @@ export class Client {
     TBody = unknown,
     TRequest extends PublishBatchRequest<TBody> = PublishBatchRequest<TBody>,
   >(request: TRequest[]): Promise<PublishResponse<TRequest>[]> {
-    for (const message of request) {
+    const batchPayload = request.map((message) => {
       if ("body" in message) {
         message.body = JSON.stringify(message.body) as unknown as TBody;
       }
       //@ts-expect-error caused by undici and bunjs type overlap
       message.headers = new Headers(message.headers);
 
-      // Using LLMs without callbacks is meaningless, that's why we check before going further.
-      ensureCallbackPresent<TBody>(message);
-      //If needed, this allows users to directly pass their requests to any open-ai compatible 3rd party llm directly from sdk.
+      //@ts-expect-error hacky way to get bearer token
+      const upstashToken = String(this.http.authorization).split("Bearer ")[1];
+      const nonApiMessage = processApi(message, upstashToken);
 
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      //@ts-ignore this is required otherwise message header prevent ts to compile
-      appendLLMOptionsIfNeeded<TBody, TRequest>(message, message.headers, this.http);
+      (nonApiMessage.headers as Headers).set("Content-Type", "application/json");
 
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      //@ts-ignore this is required otherwise message header prevent ts to compile
-      appendAPIOptions(message, message.headers);
-
-      (message.headers as Headers).set("Content-Type", "application/json");
-    }
+      return nonApiMessage;
+    });
 
     // Since we are serializing the bodies to JSON, and stringifying,
     //  we can safely cast the request to `PublishRequest`
-    const response = await this.batch(request as PublishRequest[]);
+    const response = await this.batch(batchPayload as PublishRequest[]);
     return response as PublishResponse<TRequest>[];
   }
 

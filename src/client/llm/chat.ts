@@ -109,7 +109,7 @@ export class Chat {
    * @param request ChatRequest with messages
    * @returns Chat completion or stream
    */
-  // eslint-disable-next-line @typescript-eslint/require-await
+
   private createThirdParty = async <TStream extends StreamParameter>(
     request: ChatRequest<TStream>
   ): Promise<

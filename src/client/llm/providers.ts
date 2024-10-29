@@ -1,19 +1,8 @@
-type Owner = "upstash" | "openai" | "custom";
-export type ProviderReturnType<
-  TOwner extends Owner = Owner,
-  TBaseUrl extends string = string,
-  TToken extends string = string,
-  TOrganization extends string | undefined = string | undefined,
-> = {
-  owner: TOwner;
-  baseUrl: TBaseUrl;
-  token: TToken;
-  organization: TOrganization;
-};
+import type { LLMOwner } from "../api/types";
 
-export type AnalyticsConfig = { name: "helicone"; token: string };
+type AnalyticsConfig = { name: "helicone"; token: string };
 
-export type AnalyticsSetup = {
+type AnalyticsSetup = {
   baseURL?: string;
   defaultHeaders?: Record<string, string | undefined>;
 };
@@ -22,7 +11,7 @@ export const setupAnalytics = (
   analytics: AnalyticsConfig | undefined,
   providerApiKey: string,
   providerBaseUrl?: string,
-  provider?: "openai" | "upstash" | "custom"
+  provider?: LLMOwner
 ): AnalyticsSetup => {
   if (!analytics) return {};
 
@@ -55,52 +44,3 @@ export const setupAnalytics = (
     }
   }
 };
-
-const upstash = (): ProviderReturnType<"upstash", "https://qstash.upstash.io/llm", ""> => {
-  return {
-    owner: "upstash",
-    baseUrl: "https://qstash.upstash.io/llm",
-    token: "",
-    organization: undefined,
-  };
-};
-
-const openai = <
-  TToken extends string = string,
-  TOrganization extends string | undefined = undefined,
->({
-  token,
-  organization,
-}: {
-  token: TToken;
-  organization?: TOrganization;
-}): ProviderReturnType<
-  "openai",
-  "https://api.openai.com",
-  TToken,
-  TOrganization extends string ? TOrganization : undefined
-> => {
-  return {
-    token,
-    owner: "openai",
-    baseUrl: "https://api.openai.com",
-    organization: organization as TOrganization extends string ? TOrganization : undefined,
-  };
-};
-
-const custom = <TToken extends string = string>({
-  baseUrl,
-  token,
-}: {
-  baseUrl: string;
-  token: TToken;
-}): ProviderReturnType<"custom", string, TToken> => {
-  const trimmedBaseUrl = baseUrl.replace(/\/(v1\/)?chat\/completions$/, ""); // Will trim /v1/chat/completions and /chat/completions
-  return {
-    token,
-    owner: "custom",
-    baseUrl: trimmedBaseUrl,
-    organization: undefined,
-  };
-};
-export { custom, openai, upstash };

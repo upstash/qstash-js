@@ -1,4 +1,4 @@
-import { type ProviderReturnType } from "./providers";
+import type { LLMProvider } from "../api/llm";
 
 export type ChatCompletionMessage = {
   role: "system" | "assistant" | "user";
@@ -119,17 +119,25 @@ type ChatRequestFields = ChatRequestCommonFields & {
 
 type ChatRequestProviders =
   | {
-      provider: ProviderReturnType<"openai">;
+      provider: LLMProvider<"openai">;
       model: OpenAIChatModel;
       analytics?: { name: "helicone"; token: string };
     }
   | {
-      provider: ProviderReturnType<"custom">;
+      provider: LLMProvider<"custom">;
       model: string;
       analytics?: { name: "helicone"; token: string };
     }
+  // not adding anthropic for client.chat intentionally.
+  // users should use the official sdk. it will overcomplicate things b/c of baseUrl.
+  // we can pass a baseUrl but the rest of the route is different from openai/upstash
+  // | {
+  //     provider: LLMProvider<"anthropic">;
+  //     model: string;
+  //     analytics?: { name: "helicone"; token: string };
+  //   }
   | {
-      provider: ProviderReturnType<"upstash">;
+      provider: LLMProvider<"upstash">;
       model: ChatModel;
       analytics?: { name: "helicone"; token: string };
     };
