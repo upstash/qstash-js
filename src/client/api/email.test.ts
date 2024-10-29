@@ -41,7 +41,7 @@ describe("email", () => {
         },
         headers: {
           authorization: `Bearer ${qstashToken}`,
-          "upstash-forward-authorization": resendToken,
+          "upstash-forward-authorization": `Bearer ${resendToken}`,
         },
       },
     });
@@ -95,7 +95,7 @@ describe("email", () => {
         ],
         headers: {
           authorization: `Bearer ${qstashToken}`,
-          "upstash-forward-authorization": resendToken,
+          "upstash-forward-authorization": `Bearer ${resendToken}`,
         },
       },
     });

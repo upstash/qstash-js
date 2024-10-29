@@ -16,7 +16,7 @@ export class EmailProvider extends BaseProvider<"email", EmailOwner> {
   }
   getHeaders(): HeadersInit {
     return {
-      authorization: `Bearer ${this.token}`,
+      "upstash-forward-authorization": `Bearer ${this.token}`,
     };
   }
 

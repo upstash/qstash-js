@@ -373,6 +373,7 @@ export class Client {
     //@ts-expect-error caused by undici and bunjs type overlap
     const headers = prefixHeaders(new Headers(request.headers));
     headers.set("Content-Type", "application/json");
+    request.headers = headers;
 
     //@ts-expect-error hacky way to get bearer token
     const upstashToken = String(this.http.authorization).split("Bearer ")[1];
@@ -381,7 +382,6 @@ export class Client {
     // @ts-expect-error it's just internal
     const response = await this.publish<TRequest>({
       ...nonApiRequest,
-      headers,
       body: JSON.stringify(nonApiRequest.body),
     } as PublishRequest);
 
