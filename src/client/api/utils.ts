@@ -37,7 +37,7 @@ export const getProviderInfo = (
     baseUrl: finalProvider.baseUrl,
     route: finalProvider.getRoute(),
     appendHeaders: finalProvider.getHeaders(),
-    provider: finalProvider,
+    owner: finalProvider.owner,
   };
 
   return finalProvider.onFinish(providerInfo, parameters);
@@ -60,7 +60,7 @@ export const processApi = (
     return request;
   }
 
-  const { url, appendHeaders, provider } = getProviderInfo(request.api, upstashToken);
+  const { url, appendHeaders, owner } = getProviderInfo(request.api, upstashToken);
 
   if (request.api.name === "llm") {
     const callback = request.callback;
@@ -75,7 +75,7 @@ export const processApi = (
         ...request.headers,
         ...appendHeaders,
       }),
-      ...(provider.owner === "upstash"
+      ...(owner === "upstash"
         ? { api: { name: "llm" }, url: undefined, callback }
         : { url, api: undefined }),
     };

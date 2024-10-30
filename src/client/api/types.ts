@@ -1,4 +1,3 @@
-import type { HeadersInit } from "../types";
 import type { BaseProvider } from "./base";
 
 export type ProviderInfo = {
@@ -17,11 +16,11 @@ export type ProviderInfo = {
   /**
    * headers to include in the request
    */
-  appendHeaders: HeadersInit;
+  appendHeaders: Record<string, string>;
   /**
-   * provider used to create the ProviderInfo
+   * provider owner
    */
-  provider: BaseProvider<ApiKind>;
+  owner: Owner;
 };
 
 export type ApiKind = "llm" | "email";

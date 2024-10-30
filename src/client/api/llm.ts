@@ -1,4 +1,3 @@
-import type { HeadersInit } from "../types";
 import { BaseProvider } from "./base";
 import type { LLMOptions, LLMOwner, ProviderInfo } from "./types";
 
@@ -15,17 +14,21 @@ export class LLMProvider<TOwner extends LLMOwner> extends BaseProvider<"llm", LL
     return this.owner === "anthropic" ? ["v1", "messages"] : ["v1", "chat", "completions"];
   }
 
-  getHeaders(): HeadersInit {
+  getHeaders(): Record<string, string> {
+    // don't send auth header in upstash
+    if (this.owner === "upstash") {
+      return {};
+    }
+
     const header = this.owner === "anthropic" ? "x-api-key" : "authorization";
     const headerValue = this.owner === "anthropic" ? this.token : `Bearer ${this.token}`;
-    return {
-      [header]: headerValue,
-      ...(this.organization
-        ? {
-            "OpenAI-Organization": this.organization,
-          }
-        : {}),
-    };
+
+    const headers = { [header]: headerValue };
+    if (this.organization) {
+      headers["OpenAI-Organization"] = this.organization;
+    }
+
+    return headers;
   }
 
   /**
@@ -37,7 +40,7 @@ export class LLMProvider<TOwner extends LLMOwner> extends BaseProvider<"llm", LL
   onFinish(providerInfo: ProviderInfo, options: LLMOptions): ProviderInfo {
     // add analytics if they exist
     if (options.analytics) {
-      return this.updateWithAnalytics(providerInfo, options.analytics, this.owner === "upstash");
+      return this.updateWithAnalytics(providerInfo, options.analytics);
     }
 
     return providerInfo;
@@ -45,24 +48,26 @@ export class LLMProvider<TOwner extends LLMOwner> extends BaseProvider<"llm", LL
 
   private updateWithAnalytics(
     providerInfo: ProviderInfo,
-    analytics: Required<LLMOptions>["analytics"],
-    isUpstash: boolean
+    analytics: Required<LLMOptions>["analytics"]
   ): ProviderInfo {
     switch (analytics.name) {
       case "helicone": {
-        // @ts-expect-error unsafe call
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-        providerInfo.appendHeaders.set("Helicone-Auth", `Bearer ${analytics.token}`);
-        if (isUpstash) {
-          providerInfo.baseUrl = "https://qstash.helicone.ai";
-          providerInfo.route = ["llm", "v1", "chat", "completions"];
+        providerInfo.appendHeaders["Helicone-Auth"] = `Bearer ${analytics.token}`;
+        if (providerInfo.owner === "upstash") {
+          this.updateProviderInfo(providerInfo, "https://qstash.helicone.ai", [
+            "llm",
+            "v1",
+            "chat",
+            "completions",
+          ]);
         } else {
-          // @ts-expect-error unsafe call
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-          providerInfo.appendHeaders.set("Helicone-Target-Url", providerInfo.url);
+          providerInfo.appendHeaders["Helicone-Target-Url"] = providerInfo.url;
 
-          providerInfo.baseUrl = "https://gateway.helicone.ai";
-          providerInfo.route = ["v1", "chat", "completions"];
+          this.updateProviderInfo(providerInfo, "https://gateway.helicone.ai", [
+            "v1",
+            "chat",
+            "completions",
+          ]);
         }
         return providerInfo;
       }
@@ -70,6 +75,12 @@ export class LLMProvider<TOwner extends LLMOwner> extends BaseProvider<"llm", LL
         throw new Error("Unknown analytics provider");
       }
     }
+  }
+
+  private updateProviderInfo(providerInfo: ProviderInfo, baseUrl: string, route: string[]) {
+    providerInfo.baseUrl = baseUrl;
+    providerInfo.route = route;
+    providerInfo.url = `${baseUrl}/${route.join("/")}`;
   }
 }
 

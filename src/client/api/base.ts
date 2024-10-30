@@ -1,5 +1,4 @@
 import type { ApiKind, Owner, ProviderInfo } from "./types";
-import type { HeadersInit } from "../types";
 
 export abstract class BaseProvider<TName extends ApiKind, TOwner = Owner> {
   public abstract readonly apiKind: TName;
@@ -23,7 +22,7 @@ export abstract class BaseProvider<TName extends ApiKind, TOwner = Owner> {
 
   abstract getRoute(): string[];
 
-  abstract getHeaders(): HeadersInit;
+  abstract getHeaders(): Record<string, string>;
 
   public getUrl(): string {
     return `${this.baseUrl}/${this.getRoute().join("/")}`;

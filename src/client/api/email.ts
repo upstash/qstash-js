@@ -1,4 +1,3 @@
-import type { HeadersInit } from "../types";
 import { BaseProvider } from "./base";
 import type { EmailOwner, ProviderInfo } from "./types";
 
@@ -14,7 +13,7 @@ export class EmailProvider extends BaseProvider<"email", EmailOwner> {
   getRoute(): string[] {
     return this.batch ? ["emails", "batch"] : ["emails"];
   }
-  getHeaders(): HeadersInit {
+  getHeaders(): Record<string, string> {
     return {
       "upstash-forward-authorization": `Bearer ${this.token}`,
     };
