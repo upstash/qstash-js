@@ -22,7 +22,7 @@ export abstract class BaseProvider<TName extends ApiKind, TOwner = Owner> {
 
   abstract getRoute(): string[];
 
-  abstract getHeaders(): Record<string, string>;
+  abstract getHeaders(options: unknown): Record<string, string>;
 
   public getUrl(): string {
     return `${this.baseUrl}/${this.getRoute().join("/")}`;

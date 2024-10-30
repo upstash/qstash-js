@@ -14,9 +14,9 @@ export class LLMProvider<TOwner extends LLMOwner> extends BaseProvider<"llm", LL
     return this.owner === "anthropic" ? ["v1", "messages"] : ["v1", "chat", "completions"];
   }
 
-  getHeaders(): Record<string, string> {
+  getHeaders(options: LLMOptions): Record<string, string> {
     // don't send auth header in upstash
-    if (this.owner === "upstash") {
+    if (this.owner === "upstash" && !options.analytics) {
       return {};
     }
 
@@ -40,49 +40,14 @@ export class LLMProvider<TOwner extends LLMOwner> extends BaseProvider<"llm", LL
   onFinish(providerInfo: ProviderInfo, options: LLMOptions): ProviderInfo {
     // add analytics if they exist
     if (options.analytics) {
-      return this.updateWithAnalytics(providerInfo, options.analytics);
+      return updateWithAnalytics(providerInfo, options.analytics);
     }
 
     return providerInfo;
   }
-
-  private updateWithAnalytics(
-    providerInfo: ProviderInfo,
-    analytics: Required<LLMOptions>["analytics"]
-  ): ProviderInfo {
-    switch (analytics.name) {
-      case "helicone": {
-        providerInfo.appendHeaders["Helicone-Auth"] = `Bearer ${analytics.token}`;
-        if (providerInfo.owner === "upstash") {
-          this.updateProviderInfo(providerInfo, "https://qstash.helicone.ai", [
-            "llm",
-            "v1",
-            "chat",
-            "completions",
-          ]);
-        } else {
-          providerInfo.appendHeaders["Helicone-Target-Url"] = providerInfo.url;
-
-          this.updateProviderInfo(providerInfo, "https://gateway.helicone.ai", [
-            "v1",
-            "chat",
-            "completions",
-          ]);
-        }
-        return providerInfo;
-      }
-      default: {
-        throw new Error("Unknown analytics provider");
-      }
-    }
-  }
-
-  private updateProviderInfo(providerInfo: ProviderInfo, baseUrl: string, route: string[]) {
-    providerInfo.baseUrl = baseUrl;
-    providerInfo.route = route;
-    providerInfo.url = `${baseUrl}/${route.join("/")}`;
-  }
 }
+
+// PROVIDERS
 
 export const upstash = (): LLMProvider<"upstash"> => {
   return new LLMProvider("https://qstash.upstash.io/llm", "", "upstash");
@@ -112,3 +77,36 @@ export const custom = ({
   const trimmedBaseUrl = baseUrl.replace(/\/(v1\/)?chat\/completions$/, ""); // Will trim /v1/chat/completions and /chat/completions
   return new LLMProvider(trimmedBaseUrl, token, "custom");
 };
+
+// UTILS
+
+function updateWithAnalytics(
+  providerInfo: ProviderInfo,
+  analytics: Required<LLMOptions>["analytics"]
+): ProviderInfo {
+  switch (analytics.name) {
+    case "helicone": {
+      providerInfo.appendHeaders["Helicone-Auth"] = `Bearer ${analytics.token}`;
+      if (providerInfo.owner === "upstash") {
+        updateProviderInfo(providerInfo, "https://qstash.helicone.ai", [
+          "llm",
+          ...providerInfo.route,
+        ]);
+      } else {
+        providerInfo.appendHeaders["Helicone-Target-Url"] = providerInfo.baseUrl;
+
+        updateProviderInfo(providerInfo, "https://gateway.helicone.ai", providerInfo.route);
+      }
+      return providerInfo;
+    }
+    default: {
+      throw new Error("Unknown analytics provider");
+    }
+  }
+}
+
+function updateProviderInfo(providerInfo: ProviderInfo, baseUrl: string, route: string[]) {
+  providerInfo.baseUrl = baseUrl;
+  providerInfo.route = route;
+  providerInfo.url = `${baseUrl}/${route.join("/")}`;
+}

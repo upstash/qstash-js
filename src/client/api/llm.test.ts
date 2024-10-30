@@ -3,9 +3,9 @@ import { describe, test } from "bun:test";
 import { Client } from "../client";
 import { MOCK_QSTASH_SERVER_URL, mockQStashServer } from "../workflow/test-utils";
 import { nanoid } from "../utils";
-import { anthropic, custom, openai, upstash } from "./llm";
+import { anthropic, upstash, openai, custom } from "./llm";
 
-describe("email", () => {
+describe("llm", () => {
   const customBaseUrl = `https://custom-llm-${nanoid()}.com`;
   const callback = `https://website-${nanoid()}.com`;
   const llmToken = `token-llm-${nanoid()}`;
@@ -69,11 +69,11 @@ describe("email", () => {
       receivesRequest: {
         method: "POST",
         token: qstashToken,
-        url: "http://localhost:8080/v2/publish/api/llm",
+        url: "http://localhost:8080/v2/publish/https://qstash.helicone.ai/llm/v1/chat/completions",
         body: { model },
         headers: {
           authorization: `Bearer ${qstashToken}`,
-          "upstash-forward-authorization": null,
+          "upstash-forward-authorization": `Bearer ${qstashToken}`,
           "upstash-forward-helicone-auth": `Bearer ${analyticsToken}`,
           "upstash-callback": callback,
           "upstash-method": "POST",
@@ -143,7 +143,7 @@ describe("email", () => {
           authorization: `Bearer ${qstashToken}`,
           "upstash-forward-authorization": `Bearer ${llmToken}`,
           "upstash-forward-helicone-auth": `Bearer ${analyticsToken}`,
-          "upstash-forward-helicone-target-url": "https://api.openai.com/v1/chat/completions",
+          "upstash-forward-helicone-target-url": "https://api.openai.com",
           "upstash-callback": callback,
           "upstash-method": "POST",
         },
@@ -206,13 +206,13 @@ describe("email", () => {
       receivesRequest: {
         method: "POST",
         token: qstashToken,
-        url: "http://localhost:8080/v2/publish/https://gateway.helicone.ai/v1/chat/completions",
+        url: "http://localhost:8080/v2/publish/https://gateway.helicone.ai/v1/messages",
         body: { model },
         headers: {
           authorization: `Bearer ${qstashToken}`,
           "upstash-forward-x-api-key": llmToken,
           "upstash-forward-helicone-auth": `Bearer ${analyticsToken}`,
-          "upstash-forward-helicone-target-url": "https://api.anthropic.com/v1/messages",
+          "upstash-forward-helicone-target-url": "https://api.anthropic.com",
           "upstash-callback": callback,
           "upstash-method": "POST",
         },
@@ -281,7 +281,7 @@ describe("email", () => {
           authorization: `Bearer ${qstashToken}`,
           "upstash-forward-authorization": `Bearer ${llmToken}`,
           "upstash-forward-helicone-auth": `Bearer ${analyticsToken}`,
-          "upstash-forward-helicone-target-url": `${customBaseUrl}/v1/chat/completions`,
+          "upstash-forward-helicone-target-url": customBaseUrl,
           "upstash-callback": callback,
           "upstash-method": "POST",
         },

@@ -13,7 +13,7 @@ export class EmailProvider extends BaseProvider<"email", EmailOwner> {
   getRoute(): string[] {
     return this.batch ? ["emails", "batch"] : ["emails"];
   }
-  getHeaders(): Record<string, string> {
+  getHeaders(_options: unknown): Record<string, string> {
     return {
       "upstash-forward-authorization": `Bearer ${this.token}`,
     };
