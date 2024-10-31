@@ -1,13 +1,11 @@
 import type { PublishRequest } from "../client";
-import type { ProviderInfo, PublishEmailApi, PublishLLMApi } from "./types";
+import type { LLMOptions, ProviderInfo, PublishEmailApi, PublishLLMApi } from "./types";
 import { upstash } from "./llm";
 
 /**
  * copies and updates the request by removing the api field and adding url & headers.
  *
- * if there is no api field, simply returns.
- *
- * @param request request with api field
+ * @param api api field of PublishRequest
  * @param upstashToken used if provider is upstash and token is not set
  * @returns updated request
  */
@@ -92,3 +90,34 @@ export const processApi = (
     };
   }
 };
+
+export function updateWithAnalytics(
+  providerInfo: ProviderInfo,
+  analytics: Required<LLMOptions>["analytics"]
+): ProviderInfo {
+  switch (analytics.name) {
+    case "helicone": {
+      providerInfo.appendHeaders["Helicone-Auth"] = `Bearer ${analytics.token}`;
+      if (providerInfo.owner === "upstash") {
+        updateProviderInfo(providerInfo, "https://qstash.helicone.ai", [
+          "llm",
+          ...providerInfo.route,
+        ]);
+      } else {
+        providerInfo.appendHeaders["Helicone-Target-Url"] = providerInfo.baseUrl;
+
+        updateProviderInfo(providerInfo, "https://gateway.helicone.ai", providerInfo.route);
+      }
+      return providerInfo;
+    }
+    default: {
+      throw new Error("Unknown analytics provider");
+    }
+  }
+}
+
+function updateProviderInfo(providerInfo: ProviderInfo, baseUrl: string, route: string[]) {
+  providerInfo.baseUrl = baseUrl;
+  providerInfo.route = route;
+  providerInfo.url = `${baseUrl}/${route.join("/")}`;
+}

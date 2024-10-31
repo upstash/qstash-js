@@ -1,5 +1,6 @@
 import { BaseProvider } from "./base";
 import type { LLMOptions, LLMOwner, ProviderInfo } from "./types";
+import { updateWithAnalytics } from "./utils";
 
 export class LLMProvider<TOwner extends LLMOwner> extends BaseProvider<"llm", LLMOwner> {
   public readonly apiKind = "llm";
@@ -24,7 +25,7 @@ export class LLMProvider<TOwner extends LLMOwner> extends BaseProvider<"llm", LL
     const headerValue = this.owner === "anthropic" ? this.token : `Bearer ${this.token}`;
 
     const headers = { [header]: headerValue };
-    if (this.organization) {
+    if (this.owner === "openai" && this.organization) {
       headers["OpenAI-Organization"] = this.organization;
     }
 
@@ -77,36 +78,3 @@ export const custom = ({
   const trimmedBaseUrl = baseUrl.replace(/\/(v1\/)?chat\/completions$/, ""); // Will trim /v1/chat/completions and /chat/completions
   return new LLMProvider(trimmedBaseUrl, token, "custom");
 };
-
-// UTILS
-
-function updateWithAnalytics(
-  providerInfo: ProviderInfo,
-  analytics: Required<LLMOptions>["analytics"]
-): ProviderInfo {
-  switch (analytics.name) {
-    case "helicone": {
-      providerInfo.appendHeaders["Helicone-Auth"] = `Bearer ${analytics.token}`;
-      if (providerInfo.owner === "upstash") {
-        updateProviderInfo(providerInfo, "https://qstash.helicone.ai", [
-          "llm",
-          ...providerInfo.route,
-        ]);
-      } else {
-        providerInfo.appendHeaders["Helicone-Target-Url"] = providerInfo.baseUrl;
-
-        updateProviderInfo(providerInfo, "https://gateway.helicone.ai", providerInfo.route);
-      }
-      return providerInfo;
-    }
-    default: {
-      throw new Error("Unknown analytics provider");
-    }
-  }
-}
-
-function updateProviderInfo(providerInfo: ProviderInfo, baseUrl: string, route: string[]) {
-  providerInfo.baseUrl = baseUrl;
-  providerInfo.route = route;
-  providerInfo.url = `${baseUrl}/${route.join("/")}`;
-}
