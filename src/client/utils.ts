@@ -48,7 +48,7 @@ export function processHeaders(request: PublishRequest) {
     headers.set("Upstash-Deduplication-Id", request.deduplicationId);
   }
 
-  if (request.contentBasedDeduplication !== undefined) {
+  if (request.contentBasedDeduplication) {
     headers.set("Upstash-Content-Based-Deduplication", "true");
   }
 
