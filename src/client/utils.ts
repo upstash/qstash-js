@@ -1,3 +1,4 @@
+import { getProviderInfo } from "./api/utils";
 import type { PublishRequest } from "./client";
 import { QstashError } from "./error";
 
@@ -85,10 +86,11 @@ export function getRequestPath(
   if (nonApiPath) return nonApiPath;
 
   // return llm api
-  if (request.api?.name === "llm") return `api/${request.api.name}`;
+  if (request.api?.name === "llm") return `api/llm`;
   // return email api
   if (request.api?.name === "email") {
-    return request.api.provider.baseUrl;
+    const providerInfo = getProviderInfo(request.api, "not-needed");
+    return providerInfo.baseUrl;
   }
 
   throw new QstashError(`Failed to infer request path for ${JSON.stringify(request)}`);

@@ -43,6 +43,11 @@ export type UpstashRequest = {
    * @default true
    */
   parseResponseAsJson?: boolean;
+  /**
+   * optionally overwrite the baseUrl of the http.
+   *
+   * default value of the http is base qstash url.
+   */
   baseUrl?: string;
 };
 export type UpstashResponse<TResult> = TResult & { error?: string };

@@ -1,7 +1,6 @@
-import { appendAPIOptions } from "./api/utils";
+import { processApi } from "./api/utils";
 import type { PublishRequest, PublishResponse } from "./client";
 import type { Requester } from "./http";
-import { appendLLMOptionsIfNeeded, ensureCallbackPresent } from "./llm/utils";
 import { getRequestPath, prefixHeaders, processHeaders } from "./utils";
 
 export type QueueResponse = {
@@ -135,17 +134,15 @@ export class Queue {
     //@ts-expect-error caused by undici and bunjs type overlap
     const headers = prefixHeaders(new Headers(request.headers));
     headers.set("Content-Type", "application/json");
+    request.headers = headers;
 
-    // Using LLMs without callbacks is meaningless, that's why we check before going further.
-    ensureCallbackPresent<TBody>(request);
-    // If needed, this allows users to directly pass their requests to any open-ai compatible 3rd party llm directly from sdk.
-    appendLLMOptionsIfNeeded<TBody, TRequest>(request, headers, this.http);
-
-    appendAPIOptions(request, headers);
+    //@ts-expect-error hacky way to get bearer token
+    const upstashToken = String(this.http.authorization).split("Bearer ")[1];
+    const nonApiRequest = processApi(request, upstashToken);
 
     const response = await this.enqueue({
-      ...request,
-      body: JSON.stringify(request.body),
+      ...nonApiRequest,
+      body: JSON.stringify(nonApiRequest.body),
       headers,
     });
 

@@ -6,9 +6,9 @@
 import { OpenAIStream, StreamingTextResponse } from "ai";
 import { describe, expect, mock, test } from "bun:test";
 import { Client } from "../client";
-import { custom, openai, upstash } from "./providers";
 import type { ChatCompletionChunk, ChatRequest } from "./types";
 import type { Requester } from "../http";
+import { upstash, openai, custom } from "../api/llm";
 
 async function checkStream(
   stream: AsyncIterable<ChatCompletionChunk>,
