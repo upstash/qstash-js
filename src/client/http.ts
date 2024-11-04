@@ -108,7 +108,7 @@ export class HttpClient implements Requester {
             backoff: () => 0,
           }
         : {
-            attempts: config.retry?.retries ? config.retry.retries + 1 : 5,
+            attempts: config.retry?.retries ?? 5,
             backoff: config.retry?.backoff ?? ((retryCount) => Math.exp(retryCount) * 50),
           };
   }
@@ -172,13 +172,17 @@ export class HttpClient implements Requester {
 
     let response: Response | undefined = undefined;
     let error: Error | undefined = undefined;
-    for (let index = 0; index < this.retry.attempts; index++) {
+    for (let index = 0; index <= this.retry.attempts; index++) {
       try {
         response = await fetch(url.toString(), requestOptions);
         break;
       } catch (error_) {
         error = error_ as Error;
-        await new Promise((r) => setTimeout(r, this.retry.backoff(index)));
+
+        // Only sleep if this is not the last attempt
+        if (index < this.retry.attempts) {
+          await new Promise((r) => setTimeout(r, this.retry.backoff(index)));
+        }
       }
     }
     if (!response) {
