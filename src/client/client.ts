@@ -23,9 +23,9 @@ type ClientConfig = {
   baseUrl?: string;
 
   /**
-   * The authorization token from the upstash console.
+   * The QSTASH_TOKEN from your Upstash console.
    */
-  token: string;
+  token?: string;
 
   /**
    * Configure how the client should retry requests.
@@ -272,6 +272,19 @@ export class Client {
       baseUrl: config.baseUrl ? config.baseUrl.replace(/\/$/, "") : "https://qstash.upstash.io",
       authorization: `Bearer ${config.token}`,
     });
+
+    if (!config.token) {
+      throw new Error(
+        "QStash token is required!\n\n" +
+          "To fix this:\n" +
+          "1. Get your token from the Upstash Console (https://console.upstash.com/qstash)\n" +
+          "2. Initialize the client with:\n\n" +
+          "   const client = new Client({\n" +
+          "     token: '<YOUR_QSTASH_TOKEN>'\n" +
+          "   });"
+      );
+    }
+
     this.token = config.token;
   }
 
