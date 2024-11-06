@@ -18,13 +18,17 @@ export class LLMProvider<TOwner extends LLMOwner> extends BaseProvider<"llm", LL
   getHeaders(options: LLMOptions): Record<string, string> {
     // don't send auth header in upstash
     if (this.owner === "upstash" && !options.analytics) {
-      return {};
+      return { "content-type": "application/json" };
     }
 
     const header = this.owner === "anthropic" ? "x-api-key" : "authorization";
     const headerValue = this.owner === "anthropic" ? this.token : `Bearer ${this.token}`;
 
-    const headers = { [header]: headerValue };
+    const headers = {
+      [header]: headerValue,
+      "content-type": "application/json",
+    };
+
     if (this.owner === "openai" && this.organization) {
       headers["OpenAI-Organization"] = this.organization;
     }
