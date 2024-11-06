@@ -132,6 +132,14 @@ describe("Test QStash chat", () => {
       callback: "https://example.com",
     });
     expect(result.messageId).toBeTruthy();
+
+    // sleep before checking the message
+    // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+    await new Promise((r) => setTimeout(r, 3000));
+
+    const { events } = await client.events({ filter: { messageId: result.messageId } });
+    const deliveredEvent = events.find((event) => event.state === "DELIVERED");
+    expect(deliveredEvent).not.toBeUndefined();
   });
 
   test("should batch with llm api", async () => {
@@ -298,6 +306,14 @@ describe("Test QStash chat with third party LLMs", () => {
       callback: "https://oz.requestcatcher.com/",
     });
     expect(result.messageId).toBeTruthy();
+
+    // sleep before checking the message
+    // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+    await new Promise((r) => setTimeout(r, 3000));
+
+    const { events } = await client.events({ filter: { messageId: result.messageId } });
+    const deliveredEvent = events.find((event) => event.state === "DELIVERED");
+    expect(deliveredEvent).not.toBeUndefined();
   });
 
   test("should publish with llm api", () => {
