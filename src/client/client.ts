@@ -326,8 +326,13 @@ export class Client {
    * Access the workflow API.
    *
    * cancel workflows.
+   *
+   * @deprecated as of version 2.7.17. Will be removed in qstash-js 3.0.0.
+   * Please use @upstash/workflow instead https://github.com/upstash/workflow-js
+   * Migration Guide: https://upstash.com/docs/workflow/migration
    */
   public get workflow(): Workflow {
+    // eslint-disable-next-line @typescript-eslint/no-deprecated
     return new Workflow(this.http);
   }
 

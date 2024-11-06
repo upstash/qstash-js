@@ -14,6 +14,7 @@ export const getProviderInfo = (
   upstashToken: string
 ): ProviderInfo => {
   const { name, provider, ...parameters } = api;
+  // eslint-disable-next-line @typescript-eslint/no-deprecated
   const finalProvider = provider ?? upstash();
 
   // use upstash token if it's not set

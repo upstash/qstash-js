@@ -54,6 +54,7 @@ describe("llm", () => {
         await client.publishJSON({
           api: {
             name: "llm",
+            // eslint-disable-next-line @typescript-eslint/no-deprecated
             provider: upstash(),
             analytics: { name: "helicone", token: analyticsToken },
           },

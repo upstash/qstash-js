@@ -201,11 +201,16 @@ export function verifySignatureAppRouter(
  * @param routeFunction workflow function
  * @param options workflow options
  * @returns
+ *
+ * @deprecated as of version 2.7.17. Will be removed in qstash-js 3.0.0.
+ * Please use https://github.com/upstash/workflow-js
+ * Migration Guide: https://upstash.com/docs/workflow/migration
  */
 export const serve = <TInitialPayload = unknown>(
   routeFunction: RouteFunction<TInitialPayload>,
   options?: Omit<WorkflowServeOptions<Response, TInitialPayload>, "onStepFinish">
 ): ((request: Request) => Promise<Response>) => {
+  // eslint-disable-next-line @typescript-eslint/no-deprecated
   const handler = serveBase<TInitialPayload>(routeFunction, {
     onStepFinish: (workflowRunId: string) =>
       new Response(JSON.stringify({ workflowRunId }), { status: 200 }),
@@ -217,10 +222,16 @@ export const serve = <TInitialPayload = unknown>(
   };
 };
 
+/**
+ * @deprecated as of version 2.7.17. Will be removed in qstash-js 3.0.0.
+ * Please use https://github.com/upstash/workflow-js
+ * Migration Guide: https://upstash.com/docs/workflow/migration
+ */
 export const servePagesRouter = <TInitialPayload = unknown>(
   routeFunction: RouteFunction<TInitialPayload>,
   options?: Omit<WorkflowServeOptions<Response, TInitialPayload>, "onStepFinish">
 ): NextApiHandler => {
+  // eslint-disable-next-line @typescript-eslint/no-deprecated
   const handler = serveBase(routeFunction, options);
 
   return async (req: NextApiRequest, res: NextApiResponse) => {

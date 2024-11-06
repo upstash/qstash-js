@@ -60,6 +60,10 @@ export const verifySignatureSvelte = <
  * @param routeFunction workflow function
  * @param options workflow options
  * @returns
+ *
+ * @deprecated as of version 2.7.17. Will be removed in qstash-js 3.0.0.
+ * Please use https://github.com/upstash/workflow-js
+ * Migration Guide: https://upstash.com/docs/workflow/migration
  */
 export const serve = <TInitialPayload = unknown>(
   routeFunction: RouteFunction<TInitialPayload>,
@@ -68,6 +72,7 @@ export const serve = <TInitialPayload = unknown>(
   }
 ): RequestHandler => {
   const handler: RequestHandler = async ({ request }) => {
+    // eslint-disable-next-line @typescript-eslint/no-deprecated
     const serveMethod = serveBase<TInitialPayload>(routeFunction, options);
     return await serveMethod(request);
   };
