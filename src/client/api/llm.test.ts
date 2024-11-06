@@ -42,6 +42,7 @@ describe("llm", () => {
           "upstash-forward-authorization": null,
           "upstash-callback": callback,
           "upstash-method": "POST",
+          "content-type": "application/json",
         },
       },
     });
@@ -77,6 +78,7 @@ describe("llm", () => {
           "upstash-forward-helicone-auth": `Bearer ${analyticsToken}`,
           "upstash-callback": callback,
           "upstash-method": "POST",
+          "content-type": "application/json",
         },
       },
     });
@@ -110,6 +112,7 @@ describe("llm", () => {
           "upstash-forward-authorization": `Bearer ${llmToken}`,
           "upstash-callback": callback,
           "upstash-method": "POST",
+          "content-type": "application/json",
         },
       },
     });
@@ -146,6 +149,7 @@ describe("llm", () => {
           "upstash-forward-helicone-target-url": "https://api.openai.com",
           "upstash-callback": callback,
           "upstash-method": "POST",
+          "content-type": "application/json",
         },
       },
     });
@@ -179,6 +183,7 @@ describe("llm", () => {
           "upstash-forward-x-api-key": llmToken,
           "upstash-callback": callback,
           "upstash-method": "POST",
+          "content-type": "application/json",
         },
       },
     });
@@ -215,6 +220,7 @@ describe("llm", () => {
           "upstash-forward-helicone-target-url": "https://api.anthropic.com",
           "upstash-callback": callback,
           "upstash-method": "POST",
+          "content-type": "application/json",
         },
       },
     });
@@ -248,6 +254,7 @@ describe("llm", () => {
           "upstash-forward-authorization": `Bearer ${llmToken}`,
           "upstash-callback": callback,
           "upstash-method": "POST",
+          "content-type": "application/json",
         },
       },
     });
@@ -284,6 +291,7 @@ describe("llm", () => {
           "upstash-forward-helicone-target-url": customBaseUrl,
           "upstash-callback": callback,
           "upstash-method": "POST",
+          "content-type": "application/json",
         },
       },
     });
