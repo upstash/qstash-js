@@ -484,5 +484,5 @@ const validateParallelSteps = (lazySteps: BaseLazyStep[], stepsFromRequest: Step
  */
 const sortSteps = (steps: Step[]): Step[] => {
   const getStepId = (step: Step) => step.targetStep ?? step.stepId;
-  return steps.toSorted((step, stepOther) => getStepId(step) - getStepId(stepOther));
+  return [...steps].sort((step, stepOther) => getStepId(step) - getStepId(stepOther));
 };
