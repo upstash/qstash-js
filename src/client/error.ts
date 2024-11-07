@@ -35,6 +35,7 @@ export class QstashChatRatelimitError extends QstashError {
 
   constructor(args: ChatRateLimit) {
     super(`Exceeded chat rate limit. ${JSON.stringify(args)} `);
+    this.name = "QstashChatRatelimitError";
     this.limitRequests = args["limit-requests"];
     this.limitTokens = args["limit-tokens"];
     this.remainingRequests = args["remaining-requests"];
@@ -51,10 +52,10 @@ export class QstashDailyRatelimitError extends QstashError {
 
   constructor(args: RateLimit) {
     super(`Exceeded daily rate limit. ${JSON.stringify(args)} `);
+    this.name = "QstashDailyRatelimitError";
     this.limit = args.limit;
     this.remaining = args.remaining;
     this.reset = args.reset;
-    this.name = "QstashChatRatelimitError";
   }
 }
 
