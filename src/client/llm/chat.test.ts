@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-deprecated */
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -14,7 +15,6 @@ async function checkStream(
   stream: AsyncIterable<ChatCompletionChunk>,
   expectInStream: string[] // array of strings to expect in stream
 ): Promise<void> {
-  // eslint-disable-next-line @typescript-eslint/no-deprecated
   const _stream = OpenAIStream(stream);
   const textResponse = new StreamingTextResponse(_stream);
   const text = await textResponse.text();

@@ -95,6 +95,10 @@ export const processOptions = <TResponse extends Response = Response, TInitialPa
  * @param routeFunction - A function that uses WorkflowContext as a parameter and runs a workflow.
  * @param options - Options including the client, onFinish callback, and initialPayloadParser.
  * @returns An async method that consumes incoming requests and runs the workflow.
+ *
+ * @deprecated as of version 2.7.17. Will be removed in qstash-js 3.0.0.
+ * Please use https://github.com/upstash/workflow-js
+ * Migration Guide: https://upstash.com/docs/workflow/migration
  */
 export const serve = <
   TInitialPayload = unknown,

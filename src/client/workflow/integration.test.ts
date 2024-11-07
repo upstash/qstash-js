@@ -118,6 +118,7 @@ const testEndpoint = async <TInitialPayload = unknown>({
 }) => {
   let counter = 0;
 
+  // eslint-disable-next-line @typescript-eslint/no-deprecated
   const endpoint = workflowServe<TInitialPayload>(routeFunction, {
     qstashClient,
     url: LOCAL_WORKFLOW_URL,

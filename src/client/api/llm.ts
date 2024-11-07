@@ -54,6 +54,14 @@ export class LLMProvider<TOwner extends LLMOwner> extends BaseProvider<"llm", LL
 
 // PROVIDERS
 
+/**
+ * @deprecated as of version 2.7.17. Will be removed in qstash-js 3.0.0.
+ *
+ * Please use an alternative LLM provider.
+ *
+ * openai: https://upstash.com/docs/qstash/integrations/llm
+ * anthropic: https://upstash.com/docs/qstash/integrations/anthropic
+ */
 export const upstash = (): LLMProvider<"upstash"> => {
   return new LLMProvider("https://qstash.upstash.io/llm", "", "upstash");
 };

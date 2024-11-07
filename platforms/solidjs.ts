@@ -57,6 +57,10 @@ export const verifySignatureSolidjs = (
  * @param routeFunction workflow function
  * @param options workflow options
  * @returns
+ *
+ * @deprecated as of version 2.7.17. Will be removed in qstash-js 3.0.0.
+ * Please use https://github.com/upstash/workflow-js
+ * Migration Guide: https://upstash.com/docs/workflow/migration
  */
 export const serve = <TInitialPayload = unknown>(
   routeFunction: RouteFunction<TInitialPayload>,
@@ -72,6 +76,7 @@ export const serve = <TInitialPayload = unknown>(
     }
 
     // create serve handler
+    // eslint-disable-next-line @typescript-eslint/no-deprecated
     const serveHandler = serveBase<TInitialPayload>(routeFunction, options);
 
     return await serveHandler(event.request);

@@ -18,6 +18,10 @@ export type WorkflowBindings = {
  * @param routeFunction workflow function
  * @param options workflow options
  * @returns
+ *
+ * @deprecated as of version 2.7.17. Will be removed in qstash-js 3.0.0.
+ * Please use https://github.com/upstash/workflow-js
+ * Migration Guide: https://upstash.com/docs/workflow/migration
  */
 export const serve = <
   TInitialPayload = unknown,
@@ -31,6 +35,7 @@ export const serve = <
     const environment = context.env;
     const request = context.req.raw;
 
+    // eslint-disable-next-line @typescript-eslint/no-deprecated
     const serveHandler = serveBase(routeFunction, {
       // when hono is used without cf workers, it sends a DebugHTTPServer
       // object in `context.env`. don't pass env if this is the case:

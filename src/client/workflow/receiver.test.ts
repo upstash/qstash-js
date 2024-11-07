@@ -84,6 +84,7 @@ const receiver = new Receiver({ currentSigningKey, nextSigningKey });
 /**
  * endpoint to call in the receiver tests
  */
+// eslint-disable-next-line @typescript-eslint/no-deprecated
 const endpoint = serve(
   async (context) => {
     await context.run("step 1", () => {

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-deprecated */
 /* eslint-disable unicorn/consistent-function-scoping */
 /* eslint-disable unicorn/no-null */
 /* eslint-disable @typescript-eslint/require-await */
@@ -332,7 +333,6 @@ describe("serve", () => {
   });
 
   describe("failure settings", () => {
-    // eslint-disable-next-line unicorn/consistent-function-scoping
     const routeFunction: RouteFunction<unknown> = async (context) => {
       await context.sleep("sleep-step", 1);
     };
@@ -424,7 +424,6 @@ describe("serve", () => {
         _status,
         _header,
         _body
-        // eslint-disable-next-line unicorn/consistent-function-scoping
       ) => {
         return;
       };
