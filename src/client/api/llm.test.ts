@@ -297,4 +297,44 @@ describe("llm", () => {
       },
     });
   });
+
+  test.only("should call custom with analytics baseUrl", async () => {
+    await mockQStashServer({
+      execute: async () => {
+        await client.publishJSON({
+          api: {
+            name: "llm",
+            provider: custom({ baseUrl: "mock", token: llmToken }),
+            analytics: {
+              name: "helicone",
+              token: analyticsToken,
+              baseUrl: "https://groq.helicone.ai/openai",
+            },
+          },
+          body: {
+            model,
+          },
+          callback,
+        });
+      },
+      responseFields: {
+        body: { messageId: "msgId" },
+        status: 200,
+      },
+      receivesRequest: {
+        method: "POST",
+        token: qstashToken,
+        url: "http://localhost:8080/v2/publish/https://groq.helicone.ai/openai/v1/chat/completions",
+        body: { model },
+        headers: {
+          authorization: `Bearer ${qstashToken}`,
+          "upstash-forward-authorization": `Bearer ${llmToken}`,
+          "upstash-forward-helicone-auth": `Bearer ${analyticsToken}`,
+          "upstash-callback": callback,
+          "upstash-method": "POST",
+          "content-type": "application/json",
+        },
+      },
+    });
+  });
 });

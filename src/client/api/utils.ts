@@ -105,9 +105,15 @@ export function updateWithAnalytics(
           ...providerInfo.route,
         ]);
       } else {
-        providerInfo.appendHeaders["Helicone-Target-Url"] = providerInfo.baseUrl;
+        if (!analytics.baseUrl) {
+          providerInfo.appendHeaders["Helicone-Target-Url"] = providerInfo.baseUrl;
+        }
 
-        updateProviderInfo(providerInfo, "https://gateway.helicone.ai", providerInfo.route);
+        updateProviderInfo(
+          providerInfo,
+          analytics.baseUrl ?? "https://gateway.helicone.ai",
+          providerInfo.route
+        );
       }
       return providerInfo;
     }
