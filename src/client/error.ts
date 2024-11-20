@@ -1,13 +1,18 @@
 import type { ChatRateLimit, RateLimit } from "./types";
 import type { FailureFunctionPayload, Step } from "./workflow/types";
 
+const RATELIMIT_STATUS = 429;
+
 /**
  * Result of 500 Internal Server Error
  */
 export class QstashError extends Error {
-  constructor(message: string) {
+  public readonly status?: number;
+
+  constructor(message: string, status?: number) {
     super(message);
     this.name = "QstashError";
+    this.status = status;
   }
 }
 
@@ -17,7 +22,7 @@ export class QstashRatelimitError extends QstashError {
   public reset: string | null;
 
   constructor(args: RateLimit) {
-    super(`Exceeded burst rate limit. ${JSON.stringify(args)} `);
+    super(`Exceeded burst rate limit. ${JSON.stringify(args)}`, RATELIMIT_STATUS);
     this.name = "QstashRatelimitError";
     this.limit = args.limit;
     this.remaining = args.remaining;
@@ -34,7 +39,7 @@ export class QstashChatRatelimitError extends QstashError {
   public resetTokens: string | null;
 
   constructor(args: ChatRateLimit) {
-    super(`Exceeded chat rate limit. ${JSON.stringify(args)} `);
+    super(`Exceeded chat rate limit. ${JSON.stringify(args)}`, RATELIMIT_STATUS);
     this.name = "QstashChatRatelimitError";
     this.limitRequests = args["limit-requests"];
     this.limitTokens = args["limit-tokens"];
@@ -51,7 +56,7 @@ export class QstashDailyRatelimitError extends QstashError {
   public reset: string | null;
 
   constructor(args: RateLimit) {
-    super(`Exceeded daily rate limit. ${JSON.stringify(args)} `);
+    super(`Exceeded daily rate limit. ${JSON.stringify(args)}`, RATELIMIT_STATUS);
     this.name = "QstashDailyRatelimitError";
     this.limit = args.limit;
     this.remaining = args.remaining;

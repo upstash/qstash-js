@@ -31,7 +31,7 @@ describe("workflow tests", () => {
     // eslint-disable-next-line @typescript-eslint/no-deprecated
     const throws = qstashClient.workflow.cancel(workflowRunId);
     expect(throws).rejects.toThrow(
-      new QstashError(`{"error":"workflowRun ${workflowRunId} not found"}`)
+      new QstashError(`{"error":"workflowRun ${workflowRunId} not found"}`, 404)
     );
   });
 });

@@ -248,7 +248,10 @@ export class HttpClient implements Requester {
 
     if (response.status < 200 || response.status >= 300) {
       const body = await response.text();
-      throw new QstashError(body.length > 0 ? body : `Error: status=${response.status}`);
+      throw new QstashError(
+        body.length > 0 ? body : `Error: status=${response.status}`,
+        response.status
+      );
     }
   }
 }
