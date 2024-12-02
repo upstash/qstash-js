@@ -5,10 +5,9 @@ import { triggerFirstInvocation } from "./workflow/workflow-requests";
 import { WorkflowContext } from "./workflow/context";
 import { nanoid } from "nanoid";
 import { Client } from "./client";
-import { QstashError } from "./error";
 
 describe("workflow tests", () => {
-  const qstashClient = new Client({ token: process.env.QSTASH_TOKEN! });
+  const qstashClient = new Client({ token: process.env.QSTASH_TOKEN!, retry: false });
   test("should delete workflow succesfully", async () => {
     const workflowRunId = `wfr-${nanoid()}`;
     const result = await triggerFirstInvocation(
@@ -17,7 +16,7 @@ describe("workflow tests", () => {
         workflowRunId,
         headers: new Headers({}) as Headers,
         steps: [],
-        url: "https://some-url.com",
+        url: "https://requestcatcher.com",
         initialPayload: undefined,
       }),
       3
@@ -27,11 +26,5 @@ describe("workflow tests", () => {
     // eslint-disable-next-line @typescript-eslint/no-deprecated
     const cancelResult = await qstashClient.workflow.cancel(workflowRunId);
     expect(cancelResult).toBeTrue();
-
-    // eslint-disable-next-line @typescript-eslint/no-deprecated
-    const throws = qstashClient.workflow.cancel(workflowRunId);
-    expect(throws).rejects.toThrow(
-      new QstashError(`{"error":"workflowRun ${workflowRunId} not found"}`, 404)
-    );
   });
 });

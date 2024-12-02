@@ -36,7 +36,7 @@ describe("DLQ", () => {
 
       await sleep(10_000);
 
-      const dlqLogs = await client.dlq.listMessages();
+      const dlqLogs = await client.dlq.listMessages({ filter: { messageId: message.messageId } });
       expect(dlqLogs.messages.map((dlq) => dlq.messageId)).toContain(message.messageId);
     },
     { timeout: 20_000 }
