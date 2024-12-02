@@ -24,7 +24,7 @@ describe("http", () => {
     expect(throws).toThrow("Was there a typo in the url or port?");
   });
 
-  test.only("should backoff for seconds in ratelimit", async () => {
+  test("should backoff for seconds in ratelimit", async () => {
     const qstashToken = "my-token";
     const retries = 3;
 
