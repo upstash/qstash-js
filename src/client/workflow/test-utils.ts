@@ -16,6 +16,7 @@ export const WORKFLOW_ENDPOINT = "https://www.my-website.com/api";
 export type ResponseFields = {
   body: unknown;
   status: number;
+  headers?: Record<string, string>;
 };
 
 export type RequestFields = {
@@ -84,6 +85,7 @@ export const mockQStashServer = async ({
       }
       return new Response(JSON.stringify(responseFields.body), {
         status: responseFields.status,
+        headers: responseFields.headers,
       });
     },
     port: MOCK_QSTASH_SERVER_PORT,

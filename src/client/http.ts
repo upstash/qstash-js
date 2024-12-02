@@ -4,6 +4,7 @@ import {
   QstashRatelimitError,
   QstashChatRatelimitError,
   QstashDailyRatelimitError,
+  RATELIMIT_STATUS,
 } from "./error";
 import type { BodyInit, HeadersInit, HTTPMethods, RequestOptions } from "./types";
 import type { ChatCompletionChunk } from "./llm/types";
@@ -75,6 +76,19 @@ export type RetryConfig =
        * ```
        */
       backoff?: (retryCount: number) => number;
+      /**
+       * A backoff function receives the current retry cound and returns a number in milliseconds to wait before retrying.
+       *
+       * Applied when the response has 429 status, indicating a ratelimit.
+       *
+       * Initial `lastBackoff` value is 0.
+       *
+       * @default
+       * ```ts
+       * ((lastBackoff) => Math.max(lastBackoff, Math.random() * 4000) + 1000),
+       * ```
+       */
+      ratelimitBackoff?: (lastBackoff: number) => number;
     };
 
 export type HttpClientConfig = {
@@ -93,6 +107,7 @@ export class HttpClient implements Requester {
   public retry: {
     attempts: number;
     backoff: (retryCount: number) => number;
+    ratelimitBackoff: (lastBackoff: number) => number;
   };
 
   public constructor(config: HttpClientConfig) {
@@ -106,10 +121,14 @@ export class HttpClient implements Requester {
         ? {
             attempts: 1,
             backoff: () => 0,
+            ratelimitBackoff: () => 0,
           }
         : {
             attempts: config.retry?.retries ?? 5,
             backoff: config.retry?.backoff ?? ((retryCount) => Math.exp(retryCount) * 50),
+            ratelimitBackoff:
+              config.retry?.ratelimitBackoff ??
+              ((lastBackoff) => Math.max(lastBackoff, Math.random() * 4000) + 1000),
           };
   }
 
@@ -172,23 +191,33 @@ export class HttpClient implements Requester {
 
     let response: Response | undefined = undefined;
     let error: Error | undefined = undefined;
+    let ratelimitBackoff = 0;
     for (let index = 0; index <= this.retry.attempts; index++) {
       try {
         response = await fetch(url.toString(), requestOptions);
+        await this.checkResponse(response);
         break;
       } catch (error_) {
         error = error_ as Error;
 
-        // Only sleep if this is not the last attempt
         if (index < this.retry.attempts) {
-          await new Promise((r) => setTimeout(r, this.retry.backoff(index)));
+          // Only sleep if this is not the last attempt
+
+          if (error instanceof QstashError && error.status === RATELIMIT_STATUS) {
+            ratelimitBackoff = this.retry.ratelimitBackoff(index);
+            console.warn(
+              `QStash Ratelimit Exceeded. Retrying after ${ratelimitBackoff} milliseconds. ${error.message}`
+            );
+            await new Promise((r) => setTimeout(r, ratelimitBackoff));
+          } else {
+            await new Promise((r) => setTimeout(r, this.retry.backoff(index)));
+          }
         }
       }
     }
     if (!response) {
       throw error ?? new Error("Exhausted all retries");
     }
-    await this.checkResponse(response);
 
     return {
       response,
@@ -221,7 +250,7 @@ export class HttpClient implements Requester {
   };
 
   private async checkResponse(response: Response) {
-    if (response.status === 429) {
+    if (response.status === RATELIMIT_STATUS) {
       if (response.headers.get("x-ratelimit-limit-requests")) {
         throw new QstashChatRatelimitError({
           "limit-requests": response.headers.get("x-ratelimit-limit-requests"),

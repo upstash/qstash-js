@@ -1,7 +1,7 @@
 import type { ChatRateLimit, RateLimit } from "./types";
 import type { FailureFunctionPayload, Step } from "./workflow/types";
 
-const RATELIMIT_STATUS = 429;
+export const RATELIMIT_STATUS = 429;
 
 /**
  * Result of 500 Internal Server Error
