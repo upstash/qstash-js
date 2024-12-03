@@ -70,7 +70,7 @@ export type RetryConfig =
       /**
        * A backoff function receives the current retry count and returns a number in milliseconds to wait before retrying.
        *
-       * Used when `fetch` throws an error, like
+       * Used when `fetch` throws an error
        *
        * @default
        * ```ts
