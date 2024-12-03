@@ -68,7 +68,9 @@ export type RetryConfig =
        */
       retries?: number;
       /**
-       * A backoff function receives the current retry cound and returns a number in milliseconds to wait before retrying.
+       * A backoff function receives the current retry count and returns a number in milliseconds to wait before retrying.
+       *
+       * Used when `fetch` throws an error, like
        *
        * @default
        * ```ts
@@ -77,7 +79,7 @@ export type RetryConfig =
        */
       backoff?: (retryCount: number) => number;
       /**
-       * A backoff function receives the current retry cound and returns a number in milliseconds to wait before retrying.
+       * A backoff function receives the current retry count and returns a number in milliseconds to wait before retrying.
        *
        * Applied when the response has 429 status, indicating a ratelimit.
        *
@@ -195,14 +197,13 @@ export class HttpClient implements Requester {
     for (let index = 0; index <= this.retry.attempts; index++) {
       try {
         response = await fetch(url.toString(), requestOptions);
-        await this.checkResponse(response);
+        this.checkResponseForRatelimit(response);
         break;
       } catch (error_) {
         error = error_ as Error;
 
+        // Only sleep if this is not the last attempt
         if (index < this.retry.attempts) {
-          // Only sleep if this is not the last attempt
-
           if (error instanceof QstashError && error.status === RATELIMIT_STATUS) {
             ratelimitBackoff = this.retry.ratelimitBackoff(index);
             console.warn(
@@ -218,6 +219,8 @@ export class HttpClient implements Requester {
     if (!response) {
       throw error ?? new Error("Exhausted all retries");
     }
+
+    await this.checkResponse(response);
 
     return {
       response,
@@ -249,7 +252,10 @@ export class HttpClient implements Requester {
     return [url.toString(), requestOptions];
   };
 
-  private async checkResponse(response: Response) {
+  /**
+   * throws error if the response status is 429
+   */
+  private checkResponseForRatelimit(response: Response) {
     if (response.status === RATELIMIT_STATUS) {
       if (response.headers.get("x-ratelimit-limit-requests")) {
         throw new QstashChatRatelimitError({
@@ -274,7 +280,13 @@ export class HttpClient implements Requester {
         reset: response.headers.get("Burst-RateLimit-Reset"),
       });
     }
+  }
 
+  /**
+   * throws error if response is non-success
+   */
+  private async checkResponse(response: Response) {
+    this.checkResponseForRatelimit(response);
     if (response.status < 200 || response.status >= 300) {
       const body = await response.text();
       throw new QstashError(
