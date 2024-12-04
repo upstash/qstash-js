@@ -100,6 +100,45 @@ describe("E2E Publish", () => {
     expect(verifiedMessage.maxRetries).toBeGreaterThanOrEqual(retryCount);
     expect(verifiedMessage.failureCallback).toBe("https://oz.requestcatcher.com/?foo=bar");
   });
+
+  test("should use global headers", async () => {
+    const clientWithHeaders = new Client({
+      token: process.env.QSTASH_TOKEN!,
+      headers: {
+        "test-header": "test-value",
+      },
+    });
+
+    const result = await clientWithHeaders.publish({
+      url: "https://example.com/",
+    });
+
+    const verifiedMessage = await client.messages.get(result.messageId);
+    const messageHeaders = new Headers(verifiedMessage.header);
+
+    expect(messageHeaders.get("test-header")).toEqual("test-value");
+  });
+
+  test("should override global headers if headers are provided", async () => {
+    const clientWithHeaders = new Client({
+      token: process.env.QSTASH_TOKEN!,
+      headers: {
+        "TEST-HEADER": "global-value",
+      },
+    });
+
+    const result = await clientWithHeaders.publish({
+      url: "https://example.com/",
+      headers: {
+        "Test-Header": "override-value",
+      },
+    });
+
+    const verifiedMessage = await client.messages.get(result.messageId);
+    const messageHeaders = new Headers(verifiedMessage.header);
+
+    expect(messageHeaders.get("test-header")).toEqual("override-value");
+  });
 });
 
 describe("E2E Url Group Publish", () => {
