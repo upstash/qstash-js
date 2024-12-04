@@ -31,6 +31,12 @@ type ClientConfig = {
    * Configure how the client should retry requests.
    */
   retry?: RetryConfig;
+
+  /**
+   * Global headers to send with each request.
+   * These can be overridden by the headers in the request.
+   */
+  headers?: HeadersInit;
 };
 
 export type PublishBatchRequest<TBody = BodyInit> = PublishRequest<TBody> & {
@@ -271,6 +277,7 @@ export class Client {
       retry: config.retry,
       baseUrl: config.baseUrl ? config.baseUrl.replace(/\/$/, "") : "https://qstash.upstash.io",
       authorization: `Bearer ${config.token}`,
+      headers: config.headers,
     });
     this.token = config.token;
   }
