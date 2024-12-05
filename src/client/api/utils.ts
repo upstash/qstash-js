@@ -1,6 +1,7 @@
 import type { PublishRequest } from "../client";
 import type { LLMOptions, ProviderInfo, PublishEmailApi, PublishLLMApi } from "./types";
 import { upstash } from "./llm";
+import type { HeadersInit } from "../types";
 
 /**
  * copies and updates the request by removing the api field and adding url & headers.
@@ -43,19 +44,52 @@ export const getProviderInfo = (
 };
 
 /**
+ * joins two header sets. If the same header exists in both headers and record,
+ * one in headers is used.
+ *
+ * The reason why we added this method is because the following doesn't work:
+ *
+ * ```ts
+ * const joined = {
+ *   ...headers,
+ *   ...record
+ * }
+ * ```
+ *
+ * `headers.toJSON` could have worked, but it exists in bun, and not necessarily in
+ * other runtimes.
+ *
+ * @param headers Headers object
+ * @param record record
+ * @returns joined header
+ */
+const safeJoinHeaders = (headers: Headers, record: Record<string, string>) => {
+  const joinedHeaders = new Headers(record);
+  for (const [header, value] of headers.entries()) {
+    joinedHeaders.set(header, value);
+  }
+  return joinedHeaders as HeadersInit;
+};
+
+/**
  * copies and updates the request by removing the api field and adding url & headers.
  *
- * if there is no api field, simply returns.
+ * if there is no api field, simply returns after overwriting headers with the passed headers.
  *
  * @param request request with api field
+ * @param headers processed headers. Previously, these headers were assigned to the request
+ *   when the headers were calculated. But PublishRequest.request type (HeadersInit) is broader
+ *   than headers (Headers). PublishRequest.request is harder to work with, so we set them here.
  * @param upstashToken used if provider is upstash and token is not set
  * @returns updated request
  */
 export const processApi = (
   request: PublishRequest<unknown>,
+  headers: Headers,
   upstashToken: string
 ): PublishRequest<unknown> => {
   if (!request.api) {
+    request.headers = headers;
     return request;
   }
 
@@ -69,11 +103,7 @@ export const processApi = (
 
     return {
       ...request,
-      // @ts-expect-error undici header conflict
-      headers: new Headers({
-        ...request.headers,
-        ...appendHeaders,
-      }),
+      headers: safeJoinHeaders(headers, appendHeaders),
       ...(owner === "upstash" && !request.api.analytics
         ? { api: { name: "llm" }, url: undefined, callback }
         : { url, api: undefined }),
@@ -81,11 +111,7 @@ export const processApi = (
   } else {
     return {
       ...request,
-      // @ts-expect-error undici header conflict
-      headers: new Headers({
-        ...request.headers,
-        ...appendHeaders,
-      }),
+      headers: safeJoinHeaders(headers, appendHeaders),
       url,
       api: undefined,
     };
