@@ -134,11 +134,10 @@ export class Queue {
     //@ts-expect-error caused by undici and bunjs type overlap
     const headers = prefixHeaders(new Headers(request.headers));
     headers.set("Content-Type", "application/json");
-    request.headers = headers;
 
     //@ts-expect-error hacky way to get bearer token
     const upstashToken = String(this.http.authorization).split("Bearer ")[1];
-    const nonApiRequest = processApi(request, upstashToken);
+    const nonApiRequest = processApi(request, headers, upstashToken);
 
     const response = await this.enqueue({
       ...nonApiRequest,

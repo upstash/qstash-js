@@ -1,7 +1,9 @@
+import type { HTTPMethods } from "../types";
 import type { ApiKind, Owner, ProviderInfo } from "./types";
 
 export abstract class BaseProvider<TName extends ApiKind, TOwner = Owner> {
   public abstract readonly apiKind: TName;
+  public abstract readonly method: HTTPMethods;
 
   public readonly baseUrl: string;
   public token: string;
