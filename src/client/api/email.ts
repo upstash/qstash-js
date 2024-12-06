@@ -4,6 +4,7 @@ import type { EmailOwner, ProviderInfo } from "./types";
 export class EmailProvider extends BaseProvider<"email", EmailOwner> {
   public readonly apiKind = "email";
   public readonly batch: boolean;
+  public readonly method = "POST";
 
   constructor(baseUrl: string, token: string, owner: EmailOwner, batch: boolean) {
     super(baseUrl, token, owner);

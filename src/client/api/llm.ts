@@ -5,6 +5,7 @@ import { updateWithAnalytics } from "./utils";
 export class LLMProvider<TOwner extends LLMOwner> extends BaseProvider<"llm", LLMOwner> {
   public readonly apiKind = "llm";
   public readonly organization?: string;
+  public readonly method = "POST";
 
   constructor(baseUrl: string, token: string, owner: TOwner, organization?: string) {
     super(baseUrl, token, owner);

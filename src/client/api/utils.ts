@@ -38,6 +38,7 @@ export const getProviderInfo = (
     route: finalProvider.getRoute(),
     appendHeaders: finalProvider.getHeaders(parameters),
     owner: finalProvider.owner,
+    method: finalProvider.method,
   };
 
   return finalProvider.onFinish(providerInfo, parameters);
@@ -93,7 +94,7 @@ export const processApi = (
     return request;
   }
 
-  const { url, appendHeaders, owner } = getProviderInfo(request.api, upstashToken);
+  const { url, appendHeaders, owner, method } = getProviderInfo(request.api, upstashToken);
 
   if (request.api.name === "llm") {
     const callback = request.callback;
@@ -103,6 +104,7 @@ export const processApi = (
 
     return {
       ...request,
+      method: request.method ?? method,
       headers: safeJoinHeaders(headers, appendHeaders),
       ...(owner === "upstash" && !request.api.analytics
         ? { api: { name: "llm" }, url: undefined, callback }
@@ -111,6 +113,7 @@ export const processApi = (
   } else {
     return {
       ...request,
+      method: request.method ?? method,
       headers: safeJoinHeaders(headers, appendHeaders),
       url,
       api: undefined,

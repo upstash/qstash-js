@@ -50,6 +50,7 @@ describe("email", () => {
           "upstash-forward-authorization": `Bearer ${resendToken}`,
           "content-type": "application/json",
           [`upstash-forward-${header}`]: headerValue,
+          "upstash-method": "POST",
         },
       },
     });
@@ -109,6 +110,68 @@ describe("email", () => {
           "upstash-forward-authorization": `Bearer ${resendToken}`,
           "content-type": "application/json",
           [`upstash-forward-${header}`]: headerValue,
+          "upstash-method": "POST",
+        },
+      },
+    });
+  });
+
+  test("should be able to overwrite method", async () => {
+    await mockQStashServer({
+      execute: async () => {
+        await client.publishJSON({
+          api: {
+            name: "email",
+            provider: resend({ token: resendToken, batch: true }),
+          },
+          headers: {
+            [header]: headerValue,
+          },
+          method: "PUT",
+          body: [
+            {
+              from: "Acme <onboarding@resend.dev>",
+              to: ["foo@gmail.com"],
+              subject: "hello world",
+              html: "<h1>it works!</h1>",
+            },
+            {
+              from: "Acme <onboarding@resend.dev>",
+              to: ["bar@outlook.com"],
+              subject: "world hello",
+              html: "<p>it works!</p>",
+            },
+          ],
+        });
+      },
+      responseFields: {
+        body: { messageId: "msgId" },
+        status: 200,
+      },
+      receivesRequest: {
+        method: "POST",
+        token: qstashToken,
+        url: "http://localhost:8080/v2/publish/https://api.resend.com/emails/batch",
+        body: [
+          {
+            from: "Acme <onboarding@resend.dev>",
+            to: ["foo@gmail.com"],
+            subject: "hello world",
+            html: "<h1>it works!</h1>",
+          },
+          {
+            from: "Acme <onboarding@resend.dev>",
+            to: ["bar@outlook.com"],
+            subject: "world hello",
+            html: "<p>it works!</p>",
+          },
+        ],
+        headers: {
+          authorization: `Bearer ${qstashToken}`,
+          "upstash-forward-authorization": `Bearer ${resendToken}`,
+          "content-type": "application/json",
+          [`upstash-forward-${header}`]: headerValue,
+          "upstash-method": "PUT",
         },
       },
     });
