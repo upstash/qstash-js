@@ -7,7 +7,6 @@ import {
 } from "./error";
 import type { BodyInit, HeadersInit, HTTPMethods, RequestOptions } from "./types";
 import type { ChatCompletionChunk } from "./llm/types";
-import { prefixHeaders } from "./utils";
 
 export type UpstashRequest = {
   /**
@@ -82,7 +81,6 @@ export type HttpClientConfig = {
   baseUrl: string;
   authorization: string;
   retry?: RetryConfig;
-  headers?: HeadersInit;
 };
 
 export class HttpClient implements Requester {
@@ -91,8 +89,6 @@ export class HttpClient implements Requester {
   public readonly authorization: string;
 
   public readonly options?: { backend?: string };
-
-  private readonly globalHeaders: Headers;
 
   public retry: {
     attempts: number;
@@ -115,9 +111,6 @@ export class HttpClient implements Requester {
             attempts: config.retry?.retries ?? 5,
             backoff: config.retry?.backoff ?? ((retryCount) => Math.exp(retryCount) * 50),
           };
-
-    //@ts-expect-error caused by undici and bunjs type overlap
-    this.globalHeaders = prefixHeaders(new Headers(config.headers));
   }
 
   public async request<TResult>(request: UpstashRequest): Promise<UpstashResponse<TResult>> {
@@ -205,16 +198,7 @@ export class HttpClient implements Requester {
 
   private processRequest = (request: UpstashRequest): [string, RequestOptions] => {
     //@ts-expect-error caused by undici and bunjs type overlap
-    const newHeaders = new Headers(request.headers);
-
-    const headers = new Headers(this.globalHeaders);
-
-    // It does not have an `entries` method
-    // eslint-disable-next-line unicorn/no-array-for-each
-    newHeaders.forEach((value, key) => {
-      headers.set(key, value);
-    });
-
+    const headers = new Headers(request.headers);
     if (!headers.has("Authorization")) {
       headers.set("Authorization", this.authorization);
     }

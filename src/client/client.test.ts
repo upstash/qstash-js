@@ -3,6 +3,7 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { nanoid } from "nanoid";
 import { Client } from "./client";
+import type { PublishToUrlResponse } from "../../dist";
 
 export const clearQueues = async (client: Client) => {
   const queueDetails = await client.queue().list();
@@ -104,11 +105,15 @@ describe("E2E Publish", () => {
   test("should use global headers", async () => {
     const clientWithHeaders = new Client({
       token: process.env.QSTASH_TOKEN!,
+      // @ts-expect-error undefined header
       headers: {
-        "test-header": "test-value",
+        "undefined-header": undefined,
+        "test-header": "value",
+        "test-header-2": "value-2",
+        "TEST-CASE": "value-uppercase",
+        "test-case": "value-lowercase",
       },
     });
-
     const result = await clientWithHeaders.publish({
       url: "https://example.com/",
     });
@@ -116,17 +121,21 @@ describe("E2E Publish", () => {
     const verifiedMessage = await client.messages.get(result.messageId);
     const messageHeaders = new Headers(verifiedMessage.header);
 
-    expect(messageHeaders.get("test-header")).toEqual("test-value");
+    expect(messageHeaders.get("test-header")).toEqual("value");
+    expect(messageHeaders.get("test-header-2")).toEqual("value-2");
+    expect(messageHeaders.get("test-case")).toEqual("value-uppercase, value-lowercase");
+    expect(messageHeaders.get("undefined-header")).toEqual("undefined");
   });
 
-  test("should override global headers if headers are provided", async () => {
+  test("should override global headers", async () => {
     const clientWithHeaders = new Client({
       token: process.env.QSTASH_TOKEN!,
       headers: {
-        "TEST-HEADER": "global-value",
+        "test-header": "value",
+        "test-header-2": "value-2",
+        "stays-same": "same",
       },
     });
-
     const result = await clientWithHeaders.publish({
       url: "https://example.com/",
       headers: {
@@ -138,6 +147,116 @@ describe("E2E Publish", () => {
     const messageHeaders = new Headers(verifiedMessage.header);
 
     expect(messageHeaders.get("test-header")).toEqual("override-value");
+    expect(messageHeaders.get("test-header-2")).toEqual("value-2");
+    expect(messageHeaders.get("stays-same")).toEqual("same");
+  });
+
+  test("should override global headers with publishJSON if headers are provided", async () => {
+    const clientWithHeaders = new Client({
+      token: process.env.QSTASH_TOKEN!,
+      headers: {
+        "test-header": "value",
+        "test-header-2": "value-2",
+      },
+    });
+    const result = await clientWithHeaders.publishJSON({
+      url: "https://example.com/",
+      headers: {
+        "Test-Header": "override-value",
+        "stays-same": "same",
+      },
+    });
+
+    const verifiedMessage = await client.messages.get(result.messageId);
+    const messageHeaders = new Headers(verifiedMessage.header);
+
+    expect(messageHeaders.get("test-header")).toEqual("override-value");
+    expect(messageHeaders.get("test-header-2")).toEqual("value-2");
+    expect(messageHeaders.get("stays-same")).toEqual("same");
+  });
+});
+
+describe("E2E Batch", () => {
+  test("should override global headers", async () => {
+    const client = new Client({
+      token: process.env.QSTASH_TOKEN!,
+      headers: {
+        "test-header": "value",
+        "test-header-2": "value-2",
+      },
+    });
+    const result = (await client.batch([
+      {
+        url: "https://example.com/1",
+        headers: {
+          "Test-Header": "override-value-1",
+          "stays-same": "same",
+        },
+      },
+      {
+        url: "https://example.com/2",
+        headers: {
+          "Test-Header": "override-value-2",
+          "stays-same": "same",
+        },
+      },
+    ])) as PublishToUrlResponse[];
+
+    const verifiedMessage1 = await client.messages.get(result[0].messageId);
+    const messageHeaders1 = new Headers(verifiedMessage1.header);
+
+    const verifiedMessage2 = await client.messages.get(result[1].messageId);
+    const messageHeaders2 = new Headers(verifiedMessage2.header);
+
+    expect(messageHeaders1.get("test-header")).toEqual("override-value-1");
+    expect(messageHeaders2.get("test-header")).toEqual("override-value-2");
+
+    expect(messageHeaders1.get("stays-same")).toEqual("same");
+    expect(messageHeaders2.get("stays-same")).toEqual("same");
+
+    expect(messageHeaders1.get("test-header-2")).toEqual("value-2");
+    expect(messageHeaders2.get("test-header-2")).toEqual("value-2");
+  });
+
+  test("should override global headers with batchJSON", async () => {
+    const client = new Client({
+      token: process.env.QSTASH_TOKEN!,
+      headers: {
+        "test-header": "value",
+        "test-header-2": "value-2",
+      },
+    });
+    const result = (await client.batchJSON([
+      {
+        url: "https://example.com/1",
+        headers: {
+          "Test-Header": "override-value-1",
+          "stays-same": "same",
+        },
+      },
+      {
+        url: "https://example.com/2",
+        headers: {
+          "Test-Header": "override-value-2",
+          "stays-same": "same",
+        },
+      },
+    ])) as PublishToUrlResponse[];
+
+    const verifiedMessage1 = await client.messages.get(result[0].messageId);
+    const messageHeaders1 = new Headers(verifiedMessage1.header);
+
+    const verifiedMessage2 = await client.messages.get(result[1].messageId);
+    const messageHeaders2 = new Headers(verifiedMessage2.header);
+
+    expect(messageHeaders1.get("test-header")).toEqual("override-value-1");
+    expect(messageHeaders2.get("test-header")).toEqual("override-value-2");
+
+    expect(messageHeaders1.get("stays-same")).toEqual("same");
+    expect(messageHeaders2.get("stays-same")).toEqual("same");
+
+    expect(messageHeaders1.get("test-header-2")).toEqual("value-2");
+    expect(messageHeaders2.get("test-header-2")).toEqual("value-2");
   });
 });
 
