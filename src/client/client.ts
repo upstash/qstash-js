@@ -31,6 +31,12 @@ type ClientConfig = {
    * Configure how the client should retry requests.
    */
   retry?: RetryConfig;
+
+  /**
+   * Global headers to send with each request.
+   * These can be overridden by the headers in the request.
+   */
+  headers?: HeadersInit;
 };
 
 export type PublishBatchRequest<TBody = BodyInit> = PublishRequest<TBody> & {
@@ -265,6 +271,7 @@ export type QueueRequest = {
 export class Client {
   public http: Requester;
   private token: string;
+  private headers: Headers;
 
   public constructor(config: ClientConfig) {
     this.http = new HttpClient({
@@ -273,6 +280,19 @@ export class Client {
       authorization: `Bearer ${config.token}`,
     });
     this.token = config.token;
+    //@ts-expect-error caused by undici and bunjs type overlap
+    this.headers = prefixHeaders(new Headers(config.headers));
+  }
+
+  private wrapWithGlobalHeaders(headers: Headers) {
+    const finalHeaders = new Headers(this.headers);
+
+    // eslint-disable-next-line unicorn/no-array-for-each
+    headers.forEach((value, key) => {
+      finalHeaders.set(key, value);
+    });
+
+    return finalHeaders;
   }
 
   /**
@@ -357,7 +377,7 @@ export class Client {
   public async publish<TRequest extends PublishRequest>(
     request: TRequest
   ): Promise<PublishResponse<TRequest>> {
-    const headers = processHeaders(request);
+    const headers = this.wrapWithGlobalHeaders(processHeaders(request)) as HeadersInit;
     const response = await this.http.request<PublishResponse<TRequest>>({
       path: ["v2", "publish", getRequestPath(request)],
       body: request.body,
@@ -399,7 +419,7 @@ export class Client {
   public async batch(request: PublishBatchRequest[]): Promise<PublishResponse<PublishRequest>[]> {
     const messages = [];
     for (const message of request) {
-      const headers = processHeaders(message);
+      const headers = this.wrapWithGlobalHeaders(processHeaders(message));
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       //@ts-ignore Type mismatch TODO: should be checked later
       const headerEntries = Object.fromEntries(headers.entries());
