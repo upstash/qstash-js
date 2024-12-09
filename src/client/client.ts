@@ -377,7 +377,7 @@ export class Client {
   public async publish<TRequest extends PublishRequest>(
     request: TRequest
   ): Promise<PublishResponse<TRequest>> {
-    const headers = this.wrapWithGlobalHeaders(processHeaders(request));
+    const headers = this.wrapWithGlobalHeaders(processHeaders(request)) as HeadersInit;
     const response = await this.http.request<PublishResponse<TRequest>>({
       path: ["v2", "publish", getRequestPath(request)],
       body: request.body,
