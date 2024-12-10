@@ -1,3 +1,4 @@
+import type { HTTPMethods } from "../types";
 import type { BaseProvider } from "./base";
 
 export type ProviderInfo = {
@@ -21,6 +22,10 @@ export type ProviderInfo = {
    * provider owner
    */
   owner: Owner;
+  /**
+   * method to use in the request
+   */
+  method: HTTPMethods;
 };
 
 export type ApiKind = "llm" | "email";
