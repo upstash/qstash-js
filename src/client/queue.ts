@@ -1,7 +1,8 @@
 import { processApi } from "./api/utils";
 import type { PublishRequest, PublishResponse } from "./client";
 import type { Requester } from "./http";
-import { getRequestPath, prefixHeaders, processHeaders } from "./utils";
+import type { HeadersInit } from "./types";
+import { getRequestPath, prefixHeaders, processHeaders, wrapWithGlobalHeaders } from "./utils";
 
 export type QueueResponse = {
   createdAt: number;
@@ -112,7 +113,11 @@ export class Queue {
       throw new Error("Please provide a queue name to the Queue constructor");
     }
 
-    const headers = processHeaders(request);
+    const headers = wrapWithGlobalHeaders(
+      processHeaders(request),
+      this.http.headers
+    ) as HeadersInit;
+
     const destination = getRequestPath(request);
     const response = await this.http.request<PublishResponse<TRequest>>({
       path: ["v2", "enqueue", this.queueName, destination],
@@ -142,7 +147,6 @@ export class Queue {
     const response = await this.enqueue({
       ...nonApiRequest,
       body: JSON.stringify(nonApiRequest.body),
-      headers,
     });
 
     // @ts-expect-error can't assign union type to conditional

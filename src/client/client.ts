@@ -7,7 +7,7 @@ import { Queue } from "./queue";
 import { Schedules } from "./schedules";
 import type { BodyInit, Event, GetEventsPayload, HeadersInit, HTTPMethods, State } from "./types";
 import { UrlGroups } from "./url-groups";
-import { getRequestPath, prefixHeaders, processHeaders } from "./utils";
+import { getRequestPath, prefixHeaders, processHeaders, wrapWithGlobalHeaders } from "./utils";
 import { Workflow } from "./workflow";
 import type { PublishEmailApi, PublishLLMApi } from "./api/types";
 import { processApi } from "./api/utils";
@@ -271,28 +271,16 @@ export type QueueRequest = {
 export class Client {
   public http: Requester;
   private token: string;
-  private headers: Headers;
 
   public constructor(config: ClientConfig) {
     this.http = new HttpClient({
       retry: config.retry,
       baseUrl: config.baseUrl ? config.baseUrl.replace(/\/$/, "") : "https://qstash.upstash.io",
       authorization: `Bearer ${config.token}`,
+      //@ts-expect-error caused by undici and bunjs type overlap
+      headers: prefixHeaders(new Headers(config.headers)),
     });
     this.token = config.token;
-    //@ts-expect-error caused by undici and bunjs type overlap
-    this.headers = prefixHeaders(new Headers(config.headers));
-  }
-
-  private wrapWithGlobalHeaders(headers: Headers) {
-    const finalHeaders = new Headers(this.headers);
-
-    // eslint-disable-next-line unicorn/no-array-for-each
-    headers.forEach((value, key) => {
-      finalHeaders.set(key, value);
-    });
-
-    return finalHeaders;
   }
 
   /**
@@ -377,7 +365,10 @@ export class Client {
   public async publish<TRequest extends PublishRequest>(
     request: TRequest
   ): Promise<PublishResponse<TRequest>> {
-    const headers = this.wrapWithGlobalHeaders(processHeaders(request)) as HeadersInit;
+    const headers = wrapWithGlobalHeaders(
+      processHeaders(request),
+      this.http.headers
+    ) as HeadersInit;
     const response = await this.http.request<PublishResponse<TRequest>>({
       path: ["v2", "publish", getRequestPath(request)],
       body: request.body,
@@ -418,7 +409,7 @@ export class Client {
   public async batch(request: PublishBatchRequest[]): Promise<PublishResponse<PublishRequest>[]> {
     const messages = [];
     for (const message of request) {
-      const headers = this.wrapWithGlobalHeaders(processHeaders(message));
+      const headers = wrapWithGlobalHeaders(processHeaders(message), this.http.headers);
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       //@ts-ignore Type mismatch TODO: should be checked later
       const headerEntries = Object.fromEntries(headers.entries());
