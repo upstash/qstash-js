@@ -16,7 +16,7 @@ export class EmailProvider extends BaseProvider<"email", EmailOwner> {
   }
   getHeaders(_options: unknown): Record<string, string> {
     return {
-      "upstash-forward-authorization": `Bearer ${this.token}`,
+      authorization: `Bearer ${this.token}`,
     };
   }
 
