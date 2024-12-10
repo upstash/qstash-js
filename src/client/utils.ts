@@ -23,7 +23,7 @@ export function prefixHeaders(headers: Headers) {
   return headers;
 }
 
-export function wrapWithGlobalHeaders(headers: Headers, globalHeaders?: Headers) {
+export function wrapWithGlobalHeaders(headers: Headers, globalHeaders?: Headers): Headers {
   if (!globalHeaders) {
     return headers;
   }
@@ -35,6 +35,7 @@ export function wrapWithGlobalHeaders(headers: Headers, globalHeaders?: Headers)
     finalHeaders.set(key, value);
   });
 
+  //@ts-expect-error caused by undici and bunjs type overlap
   return finalHeaders;
 }
 
