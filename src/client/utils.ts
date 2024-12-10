@@ -23,6 +23,22 @@ export function prefixHeaders(headers: Headers) {
   return headers;
 }
 
+export function wrapWithGlobalHeaders(headers: Headers, globalHeaders?: Headers): Headers {
+  if (!globalHeaders) {
+    return headers;
+  }
+
+  const finalHeaders = new Headers(globalHeaders);
+
+  // eslint-disable-next-line unicorn/no-array-for-each
+  headers.forEach((value, key) => {
+    finalHeaders.set(key, value);
+  });
+
+  //@ts-expect-error caused by undici and bunjs type overlap
+  return finalHeaders;
+}
+
 export function processHeaders(request: PublishRequest) {
   //@ts-expect-error caused by undici and bunjs type overlap
   const headers = prefixHeaders(new Headers(request.headers));

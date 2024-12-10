@@ -3,6 +3,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { Client } from "./client";
 import type { Schedule } from "./schedules";
 import { nanoid } from "nanoid";
+import { MOCK_QSTASH_SERVER_URL, MOCK_SERVER_URL, mockQStashServer } from "./workflow/test-utils";
 
 describe("Schedules", () => {
   const client = new Client({ token: process.env.QSTASH_TOKEN! });
@@ -136,5 +137,85 @@ describe("Schedules", () => {
     expect(schedules[0].scheduleId).toBe(scheduleId);
     expect(schedules[0].destination).toBe(updatedDestination);
     expect(schedules[0].body).toBeUndefined();
+  });
+
+  test("should be able to schedule with correct headers", async () => {
+    const qstashToken = nanoid();
+
+    const globalHeader = "global-header";
+    const globalHeaderOverwritten = "global-header-overwritten";
+    const requestHeader = "request-header";
+
+    const globalHeaderValue = nanoid();
+    const overWrittenOldValue = nanoid();
+    const overWrittenNewValue = nanoid();
+    const requestHeaderValue = nanoid();
+
+    const client = new Client({
+      baseUrl: MOCK_QSTASH_SERVER_URL,
+      token: qstashToken,
+      headers: {
+        [globalHeader]: globalHeaderValue,
+        [globalHeaderOverwritten]: overWrittenOldValue,
+      },
+    });
+    await mockQStashServer({
+      execute: async () => {
+        await client.schedules.create({
+          scheduleId: "asd",
+          destination: MOCK_SERVER_URL,
+          cron: "* * * * 1",
+          body: JSON.stringify([
+            {
+              from: "Acme <onboarding@resend.dev>",
+              to: ["foo@gmail.com"],
+              subject: "hello world",
+              html: "<h1>it works!</h1>",
+            },
+            {
+              from: "Acme <onboarding@resend.dev>",
+              to: ["bar@outlook.com"],
+              subject: "world hello",
+              html: "<p>it works!</p>",
+            },
+          ]),
+          headers: {
+            "content-type": "application/json",
+            [globalHeaderOverwritten]: overWrittenNewValue,
+            [requestHeader]: requestHeaderValue,
+          },
+        });
+      },
+      responseFields: {
+        body: { messageId: "msgId" },
+        status: 200,
+      },
+      receivesRequest: {
+        method: "POST",
+        token: qstashToken,
+        url: "http://localhost:8080/v2/schedules/https://requestcatcher.com/",
+        body: [
+          {
+            from: "Acme <onboarding@resend.dev>",
+            to: ["foo@gmail.com"],
+            subject: "hello world",
+            html: "<h1>it works!</h1>",
+          },
+          {
+            from: "Acme <onboarding@resend.dev>",
+            to: ["bar@outlook.com"],
+            subject: "world hello",
+            html: "<p>it works!</p>",
+          },
+        ],
+        headers: {
+          authorization: `Bearer ${qstashToken}`,
+          "content-type": "application/json",
+          [`upstash-forward-${requestHeader}`]: requestHeaderValue,
+          [`upstash-forward-${globalHeader}`]: globalHeaderValue,
+          [`upstash-forward-${globalHeaderOverwritten}`]: overWrittenNewValue,
+        },
+      },
+    });
   });
 });

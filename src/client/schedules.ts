@@ -1,4 +1,4 @@
-import { prefixHeaders } from "./utils";
+import { prefixHeaders, wrapWithGlobalHeaders } from "./utils";
 import type { Requester } from "./http";
 import type { BodyInit, HeadersInit, HTTPMethods } from "./types";
 import type { Duration } from "./duration";
@@ -189,7 +189,7 @@ export class Schedules {
 
     return await this.http.request({
       method: "POST",
-      headers,
+      headers: wrapWithGlobalHeaders(headers, this.http.headers) as HeadersInit,
       path: ["v2", "schedules", request.destination],
       body: request.body,
     });

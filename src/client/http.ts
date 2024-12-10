@@ -55,6 +55,7 @@ export type UpstashResponse<TResult> = TResult & { error?: string };
 export type Requester = {
   request: <TResult = unknown>(request: UpstashRequest) => Promise<UpstashResponse<TResult>>;
   requestStream: (request: UpstashRequest) => AsyncIterable<ChatCompletionChunk>;
+  headers?: Headers;
 };
 
 export type RetryConfig =
@@ -81,6 +82,7 @@ export type HttpClientConfig = {
   baseUrl: string;
   authorization: string;
   retry?: RetryConfig;
+  headers?: Headers;
 };
 
 export class HttpClient implements Requester {
@@ -94,6 +96,8 @@ export class HttpClient implements Requester {
     attempts: number;
     backoff: (retryCount: number) => number;
   };
+
+  public readonly headers;
 
   public constructor(config: HttpClientConfig) {
     this.baseUrl = config.baseUrl.replace(/\/$/, "");
@@ -111,6 +115,8 @@ export class HttpClient implements Requester {
             attempts: config.retry?.retries ?? 5,
             backoff: config.retry?.backoff ?? ((retryCount) => Math.exp(retryCount) * 50),
           };
+
+    this.headers = config.headers;
   }
 
   public async request<TResult>(request: UpstashRequest): Promise<UpstashResponse<TResult>> {
