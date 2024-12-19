@@ -34,6 +34,10 @@ export class LLMProvider<TOwner extends LLMOwner> extends BaseProvider<"llm", LL
       headers["OpenAI-Organization"] = this.organization;
     }
 
+    if (this.owner === "anthropic") {
+      headers["anthropic-version"] = "2023-06-01";
+    }
+
     return headers;
   }
 
