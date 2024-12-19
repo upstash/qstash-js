@@ -182,6 +182,7 @@ describe("llm", () => {
         headers: {
           authorization: `Bearer ${qstashToken}`,
           "upstash-forward-x-api-key": llmToken,
+          "upstash-forward-anthropic-version": "2023-06-01",
           "upstash-callback": callback,
           "upstash-method": "POST",
           "content-type": "application/json",
