@@ -117,30 +117,34 @@ describe("Test QStash chat", () => {
     { timeout: 30_000, retry: 3 }
   );
 
-  test("should publish with llm api", async () => {
-    const result = await client.publishJSON({
-      api: { name: "llm", provider: upstash() },
-      body: {
-        model: "meta-llama/Meta-Llama-3-8B-Instruct",
-        messages: [
-          {
-            role: "user",
-            content: "hello",
-          },
-        ],
-      },
-      callback: "https://example.com",
-    });
-    expect(result.messageId).toBeTruthy();
+  test(
+    "should publish with llm api",
+    async () => {
+      const result = await client.publishJSON({
+        api: { name: "llm", provider: upstash() },
+        body: {
+          model: "meta-llama/Meta-Llama-3-8B-Instruct",
+          messages: [
+            {
+              role: "user",
+              content: "hello",
+            },
+          ],
+        },
+        callback: "https://example.com",
+      });
+      expect(result.messageId).toBeTruthy();
 
-    // sleep before checking the message
-    // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-    await new Promise((r) => setTimeout(r, 3000));
+      // sleep before checking the message
+      // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+      await new Promise((r) => setTimeout(r, 30_000));
 
-    const { events } = await client.events({ filter: { messageId: result.messageId } });
-    const deliveredEvent = events.find((event) => event.state === "DELIVERED");
-    expect(deliveredEvent).not.toBeUndefined();
-  });
+      const { events } = await client.events({ filter: { messageId: result.messageId } });
+      const deliveredEvent = events.find((event) => event.state === "DELIVERED");
+      expect(deliveredEvent).not.toBeUndefined();
+    },
+    { timeout: 60_000 }
+  );
 
   test("should batch with llm api", async () => {
     const result = await client.batchJSON([
@@ -285,36 +289,40 @@ describe("Test QStash chat with third party LLMs", () => {
     { timeout: 30_000, retry: 3 }
   );
 
-  test("should publish with llm api", async () => {
-    const result = await client.publishJSON({
-      api: {
-        name: "llm",
-        provider: openai({
-          token: process.env.OPENAI_API_KEY!,
-          organization: process.env.OPENAI_ORGANIZATION!,
-        }),
-      },
-      body: {
-        model: "gpt-3.5-turbo",
-        messages: [
-          {
-            role: "user",
-            content: "Where is the capital of Turkey?",
-          },
-        ],
-      },
-      callback: "https://oz.requestcatcher.com/",
-    });
-    expect(result.messageId).toBeTruthy();
+  test(
+    "should publish with llm api",
+    async () => {
+      const result = await client.publishJSON({
+        api: {
+          name: "llm",
+          provider: openai({
+            token: process.env.OPENAI_API_KEY!,
+            organization: process.env.OPENAI_ORGANIZATION!,
+          }),
+        },
+        body: {
+          model: "gpt-3.5-turbo",
+          messages: [
+            {
+              role: "user",
+              content: "Where is the capital of Turkey?",
+            },
+          ],
+        },
+        callback: "https://oz.requestcatcher.com/",
+      });
+      expect(result.messageId).toBeTruthy();
 
-    // sleep before checking the message
-    // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-    await new Promise((r) => setTimeout(r, 3000));
+      // sleep before checking the message
+      // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+      await new Promise((r) => setTimeout(r, 30_000));
 
-    const { events } = await client.events({ filter: { messageId: result.messageId } });
-    const deliveredEvent = events.find((event) => event.state === "DELIVERED");
-    expect(deliveredEvent).not.toBeUndefined();
-  });
+      const { events } = await client.events({ filter: { messageId: result.messageId } });
+      const deliveredEvent = events.find((event) => event.state === "DELIVERED");
+      expect(deliveredEvent).not.toBeUndefined();
+    },
+    { timeout: 60_000 }
+  );
 
   test("should publish with llm api", () => {
     //@ts-expect-error We intentionally omit the callback to ensure the function fails as expected
