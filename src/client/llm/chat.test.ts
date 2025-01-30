@@ -5,7 +5,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { OpenAIStream, StreamingTextResponse } from "ai";
-import { describe, expect, mock, test } from "bun:test";
+import { beforeEach, describe, expect, mock, test } from "bun:test";
 import { Client } from "../client";
 import type { ChatCompletionChunk, ChatRequest } from "./types";
 import type { Requester } from "../http";
@@ -188,6 +188,11 @@ describe("Test QStash chat", () => {
 
 describe("Test QStash chat with third party LLMs", () => {
   const client = new Client({ token: process.env.QSTASH_TOKEN! });
+
+  beforeEach(() => {
+    // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+    return new Promise((r) => setTimeout(r, 1000));
+  });
 
   test(
     "should respond to prompt",
