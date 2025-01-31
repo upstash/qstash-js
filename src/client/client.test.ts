@@ -415,3 +415,51 @@ describe("E2E Queue", () => {
     { timeout: 35_000 }
   );
 });
+
+const checkClient = (client: Client, expectedBaseUrl: string, expectedToken: string) => {
+  // @ts-expect-error accessing private field
+  expect(client.http.baseUrl).toBe(expectedBaseUrl);
+  // @ts-expect-error accessing private field
+  expect(client.token).toBe(expectedToken);
+};
+
+describe("initialization", () => {
+  const baseUrl = "https://some-url.com";
+  const token = "some-token";
+
+  const qstashUrl = process.env.QSTASH_URL;
+  const qstashToken = process.env.QSTASH_TOKEN;
+
+  afterAll(() => {
+    process.env.QSTASH_URL = qstashUrl;
+    process.env.QSTASH_TOKEN = qstashToken;
+  });
+
+  beforeAll(() => {
+    process.env.QSTASH_URL = baseUrl;
+    process.env.QSTASH_TOKEN = token;
+  });
+
+  test("should use env variables if parameters aren't passed", () => {
+    const client = new Client();
+    checkClient(client, baseUrl, token);
+  });
+
+  test("should use token variable if it's passed", () => {
+    const newToken = nanoid();
+    const client = new Client({ token: newToken });
+    checkClient(client, baseUrl, newToken);
+  });
+
+  test("should use baseUrl variable if it's passed", () => {
+    const newBaseUrl = nanoid();
+    const client = new Client({ baseUrl: newBaseUrl });
+    checkClient(client, newBaseUrl, token);
+  });
+
+  test("should use baseUrl variable if it's passed", () => {
+    process.env.QSTASH_URL = undefined;
+    const client = new Client();
+    checkClient(client, "https://qstash.upstash.io", token);
+  });
+});
