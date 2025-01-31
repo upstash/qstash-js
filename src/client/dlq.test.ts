@@ -36,7 +36,7 @@ describe("DLQ", () => {
 
       await sleep(10_000);
 
-      const dlqLogs = await client.dlq.listMessages();
+      const dlqLogs = await client.dlq.listMessages({ filter: { messageId: message.messageId } });
       expect(dlqLogs.messages.map((dlq) => dlq.messageId)).toContain(message.messageId);
     },
     { timeout: 20_000 }
@@ -52,12 +52,12 @@ describe("DLQ", () => {
 
       await sleep(10_000);
 
-      let dlqLogs = await client.dlq.listMessages();
+      let dlqLogs = await client.dlq.listMessages({ filter: { messageId: message.messageId } });
       let dlqMessage = dlqLogs.messages.find((dlq) => dlq.messageId === message.messageId);
 
       await client.dlq.delete(dlqMessage?.dlqId ?? "");
 
-      dlqLogs = await client.dlq.listMessages();
+      dlqLogs = await client.dlq.listMessages({ filter: { messageId: message.messageId } });
       dlqMessage = dlqLogs.messages.find((dlq) => dlq.messageId === message.messageId);
 
       expect(dlqMessage).toBeUndefined();
