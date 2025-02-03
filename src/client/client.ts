@@ -18,14 +18,21 @@ type ClientConfig = {
    *
    * This is only used for testing.
    *
+   * If not provided, value of the QSTASH_URL environment
+   * variable will be used if it exists. If the QSTASH_URL
+   * environment variable isn't set either, default is used.
+   *
    * @default "https://qstash.upstash.io"
    */
   baseUrl?: string;
 
   /**
    * The authorization token from the upstash console.
+   *
+   * If not provided, value of the QSTASH_TOKEN environment
+   * variable will be used if it exists.
    */
-  token: string;
+  token?: string;
 
   /**
    * Configure how the client should retry requests.
@@ -272,15 +279,31 @@ export class Client {
   public http: Requester;
   private token: string;
 
-  public constructor(config: ClientConfig) {
+  public constructor(config?: ClientConfig) {
+    const environment =
+      typeof process === "undefined" ? ({} as Record<string, string>) : process.env;
+
+    const baseUrl = config?.baseUrl
+      ? config.baseUrl.replace(/\/$/, "")
+      : environment.QSTASH_URL ?? "https://qstash.upstash.io";
+    const token = config?.token ?? environment.QSTASH_TOKEN;
+
     this.http = new HttpClient({
-      retry: config.retry,
-      baseUrl: config.baseUrl ? config.baseUrl.replace(/\/$/, "") : "https://qstash.upstash.io",
-      authorization: `Bearer ${config.token}`,
+      retry: config?.retry,
+      baseUrl,
+      authorization: `Bearer ${token}`,
       //@ts-expect-error caused by undici and bunjs type overlap
-      headers: prefixHeaders(new Headers(config.headers)),
+      headers: prefixHeaders(new Headers(config?.headers ?? {})),
     });
-    this.token = config.token;
+
+    if (!token) {
+      console.warn(
+        "[Upstash QStash] client token is not set. Either pass a token or set QSTASH_TOKEN env variable."
+      );
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    this.token = token!;
   }
 
   /**
