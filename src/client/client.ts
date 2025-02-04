@@ -166,7 +166,8 @@ export type PublishRequest<TBody = BodyInit> = {
   timeout?: Duration | number;
 
   /**
-   * TODO
+   * Settings for controlling the number of active requests
+   * and number of requests per second with the same key.
    */
   flowControl?: FlowControl;
 } & (
