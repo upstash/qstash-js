@@ -218,4 +218,22 @@ describe("Schedules", () => {
       },
     });
   });
+
+  test("should create schedule with flow control", async () => {
+    const scheduleId = nanoid();
+    await client.schedules.create({
+      destination: "https://www.initial.com",
+      cron: "*/5 * * * *",
+      scheduleId,
+      body: "my-payload",
+      flowControl: {
+        key: "flow-key",
+        parallelism: 10,
+      },
+    });
+
+    const schedule = await client.schedules.get(scheduleId);
+
+    // TODO: assert schedule fields
+  });
 });
