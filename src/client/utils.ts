@@ -98,16 +98,14 @@ export function processHeaders(request: PublishRequest) {
     const controlValue = [
       parallelism ? `parallelism=${parallelism}` : undefined,
       rate ? `rate=${rate}` : undefined,
-    ]
-      .filter(Boolean)
-      .join(", ");
+    ].filter(Boolean);
 
-    if (controlValue === "") {
+    if (controlValue.length === 0) {
       throw new QstashError("Provide at least one of parallelism or callsPerSecond for rateLimit");
     }
 
     headers.set("Upstash-Flow-Control-Key", request.rateLimit.key);
-    headers.set("Upstash-Flow-Control-Value", controlValue);
+    headers.set("Upstash-Flow-Control-Value", controlValue.join(", "));
   }
 
   return headers;
