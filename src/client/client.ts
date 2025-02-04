@@ -168,7 +168,7 @@ export type PublishRequest<TBody = BodyInit> = {
   /**
    * TODO
    */
-  rateLimit?: FlowControl;
+  flowControl?: FlowControl;
 } & (
   | {
       /**

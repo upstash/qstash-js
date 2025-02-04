@@ -61,5 +61,5 @@ export type FlowControl = {
   /**
    * number of requests to activate per second with the same key
    */
-  callsPerSecond?: number;
+  ratePerSecond?: number;
 };
