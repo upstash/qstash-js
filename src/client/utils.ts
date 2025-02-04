@@ -93,7 +93,7 @@ export function processHeaders(request: PublishRequest) {
 
   if (request.rateLimit?.key) {
     const parallelism = request.rateLimit.parallelism?.toString();
-    const rate = request.rateLimit.callsPerSec?.toString();
+    const rate = request.rateLimit.callsPerSecond?.toString();
 
     const controlValue = [
       parallelism ? `parallelism=${parallelism}` : undefined,
@@ -103,7 +103,7 @@ export function processHeaders(request: PublishRequest) {
       .join(", ");
 
     if (controlValue === "") {
-      throw new QstashError("Provide at least one of parallelism or callsPerSec for rateLimit");
+      throw new QstashError("Provide at least one of parallelism or callsPerSecond for rateLimit");
     }
 
     headers.set("Upstash-Flow-Control-Key", request.rateLimit.key);

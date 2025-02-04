@@ -436,7 +436,7 @@ describe("flow control", () => {
         },
       });
     };
-    expect(throws).toThrow("Provide at least one of parallelism or callsPerSec for rateLimit");
+    expect(throws).toThrow("Provide at least one of parallelism or callsPerSecond for rateLimit");
   });
 
   test("should publish a message with flow control", async () => {
@@ -447,7 +447,7 @@ describe("flow control", () => {
           rateLimit: {
             key: rateLimitKey,
             parallelism: 3,
-            callsPerSec: 5,
+            callsPerSecond: 5,
           },
         });
       },
@@ -478,7 +478,7 @@ describe("flow control", () => {
             url: "https://example.com/one",
             rateLimit: {
               key: rateLimitKeyOne,
-              callsPerSec: 10,
+              callsPerSecond: 10,
             },
             body: "some-body",
           },
