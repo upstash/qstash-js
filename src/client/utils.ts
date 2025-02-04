@@ -91,6 +91,25 @@ export function processHeaders(request: PublishRequest) {
     }
   }
 
+  if (request.rateLimit?.key) {
+    const parallelism = request.rateLimit.parallelism?.toString();
+    const rate = request.rateLimit.callsPerSec?.toString();
+
+    const controlValue = [
+      parallelism ? `parallelism=${parallelism}` : undefined,
+      rate ? `rate=${rate}` : undefined,
+    ]
+      .filter(Boolean)
+      .join(", ");
+
+    if (controlValue === "") {
+      throw new QstashError("Provide at least one of parallelism or callsPerSec for rateLimit");
+    }
+
+    headers.set("Upstash-Flow-Control-Key", request.rateLimit.key);
+    headers.set("Upstash-Flow-Control-Value", controlValue);
+  }
+
   return headers;
 }
 

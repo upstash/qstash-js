@@ -48,3 +48,18 @@ export type RateLimit = {
   remaining: string | null;
   reset: string | null;
 };
+
+export type FlowControl = {
+  /**
+   * flow control key
+   */
+  key: string;
+  /**
+   * number of requests which can be active with the same key
+   */
+  parallelism?: number;
+  /**
+   * number of requests to activate per second with the same key
+   */
+  callsPerSec?: number;
+};
