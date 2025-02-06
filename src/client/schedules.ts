@@ -20,6 +20,9 @@ export type Schedule = {
   callerIp?: string;
   isPaused: boolean;
   queueName?: string;
+  flowControlKey?: string;
+  parallelism?: number;
+  rate?: number;
 };
 
 export type CreateScheduleRequest = {

@@ -220,6 +220,8 @@ describe("Schedules", () => {
   });
 
   test("should create schedule with flow control", async () => {
+    const parallelism = 10;
+    const ratePerSecond = 5;
     const scheduleId = nanoid();
     await client.schedules.create({
       destination: "https://www.initial.com",
@@ -228,12 +230,14 @@ describe("Schedules", () => {
       body: "my-payload",
       flowControl: {
         key: "flow-key",
-        parallelism: 10,
+        parallelism,
+        ratePerSecond,
       },
     });
 
     const schedule = await client.schedules.get(scheduleId);
-
-    // TODO: assert schedule fields
+    expect(schedule.flowControlKey).toBe("flow-key");
+    expect(schedule.parallelism).toBe(parallelism);
+    expect(schedule.rate).toBe(ratePerSecond);
   });
 });
