@@ -115,4 +115,39 @@ describe("DLQ", () => {
     },
     { timeout: 20_000 }
   );
+
+  test(
+    "should get flow control",
+    async () => {
+      const parallelism = 10;
+      const ratePerSecond = 5;
+      const { messageId } = await client.publish({
+        url: "https://httpstat.us/400",
+        body: "hello",
+        retries: 0,
+        flowControl: {
+          key: "flow-key",
+          parallelism,
+          ratePerSecond,
+        },
+      });
+
+      await sleep(5000);
+
+      const result = await client.dlq.listMessages({
+        filter: {
+          messageId,
+        },
+      });
+      expect(result.messages.length).toBe(1);
+      const message = result.messages[0];
+
+      expect(message.flowControlKey).toBe("flow-key");
+      expect(message.parallelism).toBe(parallelism);
+      expect(message.rate).toBe(ratePerSecond);
+    },
+    {
+      timeout: 10_000,
+    }
+  );
 });
