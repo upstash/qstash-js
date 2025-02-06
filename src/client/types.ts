@@ -55,11 +55,11 @@ export type FlowControl = {
    */
   key: string;
   /**
-   * number of requests which can be active with the same key
+   * number of requests which can be active with the same flow control key
    */
   parallelism?: number;
   /**
-   * number of requests to activate per second with the same key
+   * number of requests to activate per second with the same flow control key
    */
   ratePerSecond?: number;
 };
