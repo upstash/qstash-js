@@ -431,6 +431,7 @@ describe("flow control", () => {
     const throws = async () => {
       await client.publishJSON({
         url: "https://example.com/",
+        // @ts-expect-error missing ratePerSecond or parallelism for test purposes
         flowControl: {
           key: flowControlKey,
         },
