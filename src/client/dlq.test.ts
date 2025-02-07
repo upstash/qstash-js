@@ -144,7 +144,7 @@ describe("DLQ", () => {
 
       expect(message.flowControlKey).toBe("flow-key");
       expect(message.parallelism).toBe(parallelism);
-      expect(message.rate).toBe(ratePerSecond);
+      expect(message.ratePerSecond).toBe(ratePerSecond);
     },
     {
       timeout: 10_000,

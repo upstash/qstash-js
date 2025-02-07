@@ -238,6 +238,6 @@ describe("Schedules", () => {
     const schedule = await client.schedules.get(scheduleId);
     expect(schedule.flowControlKey).toBe("flow-key");
     expect(schedule.parallelism).toBe(parallelism);
-    expect(schedule.rate).toBe(ratePerSecond);
+    expect(schedule.ratePerSecond).toBe(ratePerSecond);
   });
 });

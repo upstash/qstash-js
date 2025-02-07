@@ -104,10 +104,8 @@ export type Message = {
   parallelism?: number;
   /**
    * number of requests to activate per second with the same flow control key
-   *
-   * set through the ratePerSecond parameter in flowControl.
    */
-  rate?: number;
+  ratePerSecond?: number;
 };
 
 export type MessagePayload = Omit<Message, "urlGroup"> & { topicName: string };
@@ -130,6 +128,7 @@ export class Messages {
     const message: Message = {
       ...messagePayload,
       urlGroup: messagePayload.topicName,
+      ratePerSecond: "rate" in messagePayload ? (messagePayload.rate as number) : undefined,
     };
     return message;
   }

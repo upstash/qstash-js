@@ -22,7 +22,7 @@ export type Schedule = {
   queueName?: string;
   flowControlKey?: string;
   parallelism?: number;
-  rate?: number;
+  ratePerSecond?: number;
 };
 
 export type CreateScheduleRequest = {
@@ -228,20 +228,30 @@ export class Schedules {
    * Get a schedule
    */
   public async get(scheduleId: string): Promise<Schedule> {
-    return await this.http.request<Schedule>({
+    const schedule = await this.http.request<Schedule>({
       method: "GET",
       path: ["v2", "schedules", scheduleId],
     });
+
+    if ("rate" in schedule) schedule.ratePerSecond = schedule.rate as number;
+
+    return schedule;
   }
 
   /**
    * List your schedules
    */
   public async list(): Promise<Schedule[]> {
-    return await this.http.request<Schedule[]>({
+    const schedules = await this.http.request<Schedule[]>({
       method: "GET",
       path: ["v2", "schedules"],
     });
+
+    for (const schedule of schedules) {
+      if ("rate" in schedule) schedule.ratePerSecond = schedule.rate as number;
+    }
+
+    return schedules;
   }
 
   /**

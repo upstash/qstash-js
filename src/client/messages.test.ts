@@ -94,7 +94,7 @@ describe("Messages", () => {
     const parallelism = 10;
     const ratePerSecond = 5;
     const { messageId } = await client.publish({
-      url: "https://httpstat.us/200",
+      url: "https://httpstat.us/200?sleep=30000",
       body: "hello",
       flowControl: {
         key: "flow-key",
@@ -106,6 +106,6 @@ describe("Messages", () => {
     const message = await client.messages.get(messageId);
     expect(message.flowControlKey).toBe("flow-key");
     expect(message.parallelism).toBe(parallelism);
-    expect(message.rate).toBe(ratePerSecond);
+    expect(message.ratePerSecond).toBe(ratePerSecond);
   });
 });
