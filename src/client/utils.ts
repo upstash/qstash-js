@@ -91,6 +91,23 @@ export function processHeaders(request: PublishRequest) {
     }
   }
 
+  if (request.flowControl?.key) {
+    const parallelism = request.flowControl.parallelism?.toString();
+    const rate = request.flowControl.ratePerSecond?.toString();
+
+    const controlValue = [
+      parallelism ? `parallelism=${parallelism}` : undefined,
+      rate ? `rate=${rate}` : undefined,
+    ].filter(Boolean);
+
+    if (controlValue.length === 0) {
+      throw new QstashError("Provide at least one of parallelism or ratePerSecond for flowControl");
+    }
+
+    headers.set("Upstash-Flow-Control-Key", request.flowControl.key);
+    headers.set("Upstash-Flow-Control-Value", controlValue.join(", "));
+  }
+
   return headers;
 }
 

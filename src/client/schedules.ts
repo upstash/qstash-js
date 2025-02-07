@@ -1,7 +1,8 @@
 import { prefixHeaders, wrapWithGlobalHeaders } from "./utils";
 import type { Requester } from "./http";
-import type { BodyInit, HeadersInit, HTTPMethods } from "./types";
+import type { BodyInit, FlowControl, HeadersInit, HTTPMethods } from "./types";
 import type { Duration } from "./duration";
+import { QstashError } from "./error";
 
 export type Schedule = {
   scheduleId: string;
@@ -19,6 +20,9 @@ export type Schedule = {
   callerIp?: string;
   isPaused: boolean;
   queueName?: string;
+  flowControlKey?: string;
+  parallelism?: number;
+  ratePerSecond?: number;
 };
 
 export type CreateScheduleRequest = {
@@ -119,6 +123,12 @@ export type CreateScheduleRequest = {
    * Queue name to schedule the message over.
    */
   queueName?: string;
+
+  /**
+   * Settings for controlling the number of active requests
+   * and number of requests per second with the same key.
+   */
+  flowControl?: FlowControl;
 };
 
 export class Schedules {
@@ -187,6 +197,25 @@ export class Schedules {
       headers.set("Upstash-Queue-Name", request.queueName);
     }
 
+    if (request.flowControl?.key) {
+      const parallelism = request.flowControl.parallelism?.toString();
+      const rate = request.flowControl.ratePerSecond?.toString();
+
+      const controlValue = [
+        parallelism ? `parallelism=${parallelism}` : undefined,
+        rate ? `rate=${rate}` : undefined,
+      ].filter(Boolean);
+
+      if (controlValue.length === 0) {
+        throw new QstashError(
+          "Provide at least one of parallelism or ratePerSecond for flowControl"
+        );
+      }
+
+      headers.set("Upstash-Flow-Control-Key", request.flowControl.key);
+      headers.set("Upstash-Flow-Control-Value", controlValue.join(", "));
+    }
+
     return await this.http.request({
       method: "POST",
       headers: wrapWithGlobalHeaders(headers, this.http.headers) as HeadersInit,
@@ -199,20 +228,30 @@ export class Schedules {
    * Get a schedule
    */
   public async get(scheduleId: string): Promise<Schedule> {
-    return await this.http.request<Schedule>({
+    const schedule = await this.http.request<Schedule>({
       method: "GET",
       path: ["v2", "schedules", scheduleId],
     });
+
+    if ("rate" in schedule) schedule.ratePerSecond = schedule.rate as number;
+
+    return schedule;
   }
 
   /**
    * List your schedules
    */
   public async list(): Promise<Schedule[]> {
-    return await this.http.request<Schedule[]>({
+    const schedules = await this.http.request<Schedule[]>({
       method: "GET",
       path: ["v2", "schedules"],
     });
+
+    for (const schedule of schedules) {
+      if ("rate" in schedule) schedule.ratePerSecond = schedule.rate as number;
+    }
+
+    return schedules;
   }
 
   /**

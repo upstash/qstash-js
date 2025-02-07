@@ -89,4 +89,23 @@ describe("Messages", () => {
     },
     { timeout: 20_000 }
   );
+
+  test("should create message with flow control", async () => {
+    const parallelism = 10;
+    const ratePerSecond = 5;
+    const { messageId } = await client.publish({
+      url: "https://httpstat.us/200?sleep=30000",
+      body: "hello",
+      flowControl: {
+        key: "flow-key",
+        parallelism,
+        ratePerSecond,
+      },
+    });
+
+    const message = await client.messages.get(messageId);
+    expect(message.flowControlKey).toBe("flow-key");
+    expect(message.parallelism).toBe(parallelism);
+    expect(message.ratePerSecond).toBe(ratePerSecond);
+  });
 });

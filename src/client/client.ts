@@ -5,7 +5,15 @@ import { Chat } from "./llm/chat";
 import { Messages } from "./messages";
 import { Queue } from "./queue";
 import { Schedules } from "./schedules";
-import type { BodyInit, Event, GetEventsPayload, HeadersInit, HTTPMethods, State } from "./types";
+import type {
+  BodyInit,
+  Event,
+  FlowControl,
+  GetEventsPayload,
+  HeadersInit,
+  HTTPMethods,
+  State,
+} from "./types";
 import { UrlGroups } from "./url-groups";
 import { getRequestPath, prefixHeaders, processHeaders, wrapWithGlobalHeaders } from "./utils";
 import { Workflow } from "./workflow";
@@ -156,6 +164,12 @@ export type PublishRequest<TBody = BodyInit> = {
    * @default undefined
    */
   timeout?: Duration | number;
+
+  /**
+   * Settings for controlling the number of active requests
+   * and number of requests per second with the same key.
+   */
+  flowControl?: FlowControl;
 } & (
   | {
       /**

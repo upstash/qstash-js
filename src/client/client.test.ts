@@ -4,6 +4,7 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { nanoid } from "nanoid";
 import { Client } from "./client";
 import type { PublishToUrlResponse } from "../../dist";
+import { MOCK_QSTASH_SERVER_URL, mockQStashServer } from "./workflow/test-utils";
 
 export const clearQueues = async (client: Client) => {
   const queueDetails = await client.queue().list();
@@ -414,4 +415,118 @@ describe("E2E Queue", () => {
     },
     { timeout: 35_000 }
   );
+});
+
+describe("flow control", () => {
+  const token = nanoid();
+  const client = new Client({
+    baseUrl: MOCK_QSTASH_SERVER_URL,
+    token,
+  });
+
+  const flowControlKey = nanoid();
+
+  test("should throw if key is passed but no ratePerSec or parallelism", () => {
+    // eslint-disable-next-line unicorn/consistent-function-scoping
+    const throws = async () => {
+      await client.publishJSON({
+        url: "https://example.com/",
+        // @ts-expect-error missing ratePerSecond or parallelism for test purposes
+        flowControl: {
+          key: flowControlKey,
+        },
+      });
+    };
+    expect(throws).toThrow("Provide at least one of parallelism or ratePerSecond for flowControl");
+  });
+
+  test("should publish a message with flow control", async () => {
+    await mockQStashServer({
+      execute: async () => {
+        await client.publishJSON({
+          urlGroup: "my-group",
+          flowControl: {
+            key: flowControlKey,
+            parallelism: 3,
+            ratePerSecond: 5,
+          },
+        });
+      },
+      responseFields: {
+        body: { messageId: "msgId" },
+        status: 200,
+      },
+      receivesRequest: {
+        method: "POST",
+        token,
+        url: "http://localhost:8080/v2/publish/my-group",
+        body: undefined,
+        headers: {
+          "Upstash-Flow-Control-Key": flowControlKey,
+          "Upstash-Flow-Control-Value": "parallelism=3, rate=5",
+        },
+      },
+    });
+  });
+
+  test("should batch messages with flow control", async () => {
+    const flowControlKeyOne = nanoid();
+    const flowControlKeyTwo = nanoid();
+    await mockQStashServer({
+      execute: async () => {
+        await client.batch([
+          {
+            url: "https://example.com/one",
+            flowControl: {
+              key: flowControlKeyOne,
+              ratePerSecond: 10,
+            },
+            body: "some-body",
+          },
+          {
+            url: "https://example.com/two",
+            flowControl: {
+              key: flowControlKeyTwo,
+              parallelism: 5,
+            },
+            method: "GET",
+          },
+        ]);
+      },
+      responseFields: {
+        body: { messageId: "msgId" },
+        status: 200,
+      },
+      receivesRequest: {
+        method: "POST",
+        token,
+        url: "http://localhost:8080/v2/batch",
+        body: [
+          {
+            body: "some-body",
+            destination: "https://example.com/one",
+            headers: {
+              "upstash-flow-control-key": flowControlKeyOne,
+              "upstash-flow-control-value": "rate=10",
+              "upstash-method": "POST",
+            },
+          },
+          {
+            destination: "https://example.com/two",
+            headers: {
+              "upstash-flow-control-key": flowControlKeyTwo,
+              "upstash-flow-control-value": "parallelism=5",
+              "upstash-method": "GET",
+            },
+          },
+        ],
+        headers: {
+          // eslint-disable-next-line unicorn/no-null
+          "Upstash-Flow-Control-Key": null,
+          // eslint-disable-next-line unicorn/no-null
+          "Upstash-Flow-Control-Value": null,
+        },
+      },
+    });
+  });
 });

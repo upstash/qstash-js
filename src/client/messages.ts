@@ -93,6 +93,19 @@ export type Message = {
    * IP address of the publisher of this message
    */
   callerIp?: string;
+
+  /**
+   * flow control key
+   */
+  flowControlKey: string;
+  /**
+   * number of requests which can be active with the same flow control key
+   */
+  parallelism?: number;
+  /**
+   * number of requests to activate per second with the same flow control key
+   */
+  ratePerSecond?: number;
 };
 
 export type MessagePayload = Omit<Message, "urlGroup"> & { topicName: string };
@@ -115,6 +128,7 @@ export class Messages {
     const message: Message = {
       ...messagePayload,
       urlGroup: messagePayload.topicName,
+      ratePerSecond: "rate" in messagePayload ? (messagePayload.rate as number) : undefined,
     };
     return message;
   }

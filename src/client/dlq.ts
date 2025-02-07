@@ -128,6 +128,7 @@ export class DLQ {
         return {
           ...message,
           urlGroup: message.topicName,
+          ratePerSecond: "rate" in message ? (message.rate as number) : undefined,
         };
       }),
       cursor: messagesPayload.cursor,

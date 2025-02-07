@@ -218,4 +218,26 @@ describe("Schedules", () => {
       },
     });
   });
+
+  test("should create schedule with flow control", async () => {
+    const parallelism = 10;
+    const ratePerSecond = 5;
+    const scheduleId = nanoid();
+    await client.schedules.create({
+      destination: "https://www.initial.com",
+      cron: "*/5 * * * *",
+      scheduleId,
+      body: "my-payload",
+      flowControl: {
+        key: "flow-key",
+        parallelism,
+        ratePerSecond,
+      },
+    });
+
+    const schedule = await client.schedules.get(scheduleId);
+    expect(schedule.flowControlKey).toBe("flow-key");
+    expect(schedule.parallelism).toBe(parallelism);
+    expect(schedule.ratePerSecond).toBe(ratePerSecond);
+  });
 });
