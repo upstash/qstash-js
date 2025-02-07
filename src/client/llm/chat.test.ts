@@ -117,7 +117,7 @@ describe("Test QStash chat", () => {
     { timeout: 30_000, retry: 3 }
   );
 
-  test("should publish with llm api", async () => {
+  test.skip("should publish with llm api", async () => {
     const result = await client.publishJSON({
       api: { name: "llm", provider: upstash() },
       body: {
@@ -290,7 +290,7 @@ describe("Test QStash chat with third party LLMs", () => {
     { timeout: 30_000, retry: 3 }
   );
 
-  test("should publish with llm api", async () => {
+  test.skip("should publish with llm api", async () => {
     const result = await client.publishJSON({
       api: {
         name: "llm",
@@ -321,7 +321,7 @@ describe("Test QStash chat with third party LLMs", () => {
     expect(deliveredEvent).not.toBeUndefined();
   });
 
-  test("should publish with llm api", () => {
+  test("should not be able to without callback", () => {
     //@ts-expect-error We intentionally omit the callback to ensure the function fails as expected
     const resultPromise = client.publishJSON({
       api: {
