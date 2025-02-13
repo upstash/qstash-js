@@ -1,4 +1,4 @@
-import { describe, test } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import { Client } from "../client";
 import { MOCK_QSTASH_SERVER_URL, mockQStashServer } from "../test-utils";
 import { nanoid } from "../utils";
@@ -13,6 +13,21 @@ describe("llm", () => {
   const model = `model-${nanoid()}`;
 
   const client = new Client({ baseUrl: MOCK_QSTASH_SERVER_URL, token: qstashToken });
+
+  test("should throw an error when provider is left empty", async () => {
+    expect(async () => {
+      await client.publishJSON({
+        // @ts-expect-error Intentionally left empty for the test
+        api: {
+          name: "llm",
+        },
+        body: {
+          model,
+        },
+        callback,
+      });
+    }).toThrowError("Provider cannot be undefined when using LLM api.");
+  });
 
   test("should call analytics with openai", async () => {
     await mockQStashServer({

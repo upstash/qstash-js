@@ -12,6 +12,9 @@ import type { HeadersInit } from "../types";
 export const getProviderInfo = (api: PublishEmailApi | PublishLLMApi): ProviderInfo => {
   const { name, provider, ...parameters } = api;
 
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  if (!provider) throw new TypeError("Provider cannot be undefined when using LLM api.");
+
   // validate provider
   if (!provider.baseUrl) throw new TypeError("baseUrl cannot be empty or undefined!");
   if (!provider.token) throw new TypeError("token cannot be empty or undefined!");
