@@ -1,13 +1,9 @@
-/* eslint-disable @typescript-eslint/no-magic-numbers */
 /* eslint-disable unicorn/prevent-abbreviations */
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 import type { NextApiHandler, NextApiRequest, NextApiResponse } from "next";
 import { type NextRequest } from "next/server";
 import { type NextFetchEvent } from "next/server";
 import { Receiver } from "../src/receiver";
-
-import type { WorkflowServeOptions, RouteFunction } from "../src/client/workflow";
-import { serve as serveBase } from "../src/client/workflow";
 
 export type VerifySignatureConfig = {
   currentSigningKey?: string;
@@ -192,67 +188,3 @@ export function verifySignatureAppRouter(
     return handler(request as NextRequest, params);
   };
 }
-
-/**
- * Serve method to serve a Upstash Workflow in a Nextjs project
- *
- * See for options https://upstash.com/docs/qstash/workflows/basics/serve
- *
- * @param routeFunction workflow function
- * @param options workflow options
- * @returns
- *
- * @deprecated as of version 2.7.17. Will be removed in qstash-js 3.0.0.
- * Please use https://github.com/upstash/workflow-js
- * Migration Guide: https://upstash.com/docs/workflow/migration
- */
-export const serve = <TInitialPayload = unknown>(
-  routeFunction: RouteFunction<TInitialPayload>,
-  options?: Omit<WorkflowServeOptions<Response, TInitialPayload>, "onStepFinish">
-): ((request: Request) => Promise<Response>) => {
-  // eslint-disable-next-line @typescript-eslint/no-deprecated
-  const handler = serveBase<TInitialPayload>(routeFunction, {
-    onStepFinish: (workflowRunId: string) =>
-      new Response(JSON.stringify({ workflowRunId }), { status: 200 }),
-    ...options,
-  });
-
-  return async (request: Request) => {
-    return await handler(request);
-  };
-};
-
-/**
- * @deprecated as of version 2.7.17. Will be removed in qstash-js 3.0.0.
- * Please use https://github.com/upstash/workflow-js
- * Migration Guide: https://upstash.com/docs/workflow/migration
- */
-export const servePagesRouter = <TInitialPayload = unknown>(
-  routeFunction: RouteFunction<TInitialPayload>,
-  options?: Omit<WorkflowServeOptions<Response, TInitialPayload>, "onStepFinish">
-): NextApiHandler => {
-  // eslint-disable-next-line @typescript-eslint/no-deprecated
-  const handler = serveBase(routeFunction, options);
-
-  return async (req: NextApiRequest, res: NextApiResponse) => {
-    if (req.method?.toUpperCase() !== "POST") {
-      res.status(405).json("Only POST requests are allowed in worklfows");
-      return;
-    } else if (!req.url) {
-      res.status(400).json("url not found in the request");
-      return;
-    }
-
-    const protocol = req.headers["x-forwarded-proto"];
-    const baseUrl = options?.baseUrl ?? `${protocol}://${req.headers.host}`;
-
-    const request = new Request(options?.url ?? `${baseUrl}${req.url}`, {
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      body: JSON.stringify(req.body) ?? "",
-      headers: new Headers(req.headersDistinct as Record<string, string[]>),
-      method: "POST",
-    });
-    const response = await handler(request);
-    res.status(response.status).json(await response.json());
-  };
-};

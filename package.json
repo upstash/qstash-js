@@ -35,10 +35,6 @@
       "import": "./h3.mjs",
       "require": "./h3.js"
     },
-    "./nuxt": {
-      "import": "./nuxt.mjs",
-      "require": "./nuxt.js"
-    },
     "./svelte": {
       "import": "./svelte.mjs",
       "require": "./svelte.js"
@@ -46,18 +42,6 @@
     "./solidjs": {
       "import": "./solidjs.mjs",
       "require": "./solidjs.js"
-    },
-    "./workflow": {
-      "import": "./workflow.mjs",
-      "require": "./workflow.js"
-    },
-    "./hono": {
-      "import": "./hono.mjs",
-      "require": "./hono.js"
-    },
-    "./cloudflare": {
-      "import": "./cloudflare.mjs",
-      "require": "./cloudflare.js"
     }
   },
   "keywords": [
