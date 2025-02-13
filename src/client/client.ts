@@ -16,7 +16,6 @@ import type {
 } from "./types";
 import { UrlGroups } from "./url-groups";
 import { getRequestPath, prefixHeaders, processHeaders, wrapWithGlobalHeaders } from "./utils";
-import { Workflow } from "./workflow";
 import type { PublishEmailApi, PublishLLMApi } from "./api/types";
 import { processApi } from "./api/utils";
 
@@ -368,20 +367,6 @@ export class Client {
   }
 
   /**
-   * Access the workflow API.
-   *
-   * cancel workflows.
-   *
-   * @deprecated as of version 2.7.17. Will be removed in qstash-js 3.0.0.
-   * Please use @upstash/workflow instead https://github.com/upstash/workflow-js
-   * Migration Guide: https://upstash.com/docs/workflow/migration
-   */
-  public get workflow(): Workflow {
-    // eslint-disable-next-line @typescript-eslint/no-deprecated
-    return new Workflow(this.http);
-  }
-
-  /**
    * Access the queue API.
    *
    * Create, read, update or delete queues.
@@ -427,9 +412,7 @@ export class Client {
     const headers = prefixHeaders(new Headers(request.headers));
     headers.set("Content-Type", "application/json");
 
-    //@ts-expect-error hacky way to get bearer token
-    const upstashToken = String(this.http.authorization).split("Bearer ")[1];
-    const nonApiRequest = processApi(request, headers, upstashToken);
+    const nonApiRequest = processApi(request, headers);
 
     // @ts-expect-error it's just internal
     const response = await this.publish<TRequest>({
@@ -484,11 +467,8 @@ export class Client {
         message.body = JSON.stringify(message.body) as unknown as TBody;
       }
 
-      //@ts-expect-error hacky way to get bearer token
-      const upstashToken = String(this.http.authorization).split("Bearer ")[1];
-
       //@ts-expect-error caused by undici and bunjs type overlap
-      const nonApiMessage = processApi(message, new Headers(message.headers), upstashToken);
+      const nonApiMessage = processApi(message, new Headers(message.headers));
 
       (nonApiMessage.headers as Headers).set("Content-Type", "application/json");
 

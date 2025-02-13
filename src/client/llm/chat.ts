@@ -48,75 +48,7 @@ export class Chat {
   ): Promise<
     TStream extends StreamEnabled ? AsyncIterable<ChatCompletionChunk> : ChatCompletion
   > => {
-    // This section calls any non-Upstash LLM
-    if (request.provider.owner != "upstash") return this.createThirdParty<TStream>(request);
-
-    // This section calls Upstash LLMs
-    const body = JSON.stringify(request);
-
-    let baseUrl = undefined;
-    let headers = {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${this.token}`,
-      ...("stream" in request && request.stream
-        ? {
-            Connection: "keep-alive",
-            Accept: "text/event-stream",
-            "Cache-Control": "no-cache",
-          }
-        : {}),
-    };
-
-    if (request.analytics) {
-      const { baseURL, defaultHeaders } = setupAnalytics(
-        { name: "helicone", token: request.analytics.token },
-        this.getAuthorizationToken(),
-        request.provider.baseUrl,
-        "upstash"
-      );
-      headers = { ...headers, ...defaultHeaders };
-      baseUrl = baseURL;
-    }
-    const path = request.analytics ? [] : ["llm", "v1", "chat", "completions"];
-
-    return (
-      "stream" in request && request.stream
-        ? this.http.requestStream({
-            path,
-            method: "POST",
-            headers,
-            baseUrl,
-            body,
-          })
-        : this.http.request({
-            path,
-            method: "POST",
-            headers,
-            baseUrl,
-            body,
-          })
-    ) as Promise<
-      TStream extends StreamEnabled ? AsyncIterable<ChatCompletionChunk> : ChatCompletion
-    >;
-  };
-
-  /**
-   * Calls the Upstash completions api given a ChatRequest.
-   *
-   * Returns a ChatCompletion or a stream of ChatCompletionChunks
-   * if stream is enabled.
-   *
-   * @param request ChatRequest with messages
-   * @returns Chat completion or stream
-   */
-
-  private createThirdParty = async <TStream extends StreamParameter>(
-    request: ChatRequest<TStream>
-  ): Promise<
-    TStream extends StreamEnabled ? AsyncIterable<ChatCompletionChunk> : ChatCompletion
-  > => {
     const { baseUrl, token, owner, organization } = request.provider;
-    if (owner === "upstash") throw new Error("Upstash is not 3rd party provider!");
 
     //@ts-expect-error We need to delete the prop, otherwise openai throws an error
     delete request.provider;
@@ -134,7 +66,7 @@ export class Chat {
 
     const analyticsConfig =
       analytics?.name && analytics.token
-        ? setupAnalytics({ name: analytics.name, token: analytics.token }, token, baseUrl, owner)
+        ? setupAnalytics({ name: analytics.name, token: analytics.token }, owner, token, baseUrl)
         : { defaultHeaders: undefined, baseURL: baseUrl };
 
     // Configures stream headers if stream is enabled
@@ -166,22 +98,11 @@ export class Chat {
       baseUrl: analyticsConfig.baseURL,
     });
 
-    // Requiredassertion to satisfy ts
+    // Required assertion to satisfy ts
     return response as TStream extends StreamEnabled
       ? AsyncIterable<ChatCompletionChunk>
       : ChatCompletion;
   };
-
-  // Helper method to get the authorization token
-  private getAuthorizationToken(): string {
-    //@ts-expect-error hacky way to get token from http module
-    const authHeader = String(this.http.authorization);
-    const match = /Bearer (.+)/.exec(authHeader);
-    if (!match) {
-      throw new Error("Invalid authorization header format");
-    }
-    return match[1];
-  }
 
   /**
    * Calls the Upstash completions api given a PromptRequest.

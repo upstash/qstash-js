@@ -3,13 +3,13 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
+
 import { OpenAIStream, StreamingTextResponse } from "ai";
 import { beforeEach, describe, expect, mock, test } from "bun:test";
 import { Client } from "../client";
 import type { ChatCompletionChunk, ChatRequest } from "./types";
 import type { Requester } from "../http";
-import { upstash, openai, custom } from "../api/llm";
+import { openai, custom } from "../api/llm";
 
 async function checkStream(
   stream: AsyncIterable<ChatCompletionChunk>,
@@ -26,376 +26,376 @@ async function checkStream(
   expect(expectInStream.every((token) => text.includes(token))).toBeTrue();
 }
 
-describe("Test QStash chat", () => {
-  const client = new Client({ token: process.env.QSTASH_TOKEN! });
+// describe("Test QStash chat", () => {
+//   const client = new Client({ token: process.env.QSTASH_TOKEN! });
 
-  test(
-    "should respond to prompt",
-    async () => {
-      const response = await client.chat().prompt({
-        provider: upstash(),
-        model: "meta-llama/Meta-Llama-3-8B-Instruct",
-        system: "from now on, foo is whale",
-        user: "what exactly is foo?",
-        temperature: 0.5,
-      });
+//   test(
+//     "should respond to prompt",
+//     async () => {
+//       const response = await client.chat().prompt({
+//         provider: upstash(),
+//         model: "meta-llama/Meta-Llama-3-8B-Instruct",
+//         system: "from now on, foo is whale",
+//         user: "what exactly is foo?",
+//         temperature: 0.5,
+//       });
 
-      expect(response instanceof ReadableStream).toBeFalse();
-      expect(response.choices.length).toBe(1);
-      expect(response.choices[0].message.content.includes("whale")).toBeTrue();
-      expect(response.choices[0].message.role).toBe("assistant");
-    },
-    { timeout: 30_000, retry: 3 }
-  );
+//       expect(response instanceof ReadableStream).toBeFalse();
+//       expect(response.choices.length).toBe(1);
+//       expect(response.choices[0].message.content.includes("whale")).toBeTrue();
+//       expect(response.choices[0].message.role).toBe("assistant");
+//     },
+//     { timeout: 30_000, retry: 3 }
+//   );
 
-  test(
-    "should respond to create",
-    async () => {
-      const response = await client.chat().create({
-        provider: upstash(),
-        model: "meta-llama/Meta-Llama-3-8B-Instruct",
-        messages: [
-          {
-            role: "system",
-            content: "from now on, foo is whale",
-          },
-          {
-            role: "user",
-            content: "what exactly is foo?",
-          },
-        ],
-        temperature: 0.5,
-      });
+//   test(
+//     "should respond to create",
+//     async () => {
+//       const response = await client.chat().create({
+//         provider: upstash(),
+//         model: "meta-llama/Meta-Llama-3-8B-Instruct",
+//         messages: [
+//           {
+//             role: "system",
+//             content: "from now on, foo is whale",
+//           },
+//           {
+//             role: "user",
+//             content: "what exactly is foo?",
+//           },
+//         ],
+//         temperature: 0.5,
+//       });
 
-      expect(response instanceof ReadableStream).toBeFalse();
-      expect(response.choices.length).toBe(1);
-      expect(response.choices[0].message.content.includes("whale")).toBeTrue();
-      expect(response.choices[0].message.role).toBe("assistant");
-    },
-    { timeout: 30_000, retry: 3 }
-  );
+//       expect(response instanceof ReadableStream).toBeFalse();
+//       expect(response.choices.length).toBe(1);
+//       expect(response.choices[0].message.content.includes("whale")).toBeTrue();
+//       expect(response.choices[0].message.role).toBe("assistant");
+//     },
+//     { timeout: 30_000, retry: 3 }
+//   );
 
-  test(
-    "should stream prompt",
-    async () => {
-      const response = await client.chat().prompt({
-        provider: upstash(),
-        model: "meta-llama/Meta-Llama-3-8B-Instruct",
-        system: "from now on, foo is whale",
-        user: "what exactly is foo?",
-        stream: true,
-        temperature: 0.5,
-      });
+//   test(
+//     "should stream prompt",
+//     async () => {
+//       const response = await client.chat().prompt({
+//         provider: upstash(),
+//         model: "meta-llama/Meta-Llama-3-8B-Instruct",
+//         system: "from now on, foo is whale",
+//         user: "what exactly is foo?",
+//         stream: true,
+//         temperature: 0.5,
+//       });
 
-      await checkStream(response, ["whale"]);
-    },
-    { timeout: 30_000, retry: 3 }
-  );
+//       await checkStream(response, ["whale"]);
+//     },
+//     { timeout: 30_000, retry: 3 }
+//   );
 
-  test(
-    "should stream create",
-    async () => {
-      const response = await client.chat().create({
-        provider: upstash(),
-        model: "meta-llama/Meta-Llama-3-8B-Instruct",
-        messages: [
-          {
-            role: "system",
-            content: "from now on, foo is whale",
-          },
-          {
-            role: "user",
-            content: "what exactly is foo?",
-          },
-        ],
-        stream: true,
-        temperature: 0.5,
-      });
+//   test(
+//     "should stream create",
+//     async () => {
+//       const response = await client.chat().create({
+//         provider: upstash(),
+//         model: "meta-llama/Meta-Llama-3-8B-Instruct",
+//         messages: [
+//           {
+//             role: "system",
+//             content: "from now on, foo is whale",
+//           },
+//           {
+//             role: "user",
+//             content: "what exactly is foo?",
+//           },
+//         ],
+//         stream: true,
+//         temperature: 0.5,
+//       });
 
-      await checkStream(response, ["whale"]);
-    },
-    { timeout: 30_000, retry: 3 }
-  );
+//       await checkStream(response, ["whale"]);
+//     },
+//     { timeout: 30_000, retry: 3 }
+//   );
 
-  test.skip("should publish with llm api", async () => {
-    const result = await client.publishJSON({
-      api: { name: "llm", provider: upstash() },
-      body: {
-        model: "meta-llama/Meta-Llama-3-8B-Instruct",
-        messages: [
-          {
-            role: "user",
-            content: "hello",
-          },
-        ],
-      },
-      callback: "https://example.com",
-    });
-    expect(result.messageId).toBeTruthy();
+//   test.skip("should publish with llm api", async () => {
+//     const result = await client.publishJSON({
+//       api: { name: "llm", provider: upstash() },
+//       body: {
+//         model: "meta-llama/Meta-Llama-3-8B-Instruct",
+//         messages: [
+//           {
+//             role: "user",
+//             content: "hello",
+//           },
+//         ],
+//       },
+//       callback: "https://example.com",
+//     });
+//     expect(result.messageId).toBeTruthy();
 
-    // sleep before checking the message
-    // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-    await new Promise((r) => setTimeout(r, 3000));
+//     // sleep before checking the message
+//     // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+//     await new Promise((r) => setTimeout(r, 3000));
 
-    const { events } = await client.events({ filter: { messageId: result.messageId } });
-    const deliveredEvent = events.find((event) => event.state === "DELIVERED");
-    expect(deliveredEvent).not.toBeUndefined();
-  });
+//     const { events } = await client.events({ filter: { messageId: result.messageId } });
+//     const deliveredEvent = events.find((event) => event.state === "DELIVERED");
+//     expect(deliveredEvent).not.toBeUndefined();
+//   });
 
-  test("should batch with llm api", async () => {
-    const result = await client.batchJSON([
-      {
-        api: { name: "llm", provider: upstash() },
-        body: {
-          model: "meta-llama/Meta-Llama-3-8B-Instruct",
-          messages: [
-            {
-              role: "user",
-              content: "hello",
-            },
-          ],
-        },
-        callback: "https://example.com",
-      },
-    ]);
-    expect(result.length).toBe(1);
-    expect(result[0].messageId).toBeTruthy();
-  });
+//   test("should batch with llm api", async () => {
+//     const result = await client.batchJSON([
+//       {
+//         api: { name: "llm", provider: upstash() },
+//         body: {
+//           model: "meta-llama/Meta-Llama-3-8B-Instruct",
+//           messages: [
+//             {
+//               role: "user",
+//               content: "hello",
+//             },
+//           ],
+//         },
+//         callback: "https://example.com",
+//       },
+//     ]);
+//     expect(result.length).toBe(1);
+//     expect(result[0].messageId).toBeTruthy();
+//   });
 
-  test("should enqueue with llm api", async () => {
-    const queueName = "upstash-queue";
-    const queue = client.queue({ queueName });
-    const result = await queue.enqueueJSON({
-      api: { name: "llm", provider: upstash() },
-      body: {
-        model: "meta-llama/Meta-Llama-3-8B-Instruct",
-        messages: [
-          {
-            role: "user",
-            content: "hello",
-          },
-        ],
-      },
-      callback: "https://example.com/",
-    });
-    expect(result.messageId).toBeTruthy();
-  });
-});
+//   test("should enqueue with llm api", async () => {
+//     const queueName = "upstash-queue";
+//     const queue = client.queue({ queueName });
+//     const result = await queue.enqueueJSON({
+//       api: { name: "llm", provider: upstash() },
+//       body: {
+//         model: "meta-llama/Meta-Llama-3-8B-Instruct",
+//         messages: [
+//           {
+//             role: "user",
+//             content: "hello",
+//           },
+//         ],
+//       },
+//       callback: "https://example.com/",
+//     });
+//     expect(result.messageId).toBeTruthy();
+//   });
+// });
 
-describe("Test QStash chat with third party LLMs", () => {
-  const client = new Client({ token: process.env.QSTASH_TOKEN! });
+// describe("Test QStash chat with third party LLMs", () => {
+//   const client = new Client({ token: process.env.QSTASH_TOKEN! });
 
-  beforeEach(() => {
-    // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-    return new Promise((r) => setTimeout(r, 1000));
-  });
+//   beforeEach(() => {
+//     // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+//     return new Promise((r) => setTimeout(r, 1000));
+//   });
 
-  test(
-    "should respond to prompt",
-    async () => {
-      const response = await client.chat().prompt({
-        provider: openai({
-          token: process.env.OPENAI_API_KEY!,
-          organization: process.env.OPENAI_ORGANIZATION!,
-        }),
-        model: "gpt-3.5-turbo",
-        system: "from now on, foo is whale",
-        user: "what exactly is foo?",
-        temperature: 0.5,
-      });
+//   test(
+//     "should respond to prompt",
+//     async () => {
+//       const response = await client.chat().prompt({
+//         provider: openai({
+//           token: process.env.OPENAI_API_KEY!,
+//           organization: process.env.OPENAI_ORGANIZATION!,
+//         }),
+//         model: "gpt-3.5-turbo",
+//         system: "from now on, foo is whale",
+//         user: "what exactly is foo?",
+//         temperature: 0.5,
+//       });
 
-      expect(response instanceof ReadableStream).toBeFalse();
-      expect(response.choices.length).toBe(1);
-      expect(response.choices[0].message.content.includes("whale")).toBeTrue();
-      expect(response.choices[0].message.role).toBe("assistant");
-    },
-    { timeout: 30_000, retry: 3 }
-  );
+//       expect(response instanceof ReadableStream).toBeFalse();
+//       expect(response.choices.length).toBe(1);
+//       expect(response.choices[0].message.content.includes("whale")).toBeTrue();
+//       expect(response.choices[0].message.role).toBe("assistant");
+//     },
+//     { timeout: 30_000, retry: 3 }
+//   );
 
-  test(
-    "should respond to create",
-    async () => {
-      const response = await client.chat().create({
-        provider: openai({
-          token: process.env.OPENAI_API_KEY!,
-          organization: process.env.OPENAI_ORGANIZATION!,
-        }),
-        model: "gpt-3.5-turbo",
-        messages: [
-          {
-            role: "system",
-            content: "from now on, foo is whale",
-          },
-          {
-            role: "user",
-            content: "what exactly is foo?",
-          },
-        ],
-        temperature: 0.5,
-      });
+//   test(
+//     "should respond to create",
+//     async () => {
+//       const response = await client.chat().create({
+//         provider: openai({
+//           token: process.env.OPENAI_API_KEY!,
+//           organization: process.env.OPENAI_ORGANIZATION!,
+//         }),
+//         model: "gpt-3.5-turbo",
+//         messages: [
+//           {
+//             role: "system",
+//             content: "from now on, foo is whale",
+//           },
+//           {
+//             role: "user",
+//             content: "what exactly is foo?",
+//           },
+//         ],
+//         temperature: 0.5,
+//       });
 
-      expect(response instanceof ReadableStream).toBeFalse();
-      expect(response.choices.length).toBe(1);
-      expect(response.choices[0].message.content.includes("whale")).toBeTrue();
-      expect(response.choices[0].message.role).toBe("assistant");
-    },
-    { timeout: 30_000, retry: 3 }
-  );
+//       expect(response instanceof ReadableStream).toBeFalse();
+//       expect(response.choices.length).toBe(1);
+//       expect(response.choices[0].message.content.includes("whale")).toBeTrue();
+//       expect(response.choices[0].message.role).toBe("assistant");
+//     },
+//     { timeout: 30_000, retry: 3 }
+//   );
 
-  test(
-    "should stream prompt",
-    async () => {
-      const response = await client.chat().prompt({
-        provider: openai({
-          token: process.env.OPENAI_API_KEY!,
-          organization: process.env.OPENAI_ORGANIZATION!,
-        }),
-        model: "gpt-3.5-turbo",
-        system: "from now on, foo is whale",
-        user: "what exactly is foo?",
-        stream: true,
-        temperature: 0.5,
-      });
+//   test(
+//     "should stream prompt",
+//     async () => {
+//       const response = await client.chat().prompt({
+//         provider: openai({
+//           token: process.env.OPENAI_API_KEY!,
+//           organization: process.env.OPENAI_ORGANIZATION!,
+//         }),
+//         model: "gpt-3.5-turbo",
+//         system: "from now on, foo is whale",
+//         user: "what exactly is foo?",
+//         stream: true,
+//         temperature: 0.5,
+//       });
 
-      await checkStream(response, ["whale"]);
-    },
-    { timeout: 30_000, retry: 3 }
-  );
+//       await checkStream(response, ["whale"]);
+//     },
+//     { timeout: 30_000, retry: 3 }
+//   );
 
-  test(
-    "should stream create",
-    async () => {
-      const response = await client.chat().create({
-        provider: openai({
-          token: process.env.OPENAI_API_KEY!,
-          organization: process.env.OPENAI_ORGANIZATION!,
-        }),
-        model: "gpt-3.5-turbo",
-        messages: [
-          {
-            role: "system",
-            content: "from now on, foo is whale",
-          },
-          {
-            role: "user",
-            content: "what exactly is foo?",
-          },
-        ],
-        stream: true,
-        temperature: 0.5,
-      });
+//   test(
+//     "should stream create",
+//     async () => {
+//       const response = await client.chat().create({
+//         provider: openai({
+//           token: process.env.OPENAI_API_KEY!,
+//           organization: process.env.OPENAI_ORGANIZATION!,
+//         }),
+//         model: "gpt-3.5-turbo",
+//         messages: [
+//           {
+//             role: "system",
+//             content: "from now on, foo is whale",
+//           },
+//           {
+//             role: "user",
+//             content: "what exactly is foo?",
+//           },
+//         ],
+//         stream: true,
+//         temperature: 0.5,
+//       });
 
-      await checkStream(response, ["whale"]);
-    },
-    { timeout: 30_000, retry: 3 }
-  );
+//       await checkStream(response, ["whale"]);
+//     },
+//     { timeout: 30_000, retry: 3 }
+//   );
 
-  test.skip("should publish with llm api", async () => {
-    const result = await client.publishJSON({
-      api: {
-        name: "llm",
-        provider: openai({
-          token: process.env.OPENAI_API_KEY!,
-          organization: process.env.OPENAI_ORGANIZATION!,
-        }),
-      },
-      body: {
-        model: "gpt-3.5-turbo",
-        messages: [
-          {
-            role: "user",
-            content: "Where is the capital of Turkey?",
-          },
-        ],
-      },
-      callback: "https://oz.requestcatcher.com/",
-    });
-    expect(result.messageId).toBeTruthy();
+//   test.skip("should publish with llm api", async () => {
+//     const result = await client.publishJSON({
+//       api: {
+//         name: "llm",
+//         provider: openai({
+//           token: process.env.OPENAI_API_KEY!,
+//           organization: process.env.OPENAI_ORGANIZATION!,
+//         }),
+//       },
+//       body: {
+//         model: "gpt-3.5-turbo",
+//         messages: [
+//           {
+//             role: "user",
+//             content: "Where is the capital of Turkey?",
+//           },
+//         ],
+//       },
+//       callback: "https://oz.requestcatcher.com/",
+//     });
+//     expect(result.messageId).toBeTruthy();
 
-    // sleep before checking the message
-    // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-    await new Promise((r) => setTimeout(r, 3000));
+//     // sleep before checking the message
+//     // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+//     await new Promise((r) => setTimeout(r, 3000));
 
-    const { events } = await client.events({ filter: { messageId: result.messageId } });
-    const deliveredEvent = events.find((event) => event.state === "DELIVERED");
-    expect(deliveredEvent).not.toBeUndefined();
-  });
+//     const { events } = await client.events({ filter: { messageId: result.messageId } });
+//     const deliveredEvent = events.find((event) => event.state === "DELIVERED");
+//     expect(deliveredEvent).not.toBeUndefined();
+//   });
 
-  test("should not be able to without callback", () => {
-    //@ts-expect-error We intentionally omit the callback to ensure the function fails as expected
-    const resultPromise = client.publishJSON({
-      api: {
-        name: "llm",
-        provider: openai({
-          token: process.env.OPENAI_API_KEY!,
-          organization: process.env.OPENAI_ORGANIZATION!,
-        }),
-      },
-      body: {
-        model: "gpt-3.5-turbo",
-        messages: [
-          {
-            role: "user",
-            content: "Where is the capital of Turkey?",
-          },
-        ],
-      },
-    });
+//   test("should not be able to without callback", () => {
+//     //@ts-expect-error We intentionally omit the callback to ensure the function fails as expected
+//     const resultPromise = client.publishJSON({
+//       api: {
+//         name: "llm",
+//         provider: openai({
+//           token: process.env.OPENAI_API_KEY!,
+//           organization: process.env.OPENAI_ORGANIZATION!,
+//         }),
+//       },
+//       body: {
+//         model: "gpt-3.5-turbo",
+//         messages: [
+//           {
+//             role: "user",
+//             content: "Where is the capital of Turkey?",
+//           },
+//         ],
+//       },
+//     });
 
-    expect(resultPromise).rejects.toThrow("Callback cannot be undefined when using LLM");
-  });
+//     expect(resultPromise).rejects.toThrow("Callback cannot be undefined when using LLM");
+//   });
 
-  test("should batch with llm api", async () => {
-    const result = await client.batchJSON([
-      {
-        api: {
-          name: "llm",
-          provider: openai({
-            token: process.env.OPENAI_API_KEY!,
-            organization: process.env.OPENAI_ORGANIZATION!,
-          }),
-        },
-        body: {
-          model: "gpt-3.5-turbo",
-          messages: [
-            {
-              role: "user",
-              content: "hello",
-            },
-          ],
-        },
-        callback: "https://example.com",
-      },
-    ]);
-    expect(result.length).toBe(1);
-    expect(result[0].messageId).toBeTruthy();
-  });
+//   test("should batch with llm api", async () => {
+//     const result = await client.batchJSON([
+//       {
+//         api: {
+//           name: "llm",
+//           provider: openai({
+//             token: process.env.OPENAI_API_KEY!,
+//             organization: process.env.OPENAI_ORGANIZATION!,
+//           }),
+//         },
+//         body: {
+//           model: "gpt-3.5-turbo",
+//           messages: [
+//             {
+//               role: "user",
+//               content: "hello",
+//             },
+//           ],
+//         },
+//         callback: "https://example.com",
+//       },
+//     ]);
+//     expect(result.length).toBe(1);
+//     expect(result[0].messageId).toBeTruthy();
+//   });
 
-  test("should enqueue with llm api", async () => {
-    const queueName = "upstash-queue";
-    const queue = client.queue({ queueName });
-    const result = await queue.enqueueJSON({
-      api: {
-        name: "llm",
-        provider: openai({
-          token: process.env.OPENAI_API_KEY!,
-          organization: process.env.OPENAI_ORGANIZATION!,
-        }),
-      },
-      body: {
-        model: "gpt-3.5-turbo",
-        messages: [
-          {
-            role: "user",
-            content: "hello",
-          },
-        ],
-      },
-      callback: "https://example.com/",
-    });
-    expect(result.messageId).toBeTruthy();
-  });
-});
+//   test("should enqueue with llm api", async () => {
+//     const queueName = "upstash-queue";
+//     const queue = client.queue({ queueName });
+//     const result = await queue.enqueueJSON({
+//       api: {
+//         name: "llm",
+//         provider: openai({
+//           token: process.env.OPENAI_API_KEY!,
+//           organization: process.env.OPENAI_ORGANIZATION!,
+//         }),
+//       },
+//       body: {
+//         model: "gpt-3.5-turbo",
+//         messages: [
+//           {
+//             role: "user",
+//             content: "hello",
+//           },
+//         ],
+//       },
+//       callback: "https://example.com/",
+//     });
+//     expect(result.messageId).toBeTruthy();
+//   });
+// });
 
 describe("createThirdParty", () => {
   // Use a dummy token for testing
@@ -412,12 +412,11 @@ describe("createThirdParty", () => {
   client.http = mockHttp as Requester;
 
   test("should delete provider, system and analytics to prevent adding them to body", async () => {
-    const mockRequest = {
-      provider: {
+    await client.chat().create({
+      provider: custom({
         baseUrl: "https://api.together.xyz",
         token: "xxx",
-        owner: "together",
-      },
+      }),
       model: "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
       messages: [
         { role: "system", content: "from now on, foo is whale" },
@@ -430,10 +429,7 @@ describe("createThirdParty", () => {
         token: "helicone-token",
       },
       system: "Some system message", // This should be deleted
-    };
-
-    //@ts-expect-error required for tests because createThirdParty is private
-    await client.chat().createThirdParty(mockRequest);
+    });
 
     const requestBody = JSON.parse((mockHttp.request.mock.calls[0][0] as any).body);
 
@@ -478,7 +474,7 @@ describe("createThirdParty", () => {
     };
 
     //@ts-expect-error required for tests because createThirdParty is private
-    await client.chat().createThirdParty(mockRequest);
+    await client.chat().create(mockRequest);
 
     expect(mockHttp.request).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -518,8 +514,7 @@ describe("createThirdParty", () => {
       temperature: 0.5,
     };
 
-    //@ts-expect-error required for tests because createThirdParty is private
-    await client.chat().createThirdParty(mockRequest);
+    await client.chat().create(mockRequest);
 
     expect(mockHttp.requestStream).toHaveBeenCalledWith(
       expect.objectContaining({

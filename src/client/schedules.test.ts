@@ -3,7 +3,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { Client } from "./client";
 import type { Schedule } from "./schedules";
 import { nanoid } from "nanoid";
-import { MOCK_QSTASH_SERVER_URL, MOCK_SERVER_URL, mockQStashServer } from "./workflow/test-utils";
+import { MOCK_QSTASH_SERVER_URL, MOCK_SERVER_URL, mockQStashServer } from "./test-utils";
 
 describe("Schedules", () => {
   const client = new Client({ token: process.env.QSTASH_TOKEN! });

@@ -9,24 +9,15 @@ type AnalyticsSetup = {
 
 export const setupAnalytics = (
   analytics: AnalyticsConfig | undefined,
+  provider: LLMOwner,
   providerApiKey: string,
-  providerBaseUrl?: string,
-  provider?: LLMOwner
+  providerBaseUrl?: string
 ): AnalyticsSetup => {
   if (!analytics) return {};
 
   switch (analytics.name) {
     case "helicone": {
       switch (provider) {
-        case "upstash": {
-          return {
-            baseURL: "https://qstash.helicone.ai/llm/v1/chat/completions",
-            defaultHeaders: {
-              "Helicone-Auth": `Bearer ${analytics.token}`,
-              Authorization: `Bearer ${providerApiKey}`,
-            },
-          };
-        }
         default: {
           return {
             baseURL: "https://gateway.helicone.ai/v1/chat/completions",

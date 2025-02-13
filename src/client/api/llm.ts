@@ -16,12 +16,7 @@ export class LLMProvider<TOwner extends LLMOwner> extends BaseProvider<"llm", LL
     return this.owner === "anthropic" ? ["v1", "messages"] : ["v1", "chat", "completions"];
   }
 
-  getHeaders(options: LLMOptions): Record<string, string> {
-    // don't send auth header in upstash
-    if (this.owner === "upstash" && !options.analytics) {
-      return { "content-type": "application/json" };
-    }
-
+  getHeaders(): Record<string, string> {
     const header = this.owner === "anthropic" ? "x-api-key" : "authorization";
     const headerValue = this.owner === "anthropic" ? this.token : `Bearer ${this.token}`;
 
@@ -56,20 +51,6 @@ export class LLMProvider<TOwner extends LLMOwner> extends BaseProvider<"llm", LL
     return providerInfo;
   }
 }
-
-// PROVIDERS
-
-/**
- * @deprecated as of version 2.7.17. Will be removed in qstash-js 3.0.0.
- *
- * Please use an alternative LLM provider.
- *
- * openai: https://upstash.com/docs/qstash/integrations/llm
- * anthropic: https://upstash.com/docs/qstash/integrations/anthropic
- */
-export const upstash = (): LLMProvider<"upstash"> => {
-  return new LLMProvider("https://qstash.upstash.io/llm", "", "upstash");
-};
 
 export const openai = ({
   token,

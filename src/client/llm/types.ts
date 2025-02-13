@@ -5,8 +5,6 @@ export type ChatCompletionMessage = {
   content: string;
 };
 
-type ChatModel = "meta-llama/Meta-Llama-3-8B-Instruct" | "mistralai/Mistral-7B-Instruct-v0.2";
-
 type ChatResponseFormat = {
   type: "text" | "json_object";
 };
@@ -127,20 +125,15 @@ type ChatRequestProviders =
       provider: LLMProvider<"custom">;
       model: string;
       analytics?: { name: "helicone"; token: string };
-    }
-  // not adding anthropic for client.chat intentionally.
-  // users should use the official sdk. it will overcomplicate things b/c of baseUrl.
-  // we can pass a baseUrl but the rest of the route is different from openai/upstash
-  // | {
-  //     provider: LLMProvider<"anthropic">;
-  //     model: string;
-  //     analytics?: { name: "helicone"; token: string };
-  //   }
-  | {
-      provider: LLMProvider<"upstash">;
-      model: ChatModel;
-      analytics?: { name: "helicone"; token: string };
     };
+// not adding anthropic for client.chat intentionally.
+// users should use the official sdk. it will overcomplicate things b/c of baseUrl.
+// we can pass a baseUrl but the rest of the route is different from openai/upstash
+// | {
+//     provider: LLMProvider<"anthropic">;
+//     model: string;
+//     analytics?: { name: "helicone"; token: string };
+//   }
 
 export type PromptChatRequest<TStream extends StreamParameter> = ChatRequestProviders &
   PromptChatRequestFields &

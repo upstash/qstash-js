@@ -140,9 +140,7 @@ export class Queue {
     const headers = prefixHeaders(new Headers(request.headers));
     headers.set("Content-Type", "application/json");
 
-    //@ts-expect-error hacky way to get bearer token
-    const upstashToken = String(this.http.authorization).split("Bearer ")[1];
-    const nonApiRequest = processApi(request, headers, upstashToken);
+    const nonApiRequest = processApi(request, headers);
 
     const response = await this.enqueue({
       ...nonApiRequest,

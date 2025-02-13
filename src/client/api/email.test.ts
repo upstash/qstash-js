@@ -1,7 +1,7 @@
 import { describe, test } from "bun:test";
 import { Client } from "../client";
 import { resend } from "./email";
-import { MOCK_QSTASH_SERVER_URL, mockQStashServer } from "../workflow/test-utils";
+import { MOCK_QSTASH_SERVER_URL, mockQStashServer } from "../test-utils";
 import { nanoid } from "../utils";
 
 describe("email", () => {

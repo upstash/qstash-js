@@ -1,6 +1,5 @@
 import type { PublishRequest } from "../client";
 import type { LLMOptions, ProviderInfo, PublishEmailApi, PublishLLMApi } from "./types";
-import { upstash } from "./llm";
 import type { HeadersInit } from "../types";
 
 /**
@@ -10,38 +9,26 @@ import type { HeadersInit } from "../types";
  * @param upstashToken used if provider is upstash and token is not set
  * @returns updated request
  */
-export const getProviderInfo = (
-  api: PublishEmailApi | PublishLLMApi,
-  upstashToken: string
-): ProviderInfo => {
+export const getProviderInfo = (api: PublishEmailApi | PublishLLMApi): ProviderInfo => {
   const { name, provider, ...parameters } = api;
-  // eslint-disable-next-line @typescript-eslint/no-deprecated
-  const finalProvider = provider ?? upstash();
-
-  // use upstash token if it's not set
-  if (finalProvider.owner === "upstash" && !finalProvider.token) {
-    finalProvider.token = upstashToken;
-  }
 
   // validate provider
-  if (!finalProvider.baseUrl) throw new TypeError("baseUrl cannot be empty or undefined!");
-  if (!finalProvider.token) throw new TypeError("token cannot be empty or undefined!");
-  if (finalProvider.apiKind !== name) {
-    throw new TypeError(
-      `Unexpected api name. Expected '${finalProvider.apiKind}', received ${name}`
-    );
+  if (!provider.baseUrl) throw new TypeError("baseUrl cannot be empty or undefined!");
+  if (!provider.token) throw new TypeError("token cannot be empty or undefined!");
+  if (provider.apiKind !== name) {
+    throw new TypeError(`Unexpected api name. Expected '${provider.apiKind}', received ${name}`);
   }
 
   const providerInfo: ProviderInfo = {
-    url: finalProvider.getUrl(),
-    baseUrl: finalProvider.baseUrl,
-    route: finalProvider.getRoute(),
-    appendHeaders: finalProvider.getHeaders(parameters),
-    owner: finalProvider.owner,
-    method: finalProvider.method,
+    url: provider.getUrl(),
+    baseUrl: provider.baseUrl,
+    route: provider.getRoute(),
+    appendHeaders: provider.getHeaders(parameters),
+    owner: provider.owner,
+    method: provider.method,
   };
 
-  return finalProvider.onFinish(providerInfo, parameters);
+  return provider.onFinish(providerInfo, parameters);
 };
 
 /**
@@ -86,15 +73,14 @@ const safeJoinHeaders = (headers: Headers, record: Record<string, string>) => {
  */
 export const processApi = (
   request: PublishRequest<unknown>,
-  headers: Headers,
-  upstashToken: string
+  headers: Headers
 ): PublishRequest<unknown> => {
   if (!request.api) {
     request.headers = headers;
     return request;
   }
 
-  const { url, appendHeaders, owner, method } = getProviderInfo(request.api, upstashToken);
+  const { url, appendHeaders, method } = getProviderInfo(request.api);
 
   if (request.api.name === "llm") {
     const callback = request.callback;
@@ -106,9 +92,8 @@ export const processApi = (
       ...request,
       method: request.method ?? method,
       headers: safeJoinHeaders(headers, appendHeaders),
-      ...(owner === "upstash" && !request.api.analytics
-        ? { api: { name: "llm" }, url: undefined, callback }
-        : { url, api: undefined }),
+      url: url,
+      api: undefined,
     };
   } else {
     return {
@@ -128,16 +113,9 @@ export function updateWithAnalytics(
   switch (analytics.name) {
     case "helicone": {
       providerInfo.appendHeaders["Helicone-Auth"] = `Bearer ${analytics.token}`;
-      if (providerInfo.owner === "upstash") {
-        updateProviderInfo(providerInfo, "https://qstash.helicone.ai", [
-          "llm",
-          ...providerInfo.route,
-        ]);
-      } else {
-        providerInfo.appendHeaders["Helicone-Target-Url"] = providerInfo.baseUrl;
+      providerInfo.appendHeaders["Helicone-Target-Url"] = providerInfo.baseUrl;
 
-        updateProviderInfo(providerInfo, "https://gateway.helicone.ai", providerInfo.route);
-      }
+      updateProviderInfo(providerInfo, "https://gateway.helicone.ai", providerInfo.route);
       return providerInfo;
     }
     default: {

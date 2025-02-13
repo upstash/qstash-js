@@ -2,9 +2,9 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { nanoid } from "nanoid";
+import type { PublishToUrlResponse } from "./client";
 import { Client } from "./client";
-import type { PublishToUrlResponse } from "../../dist";
-import { MOCK_QSTASH_SERVER_URL, mockQStashServer } from "./workflow/test-utils";
+import { MOCK_QSTASH_SERVER_URL, mockQStashServer } from "./test-utils";
 
 export const clearQueues = async (client: Client) => {
   const queueDetails = await client.queue().list();
@@ -227,7 +227,7 @@ describe("E2E Batch", () => {
         "test-header-2": "value-2",
       },
     });
-    const result = (await client.batchJSON([
+    const result = await client.batchJSON([
       {
         url: "https://example.com/1",
         headers: {
@@ -242,7 +242,7 @@ describe("E2E Batch", () => {
           "stays-same": "same",
         },
       },
-    ])) as PublishToUrlResponse[];
+    ]);
 
     const verifiedMessage1 = await client.messages.get(result[0].messageId);
     const messageHeaders1 = new Headers(verifiedMessage1.header);
