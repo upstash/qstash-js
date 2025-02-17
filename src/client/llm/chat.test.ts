@@ -1,15 +1,13 @@
 /* eslint-disable @typescript-eslint/no-deprecated */
-/* eslint-disable @typescript-eslint/no-unsafe-argument */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-explicit-any */
+
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 
 import { OpenAIStream, StreamingTextResponse } from "ai";
 import { beforeEach, describe, expect, mock, test } from "bun:test";
 import { Client } from "../client";
-import type { ChatCompletionChunk, ChatRequest } from "./types";
+import type { ChatCompletionChunk } from "./types";
 import type { Requester } from "../http";
-import { openai, custom } from "../api/llm";
+import { openai } from "../api/llm";
 
 async function checkStream(
   stream: AsyncIterable<ChatCompletionChunk>,
@@ -26,379 +24,16 @@ async function checkStream(
   expect(expectInStream.every((token) => text.includes(token))).toBeTrue();
 }
 
-// describe("Test QStash chat", () => {
-//   const client = new Client({ token: process.env.QSTASH_TOKEN! });
+const parseMockCall = (mockResponse: unknown) => {
+  const fields = mockResponse as { body: string };
 
-//   test(
-//     "should respond to prompt",
-//     async () => {
-//       const response = await client.chat().prompt({
-//         provider: upstash(),
-//         model: "meta-llama/Meta-Llama-3-8B-Instruct",
-//         system: "from now on, foo is whale",
-//         user: "what exactly is foo?",
-//         temperature: 0.5,
-//       });
+  return {
+    ...fields,
+    body: JSON.parse(fields.body),
+  } as unknown;
+};
 
-//       expect(response instanceof ReadableStream).toBeFalse();
-//       expect(response.choices.length).toBe(1);
-//       expect(response.choices[0].message.content.includes("whale")).toBeTrue();
-//       expect(response.choices[0].message.role).toBe("assistant");
-//     },
-//     { timeout: 30_000, retry: 3 }
-//   );
-
-//   test(
-//     "should respond to create",
-//     async () => {
-//       const response = await client.chat().create({
-//         provider: upstash(),
-//         model: "meta-llama/Meta-Llama-3-8B-Instruct",
-//         messages: [
-//           {
-//             role: "system",
-//             content: "from now on, foo is whale",
-//           },
-//           {
-//             role: "user",
-//             content: "what exactly is foo?",
-//           },
-//         ],
-//         temperature: 0.5,
-//       });
-
-//       expect(response instanceof ReadableStream).toBeFalse();
-//       expect(response.choices.length).toBe(1);
-//       expect(response.choices[0].message.content.includes("whale")).toBeTrue();
-//       expect(response.choices[0].message.role).toBe("assistant");
-//     },
-//     { timeout: 30_000, retry: 3 }
-//   );
-
-//   test(
-//     "should stream prompt",
-//     async () => {
-//       const response = await client.chat().prompt({
-//         provider: upstash(),
-//         model: "meta-llama/Meta-Llama-3-8B-Instruct",
-//         system: "from now on, foo is whale",
-//         user: "what exactly is foo?",
-//         stream: true,
-//         temperature: 0.5,
-//       });
-
-//       await checkStream(response, ["whale"]);
-//     },
-//     { timeout: 30_000, retry: 3 }
-//   );
-
-//   test(
-//     "should stream create",
-//     async () => {
-//       const response = await client.chat().create({
-//         provider: upstash(),
-//         model: "meta-llama/Meta-Llama-3-8B-Instruct",
-//         messages: [
-//           {
-//             role: "system",
-//             content: "from now on, foo is whale",
-//           },
-//           {
-//             role: "user",
-//             content: "what exactly is foo?",
-//           },
-//         ],
-//         stream: true,
-//         temperature: 0.5,
-//       });
-
-//       await checkStream(response, ["whale"]);
-//     },
-//     { timeout: 30_000, retry: 3 }
-//   );
-
-//   test.skip("should publish with llm api", async () => {
-//     const result = await client.publishJSON({
-//       api: { name: "llm", provider: upstash() },
-//       body: {
-//         model: "meta-llama/Meta-Llama-3-8B-Instruct",
-//         messages: [
-//           {
-//             role: "user",
-//             content: "hello",
-//           },
-//         ],
-//       },
-//       callback: "https://example.com",
-//     });
-//     expect(result.messageId).toBeTruthy();
-
-//     // sleep before checking the message
-//     // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-//     await new Promise((r) => setTimeout(r, 3000));
-
-//     const { events } = await client.events({ filter: { messageId: result.messageId } });
-//     const deliveredEvent = events.find((event) => event.state === "DELIVERED");
-//     expect(deliveredEvent).not.toBeUndefined();
-//   });
-
-//   test("should batch with llm api", async () => {
-//     const result = await client.batchJSON([
-//       {
-//         api: { name: "llm", provider: upstash() },
-//         body: {
-//           model: "meta-llama/Meta-Llama-3-8B-Instruct",
-//           messages: [
-//             {
-//               role: "user",
-//               content: "hello",
-//             },
-//           ],
-//         },
-//         callback: "https://example.com",
-//       },
-//     ]);
-//     expect(result.length).toBe(1);
-//     expect(result[0].messageId).toBeTruthy();
-//   });
-
-//   test("should enqueue with llm api", async () => {
-//     const queueName = "upstash-queue";
-//     const queue = client.queue({ queueName });
-//     const result = await queue.enqueueJSON({
-//       api: { name: "llm", provider: upstash() },
-//       body: {
-//         model: "meta-llama/Meta-Llama-3-8B-Instruct",
-//         messages: [
-//           {
-//             role: "user",
-//             content: "hello",
-//           },
-//         ],
-//       },
-//       callback: "https://example.com/",
-//     });
-//     expect(result.messageId).toBeTruthy();
-//   });
-// });
-
-// describe("Test QStash chat with third party LLMs", () => {
-//   const client = new Client({ token: process.env.QSTASH_TOKEN! });
-
-//   beforeEach(() => {
-//     // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-//     return new Promise((r) => setTimeout(r, 1000));
-//   });
-
-//   test(
-//     "should respond to prompt",
-//     async () => {
-//       const response = await client.chat().prompt({
-//         provider: openai({
-//           token: process.env.OPENAI_API_KEY!,
-//           organization: process.env.OPENAI_ORGANIZATION!,
-//         }),
-//         model: "gpt-3.5-turbo",
-//         system: "from now on, foo is whale",
-//         user: "what exactly is foo?",
-//         temperature: 0.5,
-//       });
-
-//       expect(response instanceof ReadableStream).toBeFalse();
-//       expect(response.choices.length).toBe(1);
-//       expect(response.choices[0].message.content.includes("whale")).toBeTrue();
-//       expect(response.choices[0].message.role).toBe("assistant");
-//     },
-//     { timeout: 30_000, retry: 3 }
-//   );
-
-//   test(
-//     "should respond to create",
-//     async () => {
-//       const response = await client.chat().create({
-//         provider: openai({
-//           token: process.env.OPENAI_API_KEY!,
-//           organization: process.env.OPENAI_ORGANIZATION!,
-//         }),
-//         model: "gpt-3.5-turbo",
-//         messages: [
-//           {
-//             role: "system",
-//             content: "from now on, foo is whale",
-//           },
-//           {
-//             role: "user",
-//             content: "what exactly is foo?",
-//           },
-//         ],
-//         temperature: 0.5,
-//       });
-
-//       expect(response instanceof ReadableStream).toBeFalse();
-//       expect(response.choices.length).toBe(1);
-//       expect(response.choices[0].message.content.includes("whale")).toBeTrue();
-//       expect(response.choices[0].message.role).toBe("assistant");
-//     },
-//     { timeout: 30_000, retry: 3 }
-//   );
-
-//   test(
-//     "should stream prompt",
-//     async () => {
-//       const response = await client.chat().prompt({
-//         provider: openai({
-//           token: process.env.OPENAI_API_KEY!,
-//           organization: process.env.OPENAI_ORGANIZATION!,
-//         }),
-//         model: "gpt-3.5-turbo",
-//         system: "from now on, foo is whale",
-//         user: "what exactly is foo?",
-//         stream: true,
-//         temperature: 0.5,
-//       });
-
-//       await checkStream(response, ["whale"]);
-//     },
-//     { timeout: 30_000, retry: 3 }
-//   );
-
-//   test(
-//     "should stream create",
-//     async () => {
-//       const response = await client.chat().create({
-//         provider: openai({
-//           token: process.env.OPENAI_API_KEY!,
-//           organization: process.env.OPENAI_ORGANIZATION!,
-//         }),
-//         model: "gpt-3.5-turbo",
-//         messages: [
-//           {
-//             role: "system",
-//             content: "from now on, foo is whale",
-//           },
-//           {
-//             role: "user",
-//             content: "what exactly is foo?",
-//           },
-//         ],
-//         stream: true,
-//         temperature: 0.5,
-//       });
-
-//       await checkStream(response, ["whale"]);
-//     },
-//     { timeout: 30_000, retry: 3 }
-//   );
-
-//   test.skip("should publish with llm api", async () => {
-//     const result = await client.publishJSON({
-//       api: {
-//         name: "llm",
-//         provider: openai({
-//           token: process.env.OPENAI_API_KEY!,
-//           organization: process.env.OPENAI_ORGANIZATION!,
-//         }),
-//       },
-//       body: {
-//         model: "gpt-3.5-turbo",
-//         messages: [
-//           {
-//             role: "user",
-//             content: "Where is the capital of Turkey?",
-//           },
-//         ],
-//       },
-//       callback: "https://oz.requestcatcher.com/",
-//     });
-//     expect(result.messageId).toBeTruthy();
-
-//     // sleep before checking the message
-//     // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-//     await new Promise((r) => setTimeout(r, 3000));
-
-//     const { events } = await client.events({ filter: { messageId: result.messageId } });
-//     const deliveredEvent = events.find((event) => event.state === "DELIVERED");
-//     expect(deliveredEvent).not.toBeUndefined();
-//   });
-
-//   test("should not be able to without callback", () => {
-//     //@ts-expect-error We intentionally omit the callback to ensure the function fails as expected
-//     const resultPromise = client.publishJSON({
-//       api: {
-//         name: "llm",
-//         provider: openai({
-//           token: process.env.OPENAI_API_KEY!,
-//           organization: process.env.OPENAI_ORGANIZATION!,
-//         }),
-//       },
-//       body: {
-//         model: "gpt-3.5-turbo",
-//         messages: [
-//           {
-//             role: "user",
-//             content: "Where is the capital of Turkey?",
-//           },
-//         ],
-//       },
-//     });
-
-//     expect(resultPromise).rejects.toThrow("Callback cannot be undefined when using LLM");
-//   });
-
-//   test("should batch with llm api", async () => {
-//     const result = await client.batchJSON([
-//       {
-//         api: {
-//           name: "llm",
-//           provider: openai({
-//             token: process.env.OPENAI_API_KEY!,
-//             organization: process.env.OPENAI_ORGANIZATION!,
-//           }),
-//         },
-//         body: {
-//           model: "gpt-3.5-turbo",
-//           messages: [
-//             {
-//               role: "user",
-//               content: "hello",
-//             },
-//           ],
-//         },
-//         callback: "https://example.com",
-//       },
-//     ]);
-//     expect(result.length).toBe(1);
-//     expect(result[0].messageId).toBeTruthy();
-//   });
-
-//   test("should enqueue with llm api", async () => {
-//     const queueName = "upstash-queue";
-//     const queue = client.queue({ queueName });
-//     const result = await queue.enqueueJSON({
-//       api: {
-//         name: "llm",
-//         provider: openai({
-//           token: process.env.OPENAI_API_KEY!,
-//           organization: process.env.OPENAI_ORGANIZATION!,
-//         }),
-//       },
-//       body: {
-//         model: "gpt-3.5-turbo",
-//         messages: [
-//           {
-//             role: "user",
-//             content: "hello",
-//           },
-//         ],
-//       },
-//       callback: "https://example.com/",
-//     });
-//     expect(result.messageId).toBeTruthy();
-//   });
-// });
-
-describe("createThirdParty", () => {
-  // Use a dummy token for testing
+describe("Test QStash chat", () => {
   const client = new Client({ token: "test-token" });
   const mockHttp = {
     request: mock((config: unknown) => {
@@ -409,57 +44,353 @@ describe("createThirdParty", () => {
     }),
   };
 
+  const mockOpenai = openai({
+    token: "test-openai-token",
+  });
+
   client.http = mockHttp as Requester;
 
-  test("should delete provider, system and analytics to prevent adding them to body", async () => {
-    await client.chat().create({
-      provider: custom({
-        baseUrl: "https://api.together.xyz",
-        token: "xxx",
-      }),
-      model: "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
-      messages: [
-        { role: "system", content: "from now on, foo is whale" },
-        { role: "user", content: "what exactly is foo?" },
+  beforeEach(() => {
+    mockHttp.request.mockClear();
+    mockHttp.requestStream.mockClear();
+  });
+
+  test("should respond to prompt", async () => {
+    mockHttp.request.mockResolvedValue({
+      choices: [
+        {
+          message: {
+            content: "It's whale",
+            role: "assistant",
+          },
+        },
       ],
-      temperature: 0.5,
-      stream: false,
-      analytics: {
-        name: "helicone",
-        token: "helicone-token",
-      },
-      system: "Some system message", // This should be deleted
     });
 
-    const requestBody = JSON.parse((mockHttp.request.mock.calls[0][0] as any).body);
+    const response = await client.chat().prompt({
+      provider: mockOpenai,
+      model: "gpt-3.5-turbo",
+      system: "from now on, foo is whale",
+      user: "what exactly is foo?",
+      temperature: 0.5,
+    });
 
-    // Explicitly check that deleted properties are not in the body
-    expect(requestBody).not.toHaveProperty("provider");
-    expect(requestBody).not.toHaveProperty("system");
-    expect(requestBody).not.toHaveProperty("analytics");
+    expect(parseMockCall(mockHttp.request.mock.calls[0][0])).toEqual({
+      baseUrl: "https://api.openai.com",
+      path: ["v1", "chat", "completions"],
+      body: {
+        model: "gpt-3.5-turbo",
+        temperature: 0.5,
+        messages: [
+          { role: "system", content: "from now on, foo is whale" },
+          { role: "user", content: "what exactly is foo?" },
+        ],
+      },
+      headers: {
+        Authorization: "Bearer test-openai-token",
+        "Content-Type": "application/json",
+      },
+      method: "POST",
+    });
 
-    // Check that other properties are still present with correct values
-    expect(requestBody).toEqual({
-      model: "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
+    expect(response instanceof ReadableStream).toBeFalse();
+    expect(response.choices.length).toBe(1);
+    expect(response.choices[0].message.content.includes("whale")).toBeTrue();
+    expect(response.choices[0].message.role).toBe("assistant");
+  });
+
+  test("should respond to create", async () => {
+    mockHttp.request.mockResolvedValue({
+      choices: [
+        {
+          message: {
+            content: "It's whale",
+            role: "assistant",
+          },
+        },
+      ],
+    });
+
+    const response = await client.chat().create({
+      provider: mockOpenai,
+      model: "gpt-3.5-turbo",
       messages: [
-        { role: "system", content: "from now on, foo is whale" },
-        { role: "user", content: "what exactly is foo?" },
+        {
+          role: "system",
+          content: "from now on, foo is whale",
+        },
+        {
+          role: "user",
+          content: "what exactly is foo?",
+        },
       ],
       temperature: 0.5,
-      stream: false,
+    });
+
+    expect(parseMockCall(mockHttp.request.mock.calls[0][0])).toEqual({
+      baseUrl: "https://api.openai.com",
+      path: ["v1", "chat", "completions"],
+      body: {
+        model: "gpt-3.5-turbo",
+        temperature: 0.5,
+        messages: [
+          { role: "system", content: "from now on, foo is whale" },
+          { role: "user", content: "what exactly is foo?" },
+        ],
+      },
+      headers: {
+        Authorization: "Bearer test-openai-token",
+        "Content-Type": "application/json",
+      },
+      method: "POST",
+    });
+
+    expect(response instanceof ReadableStream).toBeFalse();
+    expect(response.choices.length).toBe(1);
+    expect(response.choices[0].message.content.includes("whale")).toBeTrue();
+    expect(response.choices[0].message.role).toBe("assistant");
+  });
+
+  test("should stream prompt", async () => {
+    const mockResponseStream = {
+      [Symbol.asyncIterator]: async function* () {
+        await new Promise((r) => setTimeout(r, 100));
+
+        yield {
+          choices: [
+            {
+              delta: {
+                content: "It's whale",
+              },
+            },
+          ],
+        };
+      },
+    };
+
+    // @ts-expect-error Mocked stream
+    mockHttp.requestStream.mockResolvedValue(mockResponseStream);
+
+    const response = await client.chat().prompt({
+      provider: mockOpenai,
+      model: "gpt-3.5-turbo",
+      system: "from now on, foo is whale",
+      user: "what exactly is foo?",
+      stream: true,
+      temperature: 0.5,
+    });
+
+    expect(parseMockCall(mockHttp.requestStream.mock.calls[0][0])).toEqual({
+      baseUrl: "https://api.openai.com",
+      path: ["v1", "chat", "completions"],
+      body: {
+        model: "gpt-3.5-turbo",
+        messages: [
+          { role: "system", content: "from now on, foo is whale" },
+          { role: "user", content: "what exactly is foo?" },
+        ],
+        stream: true,
+        temperature: 0.5,
+      },
+      headers: {
+        Accept: "text/event-stream",
+        "Cache-Control": "no-cache",
+        Connection: "keep-alive",
+        Authorization: "Bearer test-openai-token",
+        "Content-Type": "application/json",
+      },
+      method: "POST",
+    });
+
+    await checkStream(response, ["whale"]);
+  });
+
+  test(
+    "should stream create",
+    async () => {
+      const mockResponseStream = {
+        [Symbol.asyncIterator]: async function* () {
+          await new Promise((r) => setTimeout(r, 100));
+
+          yield {
+            choices: [
+              {
+                delta: {
+                  content: "It's whale",
+                },
+              },
+            ],
+          };
+        },
+      };
+
+      // @ts-expect-error Mocked stream
+      mockHttp.requestStream.mockResolvedValue(mockResponseStream);
+
+      const response = await client.chat().create({
+        provider: mockOpenai,
+        model: "gpt-3.5-turbo",
+        messages: [
+          {
+            role: "system",
+            content: "from now on, foo is whale",
+          },
+          {
+            role: "user",
+            content: "what exactly is foo?",
+          },
+        ],
+        stream: true,
+        temperature: 0.5,
+      });
+
+      expect(parseMockCall(mockHttp.requestStream.mock.calls[0][0])).toEqual({
+        baseUrl: "https://api.openai.com",
+        path: ["v1", "chat", "completions"],
+        body: {
+          model: "gpt-3.5-turbo",
+          messages: [
+            { role: "system", content: "from now on, foo is whale" },
+            { role: "user", content: "what exactly is foo?" },
+          ],
+          stream: true,
+          temperature: 0.5,
+        },
+        headers: {
+          Accept: "text/event-stream",
+          "Cache-Control": "no-cache",
+          Connection: "keep-alive",
+          Authorization: "Bearer test-openai-token",
+          "Content-Type": "application/json",
+        },
+        method: "POST",
+      });
+
+      await checkStream(response, ["whale"]);
+    },
+    { timeout: 30_000, retry: 3 }
+  );
+
+  test("should not be able to without callback", () => {
+    //@ts-expect-error We intentionally omit the callback to ensure the function fails as expected
+    const resultPromise = client.publishJSON({
+      api: {
+        name: "llm",
+        provider: mockOpenai,
+      },
+      body: {
+        model: "gpt-3.5-turbo",
+        messages: [
+          {
+            role: "user",
+            content: "Where is the capital of Turkey?",
+          },
+        ],
+      },
+    });
+
+    expect(resultPromise).rejects.toThrow("Callback cannot be undefined when using LLM");
+  });
+
+  test("should batch with llm api", async () => {
+    mockHttp.request.mockResolvedValue([
+      {
+        messageId: "message-id-1",
+      },
+    ]);
+
+    const result = await client.batchJSON([
+      {
+        api: {
+          name: "llm",
+          provider: mockOpenai,
+        },
+        body: {
+          model: "gpt-3.5-turbo",
+          messages: [
+            {
+              role: "user",
+              content: "hello",
+            },
+          ],
+        },
+        callback: "https://example.com",
+      },
+    ]);
+
+    expect(mockHttp.request.mock.calls.length).toBe(1);
+    expect(parseMockCall(mockHttp.request.mock.calls[0][0])).toEqual({
+      method: "POST",
+      path: ["v2", "batch"],
+      body: [
+        {
+          body: JSON.stringify({
+            model: "gpt-3.5-turbo",
+            messages: [{ role: "user", content: "hello" }],
+          }),
+          destination: "https://api.openai.com/v1/chat/completions",
+          headers: {
+            "content-type": "application/json",
+            "upstash-callback": "https://example.com",
+            "upstash-forward-authorization": "Bearer test-openai-token",
+            "upstash-method": "POST",
+          },
+        },
+      ],
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+
+    expect(result.length).toBe(1);
+    expect(result[0].messageId).toBeTruthy();
+  });
+
+  test("should enqueue with llm api", async () => {
+    const queueName = "upstash-queue";
+    const queue = client.queue({ queueName });
+    await queue.enqueueJSON({
+      api: {
+        name: "llm",
+        provider: mockOpenai,
+      },
+      body: {
+        model: "gpt-3.5-turbo",
+        messages: [
+          {
+            role: "user",
+            content: "hello",
+          },
+        ],
+      },
+      callback: "https://example.com/",
+    });
+
+    expect(parseMockCall(mockHttp.request.mock.calls[0][0])).toEqual({
+      path: ["v2", "enqueue", "upstash-queue", "https://api.openai.com/v1/chat/completions"],
+      method: "POST",
+      body: {
+        messages: [
+          {
+            content: "hello",
+            role: "user",
+          },
+        ],
+        model: "gpt-3.5-turbo",
+      },
+      headers: new Headers({
+        "content-type": "application/json",
+        "upstash-callback": "https://example.com/",
+        "upstash-forward-authorization": "Bearer test-openai-token",
+        "upstash-method": "POST",
+      }),
     });
   });
 
   test("should call request with analytics enabled", async () => {
-    const testOrganization = "my-org";
-    const mockRequest = {
-      provider: {
-        baseUrl: "https://api.together.xyz",
-        token: "xxx",
-        owner: "together",
-        organization: testOrganization,
-      },
-      model: "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
+    await client.chat().create({
+      provider: mockOpenai,
+      model: "gpt-3.5-turbo",
       messages: [
         { role: "system", content: "from now on, foo is whale" },
         { role: "user", content: "what exactly is foo?" },
@@ -471,74 +402,33 @@ describe("createThirdParty", () => {
         token: "helicone-token",
       },
       system: "Some system message", // This will be deleted
-    };
-
-    //@ts-expect-error required for tests because createThirdParty is private
-    await client.chat().create(mockRequest);
-
-    expect(mockHttp.request).toHaveBeenCalledWith(
-      expect.objectContaining({
-        path: [],
-        method: "POST",
-        headers: expect.objectContaining({
-          "Content-Type": "application/json",
-          Authorization: "Bearer xxx",
-          "Helicone-Auth": "Bearer helicone-token",
-          "Helicone-Target-Url": "https://api.together.xyz",
-          "OpenAI-Organization": testOrganization,
-        }),
-        baseUrl: "https://gateway.helicone.ai/v1/chat/completions",
-      })
-    );
-
-    expect(JSON.parse((mockHttp.request.mock.calls[0][0] as any).body)).toEqual({
-      model: "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
-      messages: [
-        { role: "system", content: "from now on, foo is whale" },
-        { role: "user", content: "what exactly is foo?" },
-      ],
-      temperature: 0.5,
-      stream: false,
     });
-  });
 
-  test("should call requestStream with analytics disabled and stream enabled", async () => {
-    const mockRequest: ChatRequest<{ stream: true }> = {
-      provider: custom({ baseUrl: "https://api.together.xyz", token: "xxx" }),
-      model: "meta-llama/Meta-Llama-3-8B-Instruct",
-      messages: [
-        { role: "system", content: "from now on, foo is whale" },
-        { role: "user", content: "what exactly is foo?" },
-      ],
-      stream: true,
-      temperature: 0.5,
-    };
-
-    await client.chat().create(mockRequest);
-
-    expect(mockHttp.requestStream).toHaveBeenCalledWith(
-      expect.objectContaining({
-        path: ["v1", "chat", "completions"],
-        method: "POST",
-        headers: expect.objectContaining({
-          "Content-Type": "application/json",
-          Authorization: "Bearer xxx",
-          Connection: "keep-alive",
-          Accept: "text/event-stream",
-          "Cache-Control": "no-cache",
-        }),
-        baseUrl: "https://api.together.xyz",
-      })
-    );
-
-    expect(JSON.parse((mockHttp.requestStream.mock.calls[0][0] as any).body)).toEqual({
-      model: "meta-llama/Meta-Llama-3-8B-Instruct",
-      messages: [
-        { role: "system", content: "from now on, foo is whale" },
-        { role: "user", content: "what exactly is foo?" },
-      ],
-      temperature: 0.5,
-      stream: true,
+    expect(parseMockCall(mockHttp.request.mock.calls[0][0])).toEqual({
+      baseUrl: "https://gateway.helicone.ai/v1/chat/completions",
+      path: [],
+      method: "POST",
+      body: {
+        messages: [
+          {
+            content: "from now on, foo is whale",
+            role: "system",
+          },
+          {
+            content: "what exactly is foo?",
+            role: "user",
+          },
+        ],
+        model: "gpt-3.5-turbo",
+        stream: false,
+        temperature: 0.5,
+      },
+      headers: {
+        Authorization: "Bearer test-openai-token",
+        "Content-Type": "application/json",
+        "Helicone-Auth": "Bearer helicone-token",
+        "Helicone-Target-Url": "https://api.openai.com",
+      },
     });
   });
 });
