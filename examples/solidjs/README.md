@@ -40,4 +40,4 @@ curl -X POST "https://qstash.upstash.io/v2/publish/<NGROK_URL>/api" \
   -d '{"message":"Hello, World!"}'
 ```
 
-Check the Events from QStash dashboard at Upstash Console to see that the request was completed successfully.
+Check the logs from QStash dashboard at Upstash Console to see that the request was completed successfully.

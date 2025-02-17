@@ -2,7 +2,7 @@ export type State = "CREATED" | "ACTIVE" | "DELIVERED" | "ERROR" | "RETRY" | "FA
 
 export type HTTPMethods = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
 
-export type Event = {
+export type Log = {
   time: number;
   state: State;
   messageId: string;
@@ -16,12 +16,34 @@ export type Event = {
   body?: string; // base64 encoded
 };
 
-export type EventPayload = Omit<Event, "urlGroup"> & { topicName: string };
+/**
+ * Deprecated, use the `Log` type instead
+ *
+ * @deprecated
+ */
+export type Event = Log;
 
-export type GetEventsPayload = {
+export type LogPayload = Omit<Log, "urlGroup"> & { topicName: string };
+
+/**
+ * Deprecated, use `LogPayload` instead
+ *
+ * @deprecated
+ */
+export type EventPayload = LogPayload;
+
+// The response returned from the QStash API
+export type GetLogsPayload = {
   cursor?: string;
-  events: EventPayload[];
+  events: LogPayload[];
 };
+
+/**
+ * Deprecated, use `GetLogsPayload` instead
+ *
+ * @deprecated
+ */
+export type GetEventsPayload = GetLogsPayload;
 
 export type WithCursor<T> = T & { cursor?: number };
 
