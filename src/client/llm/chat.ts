@@ -58,6 +58,8 @@ export class Chat {
     const analytics = request.analytics;
     //We need to delete the prop, otherwise openai or other llm providers throws an error
     delete request.analytics;
+    //@ts-expect-error Prop not required
+    delete request.user;
 
     const body = JSON.stringify(request);
 
