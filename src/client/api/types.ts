@@ -33,7 +33,7 @@ export type Owner = EmailOwner | LLMOwner;
 
 type PublishApi<TName extends ApiKind, TProvider extends BaseProvider<TName>> = {
   name: TName;
-  provider?: TProvider;
+  provider: TProvider;
 };
 
 /**
@@ -45,7 +45,7 @@ export type PublishEmailApi = Required<PublishApi<"email", BaseProvider<"email",
 /**
  * LLM
  */
-export type LLMOwner = "upstash" | "openai" | "anthropic" | "custom";
+export type LLMOwner = "openai" | "anthropic" | "custom";
 export type LLMOptions = {
   analytics?: { name: "helicone"; token: string };
 };

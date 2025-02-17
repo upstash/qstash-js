@@ -7,16 +7,15 @@ import { Queue } from "./queue";
 import { Schedules } from "./schedules";
 import type {
   BodyInit,
-  Event,
+  Log,
   FlowControl,
-  GetEventsPayload,
+  GetLogsPayload,
   HeadersInit,
   HTTPMethods,
   State,
 } from "./types";
 import { UrlGroups } from "./url-groups";
 import { getRequestPath, prefixHeaders, processHeaders, wrapWithGlobalHeaders } from "./utils";
-import { Workflow } from "./workflow";
 import type { PublishEmailApi, PublishLLMApi } from "./api/types";
 import { processApi } from "./api/utils";
 
@@ -261,12 +260,19 @@ export type PublishJsonRequest = Omit<PublishRequest, "body"> & {
   body: unknown;
 };
 
-export type EventsRequest = {
+export type LogsRequest = {
   cursor?: string | number;
-  filter?: EventsRequestFilter;
+  filter?: LogsRequestFilter;
 };
 
-type EventsRequestFilter = {
+/**
+ * Deprecated, use `LogsRequest` type instead.
+ *
+ * @deprecated
+ */
+export type EventsRequest = LogsRequest;
+
+type LogsRequestFilter = {
   messageId?: string;
   state?: State;
   url?: string;
@@ -280,10 +286,24 @@ type EventsRequestFilter = {
   count?: number;
 };
 
-export type GetEventsResponse = {
+export type GetLogsResponse = {
   cursor?: string;
-  events: Event[];
+  /**
+   * Deprecated, use the `logs` field instead.
+   *
+   * @deprecated
+   */
+  events: Log[];
+
+  logs: Log[];
 };
+
+/**
+ * Deprecated, use `GetLogsResponse` instead.
+ *
+ * @deprecated
+ */
+export type GetEventsResponse = GetLogsResponse;
 
 export type QueueRequest = {
   queueName?: string;
@@ -368,20 +388,6 @@ export class Client {
   }
 
   /**
-   * Access the workflow API.
-   *
-   * cancel workflows.
-   *
-   * @deprecated as of version 2.7.17. Will be removed in qstash-js 3.0.0.
-   * Please use @upstash/workflow instead https://github.com/upstash/workflow-js
-   * Migration Guide: https://upstash.com/docs/workflow/migration
-   */
-  public get workflow(): Workflow {
-    // eslint-disable-next-line @typescript-eslint/no-deprecated
-    return new Workflow(this.http);
-  }
-
-  /**
    * Access the queue API.
    *
    * Create, read, update or delete queues.
@@ -427,9 +433,7 @@ export class Client {
     const headers = prefixHeaders(new Headers(request.headers));
     headers.set("Content-Type", "application/json");
 
-    //@ts-expect-error hacky way to get bearer token
-    const upstashToken = String(this.http.authorization).split("Bearer ")[1];
-    const nonApiRequest = processApi(request, headers, upstashToken);
+    const nonApiRequest = processApi(request, headers);
 
     // @ts-expect-error it's just internal
     const response = await this.publish<TRequest>({
@@ -484,11 +488,8 @@ export class Client {
         message.body = JSON.stringify(message.body) as unknown as TBody;
       }
 
-      //@ts-expect-error hacky way to get bearer token
-      const upstashToken = String(this.http.authorization).split("Bearer ")[1];
-
       //@ts-expect-error caused by undici and bunjs type overlap
-      const nonApiMessage = processApi(message, new Headers(message.headers), upstashToken);
+      const nonApiMessage = processApi(message, new Headers(message.headers));
 
       (nonApiMessage.headers as Headers).set("Content-Type", "application/json");
 
@@ -520,7 +521,7 @@ export class Client {
    * }
    * ```
    */
-  public async events(request?: EventsRequest): Promise<GetEventsResponse> {
+  public async logs(request?: LogsRequest): Promise<GetLogsResponse> {
     const query: Record<string, string> = {};
 
     if (typeof request?.cursor === "number" && request.cursor > 0) {
@@ -541,20 +542,49 @@ export class Client {
       }
     }
 
-    const responsePayload = await this.http.request<GetEventsPayload>({
+    const responsePayload = await this.http.request<GetLogsPayload>({
       path: ["v2", "events"],
       method: "GET",
       query,
     });
+
+    const finalLogs = responsePayload.events.map((event) => {
+      return {
+        ...event,
+        urlGroup: event.topicName,
+      };
+    });
+
     return {
       cursor: responsePayload.cursor,
-      events: responsePayload.events.map((event) => {
-        return {
-          ...event,
-          urlGroup: event.topicName,
-        };
-      }),
+      logs: finalLogs,
+      events: finalLogs,
     };
+  }
+
+  /**
+   * Deprecated, use the `logs` function instead.
+   *
+   * The logs endpoint is paginated and returns only 100 logs at a time.
+   * If you want to receive more logs, you can use the cursor to paginate.
+   *
+   * The cursor is a unix timestamp with millisecond precision
+   *
+   * @example
+   * ```ts
+   * let cursor = Date.now()
+   * const logs: Log[] = []
+   * while (cursor > 0) {
+   *   const res = await qstash.logs({ cursor })
+   *   logs.push(...res.logs)
+   *   cursor = res.cursor ?? 0
+   * }
+   * ```
+   *
+   * @returns
+   */
+  public async events(request?: LogsRequest): Promise<GetLogsResponse> {
+    return this.logs(request);
   }
 }
 

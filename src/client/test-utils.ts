@@ -1,17 +1,10 @@
 import { expect } from "bun:test";
 import { serve } from "bun";
-import type { RawStep, Step } from "./types";
-import {
-  WORKFLOW_ID_HEADER,
-  WORKFLOW_PROTOCOL_VERSION,
-  WORKFLOW_PROTOCOL_VERSION_HEADER,
-} from "./constants";
 
 export const MOCK_QSTASH_SERVER_PORT = 8080;
 export const MOCK_QSTASH_SERVER_URL = `http://localhost:${MOCK_QSTASH_SERVER_PORT}`;
 
 export const MOCK_SERVER_URL = "https://requestcatcher.com/";
-export const WORKFLOW_ENDPOINT = "https://www.my-website.com/api";
 
 export type ResponseFields = {
   body: unknown;
@@ -98,82 +91,4 @@ export const mockQStashServer = async ({
   } finally {
     server.stop(true);
   }
-};
-
-type Iteration = {
-  stepsToAdd: Step[];
-  responseFields: ResponseFields;
-  receivesRequest: RequestFields | false;
-};
-
-type IterationTape = Iteration[];
-
-export const driveWorkflow = async ({
-  execute,
-  initialPayload,
-  iterations,
-}: {
-  execute: (intialPayload: unknown, steps: Step[]) => Promise<void>;
-  initialPayload: unknown;
-  iterations: IterationTape;
-}) => {
-  const steps: Step[] = [];
-  for (const { stepsToAdd, responseFields, receivesRequest } of iterations) {
-    steps.push(...stepsToAdd);
-    await mockQStashServer({
-      execute: () => execute(initialPayload, steps),
-      responseFields,
-      receivesRequest,
-    });
-  }
-};
-
-/**
- * Returns a workflow request body given the initial payload and steps
- *
- * @param initialPayload payload sent by the user
- * @param steps steps of the workflow
- * @returns encoded and stringified request body as RawSteps
- */
-export const getRequestBody = (initialPayload: unknown, steps: Step[]) => {
-  const encodedInitialPayload = btoa(
-    typeof initialPayload === "string" ? initialPayload : JSON.stringify(initialPayload)
-  );
-  const encodedInitialStep: RawStep = {
-    messageId: "msgId",
-    body: encodedInitialPayload,
-    callType: "step",
-  };
-  const encodedSteps: RawStep[] = steps.map((step) => {
-    return {
-      messageId: "msgId",
-      body: btoa(JSON.stringify(step)),
-      callType: "step",
-    };
-  });
-  return JSON.stringify([encodedInitialStep, ...encodedSteps]);
-};
-
-/**
- * Creates a workflow request
- *
- * @param workflowUrl workflow endpoint
- * @param workflowRunId workflow id
- * @param initialPayload payload sent by the user
- * @param steps steps of the workflow
- * @returns request given all the parameters above
- */
-export const getRequest = (
-  workflowUrl: string,
-  workflowRunId: string,
-  initialPayload: unknown,
-  steps: Step[]
-): Request => {
-  return new Request(workflowUrl, {
-    body: getRequestBody(initialPayload, steps),
-    headers: {
-      [WORKFLOW_ID_HEADER]: workflowRunId,
-      [WORKFLOW_PROTOCOL_VERSION_HEADER]: WORKFLOW_PROTOCOL_VERSION,
-    },
-  });
 };

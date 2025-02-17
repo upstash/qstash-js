@@ -122,7 +122,7 @@ export function getRequestPath(
   if (request.api?.name === "llm") return `api/llm`;
   // return email api
   if (request.api?.name === "email") {
-    const providerInfo = getProviderInfo(request.api, "not-needed");
+    const providerInfo = getProviderInfo(request.api);
     return providerInfo.baseUrl;
   }
 

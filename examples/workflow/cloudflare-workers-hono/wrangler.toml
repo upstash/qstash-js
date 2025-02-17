@@ -1,5 +1,0 @@
-#:schema node_modules/wrangler/config-schema.json
-name = "qstash-workflow"
-main = "src/index.ts"
-compatibility_date = "2024-08-15"
-compatibility_flags = ["nodejs_compat"]
