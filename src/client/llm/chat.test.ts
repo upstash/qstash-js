@@ -137,8 +137,8 @@ describe("Test QStash chat", () => {
     // eslint-disable-next-line @typescript-eslint/no-magic-numbers
     await new Promise((r) => setTimeout(r, 3000));
 
-    const { events } = await client.events({ filter: { messageId: result.messageId } });
-    const deliveredEvent = events.find((event) => event.state === "DELIVERED");
+    const { logs } = await client.logs({ filter: { messageId: result.messageId } });
+    const deliveredEvent = logs.find((event) => event.state === "DELIVERED");
     expect(deliveredEvent).not.toBeUndefined();
   });
 
@@ -316,8 +316,8 @@ describe("Test QStash chat with third party LLMs", () => {
     // eslint-disable-next-line @typescript-eslint/no-magic-numbers
     await new Promise((r) => setTimeout(r, 3000));
 
-    const { events } = await client.events({ filter: { messageId: result.messageId } });
-    const deliveredEvent = events.find((event) => event.state === "DELIVERED");
+    const { logs } = await client.logs({ filter: { messageId: result.messageId } });
+    const deliveredEvent = logs.find((event) => event.state === "DELIVERED");
     expect(deliveredEvent).not.toBeUndefined();
   });
 

@@ -7,9 +7,9 @@ import { Queue } from "./queue";
 import { Schedules } from "./schedules";
 import type {
   BodyInit,
-  Event,
+  Log,
   FlowControl,
-  GetEventsPayload,
+  GetLogsPayload,
   HeadersInit,
   HTTPMethods,
   State,
@@ -261,12 +261,19 @@ export type PublishJsonRequest = Omit<PublishRequest, "body"> & {
   body: unknown;
 };
 
-export type EventsRequest = {
+export type LogsRequest = {
   cursor?: string | number;
-  filter?: EventsRequestFilter;
+  filter?: LogsRequestFilter;
 };
 
-type EventsRequestFilter = {
+/**
+ * Deprecated. Use `LogsRequest` instead.
+ *
+ * @deprecated
+ */
+export type EventsRequest = LogsRequest;
+
+type LogsRequestFilter = {
   messageId?: string;
   state?: State;
   url?: string;
@@ -280,10 +287,23 @@ type EventsRequestFilter = {
   count?: number;
 };
 
-export type GetEventsResponse = {
+export type GetLogsResponse = {
   cursor?: string;
-  events: Event[];
+  logs: Log[];
+  /**
+   * Deprecated. Use the `logs` field instead.
+   *
+   * @deprecated
+   */
+  events: Log[];
 };
+
+/**
+ * Deprecated. Use `GetLogsResponse` instead.
+ *
+ * @deprecated
+ */
+export type GetEventsResponse = GetLogsResponse;
 
 export type QueueRequest = {
   queueName?: string;
@@ -520,7 +540,7 @@ export class Client {
    * }
    * ```
    */
-  public async events(request?: EventsRequest): Promise<GetEventsResponse> {
+  public async logs(request?: LogsRequest): Promise<GetLogsResponse> {
     const query: Record<string, string> = {};
 
     if (typeof request?.cursor === "number" && request.cursor > 0) {
@@ -541,20 +561,47 @@ export class Client {
       }
     }
 
-    const responsePayload = await this.http.request<GetEventsPayload>({
+    const responsePayload = await this.http.request<GetLogsPayload>({
       path: ["v2", "events"],
       method: "GET",
       query,
     });
+    const logs = responsePayload.events.map((event) => {
+      return {
+        ...event,
+        urlGroup: event.topicName,
+      };
+    });
     return {
       cursor: responsePayload.cursor,
-      events: responsePayload.events.map((event) => {
-        return {
-          ...event,
-          urlGroup: event.topicName,
-        };
-      }),
+      logs: logs,
+      events: logs,
     };
+  }
+
+  /**
+   * @deprecated Will be removed in the next major release. Use the `logs` method instead.
+   *
+   * Retrieve your logs.
+   *
+   * The logs endpoint is paginated and returns only 100 logs at a time.
+   * If you want to receive more logs, you can use the cursor to paginate.
+   *
+   * The cursor is a unix timestamp with millisecond precision
+   *
+   * @example
+   * ```ts
+   * let cursor = Date.now()
+   * const logs: Log[] = []
+   * while (cursor > 0) {
+   *   const res = await qstash.logs({ cursor })
+   *   logs.push(...res.logs)
+   *   cursor = res.cursor ?? 0
+   * }
+   * ```
+   */
+  public async events(request?: LogsRequest): Promise<GetLogsResponse> {
+    return await this.logs(request);
   }
 }
 
