@@ -35,4 +35,4 @@ Here is what the script does in a nutshell:
 
 To use the app, simply send a request through the opened interface.
 
-You will be able to see the workflow executing in the console logs. You can also monitor the events in [the QStash tab of Upstash Console](https://console.upstash.com/qstash?tab=workflow).
+You will be able to see the workflow executing in the console logs. You can also monitor the logs in [the QStash tab of Upstash Console](https://console.upstash.com/qstash?tab=workflow).
