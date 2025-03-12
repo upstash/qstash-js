@@ -115,7 +115,7 @@ export function verifySignatureEdge(
     nextSigningKey,
   });
 
-  return async (request: NextRequest, nfe: NextFetchEvent) => {
+  return async (request: NextRequest) => {
     // @ts-ignore This can throw errors during vercel build
     const requestClone = request.clone() as NextRequest;
     const signature = request.headers.get("upstash-signature");
@@ -138,7 +138,7 @@ export function verifySignatureEdge(
       return new Response(new TextEncoder().encode("invalid signature"), { status: 403 });
     }
 
-    return handler(request, nfe);
+    return handler(request);
   };
 }
 
