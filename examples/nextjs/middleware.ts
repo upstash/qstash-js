@@ -9,5 +9,5 @@ export default verifySignatureEdge(async (
 })
 
 export const config = {
-  // matcher: "/*",
+  matcher: "/api/middleware-endpoint",
 };
