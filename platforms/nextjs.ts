@@ -94,14 +94,6 @@ export function verifySignature(
   };
 }
 
-/**
- *
- * @deprecated use `verifySignatureAppRouter` instead
- *
- * @param handler
- * @param config
- * @returns
- */
 export function verifySignatureEdge(
   handler: (request: NextRequest, nfe?: NextFetchEvent) => Response | Promise<Response>,
   config?: VerifySignatureConfig
