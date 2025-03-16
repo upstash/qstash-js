@@ -15,10 +15,17 @@ import type {
   State,
 } from "./types";
 import { UrlGroups } from "./url-groups";
-import { getRequestPath, prefixHeaders, processHeaders, wrapWithGlobalHeaders } from "./utils";
+import {
+  getRequestPath,
+  getRuntime,
+  prefixHeaders,
+  processHeaders,
+  wrapWithGlobalHeaders,
+} from "./utils";
 import { Workflow } from "./workflow";
 import type { PublishEmailApi, PublishLLMApi } from "./api/types";
 import { processApi } from "./api/utils";
+import { VERSION } from "../../version";
 
 type ClientConfig = {
   /**
@@ -52,6 +59,14 @@ type ClientConfig = {
    * These can be overridden by the headers in the request.
    */
   headers?: HeadersInit;
+
+  /**
+   * Enable telemetry to help us improve the SDK.
+   * The sdk will send the sdk version, platform and node version as telemetry headers.
+   *
+   * @default true
+   */
+  enableTelemetry?: boolean;
 };
 
 export type PublishBatchRequest<TBody = BodyInit> = PublishRequest<TBody> & {
@@ -322,12 +337,32 @@ export class Client {
       : environment.QSTASH_URL ?? "https://qstash.upstash.io";
     const token = config?.token ?? environment.QSTASH_TOKEN;
 
+    const enableTelemetry = environment.UPSTASH_DISABLE_TELEMETRY
+      ? false
+      : config?.enableTelemetry ?? true;
+
+    const telemetryHeaders: Record<string, string> = enableTelemetry
+      ? {
+          "Upstash-Telemetry-Sdk": `upstash-vector-js@${VERSION}`,
+          "Upstash-Telemetry-Platform": process.env.VERCEL
+            ? "vercel"
+            : process.env.AWS_REGION
+              ? "aws"
+              : "unknown",
+          "Upstash-Telemetry-Runtime": getRuntime(),
+        }
+      : {};
+
     this.http = new HttpClient({
       retry: config?.retry,
       baseUrl,
       authorization: `Bearer ${token}`,
       //@ts-expect-error caused by undici and bunjs type overlap
-      headers: prefixHeaders(new Headers(config?.headers ?? {})),
+      headers: new Headers({
+        ...telemetryHeaders,
+        //@ts-expect-error caused by undici and bunjs type overlap
+        ...prefixHeaders(new Headers(config?.headers ?? {})),
+      }),
     });
 
     if (!token) {

@@ -39,10 +39,12 @@ export const mockQStashServer = async ({
   execute,
   responseFields,
   receivesRequest,
+  validateRequest,
 }: {
   execute: () => unknown;
   responseFields: ResponseFields;
   receivesRequest: RequestFields | false;
+  validateRequest?: (request: Request) => void;
 }) => {
   const shouldBeCalled = Boolean(receivesRequest);
   let called = false;
@@ -74,6 +76,8 @@ export const mockQStashServer = async ({
             expect(request.headers.get(header)).toBe(value);
           }
         }
+
+        validateRequest?.(request);
       } catch (error) {
         if (error instanceof Error) {
           console.error("Assertion error:", error.message);

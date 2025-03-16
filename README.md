@@ -131,6 +131,25 @@ const result = await client.publishJSON({
 
 See [the documentation](https://docs.upstash.com/qstash) for details.
 
+## Telemetry
+
+This sdk sends anonymous telemetry headers to help us improve your experience.
+We collect the following:
+
+- SDK version
+- Platform (Cloudflare, AWS or Vercel)
+- Runtime version (node@18.x)
+
+You can opt out by setting the `UPSTASH_DISABLE_TELEMETRY` environment variable
+to any truthy value. Or setting `enableTelemetry: false` in the client options.
+
+```ts
+const client = new Client({
+  token: "<QSTASH_TOKEN>",
+  enableTelemetry: false,
+});
+```
+
 ## Contributing
 
 ### Setup
