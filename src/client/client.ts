@@ -361,7 +361,7 @@ export class Client {
       headers: new Headers({
         ...telemetryHeaders,
         //@ts-expect-error caused by undici and bunjs type overlap
-        ...prefixHeaders(new Headers(config?.headers ?? {})),
+        ...Object.fromEntries(prefixHeaders(new Headers(config?.headers ?? {})).entries()),
       }),
     });
 
