@@ -344,9 +344,9 @@ export class Client {
     const telemetryHeaders: Record<string, string> = enableTelemetry
       ? {
           "Upstash-Telemetry-Sdk": `upstash-vector-js@${VERSION}`,
-          "Upstash-Telemetry-Platform": process.env.VERCEL
+          "Upstash-Telemetry-Platform": environment.VERCEL
             ? "vercel"
-            : process.env.AWS_REGION
+            : environment.AWS_REGION
               ? "aws"
               : "unknown",
           "Upstash-Telemetry-Runtime": getRuntime(),
