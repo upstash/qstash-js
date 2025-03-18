@@ -341,14 +341,18 @@ export class Client {
       ? false
       : config?.enableTelemetry ?? true;
 
+  // @ts-expect-error caches is not defined in the types
+    const isCloudflare = typeof caches !== "undefined" && "default" in caches;
     const telemetryHeaders: Record<string, string> = enableTelemetry
       ? {
           "Upstash-Telemetry-Sdk": `upstash-vector-js@${VERSION}`,
-          "Upstash-Telemetry-Platform": environment.VERCEL
-            ? "vercel"
-            : environment.AWS_REGION
-              ? "aws"
-              : "unknown",
+          "Upstash-Telemetry-Platform": isCloudflare
+            ? "cloudflare"
+            : environment.VERCEL
+              ? "vercel"
+              : environment.AWS_REGION
+                ? "aws"
+                : "unknown",
           "Upstash-Telemetry-Runtime": getRuntime(),
         }
       : {};
