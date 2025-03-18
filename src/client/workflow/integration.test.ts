@@ -97,6 +97,7 @@ const attemptCharge = () => {
 const qstashClient = new Client({
   baseUrl: process.env.MOCK_QSTASH_URL,
   token: process.env.MOCK_QSTASH_TOKEN ?? "",
+  enableTelemetry: false,
 });
 
 const testEndpoint = async <TInitialPayload = unknown>({

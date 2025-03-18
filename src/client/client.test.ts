@@ -422,6 +422,7 @@ describe("flow control", () => {
   const client = new Client({
     baseUrl: MOCK_QSTASH_SERVER_URL,
     token,
+    enableTelemetry: false,
   });
 
   const flowControlKey = nanoid();
