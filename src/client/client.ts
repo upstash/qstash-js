@@ -341,32 +341,32 @@ export class Client {
       ? false
       : config?.enableTelemetry ?? true;
 
-  // @ts-expect-error caches is not defined in the types
+    // @ts-expect-error caches is not defined in the types
     const isCloudflare = typeof caches !== "undefined" && "default" in caches;
-    const telemetryHeaders: Record<string, string> = enableTelemetry
-      ? {
-          "Upstash-Telemetry-Sdk": `upstash-vector-js@${VERSION}`,
-          "Upstash-Telemetry-Platform": isCloudflare
-            ? "cloudflare"
-            : environment.VERCEL
-              ? "vercel"
-              : environment.AWS_REGION
-                ? "aws"
-                : "unknown",
-          "Upstash-Telemetry-Runtime": getRuntime(),
-        }
-      : {};
+    const telemetryHeaders = new Headers(
+      enableTelemetry
+        ? {
+            "Upstash-Telemetry-Sdk": `upstash-qstash-js@${VERSION}`,
+            "Upstash-Telemetry-Platform": isCloudflare
+              ? "cloudflare"
+              : environment.VERCEL
+                ? "vercel"
+                : environment.AWS_REGION
+                  ? "aws"
+                  : "",
+            "Upstash-Telemetry-Runtime": getRuntime(),
+          }
+        : {}
+    );
 
     this.http = new HttpClient({
       retry: config?.retry,
       baseUrl,
       authorization: `Bearer ${token}`,
       //@ts-expect-error caused by undici and bunjs type overlap
-      headers: new Headers({
-        ...telemetryHeaders,
-        //@ts-expect-error caused by undici and bunjs type overlap
-        ...Object.fromEntries(prefixHeaders(new Headers(config?.headers ?? {})).entries()),
-      }),
+      headers: prefixHeaders(new Headers(config?.headers ?? {})),
+      //@ts-expect-error caused by undici and bunjs type overlap
+      telemetryHeaders: telemetryHeaders,
     });
 
     if (!token) {
@@ -463,8 +463,9 @@ export class Client {
   ): Promise<PublishResponse<TRequest>> {
     const headers = wrapWithGlobalHeaders(
       processHeaders(request),
-      this.http.headers
-    ) as HeadersInit;
+      this.http.headers,
+      this.http.telemetryHeaders
+    );
     const response = await this.http.request<PublishResponse<TRequest>>({
       path: ["v2", "publish", getRequestPath(request)],
       body: request.body,
@@ -505,7 +506,11 @@ export class Client {
   public async batch(request: PublishBatchRequest[]): Promise<PublishResponse<PublishRequest>[]> {
     const messages = [];
     for (const message of request) {
-      const headers = wrapWithGlobalHeaders(processHeaders(message), this.http.headers);
+      const headers = wrapWithGlobalHeaders(
+        processHeaders(message),
+        this.http.headers,
+        this.http.telemetryHeaders
+      );
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       //@ts-ignore Type mismatch TODO: should be checked later
       const headerEntries = Object.fromEntries(headers.entries());

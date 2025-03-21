@@ -56,6 +56,7 @@ export type Requester = {
   request: <TResult = unknown>(request: UpstashRequest) => Promise<UpstashResponse<TResult>>;
   requestStream: (request: UpstashRequest) => AsyncIterable<ChatCompletionChunk>;
   headers?: Headers;
+  telemetryHeaders?: Headers;
 };
 
 export type RetryConfig =
@@ -83,6 +84,7 @@ export type HttpClientConfig = {
   authorization: string;
   retry?: RetryConfig;
   headers?: Headers;
+  telemetryHeaders?: Headers;
 };
 
 export class HttpClient implements Requester {
@@ -98,6 +100,7 @@ export class HttpClient implements Requester {
   };
 
   public readonly headers;
+  public readonly telemetryHeaders;
 
   public constructor(config: HttpClientConfig) {
     this.baseUrl = config.baseUrl.replace(/\/$/, "");
@@ -117,6 +120,7 @@ export class HttpClient implements Requester {
           };
 
     this.headers = config.headers;
+    this.telemetryHeaders = config.telemetryHeaders;
   }
 
   public async request<TResult>(request: UpstashRequest): Promise<UpstashResponse<TResult>> {

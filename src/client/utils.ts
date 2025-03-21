@@ -23,7 +23,11 @@ export function prefixHeaders(headers: Headers) {
   return headers;
 }
 
-export function wrapWithGlobalHeaders(headers: Headers, globalHeaders?: Headers): Headers {
+export function wrapWithGlobalHeaders(
+  headers: Headers,
+  globalHeaders?: Headers,
+  telemetryHeaders?: Headers
+): Headers {
   if (!globalHeaders) {
     return headers;
   }
@@ -33,6 +37,13 @@ export function wrapWithGlobalHeaders(headers: Headers, globalHeaders?: Headers)
   // eslint-disable-next-line unicorn/no-array-for-each
   headers.forEach((value, key) => {
     finalHeaders.set(key, value);
+  });
+
+  // Stack telemetry headers
+  // eslint-disable-next-line unicorn/no-array-for-each
+  telemetryHeaders?.forEach((value, key) => {
+    if (!value) return;
+    finalHeaders.append(key, value);
   });
 
   //@ts-expect-error caused by undici and bunjs type overlap
@@ -190,5 +201,5 @@ export function getRuntime() {
   if (typeof EdgeRuntime === "string") return "edge-light";
   else if (typeof process === "object" && typeof process.version === "string")
     return `node@${process.version}`;
-  return "unknown";
+  return "";
 }

@@ -407,6 +407,7 @@ describe("createThirdParty", () => {
     requestStream: mock((config: unknown) => {
       return config as AsyncIterable<ChatCompletionChunk>;
     }),
+    wrapWithGlobalHeaders: (headers: Headers) => headers,
   };
 
   client.http = mockHttp as Requester;
