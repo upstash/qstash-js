@@ -422,6 +422,7 @@ describe("flow control", () => {
   const client = new Client({
     baseUrl: MOCK_QSTASH_SERVER_URL,
     token,
+    enableTelemetry: false,
   });
 
   const flowControlKey = nanoid();
@@ -526,6 +527,103 @@ describe("flow control", () => {
           // eslint-disable-next-line unicorn/no-null
           "Upstash-Flow-Control-Value": null,
         },
+      },
+    });
+  });
+});
+
+describe("Telemetry headers", () => {
+  const token = nanoid();
+  const client = new Client({
+    baseUrl: MOCK_QSTASH_SERVER_URL,
+    token,
+  });
+
+  test("should add telemetry headers", async () => {
+    await mockQStashServer({
+      execute: async () => {
+        await client.publishJSON({
+          url: "https://example.com/",
+        });
+      },
+      responseFields: {
+        body: { messageId: "msgId" },
+        status: 200,
+      },
+      receivesRequest: {
+        method: "POST",
+        token,
+        url: "http://localhost:8080/v2/publish/https://example.com/",
+      },
+      validateRequest: (request) => {
+        expect(request.headers.get("Upstash-Telemetry-Sdk")).toStartWith("upstash-qstash-js@");
+        expect(request.headers.get("Upstash-Telemetry-Runtime")).toBeTruthy();
+      },
+    });
+  });
+
+  test("should not add telemetry headers if disabled", async () => {
+    const client = new Client({
+      baseUrl: MOCK_QSTASH_SERVER_URL,
+      token,
+      enableTelemetry: false,
+    });
+
+    await mockQStashServer({
+      execute: async () => {
+        await client.publishJSON({
+          url: "https://example.com/",
+        });
+      },
+      responseFields: {
+        body: { messageId: "msgId" },
+        status: 200,
+      },
+      receivesRequest: {
+        method: "POST",
+        token,
+        url: "http://localhost:8080/v2/publish/https://example.com/",
+      },
+      validateRequest: (request) => {
+        expect(request.headers.get("Upstash-Telemetry-Sdk")).toBeNull();
+        expect(request.headers.get("Upstash-Telemetry-Platform")).toBeNull();
+        expect(request.headers.get("Upstash-Telemetry-Runtime")).toBeNull();
+      },
+    });
+  });
+
+  test("should stack telemetry headers", async () => {
+    const client = new Client({
+      baseUrl: MOCK_QSTASH_SERVER_URL,
+      token,
+      headers: {
+        // Should work with different casing as well
+        "upstash-Telemetry-SDK": "other-sdk@v1.0.0",
+        "upstash-Telemetry-PLATFORM": "aws",
+      },
+    });
+
+    await mockQStashServer({
+      execute: async () => {
+        await client.publishJSON({
+          url: "https://example.com/",
+        });
+      },
+      responseFields: {
+        body: { messageId: "msgId" },
+        status: 200,
+      },
+      receivesRequest: {
+        method: "POST",
+        token,
+        url: "http://localhost:8080/v2/publish/https://example.com/",
+      },
+      validateRequest: (request) => {
+        expect(request.headers.get("Upstash-Telemetry-Sdk")).toStartWith(
+          "other-sdk@v1.0.0, upstash-qstash-js@"
+        );
+        expect(request.headers.get("Upstash-Telemetry-Runtime")).toBeTruthy();
+        expect(request.headers.get("Upstash-Telemetry-Platform")).toBe("aws");
       },
     });
   });

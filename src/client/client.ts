@@ -15,10 +15,17 @@ import type {
   State,
 } from "./types";
 import { UrlGroups } from "./url-groups";
-import { getRequestPath, prefixHeaders, processHeaders, wrapWithGlobalHeaders } from "./utils";
+import {
+  getRequestPath,
+  getRuntime,
+  prefixHeaders,
+  processHeaders,
+  wrapWithGlobalHeaders,
+} from "./utils";
 import { Workflow } from "./workflow";
 import type { PublishEmailApi, PublishLLMApi } from "./api/types";
 import { processApi } from "./api/utils";
+import { VERSION } from "../../version";
 
 type ClientConfig = {
   /**
@@ -52,6 +59,14 @@ type ClientConfig = {
    * These can be overridden by the headers in the request.
    */
   headers?: HeadersInit;
+
+  /**
+   * Enable telemetry to help us improve the SDK.
+   * The sdk will send the sdk version, platform and node version as telemetry headers.
+   *
+   * @default true
+   */
+  enableTelemetry?: boolean;
 };
 
 export type PublishBatchRequest<TBody = BodyInit> = PublishRequest<TBody> & {
@@ -322,12 +337,36 @@ export class Client {
       : environment.QSTASH_URL ?? "https://qstash.upstash.io";
     const token = config?.token ?? environment.QSTASH_TOKEN;
 
+    const enableTelemetry = environment.UPSTASH_DISABLE_TELEMETRY
+      ? false
+      : config?.enableTelemetry ?? true;
+
+    // @ts-expect-error caches is not defined in the types
+    const isCloudflare = typeof caches !== "undefined" && "default" in caches;
+    const telemetryHeaders = new Headers(
+      enableTelemetry
+        ? {
+            "Upstash-Telemetry-Sdk": `upstash-qstash-js@${VERSION}`,
+            "Upstash-Telemetry-Platform": isCloudflare
+              ? "cloudflare"
+              : environment.VERCEL
+                ? "vercel"
+                : environment.AWS_REGION
+                  ? "aws"
+                  : "",
+            "Upstash-Telemetry-Runtime": getRuntime(),
+          }
+        : {}
+    );
+
     this.http = new HttpClient({
       retry: config?.retry,
       baseUrl,
       authorization: `Bearer ${token}`,
       //@ts-expect-error caused by undici and bunjs type overlap
       headers: prefixHeaders(new Headers(config?.headers ?? {})),
+      //@ts-expect-error caused by undici and bunjs type overlap
+      telemetryHeaders: telemetryHeaders,
     });
 
     if (!token) {
@@ -424,8 +463,9 @@ export class Client {
   ): Promise<PublishResponse<TRequest>> {
     const headers = wrapWithGlobalHeaders(
       processHeaders(request),
-      this.http.headers
-    ) as HeadersInit;
+      this.http.headers,
+      this.http.telemetryHeaders
+    );
     const response = await this.http.request<PublishResponse<TRequest>>({
       path: ["v2", "publish", getRequestPath(request)],
       body: request.body,
@@ -466,7 +506,11 @@ export class Client {
   public async batch(request: PublishBatchRequest[]): Promise<PublishResponse<PublishRequest>[]> {
     const messages = [];
     for (const message of request) {
-      const headers = wrapWithGlobalHeaders(processHeaders(message), this.http.headers);
+      const headers = wrapWithGlobalHeaders(
+        processHeaders(message),
+        this.http.headers,
+        this.http.telemetryHeaders
+      );
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       //@ts-ignore Type mismatch TODO: should be checked later
       const headerEntries = Object.fromEntries(headers.entries());

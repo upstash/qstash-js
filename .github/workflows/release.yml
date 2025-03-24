@@ -22,7 +22,9 @@ jobs:
           bun-version: latest
 
       - name: Set package version
-        run: echo $(jq --arg v "${{ env.VERSION }}" '(.version) = $v' package.json) > package.json
+        run: |
+          echo $(jq --arg v "${{ env.VERSION }}" '(.version) = $v' package.json) > package.json
+          echo "export const VERSION='${{ env.VERSION }}'" > ./version.ts
 
       - name: Install Dependencies
         run: bun install

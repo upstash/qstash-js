@@ -115,7 +115,8 @@ export class Queue {
 
     const headers = wrapWithGlobalHeaders(
       processHeaders(request),
-      this.http.headers
+      this.http.headers,
+      this.http.telemetryHeaders
     ) as HeadersInit;
 
     const destination = getRequestPath(request);

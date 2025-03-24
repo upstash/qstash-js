@@ -78,7 +78,7 @@ const nextSigningKey = nanoid();
 const randomBody = btoa(nanoid());
 
 const token = nanoid();
-const qstashClient = new Client({ baseUrl: MOCK_QSTASH_SERVER_URL, token });
+const qstashClient = new Client({ baseUrl: MOCK_QSTASH_SERVER_URL, token, enableTelemetry: false });
 const receiver = new Receiver({ currentSigningKey, nextSigningKey });
 
 /**

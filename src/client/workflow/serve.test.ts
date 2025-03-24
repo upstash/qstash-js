@@ -27,7 +27,7 @@ const someWork = (input: string) => {
 const workflowRunId = `wfr${nanoid()}`;
 const token = nanoid();
 
-const qstashClient = new Client({ baseUrl: MOCK_QSTASH_SERVER_URL, token });
+const qstashClient = new Client({ baseUrl: MOCK_QSTASH_SERVER_URL, token, enableTelemetry: false });
 
 describe("serve", () => {
   test("should send create workflow request in initial request", async () => {

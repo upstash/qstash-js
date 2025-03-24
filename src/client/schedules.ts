@@ -218,7 +218,7 @@ export class Schedules {
 
     return await this.http.request({
       method: "POST",
-      headers: wrapWithGlobalHeaders(headers, this.http.headers) as HeadersInit,
+      headers: wrapWithGlobalHeaders(headers, this.http.headers, this.http.telemetryHeaders),
       path: ["v2", "schedules", request.destination],
       body: request.body,
     });
