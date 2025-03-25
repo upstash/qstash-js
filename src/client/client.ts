@@ -338,6 +338,7 @@ export class Client {
       "https://qstash.upstash.io"
     ).replace(/\/$/, "");
 
+    // fixes https://github.com/upstash/qstash-js/issues/226
     if (baseUrl === "https://qstash.upstash.io/v2/publish") {
       baseUrl = "https://qstash.upstash.io";
     }
