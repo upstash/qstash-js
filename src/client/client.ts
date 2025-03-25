@@ -332,9 +332,17 @@ export class Client {
     const environment =
       typeof process === "undefined" ? ({} as Record<string, string>) : process.env;
 
-    const baseUrl = config?.baseUrl
-      ? config.baseUrl.replace(/\/$/, "")
-      : environment.QSTASH_URL ?? "https://qstash.upstash.io";
+    let baseUrl = (
+      config?.baseUrl ??
+      environment.QSTASH_URL ??
+      "https://qstash.upstash.io"
+    ).replace(/\/$/, "");
+
+    // fixes https://github.com/upstash/qstash-js/issues/226
+    if (baseUrl === "https://qstash.upstash.io/v2/publish") {
+      baseUrl = "https://qstash.upstash.io";
+    }
+
     const token = config?.token ?? environment.QSTASH_TOKEN;
 
     const enableTelemetry = environment.UPSTASH_DISABLE_TELEMETRY
