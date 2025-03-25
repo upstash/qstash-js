@@ -339,10 +339,6 @@ export class Client {
     ).replace(/\/$/, "");
 
     if (baseUrl === "https://qstash.upstash.io/v2/publish") {
-      console.warn(
-        "[Upstash QStash] baseUrl is set to `https://qstash.upstash.io/v2/publish` which is not valid. `https://qstash.upstash.io` will be used instead. Please update your QSTASH_URL value from Upstash Console."
-      );
-
       baseUrl = "https://qstash.upstash.io";
     }
 
