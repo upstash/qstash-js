@@ -5,6 +5,7 @@ import { nanoid } from "nanoid";
 import { Client } from "./client";
 import type { PublishToUrlResponse } from "../../dist";
 import { MOCK_QSTASH_SERVER_URL, mockQStashServer } from "./workflow/test-utils";
+import type { HttpClient } from "./http";
 
 export const clearQueues = async (client: Client) => {
   const queueDetails = await client.queue().list();
@@ -626,5 +627,25 @@ describe("Telemetry headers", () => {
         expect(request.headers.get("Upstash-Telemetry-Platform")).toBe("aws");
       },
     });
+  });
+});
+
+describe("Client init", () => {
+  test("should use correct baseUrl if invalid one is passed", () => {
+    const client = new Client({
+      baseUrl: "https://qstash.upstash.io/v2/publish",
+      token: "some-token",
+    });
+
+    expect((client.http as HttpClient).baseUrl).toBe("https://qstash.upstash.io");
+  });
+
+  test("should use correct baseUrl if invalid one is passed", () => {
+    const client = new Client({
+      baseUrl: "https://qstash.upstash.io/v2/publish/",
+      token: "some-token",
+    });
+
+    expect((client.http as HttpClient).baseUrl).toBe("https://qstash.upstash.io");
   });
 });

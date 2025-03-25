@@ -332,9 +332,20 @@ export class Client {
     const environment =
       typeof process === "undefined" ? ({} as Record<string, string>) : process.env;
 
-    const baseUrl = config?.baseUrl
-      ? config.baseUrl.replace(/\/$/, "")
-      : environment.QSTASH_URL ?? "https://qstash.upstash.io";
+    let baseUrl = (
+      config?.baseUrl ??
+      environment.QSTASH_URL ??
+      "https://qstash.upstash.io"
+    ).replace(/\/$/, "");
+
+    if (baseUrl === "https://qstash.upstash.io/v2/publish") {
+      console.warn(
+        "[Upstash QStash] baseUrl is set to `https://qstash.upstash.io/v2/publish` which is not valid. `https://qstash.upstash.io` will be used instead. Please update your QSTASH_URL value from Upstash Console."
+      );
+
+      baseUrl = "https://qstash.upstash.io";
+    }
+
     const token = config?.token ?? environment.QSTASH_TOKEN;
 
     const enableTelemetry = environment.UPSTASH_DISABLE_TELEMETRY
