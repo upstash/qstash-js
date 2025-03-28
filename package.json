@@ -93,7 +93,7 @@
     "h3": "^1.12.0",
     "hono": "^4.5.8",
     "husky": "^9.0.10",
-    "next": "^14.0.2",
+    "next": "^15.2.2",
     "prettier": "^3.2.5",
     "tsup": "latest",
     "typescript": "^5.4.5",
@@ -101,8 +101,7 @@
     "vitest": "latest"
   },
   "dependencies": {
-    "neverthrow": "^7.0.1",
-    "crypto-js": ">=4.2.0",
-    "jose": "^5.2.3"
+    "jose": "^5.2.3",
+    "neverthrow": "^7.0.1"
   }
 }
