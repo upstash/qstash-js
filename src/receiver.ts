@@ -1,6 +1,5 @@
 import * as jose from "jose";
-import crypto from "crypto-js";
-
+import { createHash } from "node:crypto";
 /**
  * Necessary to verify the signature of a request.
  */
@@ -110,7 +109,7 @@ export class Receiver {
       throw new SignatureError(`invalid subject: ${p.sub}, want: ${request.url}`);
     }
 
-    const bodyHash = crypto.SHA256(request.body).toString(crypto.enc.Base64url);
+    const bodyHash = createHash("sha256").update(request.body).digest("base64url");
 
     const padding = new RegExp(/=+$/);
 
