@@ -146,8 +146,8 @@ type VerifySignatureAppRouterResponse = Response | Promise<Response>;
 
 export function verifySignatureAppRouter(
   handler:
-    | ((request: Request, params?: unknown) => VerifySignatureAppRouterResponse)
-    | ((request: NextRequest, params?: unknown) => VerifySignatureAppRouterResponse),
+    | ((request: Request, params?: any) => VerifySignatureAppRouterResponse)
+    | ((request: NextRequest, params?: any) => VerifySignatureAppRouterResponse),
   config?: VerifySignatureConfig
 ) {
   const currentSigningKey = config?.currentSigningKey ?? process.env.QSTASH_CURRENT_SIGNING_KEY;
@@ -167,7 +167,7 @@ export function verifySignatureAppRouter(
     nextSigningKey,
   });
 
-  return async (request: NextRequest | Request, params?: unknown) => {
+  return async (request: NextRequest | Request, params?: any) => {
     const requestClone = request.clone() as NextRequest;
     const signature = request.headers.get("upstash-signature");
     if (!signature) {
