@@ -4,10 +4,12 @@
  */
 
 import { nanoid } from "ai";
-import { describe, test } from "bun:test";
+import { describe, test, expect } from "bun:test";
 import { SignJWT } from "jose";
 import { createHash } from "node:crypto";
 import { Receiver } from ".";
+import { getBodyHash } from "./receiver";
+import crypto from "crypto-js";
 
 async function createUpstashSingature({
   url,
@@ -72,5 +74,26 @@ describe("receiver", () => {
       body: randomBody,
       url: url,
     });
+  });
+
+  describe("SHA-256 Hash Equivalence Tests", () => {
+    const testCases = [
+      "",
+      "hello",
+      "The quick brown fox jumps over the lazy dog",
+      "1234567890",
+      '!@#$%^&*()_+{}:"<>?',
+      "🚀✨🔥",
+      "multiline\nstring\nwith\nlinebreaks",
+      "  spaces before and after  ",
+    ];
+
+    for (const input of testCases) {
+      test(`should produce the same Base64URL-encoded hash for input: "${input}"`, async () => {
+        const hashWebCrypto = await getBodyHash(input);
+        const hashCryptoJs = crypto.SHA256(input).toString(crypto.enc.Base64url);
+        expect(hashWebCrypto).toBe(hashCryptoJs);
+      });
+    }
   });
 });
