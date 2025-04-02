@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-magic-numbers */
 /* eslint-disable unicorn/prevent-abbreviations */
 /* eslint-disable @typescript-eslint/ban-ts-comment */
