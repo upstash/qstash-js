@@ -88,6 +88,7 @@
     "@typescript-eslint/parser": "^8.4.0",
     "ai": "^3.1.28",
     "bun-types": "^1.1.7",
+    "crypto-js": "^4.2.0",
     "eslint": "^9.10.0",
     "eslint-plugin-unicorn": "^51.0.1",
     "h3": "^1.12.0",
