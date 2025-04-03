@@ -1,5 +1,4 @@
 import * as jose from "jose";
-import crypto from "crypto-js";
 
 /**
  * Necessary to verify the signature of a request.
@@ -47,6 +46,19 @@ export class SignatureError extends Error {
     this.name = "SignatureError";
   }
 }
+
+export async function getBodyHash(body: string) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(body);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+  const hashArray = [...new Uint8Array(hashBuffer)];
+  const hashBase64 = btoa(String.fromCodePoint(...hashArray))
+    .replaceAll("+", "-")
+    .replaceAll("/", "_")
+    .replaceAll(/=+$/g, ""); // Convert to Base64URL
+  return hashBase64;
+}
+
 /**
  * Receiver offers a simple way to verify the signature of a request.
  */
@@ -75,7 +87,7 @@ export class Receiver {
     } catch {
       payload = await this.verifyWithKey(this.nextSigningKey, request);
     }
-    this.verifyBodyAndUrl(payload, request);
+    await this.verifyBodyAndUrl(payload, request);
     return true;
   }
 
@@ -95,7 +107,7 @@ export class Receiver {
     return jwt.payload;
   }
 
-  private verifyBodyAndUrl(payload: jose.JWTPayload, request: VerifyRequest) {
+  private async verifyBodyAndUrl(payload: jose.JWTPayload, request: VerifyRequest) {
     const p = payload as {
       iss: string;
       sub: string;
@@ -110,7 +122,7 @@ export class Receiver {
       throw new SignatureError(`invalid subject: ${p.sub}, want: ${request.url}`);
     }
 
-    const bodyHash = crypto.SHA256(request.body).toString(crypto.enc.Base64url);
+    const bodyHash = await getBodyHash(request.body);
 
     const padding = new RegExp(/=+$/);
 

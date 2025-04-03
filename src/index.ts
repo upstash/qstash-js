@@ -1,4 +1,4 @@
-export * from "./receiver";
+export { Receiver, SignatureError, type VerifyRequest, type ReceiverConfig } from "./receiver";
 export * from "./client/client";
 export * from "./client/error";
 export * from "./client/messages";
