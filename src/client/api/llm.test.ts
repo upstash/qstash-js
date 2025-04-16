@@ -3,7 +3,7 @@ import { describe, test } from "bun:test";
 import { Client } from "../client";
 import { MOCK_QSTASH_SERVER_URL, mockQStashServer } from "../workflow/test-utils";
 import { nanoid } from "../utils";
-import { anthropic, upstash, openai, custom } from "./llm";
+import { anthropic, openai, custom } from "./llm";
 
 describe("llm", () => {
   const customBaseUrl = `https://custom-llm-${nanoid()}.com`;
@@ -40,43 +40,6 @@ describe("llm", () => {
         headers: {
           authorization: `Bearer ${qstashToken}`,
           "upstash-forward-authorization": null,
-          "upstash-callback": callback,
-          "upstash-method": "POST",
-          "content-type": "application/json",
-        },
-      },
-    });
-  });
-
-  test("should call analytics with upstash", async () => {
-    await mockQStashServer({
-      execute: async () => {
-        await client.publishJSON({
-          api: {
-            name: "llm",
-            // eslint-disable-next-line @typescript-eslint/no-deprecated
-            provider: upstash(),
-            analytics: { name: "helicone", token: analyticsToken },
-          },
-          body: {
-            model,
-          },
-          callback,
-        });
-      },
-      responseFields: {
-        body: { messageId: "msgId" },
-        status: 200,
-      },
-      receivesRequest: {
-        method: "POST",
-        token: qstashToken,
-        url: "http://localhost:8080/v2/publish/https://qstash.helicone.ai/llm/v1/chat/completions",
-        body: { model },
-        headers: {
-          authorization: `Bearer ${qstashToken}`,
-          "upstash-forward-authorization": `Bearer ${qstashToken}`,
-          "upstash-forward-helicone-auth": `Bearer ${analyticsToken}`,
           "upstash-callback": callback,
           "upstash-method": "POST",
           "content-type": "application/json",
