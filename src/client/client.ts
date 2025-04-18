@@ -458,9 +458,11 @@ export class Client {
   }
 
   /**
-   * Access the Chat API
+   * Access the Chat API.
    *
-   * Call the create or prompt methods
+   * @deprecated This will be removed in qstash-js 3.0.0. Please use an alternative SDK for interacting with LLMs.
+   *
+   * Use the create or prompt methods.
    */
   public chat(): Chat {
     return new Chat(this.http, this.token);
