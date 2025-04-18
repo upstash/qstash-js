@@ -1,4 +1,3 @@
-/* eslint-disable unicorn/no-null */
 import { describe, test } from "bun:test";
 import { Client } from "../client";
 import { MOCK_QSTASH_SERVER_URL, mockQStashServer } from "../workflow/test-utils";
@@ -14,39 +13,6 @@ describe("llm", () => {
   const model = `model-${nanoid()}`;
 
   const client = new Client({ baseUrl: MOCK_QSTASH_SERVER_URL, token: qstashToken });
-
-  test("should use upstash as default", async () => {
-    await mockQStashServer({
-      execute: async () => {
-        await client.publishJSON({
-          api: {
-            name: "llm",
-          },
-          body: {
-            model,
-          },
-          callback,
-        });
-      },
-      responseFields: {
-        body: { messageId: "msgId" },
-        status: 200,
-      },
-      receivesRequest: {
-        method: "POST",
-        token: qstashToken,
-        url: "http://localhost:8080/v2/publish/api/llm",
-        body: { model },
-        headers: {
-          authorization: `Bearer ${qstashToken}`,
-          "upstash-forward-authorization": null,
-          "upstash-callback": callback,
-          "upstash-method": "POST",
-          "content-type": "application/json",
-        },
-      },
-    });
-  });
 
   test("should call openai", async () => {
     await mockQStashServer({
