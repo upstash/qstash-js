@@ -1,9 +1,14 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
+/* eslint-disable @typescript-eslint/no-magic-numbers */
+/* eslint-disable @typescript-eslint/no-deprecated */
 import { afterEach, describe, expect, test } from "bun:test";
 import { Client } from "./client";
 import type { Schedule } from "./schedules";
 import { nanoid } from "nanoid";
 import { MOCK_QSTASH_SERVER_URL, MOCK_SERVER_URL, mockQStashServer } from "./workflow/test-utils";
+
+// Updated to use constants for magic numbers
+const SECONDS_IN_A_DAY = 24 * 60 * 60;
 
 describe("Schedules", () => {
   const client = new Client({ token: process.env.QSTASH_TOKEN! });
@@ -222,6 +227,7 @@ describe("Schedules", () => {
   test("should create schedule with flow control", async () => {
     const parallelism = 10;
     const ratePerSecond = 5;
+    const period = "1d";
     const scheduleId = nanoid();
     await client.schedules.create({
       destination: "https://www.initial.com",
@@ -231,7 +237,8 @@ describe("Schedules", () => {
       flowControl: {
         key: "flow-key",
         parallelism,
-        ratePerSecond,
+        rate: ratePerSecond,
+        period,
       },
     });
 
@@ -239,5 +246,7 @@ describe("Schedules", () => {
     expect(schedule.flowControlKey).toBe("flow-key");
     expect(schedule.parallelism).toBe(parallelism);
     expect(schedule.ratePerSecond).toBe(ratePerSecond);
+    expect(schedule.rate).toBe(ratePerSecond);
+    expect(schedule.period).toBe(SECONDS_IN_A_DAY); // 1d in seconds
   });
 });

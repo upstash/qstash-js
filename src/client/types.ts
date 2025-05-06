@@ -1,3 +1,5 @@
+import type { Duration } from "./duration";
+
 export type State =
   | "CREATED"
   | "ACTIVE"
@@ -91,8 +93,26 @@ export type FlowControl = {
       parallelism: number;
       /**
        * number of requests to activate per second with the same flow control key
+       *
+       * @deprecated use rate instead
        */
       ratePerSecond?: number;
+      /**
+       * number of requests to activate within the period with the same flow control key.
+       *
+       * Default period is a second.
+       */
+      rate?: number;
+      /**
+       * The time interval during which the specified `rate` of requests can be activated
+       * using the same flow control key.
+       *
+       * Defaults to one second.
+       *
+       * If specified as a number, it is interpreted as seconds. Alternatively a duration string
+       * can be passed like "10s", "5d".
+       */
+      period?: Duration | number;
     }
   | {
       /**
@@ -101,7 +121,51 @@ export type FlowControl = {
       parallelism?: number;
       /**
        * number of requests to activate per second with the same flow control key
+       *
+       * @deprecated use rate instead
        */
       ratePerSecond: number;
+      /**
+       * number of requests to activate within the period with the same flow control key.
+       * Default period is a second.
+       */
+      rate?: number;
+      /**
+       * The time interval during which the specified `rate` of requests can be activated
+       * using the same flow control key.
+       *
+       * Defaults to one second.
+       *
+       * If specified as a number, it is interpreted as seconds. Alternatively a duration string
+       * can be passed like "10s", "5d".
+       */
+      period?: Duration | number;
+    }
+  | {
+      /**
+       * number of requests which can be active with the same flow control key
+       */
+      parallelism?: number;
+      /**
+       * number of requests to activate per second with the same flow control key
+       *
+       * @deprecated use rate instead
+       */
+      ratePerSecond?: number;
+      /**
+       * number of requests to activate within the period with the same flow control key.
+       * Default period is a second.
+       */
+      rate: number;
+      /**
+       * The time interval during which the specified `rate` of requests can be activated
+       * using the same flow control key.
+       *
+       * Defaults to one second.
+       *
+       * If specified as a number, it is interpreted as seconds. Alternatively a duration string
+       * can be passed like "10s", "5d".
+       */
+      period?: Duration | number;
     }
 );

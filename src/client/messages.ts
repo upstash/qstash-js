@@ -104,8 +104,21 @@ export type Message = {
   parallelism?: number;
   /**
    * number of requests to activate per second with the same flow control key
+   *
+   * @deprecated use rate instead
    */
   ratePerSecond?: number;
+  /**
+   * number of requests to activate per second with the same flow control key
+   */
+  rate?: number;
+  /**
+   * The time interval during which the specified `rate` of requests can be activated
+   * using the same flow control key.
+   *
+   * In seconds.
+   */
+  period?: number;
 };
 
 export type MessagePayload = Omit<Message, "urlGroup"> & { topicName: string };
@@ -128,7 +141,7 @@ export class Messages {
     const message: Message = {
       ...messagePayload,
       urlGroup: messagePayload.topicName,
-      ratePerSecond: "rate" in messagePayload ? (messagePayload.rate as number) : undefined,
+      ratePerSecond: "rate" in messagePayload ? messagePayload.rate : undefined,
     };
     return message;
   }

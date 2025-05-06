@@ -1,8 +1,12 @@
 /* eslint-disable @typescript-eslint/no-magic-numbers */
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
+/* eslint-disable @typescript-eslint/no-deprecated */
 import { sleep } from "bun";
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { Client } from "./client";
+
+// Updated to use constants for magic numbers
+const SECONDS_IN_A_DAY = 24 * 60 * 60;
 
 describe("DLQ", () => {
   const client = new Client({ token: process.env.QSTASH_TOKEN! });
@@ -129,6 +133,7 @@ describe("DLQ", () => {
           key: "flow-key",
           parallelism,
           ratePerSecond,
+          period: "1d",
         },
       });
 
@@ -145,6 +150,8 @@ describe("DLQ", () => {
       expect(message.flowControlKey).toBe("flow-key");
       expect(message.parallelism).toBe(parallelism);
       expect(message.ratePerSecond).toBe(ratePerSecond);
+      expect(message.rate).toBe(ratePerSecond);
+      expect(message.period).toBe(SECONDS_IN_A_DAY);
     },
     {
       timeout: 10_000,

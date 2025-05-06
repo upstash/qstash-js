@@ -128,7 +128,7 @@ export class DLQ {
         return {
           ...message,
           urlGroup: message.topicName,
-          ratePerSecond: "rate" in message ? (message.rate as number) : undefined,
+          ratePerSecond: "rate" in message ? message.rate : undefined,
         };
       }),
       cursor: messagesPayload.cursor,
