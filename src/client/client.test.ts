@@ -536,7 +536,7 @@ describe("flow control", () => {
             destination: "https://example.com/three",
             headers: {
               "upstash-flow-control-key": flowControlKeyThree,
-              "upstash-flow-control-value": "parallelism=5, rate=5, period=1m",
+              "upstash-flow-control-value": "parallelism=5, rate=10, period=1m",
               "upstash-method": "PATCH",
             },
           },
