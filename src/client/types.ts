@@ -1,4 +1,12 @@
-export type State = "CREATED" | "ACTIVE" | "DELIVERED" | "ERROR" | "RETRY" | "FAILED";
+export type State =
+  | "CREATED"
+  | "ACTIVE"
+  | "DELIVERED"
+  | "ERROR"
+  | "RETRY"
+  | "FAILED"
+  | "CANCELED"
+  | "IN_PROGRESS";
 
 export type HTTPMethods = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
 
