@@ -104,13 +104,14 @@ export type FlowControl = {
        */
       rate?: number;
       /**
-       * The time interval during which the specified `rate` of requests can be activated
-       * using the same flow control key.
+       * The time interval for the `rate` limit.
        *
-       * Defaults to one second.
+       * For example, if `rate` is 10 and `period` is "1s" (or 1), then 10 requests can be activated per second.
+       * If `rate` is 5 and `period` is "1m" (or 60), then 5 requests can be activated per minute.
        *
-       * If specified as a number, it is interpreted as seconds. Alternatively a duration string
-       * can be passed like "10s", "5d".
+       * Defaults to "1s" (one second) if not specified.
+       *
+       * Can be specified as a number (in seconds) or a duration string (e.g., "10s", "5m", "1h", "2d").
        */
       period?: Duration | number;
     }
@@ -131,13 +132,14 @@ export type FlowControl = {
        */
       rate?: number;
       /**
-       * The time interval during which the specified `rate` of requests can be activated
-       * using the same flow control key.
+       * The time interval for the `rate` limit.
        *
-       * Defaults to one second.
+       * For example, if `rate` is 10 and `period` is "1s" (or 1), then 10 requests can be activated per second.
+       * If `rate` is 5 and `period` is "1m" (or 60), then 5 requests can be activated per minute.
        *
-       * If specified as a number, it is interpreted as seconds. Alternatively a duration string
-       * can be passed like "10s", "5d".
+       * Defaults to "1s" (one second) if not specified.
+       *
+       * Can be specified as a number (in seconds) or a duration string (e.g., "10s", "5m", "1h", "2d").
        */
       period?: Duration | number;
     }
@@ -158,13 +160,14 @@ export type FlowControl = {
        */
       rate: number;
       /**
-       * The time interval during which the specified `rate` of requests can be activated
-       * using the same flow control key.
+       * The time interval for the `rate` limit.
        *
-       * Defaults to one second.
+       * For example, if `rate` is 10 and `period` is "1s" (or 1), then 10 requests can be activated per second.
+       * If `rate` is 5 and `period` is "1m" (or 60), then 5 requests can be activated per minute.
        *
-       * If specified as a number, it is interpreted as seconds. Alternatively a duration string
-       * can be passed like "10s", "5d".
+       * Defaults to "1s" (one second) if not specified.
+       *
+       * Can be specified as a number (in seconds) or a duration string (e.g., "10s", "5m", "1h", "2d").
        */
       period?: Duration | number;
     }
