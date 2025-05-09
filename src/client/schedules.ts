@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-deprecated */
 import { prefixHeaders, wrapWithGlobalHeaders } from "./utils";
 import type { Requester } from "./http";
 import type { BodyInit, FlowControl, HeadersInit, HTTPMethods } from "./types";
@@ -22,7 +23,19 @@ export type Schedule = {
   queueName?: string;
   flowControlKey?: string;
   parallelism?: number;
+  rate?: number;
+  /**
+   * @deprecated use rate instead
+   */
   ratePerSecond?: number;
+
+  /**
+   * The time interval during which the specified `rate` of requests can be activated
+   * using the same flow control key.
+   *
+   * In seconds.
+   */
+  period?: number;
 };
 
 export type CreateScheduleRequest = {
@@ -199,11 +212,16 @@ export class Schedules {
 
     if (request.flowControl?.key) {
       const parallelism = request.flowControl.parallelism?.toString();
-      const rate = request.flowControl.ratePerSecond?.toString();
+      const rate = (request.flowControl.rate ?? request.flowControl.ratePerSecond)?.toString();
+      const period =
+        typeof request.flowControl.period === "number"
+          ? `${request.flowControl.period}s`
+          : request.flowControl.period;
 
       const controlValue = [
         parallelism ? `parallelism=${parallelism}` : undefined,
         rate ? `rate=${rate}` : undefined,
+        period ? `period=${period}` : undefined,
       ].filter(Boolean);
 
       if (controlValue.length === 0) {
@@ -233,7 +251,7 @@ export class Schedules {
       path: ["v2", "schedules", scheduleId],
     });
 
-    if ("rate" in schedule) schedule.ratePerSecond = schedule.rate as number;
+    if ("rate" in schedule) schedule.ratePerSecond = schedule.rate;
 
     return schedule;
   }
@@ -248,7 +266,7 @@ export class Schedules {
     });
 
     for (const schedule of schedules) {
-      if ("rate" in schedule) schedule.ratePerSecond = schedule.rate as number;
+      if ("rate" in schedule) schedule.ratePerSecond = schedule.rate;
     }
 
     return schedules;

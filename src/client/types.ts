@@ -1,3 +1,5 @@
+import type { Duration } from "./duration";
+
 export type State =
   | "CREATED"
   | "ACTIVE"
@@ -91,8 +93,27 @@ export type FlowControl = {
       parallelism: number;
       /**
        * number of requests to activate per second with the same flow control key
+       *
+       * @deprecated use rate instead
        */
       ratePerSecond?: number;
+      /**
+       * number of requests to activate within the period with the same flow control key.
+       *
+       * Default period is a second.
+       */
+      rate?: number;
+      /**
+       * The time interval for the `rate` limit.
+       *
+       * For example, if `rate` is 10 and `period` is "1s" (or 1), then 10 requests can be activated per second.
+       * If `rate` is 5 and `period` is "1m" (or 60), then 5 requests can be activated per minute.
+       *
+       * Defaults to "1s" (one second) if not specified.
+       *
+       * Can be specified as a number (in seconds) or a duration string (e.g., "10s", "5m", "1h", "2d").
+       */
+      period?: Duration | number;
     }
   | {
       /**
@@ -101,7 +122,53 @@ export type FlowControl = {
       parallelism?: number;
       /**
        * number of requests to activate per second with the same flow control key
+       *
+       * @deprecated use rate instead
        */
       ratePerSecond: number;
+      /**
+       * number of requests to activate within the period with the same flow control key.
+       * Default period is a second.
+       */
+      rate?: number;
+      /**
+       * The time interval for the `rate` limit.
+       *
+       * For example, if `rate` is 10 and `period` is "1s" (or 1), then 10 requests can be activated per second.
+       * If `rate` is 5 and `period` is "1m" (or 60), then 5 requests can be activated per minute.
+       *
+       * Defaults to "1s" (one second) if not specified.
+       *
+       * Can be specified as a number (in seconds) or a duration string (e.g., "10s", "5m", "1h", "2d").
+       */
+      period?: Duration | number;
+    }
+  | {
+      /**
+       * number of requests which can be active with the same flow control key
+       */
+      parallelism?: number;
+      /**
+       * number of requests to activate per second with the same flow control key
+       *
+       * @deprecated use rate instead
+       */
+      ratePerSecond?: number;
+      /**
+       * number of requests to activate within the period with the same flow control key.
+       * Default period is a second.
+       */
+      rate: number;
+      /**
+       * The time interval for the `rate` limit.
+       *
+       * For example, if `rate` is 10 and `period` is "1s" (or 1), then 10 requests can be activated per second.
+       * If `rate` is 5 and `period` is "1m" (or 60), then 5 requests can be activated per minute.
+       *
+       * Defaults to "1s" (one second) if not specified.
+       *
+       * Can be specified as a number (in seconds) or a duration string (e.g., "10s", "5m", "1h", "2d").
+       */
+      period?: Duration | number;
     }
 );

@@ -474,6 +474,7 @@ describe("flow control", () => {
   test("should batch messages with flow control", async () => {
     const flowControlKeyOne = nanoid();
     const flowControlKeyTwo = nanoid();
+    const flowControlKeyThree = nanoid();
     await mockQStashServer({
       execute: async () => {
         await client.batch([
@@ -492,6 +493,16 @@ describe("flow control", () => {
               parallelism: 5,
             },
             method: "GET",
+          },
+          {
+            url: "https://example.com/three",
+            flowControl: {
+              key: flowControlKeyThree,
+              parallelism: 5,
+              rate: 10,
+              period: "1m",
+            },
+            method: "PATCH",
           },
         ]);
       },
@@ -519,6 +530,14 @@ describe("flow control", () => {
               "upstash-flow-control-key": flowControlKeyTwo,
               "upstash-flow-control-value": "parallelism=5",
               "upstash-method": "GET",
+            },
+          },
+          {
+            destination: "https://example.com/three",
+            headers: {
+              "upstash-flow-control-key": flowControlKeyThree,
+              "upstash-flow-control-value": "parallelism=5, rate=10, period=1m",
+              "upstash-method": "PATCH",
             },
           },
         ],

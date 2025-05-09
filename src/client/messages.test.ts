@@ -1,6 +1,11 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
+/* eslint-disable @typescript-eslint/no-magic-numbers */
+/* eslint-disable @typescript-eslint/no-deprecated */
 import { beforeAll, describe, expect, test } from "bun:test";
 import { Client } from "./client";
+
+// Updated to use constants for magic numbers
+const SECONDS_IN_A_DAY = 24 * 60 * 60;
 
 describe("Messages", () => {
   const client = new Client({ token: process.env.QSTASH_TOKEN! });
@@ -93,6 +98,7 @@ describe("Messages", () => {
   test("should create message with flow control", async () => {
     const parallelism = 10;
     const ratePerSecond = 5;
+    const period = "1d";
     const { messageId } = await client.publish({
       url: "https://httpstat.us/200?sleep=30000",
       body: "hello",
@@ -100,12 +106,18 @@ describe("Messages", () => {
         key: "flow-key",
         parallelism,
         ratePerSecond,
+        period,
       },
     });
 
     const message = await client.messages.get(messageId);
+
     expect(message.flowControlKey).toBe("flow-key");
     expect(message.parallelism).toBe(parallelism);
     expect(message.ratePerSecond).toBe(ratePerSecond);
+    expect(message.rate).toBe(ratePerSecond);
+
+    const dayInSeconds = SECONDS_IN_A_DAY;
+    expect(message.period).toBe(dayInSeconds);
   });
 });

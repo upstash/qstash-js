@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-deprecated */
 import { getProviderInfo } from "./api/utils";
 import type { PublishRequest } from "./client";
 import { QstashError } from "./error";
@@ -104,11 +105,16 @@ export function processHeaders(request: PublishRequest) {
 
   if (request.flowControl?.key) {
     const parallelism = request.flowControl.parallelism?.toString();
-    const rate = request.flowControl.ratePerSecond?.toString();
+    const rate = (request.flowControl.rate ?? request.flowControl.ratePerSecond)?.toString();
+    const period =
+      typeof request.flowControl.period === "number"
+        ? `${request.flowControl.period}s`
+        : request.flowControl.period;
 
     const controlValue = [
       parallelism ? `parallelism=${parallelism}` : undefined,
       rate ? `rate=${rate}` : undefined,
+      period ? `period=${period}` : undefined,
     ].filter(Boolean);
 
     if (controlValue.length === 0) {
