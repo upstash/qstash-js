@@ -109,7 +109,8 @@ export type Message = {
    */
   ratePerSecond?: number;
   /**
-   * number of requests to activate per second with the same flow control key
+   * number of requests to activate within the period with the same flow control key.
+   * Default period is a second.
    */
   rate?: number;
   /**
