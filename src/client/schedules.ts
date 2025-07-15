@@ -4,6 +4,7 @@ import type { Requester } from "./http";
 import type { BodyInit, FlowControl, HeadersInit, HTTPMethods } from "./types";
 import type { Duration } from "./duration";
 import { QstashError } from "./error";
+import type { PublishRequest } from "./client";
 
 export type Schedule = {
   scheduleId: string;
@@ -142,7 +143,7 @@ export type CreateScheduleRequest = {
    * and number of requests per second with the same key.
    */
   flowControl?: FlowControl;
-};
+} & Pick<PublishRequest, "retryDelay">;
 
 export class Schedules {
   private readonly http: Requester;
@@ -181,6 +182,10 @@ export class Schedules {
 
     if (request.retries !== undefined) {
       headers.set("Upstash-Retries", request.retries.toFixed(0));
+    }
+
+    if (request.retryDelay !== undefined) {
+      headers.set("Upstash-Retry-After", request.retryDelay);
     }
 
     if (request.callback !== undefined) {

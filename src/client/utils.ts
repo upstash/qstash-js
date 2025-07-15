@@ -84,6 +84,10 @@ export function processHeaders(request: PublishRequest) {
     headers.set("Upstash-Retries", request.retries.toFixed(0));
   }
 
+  if (request.retryDelay !== undefined) {
+    headers.set("Upstash-Retry-After", request.retryDelay);
+  }
+
   if (request.callback !== undefined) {
     headers.set("Upstash-Callback", request.callback);
   }
@@ -131,7 +135,6 @@ export function processHeaders(request: PublishRequest) {
 export function getRequestPath(
   request: Pick<PublishRequest, "url" | "urlGroup" | "api" | "topic">
 ): string {
-  // eslint-disable-next-line @typescript-eslint/no-deprecated
   const nonApiPath = request.url ?? request.urlGroup ?? request.topic;
   if (nonApiPath) return nonApiPath;
 

@@ -170,6 +170,8 @@ describe("Schedules", () => {
           scheduleId: "asd",
           destination: MOCK_SERVER_URL,
           cron: "* * * * 1",
+          retries: 3,
+          retryDelay: "pow(retried, 2) * 1000",
           body: JSON.stringify([
             {
               from: "Acme <onboarding@resend.dev>",
@@ -219,6 +221,10 @@ describe("Schedules", () => {
           [`upstash-forward-${requestHeader}`]: requestHeaderValue,
           [`upstash-forward-${globalHeader}`]: globalHeaderValue,
           [`upstash-forward-${globalHeaderOverwritten}`]: overWrittenNewValue,
+          "upstash-cron": "* * * * 1",
+          "upstash-retries": "3",
+          "upstash-schedule-id": "asd",
+          "upstash-retry-after": "pow(retried, 2) * 1000",
         },
       },
     });

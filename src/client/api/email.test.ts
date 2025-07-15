@@ -219,6 +219,7 @@ describe("email", () => {
               html: "<p>it works!</p>",
             },
           ],
+          retryDelay: "pow(retried, 2) * 1000",
           headers: {
             "content-type": "application/json",
             [globalHeaderOverwritten]: overWrittenNewValue,
@@ -256,6 +257,7 @@ describe("email", () => {
           [`upstash-forward-${requestHeader}`]: requestHeaderValue,
           [`upstash-forward-${globalHeader}`]: globalHeaderValue,
           [`upstash-forward-${globalHeaderOverwritten}`]: overWrittenNewValue,
+          "upstash-retry-after": "pow(retried, 2) * 1000",
         },
       },
     });
