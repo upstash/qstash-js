@@ -155,12 +155,13 @@ export type PublishRequest<TBody = BodyInit> = {
   /**
    * Delay between retries.
    *
-   * By default, the `retryDelay` is exponential backoff. More details can be found in
-   * For more details and advanced usage, see: https://upstash.com/docs/qstash/features/retry.
+   * By default, the `retryDelay` is exponential backoff.
+   * More details can be found in: https://upstash.com/docs/qstash/features/retry.
    *
    * The `retryDelay` option allows you to customize the delay (in milliseconds) between retry attempts when message delivery fails.
    *
-   * You can use mathematical expressions and the following built-in functions to calculate the delay dynamically. The special variable `retried` represents the current retry attempt count (starting from 1).
+   * You can use mathematical expressions and the following built-in functions to calculate the delay dynamically.
+   * The special variable `retried` represents the current retry attempt count (starting from 0).
    *
    * Supported functions:
    * - `pow`
@@ -176,7 +177,7 @@ export type PublishRequest<TBody = BodyInit> = {
    * Examples of valid `retryDelay` values:
    * ```ts
    * 1000 // 1 second
-   * 1000 * retried  // 1 second multiplied by the current retry attempt
+   * 1000 * (1 + retried)  // 1 second multiplied by the current retry attempt
    * pow(2, retried) // 2 to the power of the current retry attempt
    * max(10, pow(2, retried)) // The greater of 10 or 2^retried
    * ```
