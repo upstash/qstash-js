@@ -125,6 +125,7 @@ describe("DLQ", () => {
     async () => {
       const parallelism = 10;
       const ratePerSecond = 5;
+      const retryDelay = "2000 * retried";
       const { messageId } = await client.publish({
         url: "https://httpstat.us/400",
         body: "hello",
@@ -135,6 +136,7 @@ describe("DLQ", () => {
           ratePerSecond,
           period: "1d",
         },
+        retryDelay,
       });
 
       await sleep(5000);
@@ -152,6 +154,7 @@ describe("DLQ", () => {
       expect(message.ratePerSecond).toBe(ratePerSecond);
       expect(message.rate).toBe(ratePerSecond);
       expect(message.period).toBe(SECONDS_IN_A_DAY);
+      expect(message.retryDelayExpression).toBe(retryDelay);
     },
     {
       timeout: 10_000,

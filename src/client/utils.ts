@@ -85,7 +85,7 @@ export function processHeaders(request: PublishRequest) {
   }
 
   if (request.retryDelay !== undefined) {
-    headers.set("Upstash-Retry-After", request.retryDelay);
+    headers.set("Upstash-Retry-Delay", request.retryDelay);
   }
 
   if (request.callback !== undefined) {

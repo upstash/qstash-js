@@ -17,6 +17,7 @@ describe("Messages", () => {
   test(
     "should send message, cancel it then verify cancel",
     async () => {
+      const retryDelay = "1000 * retried";
       const message = await client.publishJSON({
         url: `https://example.com`,
         body: { hello: "world" },
@@ -29,10 +30,12 @@ describe("Messages", () => {
         callback: "https://example.com?foo=bar",
         failureCallback: "https://example.com?bar=baz",
         method: "GET",
+        retryDelay,
       });
 
       const verifiedMessage = await client.messages.get(message.messageId);
       expect(new Headers(verifiedMessage.header).get("Test-Header")).toBe("test-value");
+      expect(verifiedMessage.retryDelayExpression).toBe(retryDelay);
       await client.messages.delete(message.messageId);
     },
     { timeout: 20_000 }
@@ -78,7 +81,6 @@ describe("Messages", () => {
         },
       ]);
 
-      // eslint-disable-next-line @typescript-eslint/no-magic-numbers
       expect(messages.length).toBe(3);
 
       const deleted = await client.messages.deleteMany([
@@ -86,7 +88,6 @@ describe("Messages", () => {
         messages[1].messageId,
       ]);
 
-      // eslint-disable-next-line @typescript-eslint/no-magic-numbers
       expect(deleted).toBe(2);
 
       const deletedAll = await client.messages.deleteAll();

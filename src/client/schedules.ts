@@ -37,6 +37,7 @@ export type Schedule = {
    * In seconds.
    */
   period?: number;
+  retryDelayExpression?: PublishRequest["retryDelay"];
 };
 
 export type CreateScheduleRequest = {
@@ -185,7 +186,7 @@ export class Schedules {
     }
 
     if (request.retryDelay !== undefined) {
-      headers.set("Upstash-Retry-After", request.retryDelay);
+      headers.set("Upstash-Retry-Delay", request.retryDelay);
     }
 
     if (request.callback !== undefined) {

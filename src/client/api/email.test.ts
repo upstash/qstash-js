@@ -257,7 +257,7 @@ describe("email", () => {
           [`upstash-forward-${requestHeader}`]: requestHeaderValue,
           [`upstash-forward-${globalHeader}`]: globalHeaderValue,
           [`upstash-forward-${globalHeaderOverwritten}`]: overWrittenNewValue,
-          "upstash-retry-after": "pow(retried, 2) * 1000",
+          "upstash-retry-delay": "pow(retried, 2) * 1000",
         },
       },
     });

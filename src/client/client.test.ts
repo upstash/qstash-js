@@ -467,7 +467,7 @@ describe("flow control", () => {
         headers: {
           "Upstash-Flow-Control-Key": flowControlKey,
           "Upstash-Flow-Control-Value": "parallelism=3, rate=5",
-          "upstash-retry-after": "pow(retried, 2) * 1000",
+          "upstash-retry-delay": "pow(retried, 2) * 1000",
         },
       },
     });
@@ -525,7 +525,7 @@ describe("flow control", () => {
               "upstash-flow-control-key": flowControlKeyOne,
               "upstash-flow-control-value": "rate=10",
               "upstash-method": "POST",
-              "upstash-retry-after": "pow(retried, 2) * 1000",
+              "upstash-retry-delay": "pow(retried, 2) * 1000",
             },
           },
           {
