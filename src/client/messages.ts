@@ -1,4 +1,4 @@
-import type { PublishRequest } from "../../dist";
+import type { PublishRequest } from "./client";
 import type { Requester } from "./http";
 import type { HTTPMethods } from "./types";
 
