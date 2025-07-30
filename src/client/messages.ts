@@ -60,6 +60,10 @@ export type Message = {
    */
   maxRetries?: number;
 
+  /**
+   * The retry delay expression for this message,
+   * if retry_delay was set when publishing the message.
+   */
   retryDelayExpression?: PublishRequest["retryDelay"];
 
   /**

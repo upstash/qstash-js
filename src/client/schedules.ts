@@ -37,6 +37,10 @@ export type Schedule = {
    * In seconds.
    */
   period?: number;
+  /**
+   * The retry delay expression for this schedule,
+   * if retry_delay was set when creating the schedule.
+   */
   retryDelayExpression?: PublishRequest["retryDelay"];
 };
 
