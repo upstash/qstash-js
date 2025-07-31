@@ -452,6 +452,7 @@ describe("flow control", () => {
             parallelism: 3,
             ratePerSecond: 5,
           },
+          retryDelay: "pow(retried, 2) * 1000",
         });
       },
       responseFields: {
@@ -466,6 +467,7 @@ describe("flow control", () => {
         headers: {
           "Upstash-Flow-Control-Key": flowControlKey,
           "Upstash-Flow-Control-Value": "parallelism=3, rate=5",
+          "upstash-retry-delay": "pow(retried, 2) * 1000",
         },
       },
     });
@@ -485,6 +487,7 @@ describe("flow control", () => {
               ratePerSecond: 10,
             },
             body: "some-body",
+            retryDelay: "pow(retried, 2) * 1000",
           },
           {
             url: "https://example.com/two",
@@ -522,6 +525,7 @@ describe("flow control", () => {
               "upstash-flow-control-key": flowControlKeyOne,
               "upstash-flow-control-value": "rate=10",
               "upstash-method": "POST",
+              "upstash-retry-delay": "pow(retried, 2) * 1000",
             },
           },
           {

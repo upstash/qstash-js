@@ -1,3 +1,4 @@
+import type { PublishRequest } from "./client";
 import type { Requester } from "./http";
 import type { HTTPMethods } from "./types";
 
@@ -58,6 +59,12 @@ export type Message = {
    * Maxmimum number of retries.
    */
   maxRetries?: number;
+
+  /**
+   * The retry delay expression for this message,
+   * if retry_delay was set when publishing the message.
+   */
+  retryDelayExpression?: PublishRequest["retryDelay"];
 
   /**
    * A unix timestamp (milliseconds) after which this message may get delivered.

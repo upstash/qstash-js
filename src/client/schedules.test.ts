@@ -170,6 +170,8 @@ describe("Schedules", () => {
           scheduleId: "asd",
           destination: MOCK_SERVER_URL,
           cron: "* * * * 1",
+          retries: 3,
+          retryDelay: "pow(retried, 2) * 1000",
           body: JSON.stringify([
             {
               from: "Acme <onboarding@resend.dev>",
@@ -219,6 +221,10 @@ describe("Schedules", () => {
           [`upstash-forward-${requestHeader}`]: requestHeaderValue,
           [`upstash-forward-${globalHeader}`]: globalHeaderValue,
           [`upstash-forward-${globalHeaderOverwritten}`]: overWrittenNewValue,
+          "upstash-cron": "* * * * 1",
+          "upstash-retries": "3",
+          "upstash-schedule-id": "asd",
+          "upstash-retry-delay": "pow(retried, 2) * 1000",
         },
       },
     });
@@ -229,6 +235,7 @@ describe("Schedules", () => {
     const ratePerSecond = 5;
     const period = "1d";
     const scheduleId = nanoid();
+    const retryDelay = "pow(retried, 2) * 1000";
     await client.schedules.create({
       destination: "https://www.initial.com",
       cron: "*/5 * * * *",
@@ -240,13 +247,16 @@ describe("Schedules", () => {
         rate: ratePerSecond,
         period,
       },
+      retryDelay,
     });
 
     const schedule = await client.schedules.get(scheduleId);
+
     expect(schedule.flowControlKey).toBe("flow-key");
     expect(schedule.parallelism).toBe(parallelism);
     expect(schedule.ratePerSecond).toBe(ratePerSecond);
     expect(schedule.rate).toBe(ratePerSecond);
     expect(schedule.period).toBe(SECONDS_IN_A_DAY); // 1d in seconds
+    expect(schedule.retryDelayExpression).toBe(retryDelay);
   });
 });
