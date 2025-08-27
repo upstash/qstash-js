@@ -129,6 +129,10 @@ export function processHeaders(request: PublishRequest) {
     headers.set("Upstash-Flow-Control-Value", controlValue.join(", "));
   }
 
+  if (request.label !== undefined) {
+    headers.set("Upstash-Label", request.label);
+  }
+
   return headers;
 }
 

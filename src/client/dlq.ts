@@ -79,6 +79,11 @@ export type DLQFilter = {
   toDate?: number;
 
   /**
+   * Filter DLQ entries by label
+   */
+  label?: string;
+
+  /**
    * Filter DLQ entries by HTTP status of the response
    */
   responseStatus?: number;

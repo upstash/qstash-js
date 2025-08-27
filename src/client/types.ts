@@ -24,6 +24,7 @@ export type Log = {
   endpointName?: string;
   header?: Record<string, string>;
   body?: string; // base64 encoded
+  label?: string;
 };
 
 /**

@@ -5,6 +5,15 @@ import { Client } from "./client";
 import { parseCursor } from "./utils";
 
 describe("logs", () => {
+  test("should filter logs by label", async () => {
+    const label = `label-${Date.now()}`;
+    await client.publish({ url: "https://example.com/", body: "log-label-test", label });
+    // Wait for log to be available
+    const WAIT_MS = 1000;
+    await new Promise((r) => setTimeout(r, WAIT_MS));
+    const result = await client.logs({ filter: { label, count: 10 } });
+    expect(result.logs.some((log) => log.label === label)).toBe(true);
+  });
   const client = new Client({ token: process.env.QSTASH_TOKEN! });
 
   test("should use cursor", async () => {

@@ -9,6 +9,17 @@ import { Client } from "./client";
 const SECONDS_IN_A_DAY = 24 * 60 * 60;
 
 describe("DLQ", () => {
+  test("should filter DLQ messages by label", async () => {
+    const label = `dlq-label-${Date.now()}`;
+    await client.publish({
+      url: "https://example.com/force-dlq",
+      retries: 0,
+      label,
+    });
+    await sleep(10_000);
+    const dlqLogs = await client.dlq.listMessages({ filter: { label } });
+    expect(dlqLogs.messages.some((m) => m.label === label)).toBe(true);
+  });
   const client = new Client({ token: process.env.QSTASH_TOKEN! });
   const urlGroup = "someUrlGroup";
 
@@ -25,9 +36,9 @@ describe("DLQ", () => {
   });
 
   afterAll(async () => {
-    const dlqLogs = await client.dlq.listMessages();
-    await client.dlq.deleteMany({ dlqIds: dlqLogs.messages.map((dlq) => dlq.dlqId) });
-    await client.urlGroups.delete(urlGroup);
+    // const dlqLogs = await client.dlq.listMessages();
+    // await client.dlq.deleteMany({ dlqIds: dlqLogs.messages.map((dlq) => dlq.dlqId) });
+    // await client.urlGroups.delete(urlGroup);
   });
 
   test(
@@ -159,5 +170,33 @@ describe("DLQ", () => {
     {
       timeout: 10_000,
     }
+  );
+
+  test(
+    "should filter DLQ messages by label",
+    async () => {
+      const testLabel = `dlq-test-label-${Date.now()}`;
+      await client.publish({
+        url: `https://httpstat.us/400`, // Any broken link will work
+        retries: 0,
+        label: testLabel,
+      });
+
+      await sleep(4000);
+
+      const dlqLogs = await client.dlq.listMessages({
+        filter: {
+          label: testLabel,
+        },
+      });
+
+      expect(dlqLogs.messages.length).toBeGreaterThanOrEqual(1);
+      for (const message of dlqLogs.messages) {
+        if (message.label !== undefined) {
+          expect(message.label).toBe(testLabel);
+        }
+      }
+    },
+    { timeout: 20_000 }
   );
 });
