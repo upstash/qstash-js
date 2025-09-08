@@ -43,9 +43,11 @@ describe("DLQ", () => {
   });
 
   afterAll(async () => {
-    // const dlqLogs = await client.dlq.listMessages();
-    // await client.dlq.deleteMany({ dlqIds: dlqLogs.messages.map((dlq) => dlq.dlqId) });
-    // await client.urlGroups.delete(urlGroup);
+    await client.urlGroups.delete(urlGroup);
+
+    const dlqLogs = await client.dlq.listMessages();
+    if (dlqLogs.messages.length === 0) return;
+    await client.dlq.deleteMany({ dlqIds: dlqLogs.messages.map((dlq) => dlq.dlqId) });
   });
 
   test(
