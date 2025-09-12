@@ -17,6 +17,15 @@ export const clearQueues = async (client: Client) => {
 };
 
 describe("E2E Publish", () => {
+  test("should publish a message with a label", async () => {
+    const result = await client.publish({
+      url: "https://example.com/",
+      body: "test-body",
+      label: "test-label",
+    });
+    const verifiedMessage = await client.messages.get(result.messageId);
+    expect(verifiedMessage.label).toBe("test-label");
+  });
   const client = new Client({ token: process.env.QSTASH_TOKEN! });
 
   afterAll(async () => {

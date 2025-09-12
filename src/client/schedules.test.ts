@@ -11,6 +11,16 @@ import { MOCK_QSTASH_SERVER_URL, MOCK_SERVER_URL, mockQStashServer } from "./wor
 const SECONDS_IN_A_DAY = 24 * 60 * 60;
 
 describe("Schedules", () => {
+  test("should schedule a message with a label", async () => {
+    const { scheduleId } = await client.schedules.create({
+      destination: "https://example.com/",
+      cron: "*/10 * * * *",
+      label: "schedule-label",
+    });
+    const scheduled = await client.schedules.get(scheduleId);
+    expect(scheduled.label).toBe("schedule-label");
+    await client.schedules.delete(scheduleId);
+  });
   const client = new Client({ token: process.env.QSTASH_TOKEN! });
 
   afterEach(async () => {

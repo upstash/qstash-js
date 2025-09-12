@@ -127,6 +127,11 @@ export type Message = {
    * In seconds.
    */
   period?: number;
+
+  /**
+   * The label assigned to the message for filtering purposes.
+   */
+  label?: string;
 };
 
 export type MessagePayload = Omit<Message, "urlGroup"> & { topicName: string };

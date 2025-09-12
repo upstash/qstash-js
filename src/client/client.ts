@@ -217,6 +217,13 @@ export type PublishRequest<TBody = BodyInit> = {
    * and number of requests per second with the same key.
    */
   flowControl?: FlowControl;
+
+  /**
+   * Assign a label to the request to filter logs later.
+   *
+   * @default undefined
+   */
+  label?: string;
 } & (
   | {
       /**
@@ -332,6 +339,7 @@ type LogsRequestFilter = {
   fromDate?: number; // unix timestamp (ms)
   toDate?: number; // unix timestamp (ms)
   count?: number;
+  label?: string;
 };
 
 export type GetLogsResponse = {

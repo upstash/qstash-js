@@ -42,6 +42,11 @@ export type Schedule = {
    * if retry_delay was set when creating the schedule.
    */
   retryDelayExpression?: PublishRequest["retryDelay"];
+
+  /**
+   * The label assigned to the schedule for filtering purposes.
+   */
+  label?: string;
 };
 
 export type CreateScheduleRequest = {
@@ -148,6 +153,13 @@ export type CreateScheduleRequest = {
    * and number of requests per second with the same key.
    */
   flowControl?: FlowControl;
+
+  /**
+   * Assign a label to the schedule to filter logs later.
+   *
+   * @default undefined
+   */
+  label?: string;
 } & Pick<PublishRequest, "retryDelay">;
 
 export class Schedules {
@@ -244,6 +256,10 @@ export class Schedules {
       headers.set("Upstash-Flow-Control-Value", controlValue.join(", "));
     }
 
+    if (request.label !== undefined) {
+      headers.set("Upstash-Label", request.label);
+    }
+
     return await this.http.request({
       method: "POST",
       headers: wrapWithGlobalHeaders(headers, this.http.headers, this.http.telemetryHeaders),
@@ -251,7 +267,6 @@ export class Schedules {
       body: request.body,
     });
   }
-
   /**
    * Get a schedule
    */

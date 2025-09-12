@@ -4,11 +4,29 @@
 import { sleep } from "bun";
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { Client } from "./client";
+import { eventually } from "./logs.test";
 
 // Updated to use constants for magic numbers
 const SECONDS_IN_A_DAY = 24 * 60 * 60;
 
 describe("DLQ", () => {
+  test(
+    "should filter DLQ messages by label",
+    async () => {
+      const label = `dlq-label-${Date.now()}`;
+      await client.publish({
+        url: "https://example.com/force-dlq",
+        retries: 0,
+        label,
+      });
+      await sleep(10_000);
+      const dlqLogs = await client.dlq.listMessages({ filter: { label } });
+      expect(dlqLogs.messages.some((m) => m.label === label)).toBe(true);
+    },
+    {
+      timeout: 15_000,
+    }
+  );
   const client = new Client({ token: process.env.QSTASH_TOKEN! });
   const urlGroup = "someUrlGroup";
 
@@ -25,9 +43,11 @@ describe("DLQ", () => {
   });
 
   afterAll(async () => {
-    const dlqLogs = await client.dlq.listMessages();
-    await client.dlq.deleteMany({ dlqIds: dlqLogs.messages.map((dlq) => dlq.dlqId) });
     await client.urlGroups.delete(urlGroup);
+
+    const dlqLogs = await client.dlq.listMessages();
+    if (dlqLogs.messages.length === 0) return;
+    await client.dlq.deleteMany({ dlqIds: dlqLogs.messages.map((dlq) => dlq.dlqId) });
   });
 
   test(
@@ -105,17 +125,17 @@ describe("DLQ", () => {
         retries: 0,
       });
 
-      await sleep(10_000);
+      await eventually(async () => {
+        const result = await client.dlq.listMessages({
+          filter: {
+            urlGroup: urlGroup,
+          },
+        });
 
-      const result = await client.dlq.listMessages({
-        filter: {
-          urlGroup: urlGroup,
-        },
+        expect(result.messages.length).toBe(1);
+        expect(result.messages[0].messageId).toBe(message[0].messageId);
+        await client.dlq.delete(result.messages[0].dlqId);
       });
-
-      expect(result.messages.length).toBe(1);
-      expect(result.messages[0].messageId).toBe(message[0].messageId);
-      await client.dlq.delete(result.messages[0].dlqId);
     },
     { timeout: 20_000 }
   );
@@ -139,25 +159,53 @@ describe("DLQ", () => {
         retryDelay,
       });
 
-      await sleep(5000);
+      await eventually(async () => {
+        const result = await client.dlq.listMessages({
+          filter: {
+            messageId,
+          },
+        });
+        expect(result.messages.length).toBe(1);
+        const message = result.messages[0];
 
-      const result = await client.dlq.listMessages({
-        filter: {
-          messageId,
-        },
+        expect(message.flowControlKey).toBe("flow-key");
+        expect(message.parallelism).toBe(parallelism);
+        expect(message.ratePerSecond).toBe(ratePerSecond);
+        expect(message.rate).toBe(ratePerSecond);
+        expect(message.period).toBe(SECONDS_IN_A_DAY);
+        expect(message.retryDelayExpression).toBe(retryDelay);
       });
-      expect(result.messages.length).toBe(1);
-      const message = result.messages[0];
-
-      expect(message.flowControlKey).toBe("flow-key");
-      expect(message.parallelism).toBe(parallelism);
-      expect(message.ratePerSecond).toBe(ratePerSecond);
-      expect(message.rate).toBe(ratePerSecond);
-      expect(message.period).toBe(SECONDS_IN_A_DAY);
-      expect(message.retryDelayExpression).toBe(retryDelay);
     },
     {
       timeout: 10_000,
     }
+  );
+
+  test(
+    "should filter DLQ messages by label",
+    async () => {
+      const testLabel = `dlq-test-label-${Date.now()}`;
+      await client.publish({
+        url: `https://httpstat.us/400`, // Any broken link will work
+        retries: 0,
+        label: testLabel,
+      });
+
+      await sleep(4000);
+
+      const dlqLogs = await client.dlq.listMessages({
+        filter: {
+          label: testLabel,
+        },
+      });
+
+      expect(dlqLogs.messages.length).toBeGreaterThanOrEqual(1);
+      for (const message of dlqLogs.messages) {
+        if (message.label !== undefined) {
+          expect(message.label).toBe(testLabel);
+        }
+      }
+    },
+    { timeout: 20_000 }
   );
 });
