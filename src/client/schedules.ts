@@ -47,6 +47,28 @@ export type Schedule = {
    * The label assigned to the schedule for filtering purposes.
    */
   label?: string;
+
+  /**
+   * The timestamp of the last scheduled execution.
+   */
+  lastScheduleTime?: number;
+
+  /**
+   * The timestamp of the next scheduled execution.
+   */
+  nextScheduleTime?: number;
+
+  /**
+   * The states of the last scheduled messages.
+   *
+   * Maps message id to state
+   */
+  lastScheduleStates?: Record<string, "IN_PROGRESS" | "SUCCESS" | "FAIL">;
+
+  /**
+   * The IP address of the caller who created the schedule.
+   */
+  callerIP?: string;
 };
 
 export type CreateScheduleRequest = {
