@@ -3,11 +3,11 @@
  * Tests the Receiver functionality.
  */
 
-import { nanoid } from "ai";
 import { describe, test } from "bun:test";
 import { SignJWT } from "jose";
 import { createHash } from "node:crypto";
 import { Receiver } from ".";
+import { nanoid } from "./client/utils";
 
 async function createUpstashSingature({
   url,
@@ -30,7 +30,7 @@ async function createUpstashSingature({
 
   const jwt = await new SignJWT(payload)
     .setProtectedHeader({ alg: "HS256", typ: "JWT" })
-    .sign(Buffer.from(key, "utf8"));
+    .sign(new Uint8Array(Buffer.from(key, "utf8")));
 
   return jwt;
 }

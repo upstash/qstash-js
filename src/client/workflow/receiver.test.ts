@@ -9,7 +9,6 @@
  * and to pass
  */
 
-import { nanoid } from "ai";
 import { describe, test, expect } from "bun:test";
 import { SignJWT } from "jose";
 import { createHash } from "node:crypto";
@@ -29,6 +28,7 @@ import {
   WORKFLOW_PROTOCOL_VERSION_HEADER,
 } from "./constants";
 import type { FailureFunctionPayload, Step } from "./types";
+import { nanoid } from "../utils";
 
 /**
  * Creates a signed request given the request url, method, body, signing key
@@ -59,7 +59,7 @@ async function createSignedRequest({
 
   const jwt = await new SignJWT(payload)
     .setProtectedHeader({ alg: "HS256", typ: "JWT" })
-    .sign(Buffer.from(key, "utf8"));
+    .sign(new Uint8Array(Buffer.from(key, "utf8")));
 
   const allHeaders = new Headers(headers);
   allHeaders.append("Authorization", `Bearer <QSTASH_TOKEN>`);
