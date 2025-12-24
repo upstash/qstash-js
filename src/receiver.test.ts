@@ -30,7 +30,7 @@ async function createUpstashSingature({
 
   const jwt = await new SignJWT(payload)
     .setProtectedHeader({ alg: "HS256", typ: "JWT" })
-    .sign(Buffer.from(key, "utf8"));
+    .sign(new Uint8Array(Buffer.from(key, "utf8")));
 
   return jwt;
 }
