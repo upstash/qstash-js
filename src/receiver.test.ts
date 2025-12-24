@@ -3,11 +3,11 @@
  * Tests the Receiver functionality.
  */
 
-import { nanoid } from "ai";
 import { describe, test } from "bun:test";
 import { SignJWT } from "jose";
 import { createHash } from "node:crypto";
 import { Receiver } from ".";
+import { nanoid } from "./client/utils";
 
 async function createUpstashSingature({
   url,
