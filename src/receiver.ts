@@ -1,5 +1,7 @@
 import * as jose from "jose";
 import crypto from "crypto-js";
+import { getSafeEnvironment } from "./client/utils";
+import { getReceiverSigningKeys } from "./client/multi-region";
 
 /**
  * Necessary to verify the signature of a request.
@@ -7,12 +9,18 @@ import crypto from "crypto-js";
 export type ReceiverConfig = {
   /**
    * The current signing key. Get it from `https://console.upstash.com/qstash
+   *
+   * If not provided, value will be inferred from environment variables based on QSTASH_REGION
+   * and UPSTASH_REGION header.
    */
-  currentSigningKey: string;
+  currentSigningKey?: string;
   /**
    * The next signing key. Get it from `https://console.upstash.com/qstash
+   *
+   * If not provided, value will be inferred from environment variables based on QSTASH_REGION
+   * and UPSTASH_REGION header.
    */
-  nextSigningKey: string;
+  nextSigningKey?: string;
 };
 
 export type VerifyRequest = {
@@ -39,6 +47,13 @@ export type VerifyRequest = {
    * @default 0
    */
   clockTolerance?: number;
+
+  /**
+   * The region from the `upstash-region` header.
+   *
+   * Used to infer which signing keys to use for verification in multi-region setups.
+   */
+  upstashRegion?: string;
 };
 
 export class SignatureError extends Error {
@@ -51,12 +66,12 @@ export class SignatureError extends Error {
  * Receiver offers a simple way to verify the signature of a request.
  */
 export class Receiver {
-  private readonly currentSigningKey: string;
-  private readonly nextSigningKey: string;
+  private readonly currentSigningKey?: string;
+  private readonly nextSigningKey?: string;
 
-  constructor(config: ReceiverConfig) {
-    this.currentSigningKey = config.currentSigningKey;
-    this.nextSigningKey = config.nextSigningKey;
+  constructor(config?: ReceiverConfig) {
+    this.currentSigningKey = config?.currentSigningKey;
+    this.nextSigningKey = config?.nextSigningKey;
   }
 
   /**
@@ -69,11 +84,28 @@ export class Receiver {
    * If that fails, the signature is invalid and a `SignatureError` is thrown.
    */
   public async verify(request: VerifyRequest): Promise<boolean> {
+    const environment = getSafeEnvironment();
+    // Resolve signing keys using multi-region logic
+    const signingKeys = getReceiverSigningKeys({
+      environment,
+      regionFromHeader: request.upstashRegion,
+      config: {
+        currentSigningKey: this.currentSigningKey,
+        nextSigningKey: this.nextSigningKey,
+      },
+    });
+
+    if (!signingKeys) {
+      throw new Error(
+        "[Upstash QStash] No signing keys available for verification. See the warning above for more details."
+      );
+    }
+
     let payload: jose.JWTPayload;
     try {
-      payload = await this.verifyWithKey(this.currentSigningKey, request);
+      payload = await this.verifyWithKey(signingKeys.currentSigningKey, request);
     } catch {
-      payload = await this.verifyWithKey(this.nextSigningKey, request);
+      payload = await this.verifyWithKey(signingKeys.nextSigningKey, request);
     }
     this.verifyBodyAndUrl(payload, request);
     return true;

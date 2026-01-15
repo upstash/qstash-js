@@ -18,6 +18,7 @@ import { UrlGroups } from "./url-groups";
 import {
   getRequestPath,
   getRuntime,
+  getSafeEnvironment,
   prefixHeaders,
   processHeaders,
   wrapWithGlobalHeaders,
@@ -26,6 +27,7 @@ import { Workflow } from "./workflow";
 import type { PublishEmailApi, PublishLLMApi } from "./api/types";
 import { processApi } from "./api/utils";
 import { VERSION } from "../../version";
+import { getClientCredentials } from "./multi-region";
 
 type ClientConfig = {
   /**
@@ -369,21 +371,10 @@ export class Client {
   private token: string;
 
   public constructor(config?: ClientConfig) {
-    const environment =
-      typeof process === "undefined" ? ({} as Record<string, string>) : process.env;
+    const environment = getSafeEnvironment();
 
-    let baseUrl = (
-      config?.baseUrl ??
-      environment.QSTASH_URL ??
-      "https://qstash.upstash.io"
-    ).replace(/\/$/, "");
-
-    // fixes https://github.com/upstash/qstash-js/issues/226
-    if (baseUrl === "https://qstash.upstash.io/v2/publish") {
-      baseUrl = "https://qstash.upstash.io";
-    }
-
-    const token = config?.token ?? environment.QSTASH_TOKEN;
+    // Resolve credentials using multi-region logic
+    const { baseUrl, token } = getClientCredentials({ environment, config });
 
     const enableTelemetry = environment.UPSTASH_DISABLE_TELEMETRY
       ? false
@@ -417,14 +408,7 @@ export class Client {
       telemetryHeaders: telemetryHeaders,
     });
 
-    if (!token) {
-      console.warn(
-        "[Upstash QStash] client token is not set. Either pass a token or set QSTASH_TOKEN env variable."
-      );
-    }
-
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    this.token = token!;
+    this.token = token;
   }
 
   /**

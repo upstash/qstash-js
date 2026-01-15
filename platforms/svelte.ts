@@ -5,8 +5,8 @@ import type { RouteFunction, WorkflowServeOptions } from "../src/client/workflow
 import { serve as serveBase } from "../src/client/workflow";
 
 type VerifySignatureConfig = {
-  currentSigningKey: string;
-  nextSigningKey: string;
+  currentSigningKey?: string;
+  nextSigningKey?: string;
   clockTolerance?: number;
 };
 
@@ -15,16 +15,18 @@ export const verifySignatureSvelte = <
   RouteId extends string | null = string | null,
 >(
   handler: RequestHandler<Parameters, RouteId>,
-  config: VerifySignatureConfig
+  config?: VerifySignatureConfig
 ) => {
-  const currentSigningKey = config.currentSigningKey;
-  if (!currentSigningKey) {
-    throw new Error("currentSigningKey is required, either in the config or from the env");
+  const currentSigningKey = config?.currentSigningKey ?? process.env.QSTASH_CURRENT_SIGNING_KEY;
+  const nextSigningKey = config?.nextSigningKey ?? process.env.QSTASH_NEXT_SIGNING_KEY;
+
+  // Only throw if both keys are missing and not in multi-region mode
+  if (!currentSigningKey && !nextSigningKey && !process.env.QSTASH_REGION) {
+    throw new Error(
+      "currentSigningKey and nextSigningKey are required, either in the config or as env variables (QSTASH_CURRENT_SIGNING_KEY and QSTASH_NEXT_SIGNING_KEY)"
+    );
   }
-  const nextSigningKey = config.nextSigningKey;
-  if (!nextSigningKey) {
-    throw new Error("nextSigningKey is required, either in the config or from the env");
-  }
+
   const receiver = new Receiver({
     currentSigningKey,
     nextSigningKey,
@@ -37,12 +39,14 @@ export const verifySignatureSvelte = <
     if (typeof signature !== "string") {
       throw new TypeError("`Upstash-Signature` header is not a string");
     }
+    const upstashRegion = event.request.headers.get("upstash-region");
     const cloneRequest = event.request.clone();
     const body = await cloneRequest.text();
     const isValid = await receiver.verify({
       signature,
       body,
-      clockTolerance: config.clockTolerance,
+      clockTolerance: config?.clockTolerance,
+      upstashRegion: upstashRegion ?? undefined,
     });
     if (!isValid) {
       return new Response("invalid signature", { status: 403 });

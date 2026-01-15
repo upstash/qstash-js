@@ -17,17 +17,15 @@ export const verifySignatureH3 = (
   config?: VerifySignatureConfig
 ) => {
   const currentSigningKey = config?.currentSigningKey ?? process.env.QSTASH_CURRENT_SIGNING_KEY;
-  if (!currentSigningKey) {
-    throw new Error(
-      "currentSigningKey is required, either in the config or as env variable QSTASH_CURRENT_SIGNING_KEY"
-    );
-  }
   const nextSigningKey = config?.nextSigningKey ?? process.env.QSTASH_NEXT_SIGNING_KEY;
-  if (!nextSigningKey) {
+
+  // Only throw if both keys are missing and not in multi-region mode
+  if (!currentSigningKey && !nextSigningKey && !process.env.QSTASH_REGION) {
     throw new Error(
-      "nextSigningKey is required, either in the config or as env variable QSTASH_NEXT_SIGNING_KEY"
+      "currentSigningKey and nextSigningKey are required, either in the config or as env variables (QSTASH_CURRENT_SIGNING_KEY and QSTASH_NEXT_SIGNING_KEY)"
     );
   }
+
   const receiver = new Receiver({
     currentSigningKey,
     nextSigningKey,
@@ -42,11 +40,14 @@ export const verifySignatureH3 = (
       throw new TypeError("`Upstash-Signature` header is not a string");
     }
 
+    const upstashRegion = getHeader(event, "upstash-region");
+
     const body = await readRawBody(event);
     const isValid = await receiver.verify({
       signature,
       body: JSON.stringify(body),
       clockTolerance: config?.clockTolerance,
+      upstashRegion: typeof upstashRegion === "string" ? upstashRegion : undefined,
     });
 
     if (!isValid) {
