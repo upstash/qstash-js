@@ -9,7 +9,7 @@ import { createHash } from "node:crypto";
 import { Receiver } from ".";
 import { nanoid } from "./client/utils";
 
-async function createUpstashSingature({
+export async function createUpstashSingature({
   url,
   body,
   key,

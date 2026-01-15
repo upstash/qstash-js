@@ -321,6 +321,22 @@ describe("Receiver/Verifier - Multi-Region Signing Keys Resolution", () => {
   });
 
   describe("Multi-Region Mode with Both Regions Configured", () => {
+    test("should work in receiver-only multi-region mode without QSTASH_REGION", () => {
+      const environment = createEnvironment({
+        US_EAST_1_QSTASH_CURRENT_SIGNING_KEY: "us-current-key",
+        US_EAST_1_QSTASH_NEXT_SIGNING_KEY: "us-next-key",
+        EU_CENTRAL_1_QSTASH_CURRENT_SIGNING_KEY: "eu-current-key",
+        EU_CENTRAL_1_QSTASH_NEXT_SIGNING_KEY: "eu-next-key",
+      });
+
+      // Without QSTASH_REGION set, region-specific keys should not be used
+      const usResult = getReceiverSigningKeys({ environment, regionFromHeader: "US_EAST_1" });
+      expect(usResult).toBeUndefined();
+
+      const euResult = getReceiverSigningKeys({ environment, regionFromHeader: "EU_CENTRAL_1" });
+      expect(euResult).toBeUndefined();
+    });
+
     test("should use correct region keys based on header in multi-region setup", () => {
       const environment = createEnvironment({
         QSTASH_REGION: "US_EAST_1",
