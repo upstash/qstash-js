@@ -46,7 +46,7 @@ For fundamental QStash operations, see:
 
 - [Publishing Messages](fundamentals/publishing-messages.md)
 - [Schedules](fundamentals/schedules.md)
-- [Queues and Flow Control](fundamentals/queues-flow-control.md)
+- [Queues and Flow Control](fundamentals/queues-and-flow-control.md)
 - [URL Groups](fundamentals/url-groups.md)
 
 For verifying incoming messages:
