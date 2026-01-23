@@ -160,11 +160,14 @@ app.post("/webhook", async (req) => {
 
 // ✅ Do this
 app.post("/webhook", async (req) => {
+  const body = await req.text();
+
   await receiver.verify({
     signature: req.headers.get("upstash-signature")!,
-    body: await req.text(),
+    body,
   });
-  const data = JSON.parse(await req.text());
+
+  const data = JSON.parse(body);
   processWebhook(data);
 });
 ```
