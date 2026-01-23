@@ -40,8 +40,6 @@ await client.publishJSON({
 // JSON object
 await client.publishJSON({
   url: "https://api.example.com/webhook",
-  // request body
-  body: { reminder: "Check status" },
   // The message payload
   body: { order_id: "123", items: [1, 2, 3] },
   // Send to a FIFO queue for ordered processing:
