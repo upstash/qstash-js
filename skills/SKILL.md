@@ -45,7 +45,6 @@ const result = await client.publishJSON({
 
 For fundamental QStash operations, see:
 
-- [Client Setup & Initialization](fundamentals/client-setup.md)
 - [Publishing Messages](fundamentals/publishing-messages.md)
 - [Schedules](fundamentals/schedules.md)
 - [Queues and Flow Control](fundamentals/queues-flow-control.md)
