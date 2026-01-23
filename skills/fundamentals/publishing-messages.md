@@ -46,7 +46,7 @@ await client.publishJSON({
   body: { order_id: "123", items: [1, 2, 3] },
   // Send to a FIFO queue for ordered processing:
   // Learn more in [Queues and Flow Control](queues-and-flow-control.md).
-  queue: "my-fifo-queue",
+  queueName: "my-fifo-queue",
   // Send with a flow control key to limit rate/parallelism:
   flowControl: {
     key: "user-123",
