@@ -15,7 +15,6 @@ Use this skill when:
 - Creating scheduled or delayed message delivery
 - Managing FIFO queues with configurable parallelism
 - Verifying incoming webhook signatures from QStash
-- Working with multi-region QStash deployments
 - Implementing callbacks, DLQ handling, or message deduplication
 
 ## Quick Start
@@ -58,7 +57,6 @@ For verifying incoming messages:
 
 For advanced features:
 
-- [Multi-Region Setup](advanced/multi-region.md)
 - [Callbacks](advanced/callbacks.md)
 - [Dead Letter Queue (DLQ)](advanced/dlq.md)
 - [Message Deduplication](advanced/deduplication.md)
