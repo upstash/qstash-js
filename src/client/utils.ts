@@ -216,3 +216,7 @@ export function getRuntime() {
     return `node@${process.version}`;
   return "";
 }
+
+export function getSafeEnvironment() {
+  return typeof process === "undefined" ? ({} as Record<string, string>) : process.env;
+}

@@ -36,17 +36,15 @@ export function verifySignature(
   config?: VerifySignatureConfig
 ): NextApiHandler {
   const currentSigningKey = config?.currentSigningKey ?? process.env.QSTASH_CURRENT_SIGNING_KEY;
-  if (!currentSigningKey) {
-    throw new Error(
-      "currentSigningKey is required, either in the config or as env variable QSTASH_CURRENT_SIGNING_KEY"
-    );
-  }
   const nextSigningKey = config?.nextSigningKey ?? process.env.QSTASH_NEXT_SIGNING_KEY;
-  if (!nextSigningKey) {
+
+  // Only throw if both keys are missing and not in multi-region mode
+  if (!currentSigningKey && !nextSigningKey && !process.env.QSTASH_REGION) {
     throw new Error(
-      "nextSigningKey is required, either in the config or as env variable QSTASH_NEXT_SIGNING_KEY"
+      "currentSigningKey and nextSigningKey are required, either in the config or as env variables (QSTASH_CURRENT_SIGNING_KEY and QSTASH_NEXT_SIGNING_KEY)"
     );
   }
+
   const receiver = new Receiver({
     currentSigningKey,
     nextSigningKey,
@@ -65,6 +63,8 @@ export function verifySignature(
       throw new TypeError("`Upstash-Signature` header is not a string");
     }
 
+    const upstashRegion = request.headers["upstash-region"];
+
     const chunks = [];
     for await (const chunk of request) {
       chunks.push(typeof chunk === "string" ? Buffer.from(chunk) : chunk);
@@ -75,6 +75,7 @@ export function verifySignature(
       signature,
       body,
       clockTolerance: config?.clockTolerance,
+      upstashRegion: typeof upstashRegion === "string" ? upstashRegion : undefined,
     });
     if (!isValid) {
       response.status(BAD_REQUEST);
@@ -100,17 +101,15 @@ export function verifySignatureEdge(
   config?: VerifySignatureConfig
 ) {
   const currentSigningKey = config?.currentSigningKey ?? process.env.QSTASH_CURRENT_SIGNING_KEY;
-  if (!currentSigningKey) {
-    throw new Error(
-      "currentSigningKey is required, either in the config or as env variable QSTASH_CURRENT_SIGNING_KEY"
-    );
-  }
   const nextSigningKey = config?.nextSigningKey ?? process.env.QSTASH_NEXT_SIGNING_KEY;
-  if (!nextSigningKey) {
+
+  // Only throw if both keys are missing and not in multi-region mode
+  if (!currentSigningKey && !nextSigningKey && !process.env.QSTASH_REGION) {
     throw new Error(
-      "nextSigningKey is required, either in the config or as env variable QSTASH_NEXT_SIGNING_KEY"
+      "currentSigningKey and nextSigningKey are required, either in the config or as env variables (QSTASH_CURRENT_SIGNING_KEY and QSTASH_NEXT_SIGNING_KEY)"
     );
   }
+
   const receiver = new Receiver({
     currentSigningKey,
     nextSigningKey,
@@ -129,11 +128,14 @@ export function verifySignatureEdge(
       throw new TypeError("`Upstash-Signature` header is not a string");
     }
 
+    const upstashRegion = request.headers.get("upstash-region");
+
     const body = await requestClone.text();
     const isValid = await receiver.verify({
       signature,
       body,
       clockTolerance: config?.clockTolerance,
+      upstashRegion: upstashRegion ?? undefined,
     });
     if (!isValid) {
       return new Response(new TextEncoder().encode("invalid signature"), { status: 403 });
@@ -152,17 +154,15 @@ export function verifySignatureAppRouter(
   config?: VerifySignatureConfig
 ) {
   const currentSigningKey = config?.currentSigningKey ?? process.env.QSTASH_CURRENT_SIGNING_KEY;
-  if (!currentSigningKey) {
-    throw new Error(
-      "currentSigningKey is required, either in the config or as env variable QSTASH_CURRENT_SIGNING_KEY"
-    );
-  }
   const nextSigningKey = config?.nextSigningKey ?? process.env.QSTASH_NEXT_SIGNING_KEY;
-  if (!nextSigningKey) {
+
+  // Only throw if both keys are missing and not in multi-region mode
+  if (!currentSigningKey && !nextSigningKey && !process.env.QSTASH_REGION) {
     throw new Error(
-      "nextSigningKey is required, either in the config or as env variable QSTASH_NEXT_SIGNING_KEY"
+      "currentSigningKey and nextSigningKey are required, either in the config or as env variables (QSTASH_CURRENT_SIGNING_KEY and QSTASH_NEXT_SIGNING_KEY)"
     );
   }
+
   const receiver = new Receiver({
     currentSigningKey,
     nextSigningKey,
@@ -180,11 +180,14 @@ export function verifySignatureAppRouter(
       throw new TypeError("`Upstash-Signature` header is not a string");
     }
 
+    const upstashRegion = request.headers.get("upstash-region");
+
     const body = await requestClone.text();
     const isValid = await receiver.verify({
       signature,
       body,
       clockTolerance: config?.clockTolerance,
+      upstashRegion: upstashRegion ?? undefined,
     });
     if (!isValid) {
       return new Response(new TextEncoder().encode("invalid signature"), { status: 403 });
