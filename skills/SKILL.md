@@ -60,6 +60,8 @@ For advanced features:
 - [Callbacks](advanced/callbacks.md)
 - [Dead Letter Queue (DLQ)](advanced/dlq.md)
 - [Message Deduplication](advanced/deduplication.md)
+- [Region migration & multi-region support](advanced/multi-region.md)
+  - If needed, [multi-region env variable setup verification script](advanced/multi-region/verify-multi-region-setup.ts). Can be run without arguments
 
 ## Platform Support
 
