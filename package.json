@@ -4,13 +4,13 @@
   "description": "Official Typescript client for QStash",
   "author": "Andreas Thomas <dev@chronark.com>",
   "license": "MIT",
-  "homepage": "https://github.com/upstash/sdk-qstash-ts#readme",
+  "homepage": "https://github.com/upstash/qstash-js#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/upstash/sdk-qstash-ts.git"
+    "url": "git+https://github.com/upstash/qstash-js.git"
   },
   "bugs": {
-    "url": "https://github.com/upstash/sdk-qstash-ts/issues"
+    "url": "https://github.com/upstash/qstash-js/issues"
   },
   "main": "./index.js",
   "module": "./index.mjs",

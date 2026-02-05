@@ -146,12 +146,13 @@ describe("DLQ", () => {
       const parallelism = 10;
       const ratePerSecond = 5;
       const retryDelay = "2000 * retried";
+      const randomKey = `flow-control-key-${Date.now()}`;
       const { messageId } = await client.publish({
         url: "https://httpstat.us/400",
         body: "hello",
         retries: 0,
         flowControl: {
-          key: "flow-key",
+          key: randomKey,
           parallelism,
           ratePerSecond,
           period: "1d",
@@ -168,7 +169,7 @@ describe("DLQ", () => {
         expect(result.messages.length).toBe(1);
         const message = result.messages[0];
 
-        expect(message.flowControlKey).toBe("flow-key");
+        expect(message.flowControlKey).toBe(randomKey);
         expect(message.parallelism).toBe(parallelism);
         expect(message.ratePerSecond).toBe(ratePerSecond);
         expect(message.rate).toBe(ratePerSecond);
