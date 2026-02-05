@@ -40,6 +40,8 @@ describe("logs", () => {
       },
     });
 
+    await new Promise((r) => setTimeout(r, 100));
+
     const result2 = await client.logs({
       cursor: result1.cursor,
       filter: {
@@ -75,6 +77,8 @@ describe("events (deprecated)", () => {
         count: 1,
       },
     });
+
+    await new Promise((r) => setTimeout(r, 100));
 
     const result2 = await client.events({
       cursor: result1.cursor,
