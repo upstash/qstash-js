@@ -209,4 +209,122 @@ describe("DLQ", () => {
     },
     { timeout: 20_000 }
   );
+
+  test(
+    "should retry multiple messages from DLQ",
+    async () => {
+      // Publish multiple messages that will fail
+      const message1 = await client.publish({
+        url: `https://example.com/123/?asdasd=ooo`,
+        retries: 0,
+      });
+      const message2 = await client.publish({
+        url: `https://example.com/456/?asdasd=ooo`,
+        retries: 0,
+      });
+      const message3 = await client.publish({
+        url: `https://example.com/789/?asdasd=ooo`,
+        retries: 0,
+      });
+
+      await sleep(10_000);
+
+      // Get all messages from DLQ
+      const dlqLogs1 = await client.dlq.listMessages({ filter: { messageId: message1.messageId } });
+      const dlqLogs2 = await client.dlq.listMessages({ filter: { messageId: message2.messageId } });
+      const dlqLogs3 = await client.dlq.listMessages({ filter: { messageId: message3.messageId } });
+
+      const dlqMessage1 = dlqLogs1.messages.find((dlq) => dlq.messageId === message1.messageId);
+      const dlqMessage2 = dlqLogs2.messages.find((dlq) => dlq.messageId === message2.messageId);
+      const dlqMessage3 = dlqLogs3.messages.find((dlq) => dlq.messageId === message3.messageId);
+
+      expect(dlqMessage1).toBeDefined();
+      expect(dlqMessage2).toBeDefined();
+      expect(dlqMessage3).toBeDefined();
+
+      // Retry all three messages
+      const dlqIds = [dlqMessage1!.dlqId, dlqMessage2!.dlqId, dlqMessage3!.dlqId];
+
+      const retryResult = await client.dlq.retry({ dlqIds });
+
+      // Verify the response contains messageIds
+      expect(retryResult).toBeDefined();
+      expect(retryResult.responses).toBeInstanceOf(Array);
+      expect(retryResult.responses.length).toBe(3);
+      expect(retryResult.responses.every((result) => result.messageId)).toBe(true);
+
+      // Clean up - delete the retried messages from DLQ
+      await client.dlq.deleteMany({ dlqIds });
+    },
+    { timeout: 20_000 }
+  );
+
+  test(
+    "should delete multiple messages from DLQ",
+    async () => {
+      // Publish multiple messages that will fail
+      const message1 = await client.publish({
+        url: `https://example.com/123/?asdasd=ooo`,
+        retries: 0,
+      });
+      const message2 = await client.publish({
+        url: `https://example.com/456/?asdasd=ooo`,
+        retries: 0,
+      });
+      const message3 = await client.publish({
+        url: `https://example.com/789/?asdasd=ooo`,
+        retries: 0,
+      });
+
+      await sleep(10_000);
+
+      // Get all messages from DLQ
+      const dlqLogs1 = await client.dlq.listMessages({ filter: { messageId: message1.messageId } });
+      const dlqLogs2 = await client.dlq.listMessages({ filter: { messageId: message2.messageId } });
+      const dlqLogs3 = await client.dlq.listMessages({ filter: { messageId: message3.messageId } });
+
+      const dlqMessage1 = dlqLogs1.messages.find((dlq) => dlq.messageId === message1.messageId);
+      const dlqMessage2 = dlqLogs2.messages.find((dlq) => dlq.messageId === message2.messageId);
+      const dlqMessage3 = dlqLogs3.messages.find((dlq) => dlq.messageId === message3.messageId);
+
+      expect(dlqMessage1).toBeDefined();
+      expect(dlqMessage2).toBeDefined();
+      expect(dlqMessage3).toBeDefined();
+
+      // Delete all three messages
+      const dlqIds = [dlqMessage1!.dlqId, dlqMessage2!.dlqId, dlqMessage3!.dlqId];
+
+      const deleteResult = await client.dlq.deleteMany({ dlqIds });
+
+      // Verify the response contains the correct deleted count
+      expect(deleteResult).toBeDefined();
+      expect(deleteResult.deleted).toBe(3);
+
+      // Verify the messages are actually deleted from DLQ
+      const dlqLogsAfterDelete1 = await client.dlq.listMessages({
+        filter: { messageId: message1.messageId },
+      });
+      const dlqLogsAfterDelete2 = await client.dlq.listMessages({
+        filter: { messageId: message2.messageId },
+      });
+      const dlqLogsAfterDelete3 = await client.dlq.listMessages({
+        filter: { messageId: message3.messageId },
+      });
+
+      const dlqMessageAfterDelete1 = dlqLogsAfterDelete1.messages.find(
+        (dlq) => dlq.messageId === message1.messageId
+      );
+      const dlqMessageAfterDelete2 = dlqLogsAfterDelete2.messages.find(
+        (dlq) => dlq.messageId === message2.messageId
+      );
+      const dlqMessageAfterDelete3 = dlqLogsAfterDelete3.messages.find(
+        (dlq) => dlq.messageId === message3.messageId
+      );
+
+      expect(dlqMessageAfterDelete1).toBeUndefined();
+      expect(dlqMessageAfterDelete2).toBeUndefined();
+      expect(dlqMessageAfterDelete3).toBeUndefined();
+    },
+    { timeout: 20_000 }
+  );
 });
