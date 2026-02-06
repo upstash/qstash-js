@@ -157,9 +157,32 @@ export class DLQ {
   public async deleteMany(request: { dlqIds: string[] }): Promise<{ deleted: number }> {
     return await this.http.request({
       method: "DELETE",
-      path: ["v2", "dlq"],
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ dlqIds: request.dlqIds }),
+      path: ["v2", "dlq", `?${DLQ.getDlqIdQueryParameter(request.dlqIds)}`],
     });
+  }
+
+  /**
+   * Retry multiple messages from the dlq using their `dlqId`s
+   */
+  public async retry(request: { dlqIds: string | string[] }): Promise<{
+    cursor: string;
+    responses: { messageId: string }[];
+  }> {
+    const path = request.dlqIds ? `retry?${DLQ.getDlqIdQueryParameter(request.dlqIds)}` : "retry";
+    return await this.http.request({
+      method: "POST",
+      path: ["v2", "dlq", path],
+    });
+  }
+
+  /**
+   * Converts DLQ ID(s) to query parameter string.
+   *
+   * @param dlqId - Single DLQ ID or array of DLQ IDs
+   */
+  private static getDlqIdQueryParameter(dlqId: string | string[]): string {
+    const dlqIds = Array.isArray(dlqId) ? dlqId : [dlqId];
+    const parametersArray: [string, string][] = dlqIds.map((id) => ["dlqIds", id]);
+    return new URLSearchParams(parametersArray).toString();
   }
 }

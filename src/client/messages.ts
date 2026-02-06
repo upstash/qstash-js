@@ -134,6 +134,18 @@ export type Message = {
   label?: string;
 };
 
+export type MessagesFilters = {
+  scheduleId?: string;
+  messageId?: string;
+  url?: string;
+  urlGroup?: string;
+  queueName?: string;
+  fromDate?: string;
+  toDate?: string;
+  label?: string;
+  flowControlKey?: string;
+};
+
 export type MessagePayload = Omit<Message, "urlGroup"> & { topicName: string };
 
 export class Messages {
@@ -180,10 +192,18 @@ export class Messages {
     return result.cancelled;
   }
 
-  public async deleteAll(): Promise<number> {
+  public async deleteAll(filters?: MessagesFilters): Promise<number> {
     const result = (await this.http.request({
       method: "DELETE",
       path: ["v2", "messages"],
+      headers: filters ? { "Content-Type": "application/json" } : undefined,
+      body: filters
+        ? JSON.stringify({
+            ...filters,
+            ...(filters.fromDate ? { fromDate: Number(filters.fromDate) } : {}),
+            ...(filters.toDate ? { toDate: Number(filters.toDate) } : {}),
+          })
+        : undefined,
     })) as { cancelled: number };
     return result.cancelled;
   }
