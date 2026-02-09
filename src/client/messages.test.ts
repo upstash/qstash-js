@@ -88,10 +88,10 @@ describe("Messages", () => {
         messages[1].messageId,
       ]);
 
-      expect(deleted).toBe(2);
+      expect(deleted.cancelled).toBe(2);
 
       const deletedAll = await client.messages.deleteAll();
-      expect(deletedAll).toBe(1);
+      expect(deletedAll.cancelled).toBe(1);
     },
     { timeout: 20_000 }
   );
@@ -164,7 +164,7 @@ describe("Messages", () => {
       });
 
       // Should cancel at least the 2 messages with the matching flowControlKey
-      expect(cancelled).toBeGreaterThanOrEqual(2);
+      expect(cancelled.cancelled).toBeGreaterThanOrEqual(2);
 
       // Verify message3 still exists (or was not cancelled)
       // Note: This might fail if message3 was already delivered, but it tests the filter
@@ -181,6 +181,120 @@ describe("Messages", () => {
       } catch {
         // Already deleted/delivered
       }
+    },
+    { timeout: 20_000 }
+  );
+
+  test(
+    "should delete multiple messages using string array overload",
+    async () => {
+      const messages = await client.batchJSON([
+        {
+          url: `https://example.com`,
+          body: { hello: "world" },
+          timeout: 90,
+          delay: "10d",
+        },
+        {
+          url: `https://example.com`,
+          body: { hello: "world" },
+          timeout: 90,
+          delay: "10d",
+        },
+        {
+          url: `https://example.com`,
+          body: { hello: "world" },
+          timeout: 90,
+          delay: "10d",
+        },
+      ]);
+
+      expect(messages.length).toBe(3);
+
+      // Delete using string[] overload
+      const deleted = await client.messages.delete([messages[0].messageId, messages[1].messageId]);
+
+      expect(deleted.cancelled).toBe(2);
+
+      // Clean up remaining
+      await client.messages.delete(messages[2].messageId);
+    },
+    { timeout: 20_000 }
+  );
+
+  test(
+    "should delete messages using filter overload with flowControlKey",
+    async () => {
+      const flowControlKey = `flow-key-filter-${Date.now()}`;
+
+      await client.publish({
+        url: "https://httpstat.us/200?sleep=30000",
+        body: "hello",
+        flowControl: {
+          key: flowControlKey,
+          parallelism: 5,
+          ratePerSecond: 10,
+        },
+      });
+
+      await client.publish({
+        url: "https://httpstat.us/200?sleep=30000",
+        body: "hello",
+        flowControl: {
+          key: flowControlKey,
+          parallelism: 5,
+          ratePerSecond: 10,
+        },
+      });
+
+      // Delete using filter overload
+      const cancelled = await client.messages.delete({ flowControlKey });
+
+      expect(cancelled.cancelled).toBeGreaterThanOrEqual(2);
+    },
+    { timeout: 20_000 }
+  );
+
+  test(
+    "should delete messages using filter overload with label",
+    async () => {
+      const label = `msg-label-${Date.now()}`;
+
+      await client.publish({
+        url: "https://httpstat.us/200?sleep=30000",
+        body: "hello",
+        delay: "10d",
+        label,
+      });
+
+      await client.publish({
+        url: "https://httpstat.us/200?sleep=30000",
+        body: "hello",
+        delay: "10d",
+        label,
+      });
+
+      // Delete using filter overload with label
+      const cancelled = await client.messages.delete({ label });
+
+      expect(cancelled.cancelled).toBeGreaterThanOrEqual(2);
+    },
+    { timeout: 20_000 }
+  );
+
+  test(
+    "should delete all messages using empty filter overload",
+    async () => {
+      await client.publish({
+        url: "https://httpstat.us/200?sleep=30000",
+        body: "hello",
+        delay: "10d",
+      });
+
+      // Delete all using empty filter overload (equivalent to deleteAll)
+      const cancelled = await client.messages.delete({});
+
+      expect(cancelled.cancelled).toBeGreaterThanOrEqual(1);
     },
     { timeout: 20_000 }
   );

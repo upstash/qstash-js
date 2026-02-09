@@ -327,4 +327,186 @@ describe("DLQ", () => {
     },
     { timeout: 20_000 }
   );
+
+  test(
+    "should delete multiple messages from DLQ using string array overload",
+    async () => {
+      const message1 = await client.publish({
+        url: `https://example.com/123/?asdasd=ooo`,
+        retries: 0,
+      });
+      const message2 = await client.publish({
+        url: `https://example.com/456/?asdasd=ooo`,
+        retries: 0,
+      });
+
+      await sleep(10_000);
+
+      const dlqLogs1 = await client.dlq.listMessages({ filter: { messageId: message1.messageId } });
+      const dlqLogs2 = await client.dlq.listMessages({ filter: { messageId: message2.messageId } });
+
+      const dlqMessage1 = dlqLogs1.messages.find((dlq) => dlq.messageId === message1.messageId);
+      const dlqMessage2 = dlqLogs2.messages.find((dlq) => dlq.messageId === message2.messageId);
+
+      expect(dlqMessage1).toBeDefined();
+      expect(dlqMessage2).toBeDefined();
+
+      // Delete using string[] overload
+      const deleteResult = await client.dlq.delete([dlqMessage1!.dlqId, dlqMessage2!.dlqId]);
+
+      expect(deleteResult).toBeDefined();
+      expect(deleteResult.deleted).toBe(2);
+
+      // Verify deletion
+      const afterDelete1 = await client.dlq.listMessages({
+        filter: { messageId: message1.messageId },
+      });
+      const afterDelete2 = await client.dlq.listMessages({
+        filter: { messageId: message2.messageId },
+      });
+
+      expect(
+        afterDelete1.messages.find((dlq) => dlq.messageId === message1.messageId)
+      ).toBeUndefined();
+      expect(
+        afterDelete2.messages.find((dlq) => dlq.messageId === message2.messageId)
+      ).toBeUndefined();
+    },
+    { timeout: 20_000 }
+  );
+
+  test(
+    "should delete DLQ messages using filter overload",
+    async () => {
+      const label = `dlq-delete-filter-${Date.now()}`;
+      await client.publish({
+        url: `https://example.com/123/?asdasd=ooo`,
+        retries: 0,
+        label,
+      });
+      await client.publish({
+        url: `https://example.com/456/?asdasd=ooo`,
+        retries: 0,
+        label,
+      });
+
+      await sleep(10_000);
+
+      // Verify messages are in DLQ
+      const dlqBefore = await client.dlq.listMessages({ filter: { label } });
+      expect(dlqBefore.messages.length).toBeGreaterThanOrEqual(2);
+
+      // Delete using filter overload
+      const deleteResult = await client.dlq.delete({ label });
+
+      expect(deleteResult).toBeDefined();
+      expect(deleteResult.deleted).toBeGreaterThanOrEqual(2);
+
+      // Verify deletion
+      const dlqAfter = await client.dlq.listMessages({ filter: { label } });
+      expect(dlqAfter.messages.length).toBe(0);
+    },
+    { timeout: 20_000 }
+  );
+
+  test(
+    "should retry single DLQ message using string overload",
+    async () => {
+      const message = await client.publish({
+        url: `https://example.com/123/?asdasd=ooo`,
+        retries: 0,
+      });
+
+      await sleep(10_000);
+
+      const dlqLogs = await client.dlq.listMessages({ filter: { messageId: message.messageId } });
+      const dlqMessage = dlqLogs.messages.find((dlq) => dlq.messageId === message.messageId);
+
+      expect(dlqMessage).toBeDefined();
+
+      // Retry using single string overload
+      const retryResult = await client.dlq.retry(dlqMessage!.dlqId);
+
+      expect(retryResult).toBeDefined();
+      expect(retryResult.responses).toBeInstanceOf(Array);
+      expect(retryResult.responses.length).toBe(1);
+      expect(retryResult.responses[0].messageId).toBeDefined();
+
+      // Clean up
+      await client.dlq.delete(dlqMessage!.dlqId);
+    },
+    { timeout: 20_000 }
+  );
+
+  test(
+    "should retry DLQ messages using string array overload",
+    async () => {
+      const message1 = await client.publish({
+        url: `https://example.com/123/?asdasd=ooo`,
+        retries: 0,
+      });
+      const message2 = await client.publish({
+        url: `https://example.com/456/?asdasd=ooo`,
+        retries: 0,
+      });
+
+      await sleep(10_000);
+
+      const dlqLogs1 = await client.dlq.listMessages({ filter: { messageId: message1.messageId } });
+      const dlqLogs2 = await client.dlq.listMessages({ filter: { messageId: message2.messageId } });
+
+      const dlqMessage1 = dlqLogs1.messages.find((dlq) => dlq.messageId === message1.messageId);
+      const dlqMessage2 = dlqLogs2.messages.find((dlq) => dlq.messageId === message2.messageId);
+
+      expect(dlqMessage1).toBeDefined();
+      expect(dlqMessage2).toBeDefined();
+
+      // Retry using string[] overload
+      const retryResult = await client.dlq.retry([dlqMessage1!.dlqId, dlqMessage2!.dlqId]);
+
+      expect(retryResult).toBeDefined();
+      expect(retryResult.responses).toBeInstanceOf(Array);
+      expect(retryResult.responses.length).toBe(2);
+      expect(retryResult.responses.every((r) => r.messageId)).toBe(true);
+
+      // Clean up
+      await client.dlq.delete([dlqMessage1!.dlqId, dlqMessage2!.dlqId]);
+    },
+    { timeout: 20_000 }
+  );
+
+  test(
+    "should retry DLQ messages using filter overload",
+    async () => {
+      const label = `dlq-retry-filter-${Date.now()}`;
+      await client.publish({
+        url: `https://example.com/123/?asdasd=ooo`,
+        retries: 0,
+        label,
+      });
+      await client.publish({
+        url: `https://example.com/456/?asdasd=ooo`,
+        retries: 0,
+        label,
+      });
+
+      await sleep(10_000);
+
+      // Verify messages are in DLQ
+      const dlqBefore = await client.dlq.listMessages({ filter: { label } });
+      expect(dlqBefore.messages.length).toBeGreaterThanOrEqual(2);
+
+      // Retry using filter overload
+      const retryResult = await client.dlq.retry({ label });
+
+      expect(retryResult).toBeDefined();
+      expect(retryResult.responses).toBeInstanceOf(Array);
+      expect(retryResult.responses.length).toBeGreaterThanOrEqual(2);
+      expect(retryResult.responses.every((r) => r.messageId)).toBe(true);
+
+      // Clean up
+      await client.dlq.delete({ label });
+    },
+    { timeout: 20_000 }
+  );
 });

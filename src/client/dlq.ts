@@ -1,5 +1,6 @@
 import type { Requester } from "./http";
 import type { Message } from "./messages";
+import type { QStashCommonFilters } from "./types";
 
 type DlqMessage = Message & {
   /**
@@ -141,37 +142,114 @@ export class DLQ {
   }
 
   /**
-   * Remove a message from the dlq using it's `dlqId`
+   * Remove messages from the dlq.
+   *
+   * Can be called with:
+   * - A single dlqId: `delete("id")`
+   * - An array of dlqIds: `delete(["id1", "id2"])`
+   * - An object with dlqIds: `delete({ dlqIds: ["id1", "id2"] })`
+   * - A filter object: `delete({ url: "https://example.com", label: "label" })`
    */
-  public async delete(dlqMessageId: string): Promise<void> {
+  public async delete(
+    request: string | string[] | { dlqIds: string | string[] } | QStashCommonFilters
+  ): Promise<{ deleted: number }> {
+    // Handle single string - original delete behavior
+    if (typeof request === "string") {
+      return await this.http.request({
+        method: "DELETE",
+        path: ["v2", "dlq", request],
+        parseResponseAsJson: false,
+      });
+    }
+
+    // Handle string[] - direct dlqIds
+    if (Array.isArray(request)) {
+      const queryParameters = DLQ.getDlqIdQueryParameter(request);
+      const path = queryParameters ? `?${queryParameters}` : "";
+      return await this.http.request({
+        method: "DELETE",
+        path: ["v2", "dlq", path].filter(Boolean),
+      });
+    }
+
+    // Handle object with dlqIds
+    if ("dlqIds" in request) {
+      const queryParameters = DLQ.getDlqIdQueryParameter(request.dlqIds);
+      const path = queryParameters ? `?${queryParameters}` : "";
+      return await this.http.request({
+        method: "DELETE",
+        path: ["v2", "dlq", path].filter(Boolean),
+      });
+    }
+
+    // Handle filters (QStashCommonFilters)
+    const { urlGroup, ...rest } = request;
     return await this.http.request({
       method: "DELETE",
-      path: ["v2", "dlq", dlqMessageId],
-      parseResponseAsJson: false, // there is no response
+      path: ["v2", "dlq"],
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...rest,
+        ...(urlGroup ? { topicName: urlGroup } : {}),
+        ...(request.fromDate ? { fromDate: Number(request.fromDate) } : {}),
+        ...(request.toDate ? { toDate: Number(request.toDate) } : {}),
+      }),
     });
   }
 
   /**
    * Remove multiple messages from the dlq using their `dlqId`s
+   *
+   * @deprecated Use `delete` instead
    */
   public async deleteMany(request: { dlqIds: string[] }): Promise<{ deleted: number }> {
-    return await this.http.request({
-      method: "DELETE",
-      path: ["v2", "dlq", `?${DLQ.getDlqIdQueryParameter(request.dlqIds)}`],
-    });
+    return await this.delete(request);
   }
 
   /**
-   * Retry multiple messages from the dlq using their `dlqId`s
+   * Retry messages from the dlq.
+   *
+   * Can be called with:
+   * - A single dlqId: `retry("id")`
+   * - An array of dlqIds: `retry(["id1", "id2"])`
+   * - An object with dlqIds: `retry({ dlqIds: ["id1", "id2"] })`
+   * - A filter object: `retry({ url: "https://example.com", label: "label" })`
    */
-  public async retry(request: { dlqIds: string | string[] }): Promise<{
-    cursor: string;
-    responses: { messageId: string }[];
-  }> {
-    const path = request.dlqIds ? `retry?${DLQ.getDlqIdQueryParameter(request.dlqIds)}` : "retry";
+  public async retry(
+    request: string | string[] | { dlqIds: string | string[] } | QStashCommonFilters
+  ): Promise<{ cursor: string; responses: { messageId: string }[] }> {
+    // Handle string or string[] - direct dlqIds
+    if (typeof request === "string" || Array.isArray(request)) {
+      const queryParameters = DLQ.getDlqIdQueryParameter(request);
+      const path = queryParameters ? `retry?${queryParameters}` : "retry";
+      return await this.http.request({
+        method: "POST",
+        path: ["v2", "dlq", path],
+      });
+    }
+
+    // Handle object with dlqIds
+    if ("dlqIds" in request) {
+      const queryParameters = DLQ.getDlqIdQueryParameter(request.dlqIds);
+      const path = queryParameters ? `retry?${queryParameters}` : "retry";
+      return await this.http.request({
+        method: "POST",
+        path: ["v2", "dlq", path],
+      });
+    }
+
+    // Handle filters (QStashCommonFilters)
+    const { urlGroup, ...rest } = request;
     return await this.http.request({
       method: "POST",
-      path: ["v2", "dlq", path],
+      path: ["v2", "dlq", "retry"],
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...rest,
+        ...(urlGroup ? { topicName: urlGroup } : {}),
+        ...(request.fromDate ? { fromDate: Number(request.fromDate) } : {}),
+        ...(request.toDate ? { toDate: Number(request.toDate) } : {}),
+      }),
     });
   }
 

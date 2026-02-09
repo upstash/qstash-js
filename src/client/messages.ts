@@ -1,6 +1,6 @@
 import type { PublishRequest } from "./client";
 import type { Requester } from "./http";
-import type { HTTPMethods } from "./types";
+import type { HTTPMethods, QStashCommonFilters } from "./types";
 
 export type Message = {
   /**
@@ -134,18 +134,6 @@ export type Message = {
   label?: string;
 };
 
-export type MessagesFilters = {
-  scheduleId?: string;
-  messageId?: string;
-  url?: string;
-  urlGroup?: string;
-  queueName?: string;
-  fromDate?: string;
-  toDate?: string;
-  label?: string;
-  flowControlKey?: string;
-};
-
 export type MessagePayload = Omit<Message, "urlGroup"> & { topicName: string };
 
 export class Messages {
@@ -172,39 +160,68 @@ export class Messages {
   }
 
   /**
-   * Cancel a message
+   * Cancel messages.
+   *
+   * Can be called with:
+   * - A single messageId: `delete("id")`
+   * - An array of messageIds: `delete(["id1", "id2"])`
+   * - A filter object: `delete({ flowControlKey: "key", label: "label" })`
    */
-  public async delete(messageId: string): Promise<void> {
-    return await this.http.request({
-      method: "DELETE",
-      path: ["v2", "messages", messageId],
-      parseResponseAsJson: false,
-    });
-  }
+  public async delete(
+    request: string | string[] | QStashCommonFilters
+  ): Promise<{ cancelled: number }> {
+    // Handle single string - original delete behavior
+    if (typeof request === "string") {
+      return await this.http.request({
+        method: "DELETE",
+        path: ["v2", "messages", request],
+        parseResponseAsJson: false,
+      });
+    }
 
-  public async deleteMany(messageIds: string[]): Promise<number> {
+    // Handle string[] - bulk cancel by messageIds
+    if (Array.isArray(request)) {
+      const result = (await this.http.request({
+        method: "DELETE",
+        path: ["v2", "messages"],
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messageIds: request }),
+      })) as { cancelled: number };
+      return result;
+    }
+
+    // Handle filters (QStashCommonFilters)
+    const { urlGroup, ...rest } = request;
     const result = (await this.http.request({
       method: "DELETE",
       path: ["v2", "messages"],
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ messageIds }),
+      body: JSON.stringify({
+        ...rest,
+        ...(urlGroup ? { topicName: urlGroup } : {}),
+        ...(request.fromDate ? { fromDate: Number(request.fromDate) } : {}),
+        ...(request.toDate ? { toDate: Number(request.toDate) } : {}),
+      }),
     })) as { cancelled: number };
-    return result.cancelled;
+    return result;
   }
 
-  public async deleteAll(filters?: MessagesFilters): Promise<number> {
-    const result = (await this.http.request({
-      method: "DELETE",
-      path: ["v2", "messages"],
-      headers: filters ? { "Content-Type": "application/json" } : undefined,
-      body: filters
-        ? JSON.stringify({
-            ...filters,
-            ...(filters.fromDate ? { fromDate: Number(filters.fromDate) } : {}),
-            ...(filters.toDate ? { toDate: Number(filters.toDate) } : {}),
-          })
-        : undefined,
-    })) as { cancelled: number };
-    return result.cancelled;
+  /**
+   * Cancel multiple messages by their messageIds.
+   *
+   * @deprecated Use `delete(messageIds: string[])` instead
+   */
+  public async deleteMany(messageIds: string[]): Promise<{ cancelled: number }> {
+    return await this.delete(messageIds);
+  }
+
+  /**
+   * Cancel all messages, optionally filtered.
+   *
+   * @deprecated Use `delete(filters: QStashCommonFilters)` for filtered cancel,
+   * or `delete({})` to cancel all
+   */
+  public async deleteAll(filters?: QStashCommonFilters): Promise<{ cancelled: number }> {
+    return await this.delete(filters ?? {});
   }
 }
