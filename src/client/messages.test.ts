@@ -88,10 +88,10 @@ describe("Messages", () => {
         messages[1].messageId,
       ]);
 
-      expect(deleted.cancelled).toBe(2);
+      expect(deleted).toBe(2);
 
       const deletedAll = await client.messages.deleteAll();
-      expect(deletedAll.cancelled).toBe(1);
+      expect(deletedAll).toBe(1);
     },
     { timeout: 20_000 }
   );
@@ -164,7 +164,7 @@ describe("Messages", () => {
       });
 
       // Should cancel at least the 2 messages with the matching flowControlKey
-      expect(cancelled.cancelled).toBeGreaterThanOrEqual(2);
+      expect(cancelled).toBeGreaterThanOrEqual(2);
 
       // Verify message3 still exists (or was not cancelled)
       // Note: This might fail if message3 was already delivered, but it tests the filter

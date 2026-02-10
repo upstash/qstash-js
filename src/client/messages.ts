@@ -211,8 +211,9 @@ export class Messages {
    *
    * @deprecated Use `delete(messageIds: string[])` instead
    */
-  public async deleteMany(messageIds: string[]): Promise<{ cancelled: number }> {
-    return await this.delete(messageIds);
+  public async deleteMany(messageIds: string[]): Promise<number> {
+    const result = await this.delete(messageIds);
+    return result.cancelled;
   }
 
   /**
@@ -221,7 +222,8 @@ export class Messages {
    * @deprecated Use `delete(filters: QStashCommonFilters)` for filtered cancel,
    * or `delete({})` to cancel all
    */
-  public async deleteAll(filters?: QStashCommonFilters): Promise<{ cancelled: number }> {
-    return await this.delete(filters ?? {});
+  public async deleteAll(filters?: QStashCommonFilters): Promise<number> {
+    const result = await this.delete(filters ?? {});
+    return result.cancelled;
   }
 }
