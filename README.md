@@ -184,3 +184,5 @@ perf: refactor cache
 ```
 
 For a full list of options, please see the [`commitlint.config.js`](/commitlint.config.js) file.
+
+example
