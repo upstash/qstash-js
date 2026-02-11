@@ -7,7 +7,7 @@
 > The Upstash Professional Support fully covers this project. It receives regular updates, and bug fixes.
 > The Upstash team is committed to maintaining and improving its functionality.
 
-**QStash** is an HTTP based messaging and scheduling solution for serverless and
+**QStash** is a powerful HTTP based messaging and scheduling solution for serverless and
 edge runtimes.
 
 It is 100% built on stateless HTTP requests and designed for:
