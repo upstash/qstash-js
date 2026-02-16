@@ -1,6 +1,7 @@
 export * from "./receiver";
 export * from "./client/client";
 export * from "./client/error";
+export * from "./client/flow-control";
 export * from "./client/messages";
 export * from "./client/schedules";
 export * from "./client/url-groups";
