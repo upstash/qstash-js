@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-/* eslint-disable @typescript-eslint/no-magic-numbers */
+
 import { describe, expect, test } from "bun:test";
 import { Client } from "./client";
 

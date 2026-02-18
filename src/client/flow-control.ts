@@ -75,9 +75,14 @@ export class FlowControlApi {
    * Get the global parallelism info.
    */
   public async getGlobalParallelism(): Promise<GlobalParallelismInfo> {
-    return await this.http.request<GlobalParallelismInfo>({
+    const response = await this.http.request<Partial<GlobalParallelismInfo>>({
       method: "GET",
       path: ["v2", "globalParallelism"],
     });
+
+    return {
+      parallelismMax: response.parallelismMax ?? 0,
+      parallelismCount: response.parallelismCount ?? 0,
+    };
   }
 }
