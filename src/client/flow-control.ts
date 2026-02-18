@@ -42,30 +42,23 @@ export type FlowControlInfo = {
   ratePeriodStart: number;
 };
 
+export type GlobalParallelismInfo = {
+  /**
+   * The maximum global parallelism.
+   */
+  parallelismMax: number;
+
+  /**
+   * The current number of active requests globally.
+   */
+  parallelismCount: number;
+};
+
 export class FlowControlApi {
   private readonly http: Requester;
 
   constructor(http: Requester) {
     this.http = http;
-  }
-
-  /**
-   * List all flow controls.
-   *
-   * @param options - Optional options.
-   * @param options.search - Optional search string to filter flow control keys.
-   */
-  public async list(options?: { search?: string }): Promise<FlowControlInfo[]> {
-    const query: Record<string, string> = {};
-    if (options?.search) {
-      query.search = options.search;
-    }
-
-    return await this.http.request<FlowControlInfo[]>({
-      method: "GET",
-      path: ["v2", "flowControl"],
-      query,
-    });
   }
 
   /**
@@ -79,13 +72,12 @@ export class FlowControlApi {
   }
 
   /**
-   * Reset the counters of a flow control key.
+   * Get the global parallelism info.
    */
-  public async reset(flowControlKey: string): Promise<void> {
-    return await this.http.request({
-      method: "POST",
-      path: ["v2", "flowControl", flowControlKey, "reset"],
-      parseResponseAsJson: false,
+  public async getGlobalParallelism(): Promise<GlobalParallelismInfo> {
+    return await this.http.request<GlobalParallelismInfo>({
+      method: "GET",
+      path: ["v2", "globalParallelism"],
     });
   }
 }
