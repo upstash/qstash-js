@@ -47,7 +47,7 @@ describe("DLQ", () => {
 
     const dlqLogs = await client.dlq.listMessages();
     if (dlqLogs.messages.length === 0) return;
-    await client.dlq.deleteMany({ dlqIds: dlqLogs.messages.map((dlq) => dlq.dlqId) });
+    await client.dlq.delete({ dlqIds: dlqLogs.messages.map((dlq) => dlq.dlqId) });
   });
 
   test(
@@ -432,7 +432,6 @@ describe("DLQ", () => {
       expect(retryResult.responses.length).toBe(1);
       expect(retryResult.responses[0].messageId).toBeDefined();
 
-      // Clean up
       await client.dlq.delete(dlqMessage!.dlqId);
     },
     { timeout: 20_000 }

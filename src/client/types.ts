@@ -176,14 +176,28 @@ export type FlowControl = {
 
 // These are the filters that can be used by
 // Logs, DLQ and bulk cancel actions.
-export type QStashCommonFilters = {
-  scheduleId?: string;
-  messageId?: string;
-  url?: string;
-  urlGroup?: string;
-  queueName?: string;
-  fromDate?: string;
-  toDate?: string;
-  label?: string;
-  flowControlKey?: string;
-};
+export type QStashCommonFilters =
+  | {
+      scheduleId?: string;
+      messageId?: string;
+      url?: string;
+      urlGroup?: string;
+      queueName?: string;
+      fromDate?: string;
+      toDate?: string;
+      label?: string;
+      flowControlKey?: string;
+      all?: never;
+    }
+  | {
+      all: true;
+      scheduleId?: never;
+      messageId?: never;
+      url?: never;
+      urlGroup?: never;
+      queueName?: never;
+      fromDate?: never;
+      toDate?: never;
+      label?: never;
+      flowControlKey?: never;
+    };

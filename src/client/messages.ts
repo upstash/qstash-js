@@ -167,10 +167,10 @@ export class Messages {
    * - An array of messageIds: `delete(["id1", "id2"])`
    * - A filter object: `delete({ flowControlKey: "key", label: "label" })`
    */
-  public async delete(
+  public async cancel(
     request: string | string[] | QStashCommonFilters
   ): Promise<{ cancelled: number }> {
-    // Handle single string - original delete behavior
+    // Handle single string - original cancel behavior
     if (typeof request === "string") {
       return await this.http.request({
         method: "DELETE",
@@ -196,34 +196,45 @@ export class Messages {
       method: "DELETE",
       path: ["v2", "messages"],
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        ...rest,
-        ...(urlGroup ? { topicName: urlGroup } : {}),
-        ...(request.fromDate ? { fromDate: Number(request.fromDate) } : {}),
-        ...(request.toDate ? { toDate: Number(request.toDate) } : {}),
-      }),
+      body: request.all
+        ? JSON.stringify({})
+        : JSON.stringify({
+            ...rest,
+            ...(urlGroup ? { topicName: urlGroup } : {}),
+            ...(request.fromDate ? { fromDate: Number(request.fromDate) } : {}),
+            ...(request.toDate ? { toDate: Number(request.toDate) } : {}),
+          }),
     })) as { cancelled: number };
     return result;
   }
 
   /**
+   * Delete a message.
+   *
+   * @deprecated Use `cancel(messageId: string)` instead
+   */
+  public async delete(messageId: string): Promise<{ cancelled: number }> {
+    return await this.cancel(messageId);
+  }
+
+  /**
    * Cancel multiple messages by their messageIds.
    *
-   * @deprecated Use `delete(messageIds: string[])` instead
+   * @deprecated Use `cancel(messageIds: string[])` instead
    */
   public async deleteMany(messageIds: string[]): Promise<number> {
-    const result = await this.delete(messageIds);
+    const result = await this.cancel(messageIds);
     return result.cancelled;
   }
 
   /**
    * Cancel all messages, optionally filtered.
    *
-   * @deprecated Use `delete(filters: QStashCommonFilters)` for filtered cancel,
-   * or `delete({})` to cancel all
+   * @deprecated Use `cancel(filters: QStashCommonFilters)` for filtered cancel,
+   * or `cancel({all: true})` to cancel all
    */
   public async deleteAll(filters?: QStashCommonFilters): Promise<number> {
-    const result = await this.delete(filters ?? {});
+    const result = await this.cancel(filters ?? {});
     return result.cancelled;
   }
 }

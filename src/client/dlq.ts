@@ -153,22 +153,14 @@ export class DLQ {
   public async delete(
     request: string | string[] | { dlqIds: string | string[] } | QStashCommonFilters
   ): Promise<{ deleted: number }> {
-    // Handle single string - original delete behavior
-    if (typeof request === "string") {
-      return await this.http.request({
-        method: "DELETE",
-        path: ["v2", "dlq", request],
-        parseResponseAsJson: false,
-      });
-    }
-
-    // Handle string[] - direct dlqIds
-    if (Array.isArray(request)) {
+    // Handle string or string[] - direct dlqIds
+    if (typeof request === "string" || Array.isArray(request)) {
       const queryParameters = DLQ.getDlqIdQueryParameter(request);
       const path = queryParameters ? `?${queryParameters}` : "";
       return await this.http.request({
         method: "DELETE",
         path: ["v2", "dlq", path].filter(Boolean),
+        parseResponseAsJson: typeof request === "string" ? false : undefined,
       });
     }
 
@@ -188,12 +180,14 @@ export class DLQ {
       method: "DELETE",
       path: ["v2", "dlq"],
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        ...rest,
-        ...(urlGroup ? { topicName: urlGroup } : {}),
-        ...(request.fromDate ? { fromDate: Number(request.fromDate) } : {}),
-        ...(request.toDate ? { toDate: Number(request.toDate) } : {}),
-      }),
+      body: request.all
+        ? JSON.stringify({})
+        : JSON.stringify({
+            ...rest,
+            ...(urlGroup ? { topicName: urlGroup } : {}),
+            ...(request.fromDate ? { fromDate: Number(request.fromDate) } : {}),
+            ...(request.toDate ? { toDate: Number(request.toDate) } : {}),
+          }),
     });
   }
 
@@ -244,12 +238,14 @@ export class DLQ {
       method: "POST",
       path: ["v2", "dlq", "retry"],
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        ...rest,
-        ...(urlGroup ? { topicName: urlGroup } : {}),
-        ...(request.fromDate ? { fromDate: Number(request.fromDate) } : {}),
-        ...(request.toDate ? { toDate: Number(request.toDate) } : {}),
-      }),
+      body: request.all
+        ? JSON.stringify({})
+        : JSON.stringify({
+            ...rest,
+            ...(urlGroup ? { topicName: urlGroup } : {}),
+            ...(request.fromDate ? { fromDate: Number(request.fromDate) } : {}),
+            ...(request.toDate ? { toDate: Number(request.toDate) } : {}),
+          }),
     });
   }
 
