@@ -1,5 +1,6 @@
 import { DLQ } from "./dlq";
 import type { Duration } from "./duration";
+import { FlowControlApi } from "./flow-control";
 import { HttpClient, type Requester, type RetryConfig } from "./http";
 import { Chat } from "./llm/chat";
 import { Messages } from "./messages";
@@ -456,6 +457,15 @@ export class Client {
    */
   public get schedules(): Schedules {
     return new Schedules(this.http);
+  }
+
+  /**
+   * Access the flow control API.
+   *
+   * List, get, or reset flow controls.
+   */
+  public get flowControl(): FlowControlApi {
+    return new FlowControlApi(this.http);
   }
 
   /**
