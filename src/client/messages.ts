@@ -203,8 +203,8 @@ export class Messages {
         : JSON.stringify({
             ...rest,
             ...(urlGroup ? { topicName: urlGroup } : {}),
-            ...(fromDate !== undefined ? { fromDate: toMs(fromDate) } : {}),
-            ...(toDate !== undefined ? { toDate: toMs(toDate) } : {}),
+            ...(fromDate === undefined ? {} : { fromDate: toMs(fromDate) }),
+            ...(toDate === undefined ? {} : { toDate: toMs(toDate) }),
           }),
     })) as { cancelled: number };
     return result;
