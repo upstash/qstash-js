@@ -508,4 +508,19 @@ describe("DLQ", () => {
     },
     { timeout: 20_000 }
   );
+
+  test("should return empty result when retry is called with an empty array", async () => {
+    const result = await client.dlq.retry([]);
+    expect(result).toEqual({ cursor: "", responses: [] });
+  });
+
+  test("should return empty result when delete is called with an empty array", async () => {
+    const result = await client.dlq.delete([]);
+    expect(result).toEqual({ deleted: 0 });
+  });
+
+  test("should return empty result when delete is called with { dlqIds: [] }", async () => {
+    const result = await client.dlq.delete({ dlqIds: [] });
+    expect(result).toEqual({ deleted: 0 });
+  });
 });

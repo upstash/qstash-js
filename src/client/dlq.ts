@@ -1,6 +1,7 @@
 import type { Requester } from "./http";
 import type { Message } from "./messages";
 import type { QStashCommonFilters } from "./types";
+import { toMs } from "./utils";
 
 type DlqMessage = Message & {
   /**
@@ -149,6 +150,7 @@ export class DLQ {
    * - An array of dlqIds: `delete(["id1", "id2"])`
    * - An object with dlqIds: `delete({ dlqIds: ["id1", "id2"] })`
    * - A filter object: `delete({ url: "https://example.com", label: "label" })`
+   * - All messages: `delete({ all: true })`
    */
   public async delete(
     request: string | string[] | { dlqIds: string | string[] } | QStashCommonFilters
@@ -156,10 +158,12 @@ export class DLQ {
     // Handle string or string[] - direct dlqIds
     if (typeof request === "string" || Array.isArray(request)) {
       const queryParameters = DLQ.getDlqIdQueryParameter(request);
-      const path = queryParameters ? `?${queryParameters}` : "";
+      if (!queryParameters) {
+        return { deleted: 0 };
+      }
       return await this.http.request({
         method: "DELETE",
-        path: ["v2", "dlq", path].filter(Boolean),
+        path: ["v2", `dlq?${queryParameters}`],
         parseResponseAsJson: typeof request === "string" ? false : undefined,
       });
     }
@@ -167,26 +171,28 @@ export class DLQ {
     // Handle object with dlqIds
     if ("dlqIds" in request) {
       const queryParameters = DLQ.getDlqIdQueryParameter(request.dlqIds);
-      const path = queryParameters ? `?${queryParameters}` : "";
+      if (!queryParameters) {
+        return { deleted: 0 };
+      }
       return await this.http.request({
         method: "DELETE",
-        path: ["v2", "dlq", path].filter(Boolean),
+        path: ["v2", `dlq?${queryParameters}`],
       });
     }
 
     // Handle filters (QStashCommonFilters)
-    const { urlGroup, ...rest } = request;
+    const { all, urlGroup, fromDate, toDate, ...rest } = request;
     return await this.http.request({
       method: "DELETE",
       path: ["v2", "dlq"],
       headers: { "Content-Type": "application/json" },
-      body: request.all
+      body: all
         ? JSON.stringify({})
         : JSON.stringify({
             ...rest,
             ...(urlGroup ? { topicName: urlGroup } : {}),
-            ...(request.fromDate ? { fromDate: Number(request.fromDate) } : {}),
-            ...(request.toDate ? { toDate: Number(request.toDate) } : {}),
+            ...(fromDate !== undefined ? { fromDate: toMs(fromDate) } : {}),
+            ...(toDate !== undefined ? { toDate: toMs(toDate) } : {}),
           }),
     });
   }
@@ -208,6 +214,7 @@ export class DLQ {
    * - An array of dlqIds: `retry(["id1", "id2"])`
    * - An object with dlqIds: `retry({ dlqIds: ["id1", "id2"] })`
    * - A filter object: `retry({ url: "https://example.com", label: "label" })`
+   * - All messages: `retry({ all: true })`
    */
   public async retry(
     request: string | string[] | { dlqIds: string | string[] } | QStashCommonFilters
@@ -215,36 +222,40 @@ export class DLQ {
     // Handle string or string[] - direct dlqIds
     if (typeof request === "string" || Array.isArray(request)) {
       const queryParameters = DLQ.getDlqIdQueryParameter(request);
-      const path = queryParameters ? `retry?${queryParameters}` : "retry";
+      if (!queryParameters) {
+        return { cursor: "", responses: [] };
+      }
       return await this.http.request({
         method: "POST",
-        path: ["v2", "dlq", path],
+        path: ["v2", `dlq/retry?${queryParameters}`],
       });
     }
 
     // Handle object with dlqIds
     if ("dlqIds" in request) {
       const queryParameters = DLQ.getDlqIdQueryParameter(request.dlqIds);
-      const path = queryParameters ? `retry?${queryParameters}` : "retry";
+      if (!queryParameters) {
+        return { cursor: "", responses: [] };
+      }
       return await this.http.request({
         method: "POST",
-        path: ["v2", "dlq", path],
+        path: ["v2", `dlq/retry?${queryParameters}`],
       });
     }
 
     // Handle filters (QStashCommonFilters)
-    const { urlGroup, ...rest } = request;
+    const { all, urlGroup, fromDate, toDate, ...rest } = request;
     return await this.http.request({
       method: "POST",
       path: ["v2", "dlq", "retry"],
       headers: { "Content-Type": "application/json" },
-      body: request.all
+      body: all
         ? JSON.stringify({})
         : JSON.stringify({
             ...rest,
             ...(urlGroup ? { topicName: urlGroup } : {}),
-            ...(request.fromDate ? { fromDate: Number(request.fromDate) } : {}),
-            ...(request.toDate ? { toDate: Number(request.toDate) } : {}),
+            ...(fromDate !== undefined ? { fromDate: toMs(fromDate) } : {}),
+            ...(toDate !== undefined ? { toDate: toMs(toDate) } : {}),
           }),
     });
   }

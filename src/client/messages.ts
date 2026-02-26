@@ -1,6 +1,7 @@
 import type { PublishRequest } from "./client";
 import type { Requester } from "./http";
 import type { HTTPMethods, QStashCommonFilters } from "./types";
+import { toMs } from "./utils";
 
 export type Message = {
   /**
@@ -163,9 +164,10 @@ export class Messages {
    * Cancel messages.
    *
    * Can be called with:
-   * - A single messageId: `delete("id")`
-   * - An array of messageIds: `delete(["id1", "id2"])`
-   * - A filter object: `delete({ flowControlKey: "key", label: "label" })`
+   * - A single messageId: `cancel("id")`
+   * - An array of messageIds: `cancel(["id1", "id2"])`
+   * - A filter object: `cancel({ flowControlKey: "key", label: "label" })`
+   * - All messages: `cancel({ all: true })`
    */
   public async cancel(
     request: string | string[] | QStashCommonFilters
@@ -191,18 +193,18 @@ export class Messages {
     }
 
     // Handle filters (QStashCommonFilters)
-    const { urlGroup, ...rest } = request;
+    const { all, urlGroup, fromDate, toDate, ...rest } = request;
     const result = (await this.http.request({
       method: "DELETE",
       path: ["v2", "messages"],
       headers: { "Content-Type": "application/json" },
-      body: request.all
+      body: all
         ? JSON.stringify({})
         : JSON.stringify({
             ...rest,
             ...(urlGroup ? { topicName: urlGroup } : {}),
-            ...(request.fromDate ? { fromDate: Number(request.fromDate) } : {}),
-            ...(request.toDate ? { toDate: Number(request.toDate) } : {}),
+            ...(fromDate !== undefined ? { fromDate: toMs(fromDate) } : {}),
+            ...(toDate !== undefined ? { toDate: toMs(toDate) } : {}),
           }),
     })) as { cancelled: number };
     return result;
