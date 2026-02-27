@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 /* eslint-disable @typescript-eslint/no-magic-numbers */
-/* eslint-disable @typescript-eslint/no-deprecated */
 import { beforeAll, describe, expect, test } from "bun:test";
 import { Client } from "./client";
 
@@ -11,7 +10,7 @@ describe("Messages", () => {
   const client = new Client({ token: process.env.QSTASH_TOKEN! });
 
   beforeAll(async () => {
-    await client.messages.deleteAll();
+    await client.messages.cancel({ all: true });
   });
 
   test(
@@ -36,7 +35,7 @@ describe("Messages", () => {
       const verifiedMessage = await client.messages.get(message.messageId);
       expect(new Headers(verifiedMessage.header).get("Test-Header")).toBe("test-value");
       expect(verifiedMessage.retryDelayExpression).toBe(retryDelay);
-      await client.messages.delete(message.messageId);
+      await client.messages.cancel(message.messageId);
     },
     { timeout: 20_000 }
   );
@@ -52,13 +51,13 @@ describe("Messages", () => {
 
       const verifiedMessage = await client.messages.get(message.messageId);
       expect(verifiedMessage.messageId).toBeTruthy();
-      await client.messages.delete(message.messageId);
+      await client.messages.cancel(message.messageId);
     },
     { timeout: 20_000 }
   );
 
   test(
-    "should delete many and all",
+    "should cancel many and all",
     async () => {
       const messages = await client.batchJSON([
         {
@@ -83,15 +82,15 @@ describe("Messages", () => {
 
       expect(messages.length).toBe(3);
 
-      const deleted = await client.messages.deleteMany([
+      const cancelled = await client.messages.cancel([
         messages[0].messageId,
         messages[1].messageId,
       ]);
 
-      expect(deleted).toBe(2);
+      expect(cancelled.cancelled).toBe(2);
 
-      const deletedAll = await client.messages.deleteAll();
-      expect(deletedAll).toBe(1);
+      const cancelledAll = await client.messages.cancel({ all: true });
+      expect(cancelledAll.cancelled).toBe(1);
     },
     { timeout: 20_000 }
   );
@@ -115,10 +114,142 @@ describe("Messages", () => {
 
     expect(message.flowControlKey).toBe("flow-key");
     expect(message.parallelism).toBe(parallelism);
-    expect(message.ratePerSecond).toBe(ratePerSecond);
     expect(message.rate).toBe(ratePerSecond);
 
     const dayInSeconds = SECONDS_IN_A_DAY;
     expect(message.period).toBe(dayInSeconds);
   });
+
+  test(
+    "should cancel all messages with flowControlKey filter",
+    async () => {
+      const flowControlKey = "flow-key";
+      // Create messages with the same flow control key
+      await client.publish({
+        url: "https://httpstat.us/200",
+        body: "hello",
+        delay: "10d",
+        flowControl: {
+          key: flowControlKey,
+          parallelism: 5,
+          ratePerSecond: 10,
+        },
+      });
+
+      await client.publish({
+        url: "https://httpstat.us/200",
+        body: "hello",
+        delay: "10d",
+        flowControl: {
+          key: flowControlKey,
+          parallelism: 5,
+          ratePerSecond: 10,
+        },
+      });
+
+      // Create a message with a different flow control key
+      const message3 = await client.publish({
+        url: "https://httpstat.us/200",
+        body: "hello",
+        delay: "10d",
+        flowControl: {
+          key: "different-flow-key",
+          parallelism: 5,
+          ratePerSecond: 10,
+        },
+      });
+
+      // Cancel all messages with the specific flowControlKey
+      const result = await client.messages.cancel({ flowControlKey });
+
+      // Should cancel at least the 2 messages with the matching flowControlKey
+      expect(result.cancelled).toBeGreaterThanOrEqual(2);
+
+      await client.messages.cancel(message3.messageId);
+    },
+    { timeout: 20_000 }
+  );
+
+  test(
+    "should cancel multiple messages using string array overload",
+    async () => {
+      const messages = await client.batchJSON([
+        {
+          url: `https://example.com`,
+          body: { hello: "world" },
+          timeout: 90,
+          delay: "10d",
+        },
+        {
+          url: `https://example.com`,
+          body: { hello: "world" },
+          timeout: 90,
+          delay: "10d",
+        },
+        {
+          url: `https://example.com`,
+          body: { hello: "world" },
+          timeout: 90,
+          delay: "10d",
+        },
+      ]);
+
+      expect(messages.length).toBe(3);
+
+      // Cancel using string[] overload
+      const cancelled = await client.messages.cancel([
+        messages[0].messageId,
+        messages[1].messageId,
+      ]);
+
+      expect(cancelled.cancelled).toBe(2);
+
+      // Clean up remaining
+      await client.messages.cancel(messages[2].messageId);
+    },
+    { timeout: 20_000 }
+  );
+
+  test(
+    "should cancel messages using filter overload with label",
+    async () => {
+      const label = `msg-label-${Date.now()}`;
+
+      await client.publish({
+        url: "https://httpstat.us/200",
+        body: "hello",
+        delay: "10d",
+        label,
+      });
+
+      await client.publish({
+        url: "https://httpstat.us/200",
+        body: "hello",
+        delay: "10d",
+        label,
+      });
+
+      // Cancel using filter overload with label
+      const cancelled = await client.messages.cancel({ label });
+
+      expect(cancelled.cancelled).toBeGreaterThanOrEqual(2);
+    },
+    { timeout: 20_000 }
+  );
+
+  test(
+    "should cancel all messages using all: true",
+    async () => {
+      await client.publish({
+        url: "https://httpstat.us/200",
+        body: "hello",
+        delay: "10d",
+      });
+
+      const cancelled = await client.messages.cancel({ all: true });
+
+      expect(cancelled.cancelled).toBeGreaterThanOrEqual(1);
+    },
+    { timeout: 20_000 }
+  );
 });

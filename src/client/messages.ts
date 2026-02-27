@@ -1,6 +1,7 @@
 import type { PublishRequest } from "./client";
 import type { Requester } from "./http";
-import type { HTTPMethods } from "./types";
+import type { HTTPMethods, QStashCommonFilters } from "./types";
+import { toMs } from "./utils";
 
 export type Message = {
   /**
@@ -160,31 +161,80 @@ export class Messages {
   }
 
   /**
-   * Cancel a message
+   * Cancel messages.
+   *
+   * Can be called with:
+   * - A single messageId: `cancel("id")`
+   * - An array of messageIds: `cancel(["id1", "id2"])`
+   * - A filter object: `cancel({ flowControlKey: "key", label: "label" })`
+   * - All messages: `cancel({ all: true })`
    */
-  public async delete(messageId: string): Promise<void> {
-    return await this.http.request({
-      method: "DELETE",
-      path: ["v2", "messages", messageId],
-      parseResponseAsJson: false,
-    });
-  }
+  public async cancel(
+    request: string | string[] | QStashCommonFilters
+  ): Promise<{ cancelled: number }> {
+    // Handle single string - original cancel behavior
+    if (typeof request === "string") {
+      return await this.http.request({
+        method: "DELETE",
+        path: ["v2", "messages", request],
+        parseResponseAsJson: false,
+      });
+    }
 
-  public async deleteMany(messageIds: string[]): Promise<number> {
+    // Handle string[] - bulk cancel by messageIds
+    if (Array.isArray(request)) {
+      const result = (await this.http.request({
+        method: "DELETE",
+        path: ["v2", "messages"],
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messageIds: request }),
+      })) as { cancelled: number };
+      return result;
+    }
+
+    // Handle filters (QStashCommonFilters)
+    const { all, urlGroup, fromDate, toDate, ...rest } = request;
     const result = (await this.http.request({
       method: "DELETE",
       path: ["v2", "messages"],
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ messageIds }),
+      body: all
+        ? JSON.stringify({})
+        : JSON.stringify({
+            ...rest,
+            ...(urlGroup ? { topicName: urlGroup } : {}),
+            ...(fromDate === undefined ? {} : { fromDate: toMs(fromDate) }),
+            ...(toDate === undefined ? {} : { toDate: toMs(toDate) }),
+          }),
     })) as { cancelled: number };
+    return result;
+  }
+
+  /**
+   * Delete a message.
+   *
+   * @deprecated Use `cancel(messageId: string)` instead
+   */
+  public async delete(messageId: string): Promise<{ cancelled: number }> {
+    return await this.cancel(messageId);
+  }
+
+  /**
+   * Cancel multiple messages by their messageIds.
+   *
+   * @deprecated Use `cancel(messageIds: string[])` instead
+   */
+  public async deleteMany(messageIds: string[]): Promise<number> {
+    const result = await this.cancel(messageIds);
     return result.cancelled;
   }
 
+  /**
+   * Cancel all messages
+   * @deprecated Use `cancel({all: true})` to cancel all
+   */
   public async deleteAll(): Promise<number> {
-    const result = (await this.http.request({
-      method: "DELETE",
-      path: ["v2", "messages"],
-    })) as { cancelled: number };
+    const result = await this.cancel({ all: true });
     return result.cancelled;
   }
 }
