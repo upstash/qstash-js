@@ -230,13 +230,11 @@ export class Messages {
   }
 
   /**
-   * Cancel all messages, optionally filtered.
-   *
-   * @deprecated Use `cancel(filters: QStashCommonFilters)` for filtered cancel,
-   * or `cancel({all: true})` to cancel all
+   * Cancel all messages
+   * @deprecated Use `cancel({all: true})` to cancel all
    */
-  public async deleteAll(filters?: QStashCommonFilters): Promise<number> {
-    const result = await this.cancel(filters ?? {});
+  public async deleteAll(): Promise<number> {
+    const result = await this.cancel({ all: true });
     return result.cancelled;
   }
 }

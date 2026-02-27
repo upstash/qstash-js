@@ -97,16 +97,28 @@ describe("DLQ", () => {
         retries: 0,
       });
 
-      await sleep(10_000);
+      await eventually(
+        async () => {
+          const result = await client.dlq.listMessages({
+            filter: {
+              messageId: message.messageId,
+            },
+          });
+
+          expect(result.messages.length).toBe(1);
+          expect(result.messages[0].messageId).toBe(message.messageId);
+        },
+        {
+          timeout: 15_000,
+          interval: 1000,
+        }
+      );
 
       const result = await client.dlq.listMessages({
         filter: {
           messageId: message.messageId,
         },
       });
-
-      expect(result.messages.length).toBe(1);
-      expect(result.messages[0].messageId).toBe(message.messageId);
 
       await client.dlq.delete(result.messages[0].dlqId);
     },
@@ -125,17 +137,30 @@ describe("DLQ", () => {
         retries: 0,
       });
 
-      await eventually(async () => {
-        const result = await client.dlq.listMessages({
-          filter: {
-            urlGroup: urlGroup,
-          },
-        });
+      await eventually(
+        async () => {
+          const result = await client.dlq.listMessages({
+            filter: {
+              urlGroup: urlGroup,
+            },
+          });
 
-        expect(result.messages.length).toBe(1);
-        expect(result.messages[0].messageId).toBe(message[0].messageId);
-        await client.dlq.delete(result.messages[0].dlqId);
+          expect(result.messages.length).toBe(1);
+          expect(result.messages[0].messageId).toBe(message[0].messageId);
+        },
+        {
+          timeout: 15_000,
+          interval: 1000,
+        }
+      );
+
+      const result = await client.dlq.listMessages({
+        filter: {
+          urlGroup: urlGroup,
+        },
       });
+
+      await client.dlq.delete(result.messages[0].dlqId);
     },
     { timeout: 20_000 }
   );
@@ -227,20 +252,37 @@ describe("DLQ", () => {
         retries: 0,
       });
 
-      await sleep(10_000);
+      let dlqMessage1: { dlqId: string; messageId: string } | undefined;
+      let dlqMessage2: { dlqId: string; messageId: string } | undefined;
+      let dlqMessage3: { dlqId: string; messageId: string } | undefined;
 
-      // Get all messages from DLQ
-      const dlqLogs1 = await client.dlq.listMessages({ filter: { messageId: message1.messageId } });
-      const dlqLogs2 = await client.dlq.listMessages({ filter: { messageId: message2.messageId } });
-      const dlqLogs3 = await client.dlq.listMessages({ filter: { messageId: message3.messageId } });
+      // Wait for all messages to appear in DLQ
+      await eventually(
+        async () => {
+          // Get all messages from DLQ
+          const dlqLogs1 = await client.dlq.listMessages({
+            filter: { messageId: message1.messageId },
+          });
+          const dlqLogs2 = await client.dlq.listMessages({
+            filter: { messageId: message2.messageId },
+          });
+          const dlqLogs3 = await client.dlq.listMessages({
+            filter: { messageId: message3.messageId },
+          });
 
-      const dlqMessage1 = dlqLogs1.messages.find((dlq) => dlq.messageId === message1.messageId);
-      const dlqMessage2 = dlqLogs2.messages.find((dlq) => dlq.messageId === message2.messageId);
-      const dlqMessage3 = dlqLogs3.messages.find((dlq) => dlq.messageId === message3.messageId);
+          dlqMessage1 = dlqLogs1.messages.find((dlq) => dlq.messageId === message1.messageId);
+          dlqMessage2 = dlqLogs2.messages.find((dlq) => dlq.messageId === message2.messageId);
+          dlqMessage3 = dlqLogs3.messages.find((dlq) => dlq.messageId === message3.messageId);
 
-      expect(dlqMessage1).toBeDefined();
-      expect(dlqMessage2).toBeDefined();
-      expect(dlqMessage3).toBeDefined();
+          expect(dlqMessage1).toBeDefined();
+          expect(dlqMessage2).toBeDefined();
+          expect(dlqMessage3).toBeDefined();
+        },
+        {
+          timeout: 15_000,
+          interval: 1000,
+        }
+      );
 
       // Retry all three messages
       const dlqIds = [dlqMessage1!.dlqId, dlqMessage2!.dlqId, dlqMessage3!.dlqId];

@@ -126,8 +126,9 @@ describe("Messages", () => {
       const flowControlKey = "flow-key";
       // Create messages with the same flow control key
       await client.publish({
-        url: "https://httpstat.us/200?sleep=30000",
+        url: "https://httpstat.us/200",
         body: "hello",
+        delay: "10d",
         flowControl: {
           key: flowControlKey,
           parallelism: 5,
@@ -136,8 +137,9 @@ describe("Messages", () => {
       });
 
       await client.publish({
-        url: "https://httpstat.us/200?sleep=30000",
+        url: "https://httpstat.us/200",
         body: "hello",
+        delay: "10d",
         flowControl: {
           key: flowControlKey,
           parallelism: 5,
@@ -147,8 +149,9 @@ describe("Messages", () => {
 
       // Create a message with a different flow control key
       const message3 = await client.publish({
-        url: "https://httpstat.us/200?sleep=30000",
+        url: "https://httpstat.us/200",
         body: "hello",
+        delay: "10d",
         flowControl: {
           key: "different-flow-key",
           parallelism: 5,
@@ -162,21 +165,7 @@ describe("Messages", () => {
       // Should cancel at least the 2 messages with the matching flowControlKey
       expect(result.cancelled).toBeGreaterThanOrEqual(2);
 
-      // Verify message3 still exists (or was not cancelled)
-      // Note: This might fail if message3 was already delivered, but it tests the filter
-      try {
-        const remainingMessage = await client.messages.get(message3.messageId);
-        expect(remainingMessage.flowControlKey).toBe("different-flow-key");
-      } catch {
-        // Message might have been delivered/cancelled, which is fine for this test
-      }
-
-      // Clean up remaining message
-      try {
-        await client.messages.cancel(message3.messageId);
-      } catch {
-        // Already deleted/delivered
-      }
+      await client.messages.cancel(message3.messageId);
     },
     { timeout: 20_000 }
   );
@@ -222,52 +211,19 @@ describe("Messages", () => {
   );
 
   test(
-    "should cancel messages using filter overload with flowControlKey",
-    async () => {
-      const flowControlKey = `flow-key-filter-${Date.now()}`;
-
-      await client.publish({
-        url: "https://httpstat.us/200?sleep=30000",
-        body: "hello",
-        flowControl: {
-          key: flowControlKey,
-          parallelism: 5,
-          ratePerSecond: 10,
-        },
-      });
-
-      await client.publish({
-        url: "https://httpstat.us/200?sleep=30000",
-        body: "hello",
-        flowControl: {
-          key: flowControlKey,
-          parallelism: 5,
-          ratePerSecond: 10,
-        },
-      });
-
-      // Cancel using filter overload
-      const cancelled = await client.messages.cancel({ flowControlKey });
-
-      expect(cancelled.cancelled).toBeGreaterThanOrEqual(2);
-    },
-    { timeout: 20_000 }
-  );
-
-  test(
     "should cancel messages using filter overload with label",
     async () => {
       const label = `msg-label-${Date.now()}`;
 
       await client.publish({
-        url: "https://httpstat.us/200?sleep=30000",
+        url: "https://httpstat.us/200",
         body: "hello",
         delay: "10d",
         label,
       });
 
       await client.publish({
-        url: "https://httpstat.us/200?sleep=30000",
+        url: "https://httpstat.us/200",
         body: "hello",
         delay: "10d",
         label,
@@ -282,16 +238,15 @@ describe("Messages", () => {
   );
 
   test(
-    "should cancel all messages using empty filter overload",
+    "should cancel all messages using all: true",
     async () => {
       await client.publish({
-        url: "https://httpstat.us/200?sleep=30000",
+        url: "https://httpstat.us/200",
         body: "hello",
         delay: "10d",
       });
 
-      // Cancel all using empty filter overload (equivalent to cancel({ all: true }))
-      const cancelled = await client.messages.cancel({});
+      const cancelled = await client.messages.cancel({ all: true });
 
       expect(cancelled.cancelled).toBeGreaterThanOrEqual(1);
     },
