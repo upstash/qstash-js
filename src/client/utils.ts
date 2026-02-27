@@ -6,7 +6,8 @@ import { QstashError } from "./error";
 /**
  * Converts a `Date` object or a Unix timestamp in milliseconds to a number.
  */
-export const toMs = (d: Date | number): number => (d instanceof Date ? d.getTime() : d);
+export const toMs = (d: Date | number | string): number =>
+  d instanceof Date ? d.getTime() : Number(d);
 
 const isIgnoredHeader = (header: string) => {
   const lowerCaseHeader = header.toLowerCase();
