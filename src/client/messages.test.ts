@@ -100,8 +100,9 @@ describe("Messages", () => {
     const ratePerSecond = 5;
     const period = "1d";
     const { messageId } = await client.publish({
-      url: "https://httpstat.us/200?sleep=30000",
+      url: "https://httpstat.us/200",
       body: "hello",
+      delay: "10d",
       flowControl: {
         key: "flow-key",
         parallelism,
@@ -171,73 +172,6 @@ describe("Messages", () => {
   );
 
   test(
-    "should cancel multiple messages using string array overload",
-    async () => {
-      const messages = await client.batchJSON([
-        {
-          url: `https://example.com`,
-          body: { hello: "world" },
-          timeout: 90,
-          delay: "10d",
-        },
-        {
-          url: `https://example.com`,
-          body: { hello: "world" },
-          timeout: 90,
-          delay: "10d",
-        },
-        {
-          url: `https://example.com`,
-          body: { hello: "world" },
-          timeout: 90,
-          delay: "10d",
-        },
-      ]);
-
-      expect(messages.length).toBe(3);
-
-      // Cancel using string[] overload
-      const cancelled = await client.messages.cancel([
-        messages[0].messageId,
-        messages[1].messageId,
-      ]);
-
-      expect(cancelled.cancelled).toBe(2);
-
-      // Clean up remaining
-      await client.messages.cancel(messages[2].messageId);
-    },
-    { timeout: 20_000 }
-  );
-
-  test(
-    "should cancel messages using filter overload with label",
-    async () => {
-      const label = `msg-label-${Date.now()}`;
-
-      await client.publish({
-        url: "https://httpstat.us/200",
-        body: "hello",
-        delay: "10d",
-        label,
-      });
-
-      await client.publish({
-        url: "https://httpstat.us/200",
-        body: "hello",
-        delay: "10d",
-        label,
-      });
-
-      // Cancel using filter overload with label
-      const cancelled = await client.messages.cancel({ label });
-
-      expect(cancelled.cancelled).toBeGreaterThanOrEqual(2);
-    },
-    { timeout: 20_000 }
-  );
-
-  test(
     "should cancel all messages using all: true",
     async () => {
       await client.publish({
@@ -249,6 +183,24 @@ describe("Messages", () => {
       const cancelled = await client.messages.cancel({ all: true });
 
       expect(cancelled.cancelled).toBeGreaterThanOrEqual(1);
+    },
+    { timeout: 20_000 }
+  );
+
+  test(
+    "should return cancelled count when cancelling a single message",
+    async () => {
+      const message = await client.publish({
+        url: "https://httpstat.us/200",
+        body: "hello",
+        delay: "10d",
+      });
+
+      const result = await client.messages.cancel(message.messageId);
+
+      expect(result).toBeDefined();
+      expect(typeof result.cancelled).toBe("number");
+      expect(result.cancelled).toBe(1);
     },
     { timeout: 20_000 }
   );

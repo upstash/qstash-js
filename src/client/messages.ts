@@ -1,7 +1,7 @@
 import type { PublishRequest } from "./client";
 import type { Requester } from "./http";
 import type { HTTPMethods, QStashCommonFilters } from "./types";
-import { toMs } from "./utils";
+import { buildFilterPayload } from "./utils";
 
 export type Message = {
   /**
@@ -177,7 +177,6 @@ export class Messages {
       return await this.http.request({
         method: "DELETE",
         path: ["v2", "messages", request],
-        parseResponseAsJson: false,
       });
     }
 
@@ -193,19 +192,11 @@ export class Messages {
     }
 
     // Handle filters (QStashCommonFilters)
-    const { all, urlGroup, fromDate, toDate, ...rest } = request;
     const result = (await this.http.request({
       method: "DELETE",
       path: ["v2", "messages"],
       headers: { "Content-Type": "application/json" },
-      body: all
-        ? JSON.stringify({})
-        : JSON.stringify({
-            ...rest,
-            ...(urlGroup ? { topicName: urlGroup } : {}),
-            ...(fromDate === undefined ? {} : { fromDate: toMs(fromDate) }),
-            ...(toDate === undefined ? {} : { toDate: toMs(toDate) }),
-          }),
+      query: buildFilterPayload(request, { callerIpCasing: true }),
     })) as { cancelled: number };
     return result;
   }
@@ -215,8 +206,12 @@ export class Messages {
    *
    * @deprecated Use `cancel(messageId: string)` instead
    */
-  public async delete(messageId: string): Promise<{ cancelled: number }> {
-    return await this.cancel(messageId);
+  public async delete(messageId: string): Promise<void> {
+    await this.http.request({
+      method: "DELETE",
+      path: ["v2", "messages", messageId],
+      parseResponseAsJson: false,
+    });
   }
 
   /**

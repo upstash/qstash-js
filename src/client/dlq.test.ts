@@ -78,6 +78,8 @@ describe("DLQ", () => {
 
       let dlqLogs = await client.dlq.listMessages({ filter: { messageId: message.messageId } });
       let dlqMessage = dlqLogs.messages.find((dlq) => dlq.messageId === message.messageId);
+      expect(dlqMessage).toBeDefined();
+      const deletedDlqId = dlqMessage?.dlqId ?? "";
 
       await client.dlq.delete(dlqMessage?.dlqId ?? "");
 
@@ -85,6 +87,9 @@ describe("DLQ", () => {
       dlqMessage = dlqLogs.messages.find((dlq) => dlq.messageId === message.messageId);
 
       expect(dlqMessage).toBeUndefined();
+
+      // Single-item delete should preserve 404 semantics when item no longer exists.
+      expect(client.dlq.delete(deletedDlqId)).rejects.toThrow();
     },
     { timeout: 20_000 }
   );
@@ -473,8 +478,7 @@ describe("DLQ", () => {
       expect(retryResult.responses).toBeInstanceOf(Array);
       expect(retryResult.responses.length).toBe(1);
       expect(retryResult.responses[0].messageId).toBeDefined();
-
-      await client.dlq.delete(dlqMessage!.dlqId);
+      expect(client.dlq.delete(dlqMessage!.dlqId)).rejects.toThrow();
     },
     { timeout: 20_000 }
   );
@@ -551,9 +555,14 @@ describe("DLQ", () => {
     { timeout: 20_000 }
   );
 
+  test("should throw when delete is called with an empty object", () => {
+    // @ts-expect-error intentionally bypassing type check to verify runtime guard
+    expect(client.dlq.delete({})).rejects.toThrow("No filters provided");
+  });
+
   test("should return empty result when retry is called with an empty array", async () => {
     const result = await client.dlq.retry([]);
-    expect(result).toEqual({ cursor: "", responses: [] });
+    expect(result).toEqual({ responses: [] });
   });
 
   test("should return empty result when delete is called with an empty array", async () => {
@@ -565,4 +574,141 @@ describe("DLQ", () => {
     const result = await client.dlq.delete({ dlqIds: [] });
     expect(result).toEqual({ deleted: 0 });
   });
+
+  test(
+    "should return optional cursor from retry with dlqIds",
+    async () => {
+      const message = await client.publish({
+        url: `https://example.com/123/?asdasd=ooo`,
+        retries: 0,
+      });
+
+      await eventually(
+        async () => {
+          const dlqLogs = await client.dlq.listMessages({
+            filter: { messageId: message.messageId },
+          });
+          expect(dlqLogs.messages.length).toBe(1);
+        },
+        { timeout: 15_000, interval: 1000 }
+      );
+
+      const dlqLogs = await client.dlq.listMessages({
+        filter: { messageId: message.messageId },
+      });
+      const dlqMessage = dlqLogs.messages[0];
+
+      const retryResult = await client.dlq.retry(dlqMessage.dlqId);
+
+      expect(retryResult.responses.length).toBe(1);
+      expect(retryResult.responses[0].messageId).toBeDefined();
+      // cursor should not be returned when using explicit dlqIds
+      expect(retryResult.cursor).toBeUndefined();
+    },
+    { timeout: 20_000 }
+  );
+
+  test(
+    "should filter DLQ messages by flowControlKey",
+    async () => {
+      const flowKey = `dlq-flow-key-${Date.now()}`;
+      await client.publish({
+        url: "https://httpstat.us/400",
+        body: "hello",
+        retries: 0,
+        flowControl: {
+          key: flowKey,
+          parallelism: 1,
+        },
+      });
+
+      await eventually(
+        async () => {
+          const result = await client.dlq.listMessages({
+            filter: { flowControlKey: flowKey },
+          });
+          expect(result.messages.length).toBe(1);
+          expect(result.messages[0].flowControlKey).toBe(flowKey);
+        },
+        { timeout: 15_000, interval: 1000 }
+      );
+
+      const result = await client.dlq.delete({ flowControlKey: flowKey });
+      expect(result).toBeDefined();
+      expect(result.deleted).toBe(1);
+    },
+    { timeout: 20_000 }
+  );
+
+  test(
+    "should respect order option in listMessages",
+    async () => {
+      const label = `dlq-order-${Date.now()}`;
+      await client.publish({
+        url: `https://example.com/first`,
+        retries: 0,
+        label,
+      });
+      await sleep(1000);
+      await client.publish({
+        url: `https://example.com/second`,
+        retries: 0,
+        label,
+      });
+
+      await eventually(
+        async () => {
+          const dlqLogs = await client.dlq.listMessages({ filter: { label } });
+          expect(dlqLogs.messages.length).toBe(2);
+        },
+        { timeout: 15_000, interval: 1000 }
+      );
+
+      const earliest = await client.dlq.listMessages({
+        order: "earliestFirst",
+        filter: { label },
+      });
+      const latest = await client.dlq.listMessages({
+        order: "latestFirst",
+        filter: { label },
+      });
+
+      expect(earliest.messages.length).toBe(2);
+      expect(latest.messages.length).toBe(2);
+
+      expect(earliest.messages[0].createdAt).toBeLessThanOrEqual(earliest.messages[1].createdAt);
+      expect(latest.messages[0].createdAt).toBeGreaterThanOrEqual(latest.messages[1].createdAt);
+
+      await client.dlq.delete({ label });
+    },
+    { timeout: 25_000 }
+  );
+
+  test(
+    "should retry with filter and get responses with messageId",
+    async () => {
+      const label = `dlq-retry-filter-verify-${Date.now()}`;
+      await client.publish({
+        url: `https://example.com/retry-filter-test`,
+        retries: 0,
+        label,
+      });
+
+      await eventually(
+        async () => {
+          const dlqBefore = await client.dlq.listMessages({ filter: { label } });
+          expect(dlqBefore.messages.length).toBeGreaterThanOrEqual(1);
+        },
+        { timeout: 15_000, interval: 1000 }
+      );
+
+      const retryResult = await client.dlq.retry({ label });
+
+      expect(retryResult.responses.length).toBe(1);
+      expect(retryResult.responses[0].messageId).toBeDefined();
+
+      await client.dlq.delete({ label });
+    },
+    { timeout: 20_000 }
+  );
 });

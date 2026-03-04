@@ -2,6 +2,7 @@
 import { getProviderInfo } from "./api/utils";
 import type { PublishRequest } from "./client";
 import { QstashError } from "./error";
+import type { QStashCommonFilters } from "./types";
 
 /**
  * Converts a `Date` object or a Unix timestamp in milliseconds to a number.
@@ -201,6 +202,49 @@ export function decodeBase64(base64: string) {
       return base64;
     }
   }
+}
+
+/**
+ * Builds a filter payload object from a QStashCommonFilters request, handling
+ * the urlGroup → topicName rename and Date → ms conversions for fromDate/toDate.
+ * Returns an empty object when `all: true`.
+ *
+ * Pass `{ callerIpCasing: true }` to remap `callerIp` → `callerIP` (uppercase P),
+ * required by endpoints whose server schema uses the uppercase variant.
+ */
+export function buildFilterPayload(
+  request: QStashCommonFilters,
+  options?: { callerIpCasing?: true }
+): Record<string, string | number | boolean | undefined> {
+  if ("all" in request && request.all) return {};
+  const { urlGroup, fromDate, toDate, callerIp, ...rest } = request;
+  const payload = {
+    ...rest,
+    ...(urlGroup === undefined ? {} : { topicName: urlGroup }),
+    ...(fromDate === undefined ? {} : { fromDate: toMs(fromDate) }),
+    ...(toDate === undefined ? {} : { toDate: toMs(toDate) }),
+    ...(callerIp === undefined
+      ? {}
+      : options?.callerIpCasing
+        ? { callerIP: callerIp }
+        : { callerIp }),
+  };
+  if (Object.keys(payload).length === 0) {
+    throw new QstashError(
+      "No filters provided. Pass { all: true } to explicitly target all messages."
+    );
+  }
+  return payload;
+}
+
+/**
+ * Normalizes a response cursor: converts empty string to `undefined`
+ * so that callers can reliably use `cursor` as a boolean presence check.
+ */
+export function normalizeCursor<T>(response: T): T {
+  const cursor = (response as { cursor?: string }).cursor;
+  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
+  return { ...response, cursor: cursor || undefined };
 }
 
 export function parseCursor(cursor: string) {

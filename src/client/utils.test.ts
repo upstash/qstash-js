@@ -1,4 +1,4 @@
-import { processHeaders } from "./utils";
+import { buildFilterPayload, processHeaders } from "./utils";
 import { describe, expect, test } from "bun:test";
 import { prefixHeaders } from "./utils";
 
@@ -17,6 +17,13 @@ describe("prefixHeaders", () => {
     expect(headers.get("Upstash-Callback-Forward-myheader")).toBe("callback-forward-header-value");
     expect(headers.get("some-other-header")).toBeNull();
     expect(headers.get("Upstash-Forward-some-other-header")).toBe("other-value");
+  });
+});
+
+describe("buildFilterPayload", () => {
+  test("should throw when called with an empty object", () => {
+    // @ts-expect-error intentionally bypassing type check to verify runtime guard
+    expect(() => buildFilterPayload({})).toThrow("No filters provided");
   });
 });
 

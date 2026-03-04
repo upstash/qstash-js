@@ -183,10 +183,11 @@ export type QStashCommonFilters =
       url?: string;
       urlGroup?: string;
       queueName?: string;
-      fromDate?: Date | number | string;
-      toDate?: Date | number | string;
+      fromDate?: Date | number;
+      toDate?: Date | number;
       label?: string;
       flowControlKey?: string;
+      callerIp?: string;
       all?: never;
     } & (
       | { scheduleId: string }
@@ -194,10 +195,11 @@ export type QStashCommonFilters =
       | { url: string }
       | { urlGroup: string }
       | { queueName: string }
-      | { fromDate: Date | number | string }
-      | { toDate: Date | number | string }
+      | { fromDate: Date | number }
+      | { toDate: Date | number }
       | { label: string }
       | { flowControlKey: string }
+      | { callerIp: string }
     ))
   | {
       all: true;
@@ -210,4 +212,5 @@ export type QStashCommonFilters =
       toDate?: never;
       label?: never;
       flowControlKey?: never;
+      callerIp?: never;
     };
