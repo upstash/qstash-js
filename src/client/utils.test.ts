@@ -1,4 +1,4 @@
-import { buildFilterPayload, processHeaders } from "./utils";
+import { buildBulkActionFilterPayload, processHeaders } from "./utils";
 import { describe, expect, test } from "bun:test";
 import { prefixHeaders } from "./utils";
 
@@ -23,7 +23,32 @@ describe("prefixHeaders", () => {
 describe("buildFilterPayload", () => {
   test("should throw when called with an empty object", () => {
     // @ts-expect-error intentionally bypassing type check to verify runtime guard
-    expect(() => buildFilterPayload({})).toThrow("No filters provided");
+    expect(() => buildBulkActionFilterPayload({})).toThrow("No filters provided");
+  });
+
+  test("should throw when dlqIds and all are combined", () => {
+    expect(() =>
+      // @ts-expect-error intentionally bypassing type check to verify runtime guard
+      buildBulkActionFilterPayload({ dlqIds: ["id1"], all: true })
+    ).toThrow("dlqIds and all: true are mutually exclusive");
+  });
+
+  test("should throw when dlqIds is combined with filter fields", () => {
+    expect(() =>
+      // @ts-expect-error intentionally bypassing type check to verify runtime guard
+      buildBulkActionFilterPayload({ dlqIds: ["id1"], url: "https://example.com" })
+    ).toThrow("dlqIds cannot be combined with filter fields");
+  });
+
+  test("should throw when all: true is combined with filter fields", () => {
+    expect(() =>
+      // @ts-expect-error intentionally bypassing type check to verify runtime guard
+      buildBulkActionFilterPayload({ all: true, url: "https://example.com" })
+    ).toThrow("all: true cannot be combined with filter fields");
+  });
+
+  test("should return empty object for all: true", () => {
+    expect(buildBulkActionFilterPayload({ all: true })).toEqual({});
   });
 });
 

@@ -2,7 +2,7 @@
 import { getProviderInfo } from "./api/utils";
 import type { PublishRequest } from "./client";
 import { QstashError } from "./error";
-import type { QStashCommonFilters } from "./types";
+import type { DLQBulkActionFilters } from "./filter-types";
 
 /**
  * Converts a `Date` object or a Unix timestamp in milliseconds to a number.
@@ -205,24 +205,45 @@ export function decodeBase64(base64: string) {
 }
 
 /**
- * Builds a filter payload object from a QStashCommonFilters request, handling
- * the urlGroup → topicName rename and Date → ms conversions for fromDate/toDate.
+ * Builds a filter payload object, handling the `urlGroup` → `topicName` rename
+ * and `Date` → ms conversions for `fromDate` / `toDate`.
  * Returns an empty object when `all: true`.
  *
  * Pass `{ callerIpCasing: true }` to remap `callerIp` → `callerIP` (uppercase P),
  * required by endpoints whose server schema uses the uppercase variant.
  */
-export function buildFilterPayload(
-  request: QStashCommonFilters,
+export function buildBulkActionFilterPayload(
+  request: DLQBulkActionFilters,
   options?: { callerIpCasing?: true }
-): Record<string, string | number | boolean | undefined> {
-  if ("all" in request && request.all) return {};
-  const { urlGroup, fromDate, toDate, callerIp, ...rest } = request;
+): Record<string, string | string[] | number | boolean | Date | undefined> {
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- runtime guard for JS consumers
+  const hasDlqIds = "dlqIds" in request && request.dlqIds !== undefined;
+  const hasAll = "all" in request && Boolean(request.all);
+  const filterKeys = Object.keys(request).filter((k) => k !== "dlqIds" && k !== "all");
+  const hasFilters = filterKeys.length > 0;
+
+  if (hasDlqIds && hasAll) {
+    throw new QstashError("dlqIds and all: true are mutually exclusive.");
+  }
+  if (hasDlqIds && hasFilters) {
+    throw new QstashError(
+      `dlqIds cannot be combined with filter fields: ${filterKeys.join(", ")}.`
+    );
+  }
+  if (hasAll && hasFilters) {
+    throw new QstashError(
+      `all: true cannot be combined with filter fields: ${filterKeys.join(", ")}.`
+    );
+  }
+
+  if (hasAll) return {};
+  const { urlGroup, callerIp, ...rest } = request as Exclude<
+    DLQBulkActionFilters,
+    { all: true } | { dlqIds: string | string[] }
+  >;
   const payload = {
     ...rest,
     ...(urlGroup === undefined ? {} : { topicName: urlGroup }),
-    ...(fromDate === undefined ? {} : { fromDate: toMs(fromDate) }),
-    ...(toDate === undefined ? {} : { toDate: toMs(toDate) }),
     ...(callerIp === undefined
       ? {}
       : options?.callerIpCasing

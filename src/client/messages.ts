@@ -1,7 +1,8 @@
 import type { PublishRequest } from "./client";
 import type { Requester } from "./http";
-import type { HTTPMethods, QStashCommonFilters } from "./types";
-import { buildFilterPayload } from "./utils";
+import type { HTTPMethods } from "./types";
+import type { MessageCancelFilters } from "./filter-types";
+import { buildBulkActionFilterPayload } from "./utils";
 
 export type Message = {
   /**
@@ -170,7 +171,7 @@ export class Messages {
    * - All messages: `cancel({ all: true })`
    */
   public async cancel(
-    request: string | string[] | QStashCommonFilters
+    request: string | string[] | MessageCancelFilters
   ): Promise<{ cancelled: number }> {
     // Handle single string - original cancel behavior
     if (typeof request === "string") {
@@ -191,12 +192,11 @@ export class Messages {
       return result;
     }
 
-    // Handle filters (QStashCommonFilters)
     const result = (await this.http.request({
       method: "DELETE",
       path: ["v2", "messages"],
       headers: { "Content-Type": "application/json" },
-      query: buildFilterPayload(request, { callerIpCasing: true }),
+      query: buildBulkActionFilterPayload(request, { callerIpCasing: true }),
     })) as { cancelled: number };
     return result;
   }

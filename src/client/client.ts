@@ -5,15 +5,8 @@ import { Chat } from "./llm/chat";
 import { Messages } from "./messages";
 import { Queue } from "./queue";
 import { Schedules } from "./schedules";
-import type {
-  BodyInit,
-  Log,
-  FlowControl,
-  GetLogsPayload,
-  HeadersInit,
-  HTTPMethods,
-  State,
-} from "./types";
+import type { BodyInit, Log, FlowControl, GetLogsPayload, HeadersInit, HTTPMethods } from "./types";
+import type { LogsListFilters } from "./filter-types";
 import { UrlGroups } from "./url-groups";
 import {
   getRequestPath,
@@ -319,7 +312,12 @@ export type PublishJsonRequest = Omit<PublishRequest, "body"> & {
 
 export type LogsRequest = {
   cursor?: string | number;
-  filter?: LogsRequestFilter;
+  /** Max 1000. Defaults to 10 when `groupBy` is used. */
+  count?: number;
+  /** Defaults to `latestFirst` */
+  order?: "earliestFirst" | "latestFirst";
+  trimBody?: number;
+  filter?: LogsListFilters;
 };
 
 /**
@@ -328,21 +326,6 @@ export type LogsRequest = {
  * @deprecated
  */
 export type EventsRequest = LogsRequest;
-
-type LogsRequestFilter = {
-  messageId?: string;
-  state?: State;
-  url?: string;
-  urlGroup?: string;
-  topicName?: string;
-  api?: string;
-  scheduleId?: string;
-  queueName?: string;
-  fromDate?: number; // unix timestamp (ms)
-  toDate?: number; // unix timestamp (ms)
-  count?: number;
-  label?: string;
-};
 
 export type GetLogsResponse = {
   cursor?: string;
@@ -618,43 +601,51 @@ export class Client {
    * }
    * ```
    */
-  public async logs(request?: LogsRequest): Promise<GetLogsResponse> {
-    const query: Record<string, string> = {};
+  public async logs(request: LogsRequest = {}): Promise<GetLogsResponse> {
+    const {
+      urlGroup,
+      // eslint-disable-next-line @typescript-eslint/no-deprecated
+      topicName,
+      fromDate,
+      toDate,
+      callerIp,
+      messageIds,
+      // eslint-disable-next-line @typescript-eslint/no-deprecated
+      count: filterCount,
+      ...restFilter
+    } = request.filter ?? {};
 
-    if (typeof request?.cursor === "number" && request.cursor > 0) {
-      query.cursor = request.cursor.toString();
-    } else if (typeof request?.cursor === "string" && request.cursor !== "") {
-      query.cursor = request.cursor;
+    const filterPayload = {
+      ...restFilter,
+      topicName: urlGroup ?? topicName,
+      fromDate,
+      toDate,
+      callerIp,
+    };
+
+    let cursorString: string | undefined;
+    if (typeof request.cursor === "number" && request.cursor > 0) {
+      cursorString = request.cursor.toString();
+    } else if (typeof request.cursor === "string" && request.cursor !== "") {
+      cursorString = request.cursor;
     }
 
-    for (const [key, value] of Object.entries(request?.filter ?? {})) {
-      if (typeof value === "number" && value < 0) {
-        continue;
-      }
-      if (key === "urlGroup") {
-        query.topicName = value.toString();
-        // eslint-disable-next-line unicorn/no-typeof-undefined
-      } else if (typeof value !== "undefined") {
-        query[key] = value.toString();
-      }
-    }
+    const query = {
+      cursor: cursorString,
+      count: request.count ?? filterCount,
+      order: request.order,
+      trimBody: request.trimBody,
+      messageIds,
+      ...filterPayload,
+    };
 
     const responsePayload = await this.http.request<GetLogsPayload>({
       path: ["v2", "events"],
       method: "GET",
       query,
     });
-    const logs = responsePayload.events.map((event) => {
-      return {
-        ...event,
-        urlGroup: event.topicName,
-      };
-    });
-    return {
-      cursor: responsePayload.cursor,
-      logs: logs,
-      events: logs,
-    };
+    const logs = responsePayload.events.map((event) => ({ ...event, urlGroup: event.topicName }));
+    return { cursor: responsePayload.cursor, logs, events: logs };
   }
 
   /**
