@@ -2,7 +2,7 @@
 import { getProviderInfo } from "./api/utils";
 import type { PublishRequest } from "./client";
 import { QstashError } from "./error";
-import type { DLQBulkActionFilters } from "./filter-types";
+import type { DLQBulkActionFilters, MessageCancelFilters } from "./filter-types";
 
 /**
  * Converts a `Date` object or a Unix timestamp in milliseconds to a number.
@@ -213,7 +213,7 @@ export function decodeBase64(base64: string) {
  * required by endpoints whose server schema uses the uppercase variant.
  */
 export function buildBulkActionFilterPayload(
-  request: DLQBulkActionFilters,
+  request: DLQBulkActionFilters | MessageCancelFilters,
   options?: { callerIpCasing?: true }
 ): Record<string, string | string[] | number | boolean | Date | undefined> {
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- runtime guard for JS consumers
@@ -237,14 +237,11 @@ export function buildBulkActionFilterPayload(
   }
 
   if (hasAll) return {};
-  const { urlGroup, callerIp, ...rest } = request as Exclude<
-    DLQBulkActionFilters,
-    { all: true } | { dlqIds: string | string[] }
-  >;
+  const { urlGroup, callerIp, ...rest } = request as Record<string, unknown>;
   const payload = {
     ...rest,
-    ...(urlGroup === undefined ? {} : { topicName: urlGroup }),
-    ...(callerIp === undefined
+    ...(urlGroup === undefined || typeof urlGroup !== "string" ? {} : { topicName: urlGroup }),
+    ...(callerIp === undefined || typeof callerIp !== "string"
       ? {}
       : options?.callerIpCasing
         ? { callerIP: callerIp }
@@ -259,7 +256,7 @@ export function buildBulkActionFilterPayload(
 }
 
 /**
- * Normalizes a response cursor: converts empty string to `undefined`
+ * Converts empty string to `undefined` for the `cursor` field
  * so that callers can reliably use `cursor` as a boolean presence check.
  */
 export function normalizeCursor<T>(response: T): T {

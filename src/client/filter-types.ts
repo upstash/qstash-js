@@ -7,14 +7,6 @@ type NeverAll<T> = { [K in keyof T]?: never };
 type RequireAtLeastOne<T> = { [K in keyof T]-?: Required<Pick<T, K>> }[keyof T];
 
 /**
- * Two-way exclusive union: at-least-one-filter OR `{ all: true }`.
- * Providing `all: true` bans all filter fields and vice-versa.
- */
-type FilterOrAll<F extends Record<string, unknown>> =
-  | (F & RequireAtLeastOne<F> & { all?: never })
-  | ({ all: true } & NeverAll<F>);
-
-/**
  * Three-way exclusive union: at-least-one-filter OR `{ all: true }` OR IDs.
  * Exactly one branch can be satisfied at a time.
  *
@@ -66,8 +58,9 @@ type LogsFilterFields = {
 /**
  * Doesn't allow a single messageId because this is a bulk action
  */
-export type MessageCancelFilters = FilterOrAll<
-  UniversalFilterFields & Omit<QStashIdentityFields, "messageId">
+export type MessageCancelFilters = FilterAllOrIds<
+  UniversalFilterFields & Omit<QStashIdentityFields, "messageId">,
+  { messageIds: string[] }
 >;
 
 export type DLQBulkActionFilters = FilterAllOrIds<

@@ -51,18 +51,20 @@ export class DLQ {
   /**
    * List messages in the dlq
    */
-  public async listMessages(options?: {
-    cursor?: string;
-    count?: number;
-    /** Defaults to `latestFirst` */
-    order?: "earliestFirst" | "latestFirst";
-    trimBody?: number;
-    filter?: DLQListFilters;
-  }): Promise<{
+  public async listMessages(
+    options: {
+      cursor?: string;
+      count?: number;
+      /** Defaults to `latestFirst` */
+      order?: "earliestFirst" | "latestFirst";
+      trimBody?: number;
+      filter?: DLQListFilters;
+    } = {}
+  ): Promise<{
     messages: DlqMessage[];
     cursor?: string;
   }> {
-    const { urlGroup, ...restFilter } = options?.filter ?? {};
+    const { urlGroup, ...restFilter } = options.filter ?? {};
     const filterPayload = {
       ...restFilter,
       ...(urlGroup === undefined ? {} : { topicName: urlGroup }),
@@ -72,10 +74,10 @@ export class DLQ {
       method: "GET",
       path: ["v2", "dlq"],
       query: {
-        cursor: options?.cursor,
-        count: options?.count,
-        order: options?.order,
-        trimBody: options?.trimBody,
+        cursor: options.cursor,
+        count: options.count,
+        order: options.order,
+        trimBody: options.trimBody,
         ...filterPayload,
       },
     });
@@ -117,17 +119,15 @@ export class DLQ {
       return { deleted: 1 };
     }
 
-    // Handle string[] — convert to { dlqIds } for backwards compatibility
-    if (Array.isArray(request)) {
-      if (request.length === 0) return { deleted: 0 };
-      request = { dlqIds: request };
-    }
+    // Handle string[]
+    if (Array.isArray(request) && request.length === 0) return { deleted: 0 };
+    const filters: DLQBulkActionFilters = Array.isArray(request) ? { dlqIds: request } : request;
 
     return normalizeCursor(
       await this.http.request({
         method: "DELETE",
         path: ["v2", "dlq"],
-        query: buildBulkActionFilterPayload(request),
+        query: buildBulkActionFilterPayload(filters),
       })
     );
   }
@@ -158,18 +158,16 @@ export class DLQ {
   public async retry(
     request: string | string[] | DLQBulkActionFilters
   ): Promise<{ cursor?: string; responses: { messageId: string }[] }> {
-    // Handle string or string[] — convert to { dlqIds } for backwards compatibility
-    if (typeof request === "string" || Array.isArray(request)) {
-      const dlqIds = Array.isArray(request) ? request : [request];
-      if (dlqIds.length === 0) return { responses: [] };
-      request = { dlqIds };
-    }
+    // Handle string or string[]
+    if (typeof request === "string") request = [request];
+    if (Array.isArray(request) && request.length === 0) return { responses: [] };
+    const filters: DLQBulkActionFilters = Array.isArray(request) ? { dlqIds: request } : request;
 
     return normalizeCursor(
       await this.http.request<{ cursor?: string; responses: { messageId: string }[] }>({
         method: "POST",
         path: ["v2", "dlq", "retry"],
-        query: buildBulkActionFilterPayload(request),
+        query: buildBulkActionFilterPayload(filters),
       })
     );
   }

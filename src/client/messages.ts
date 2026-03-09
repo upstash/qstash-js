@@ -173,7 +173,7 @@ export class Messages {
   public async cancel(
     request: string | string[] | MessageCancelFilters
   ): Promise<{ cancelled: number }> {
-    // Handle single string - original cancel behavior
+    // Handle single string seperately, for backwards compatibility on the response
     if (typeof request === "string") {
       return await this.http.request({
         method: "DELETE",
@@ -181,24 +181,17 @@ export class Messages {
       });
     }
 
-    // Handle string[] - bulk cancel by messageIds
-    if (Array.isArray(request)) {
-      const result = (await this.http.request({
-        method: "DELETE",
-        path: ["v2", "messages"],
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messageIds: request }),
-      })) as { cancelled: number };
-      return result;
-    }
+    // Handle string[], { messageIds }, { all: true }, or filter object
+    if (Array.isArray(request) && request.length === 0) return { cancelled: 0 };
+    const filters: MessageCancelFilters = Array.isArray(request)
+      ? { messageIds: request }
+      : request;
 
-    const result = (await this.http.request({
+    return await this.http.request({
       method: "DELETE",
       path: ["v2", "messages"],
-      headers: { "Content-Type": "application/json" },
-      query: buildBulkActionFilterPayload(request, { callerIpCasing: true }),
-    })) as { cancelled: number };
-    return result;
+      query: buildBulkActionFilterPayload(filters, { callerIpCasing: true }),
+    });
   }
 
   /**
@@ -220,7 +213,7 @@ export class Messages {
    * @deprecated Use `cancel(messageIds: string[])` instead
    */
   public async deleteMany(messageIds: string[]): Promise<number> {
-    const result = await this.cancel(messageIds);
+    const result = (await this.cancel(messageIds)) as { cancelled: number };
     return result.cancelled;
   }
 
@@ -229,7 +222,7 @@ export class Messages {
    * @deprecated Use `cancel({all: true})` to cancel all
    */
   public async deleteAll(): Promise<number> {
-    const result = await this.cancel({ all: true });
+    const result = (await this.cancel({ all: true })) as { cancelled: number };
     return result.cancelled;
   }
 }
