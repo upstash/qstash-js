@@ -190,7 +190,7 @@ export class Messages {
     return await this.http.request({
       method: "DELETE",
       path: ["v2", "messages"],
-      query: buildBulkActionFilterPayload(filters, { callerIpCasing: true }),
+      query: buildBulkActionFilterPayload(filters),
     });
   }
 

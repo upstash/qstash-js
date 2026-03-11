@@ -2,22 +2,18 @@ import type { State } from "./types";
 
 // ── Filter Utility Types ──────────────────────────────────────
 
-type NeverAll<T> = { [K in keyof T]?: never };
-
 type RequireAtLeastOne<T> = { [K in keyof T]-?: Required<Pick<T, K>> }[keyof T];
 
-/**
- * Three-way exclusive union: at-least-one-filter OR `{ all: true }` OR IDs.
- * Exactly one branch can be satisfied at a time.
- *
- * The filter and all branches intentionally omit `NeverAll<Ids>` so that
- * TypeScript's `"key" in request` narrowing correctly isolates the IDs branch.
- * Excess-property checks on object literals still prevent mixing ID keys with filters.
- */
-type FilterAllOrIds<F extends Record<string, unknown>, Ids extends Record<string, unknown>> =
-  | (F & RequireAtLeastOne<F> & { all?: never })
-  | ({ all: true } & NeverAll<F>)
-  | (Ids & NeverAll<F> & { all?: never });
+type NeverKeys<T> = { [K in keyof T]?: never };
+
+/** Two-branch exclusive union: A or B, never both. */
+type Exclusive<A, B> = (A & NeverKeys<B>) | (B & NeverKeys<A>);
+
+/** Three-branch exclusive union: exactly one of A, B, or C. */
+type Exclusive3<A, B, C> =
+  | (A & NeverKeys<B> & NeverKeys<C>)
+  | (B & NeverKeys<A> & NeverKeys<C>)
+  | (C & NeverKeys<A> & NeverKeys<B>);
 
 // ── Filter Field Groups ───────────────────────────────────────
 
@@ -47,29 +43,60 @@ type DLQResponseFields = {
 /** Logs-specific filter fields exclusive to log endpoints. */
 type LogsFilterFields = {
   state?: State;
-  messageIds?: string[];
 };
+
+// ── Composed Filter Field Types ───────────────────────────────
+
+type DLQFilterFields = UniversalFilterFields & QStashIdentityFields & DLQResponseFields;
+
+type MessageCancelFilterFields = UniversalFilterFields & Omit<QStashIdentityFields, "messageId">;
 
 // ── QStash Composed Endpoint Filter Types ─────────────────────
 
 /**
- * Doesn't allow a single messageId because this is a bulk action
+ * Doesn't allow a single messageId because this is a bulk action.
+ * Cancel does not support cursor.
  */
-export type MessageCancelFilters = FilterAllOrIds<
-  UniversalFilterFields & Omit<QStashIdentityFields, "messageId">,
-  { messageIds: string[] }
+export type MessageCancelFilters = Exclusive3<
+  { messageIds: string[] },
+  { filter: RequireAtLeastOne<MessageCancelFilterFields> },
+  { all: true }
 >;
 
-export type DLQBulkActionFilters = FilterAllOrIds<
-  UniversalFilterFields & QStashIdentityFields & DLQResponseFields,
-  { dlqIds: string | string[] }
+/**
+ * DLQ bulk actions support three modes:
+ * - By dlqIds (no cursor)
+ * - By filter fields (with optional cursor)
+ * - All (with optional cursor)
+ */
+export type DLQBulkActionFilters = Exclusive3<
+  { dlqIds: string | string[] },
+  { filter: RequireAtLeastOne<DLQFilterFields>; cursor?: string },
+  { all: true; cursor?: string }
 >;
 
-export type DLQListFilters = UniversalFilterFields & QStashIdentityFields & DLQResponseFields;
+export type DLQListRequest = Exclusive<
+  { dlqIds: string | string[] },
+  { filter?: DLQFilterFields; cursor?: string }
+>;
+
+export type LogsListRequest = Exclusive<
+  { messageIds: string[] },
+  { filter?: LogsListFilters; cursor?: string }
+>;
 
 export type LogsListFilters = UniversalFilterFields &
-  QStashIdentityFields &
+  Omit<QStashIdentityFields, "messageId"> &
   LogsFilterFields & {
+    /**
+     * @deprecated use `messageIds` in the root instead of `messageId` in the `filter` object
+     *
+     * Example:
+     * ```ts
+     * await client.logs({ messageIds: ["id1", "id2"] })
+     * ```
+     */
+    messageId?: string;
     /**
      * @deprecated use `urlGroup` instead
      */

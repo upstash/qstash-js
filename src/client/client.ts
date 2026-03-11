@@ -6,7 +6,7 @@ import { Messages } from "./messages";
 import { Queue } from "./queue";
 import { Schedules } from "./schedules";
 import type { BodyInit, Log, FlowControl, GetLogsPayload, HeadersInit, HTTPMethods } from "./types";
-import type { LogsListFilters } from "./filter-types";
+import type { LogsListRequest } from "./filter-types";
 import { UrlGroups } from "./url-groups";
 import {
   getRequestPath,
@@ -14,6 +14,7 @@ import {
   getSafeEnvironment,
   prefixHeaders,
   processHeaders,
+  renameUrlGroup,
   wrapWithGlobalHeaders,
 } from "./utils";
 import { Workflow } from "./workflow";
@@ -311,14 +312,12 @@ export type PublishJsonRequest = Omit<PublishRequest, "body"> & {
 };
 
 export type LogsRequest = {
-  cursor?: string | number;
   /** Max 1000. Defaults to 10 when `groupBy` is used. */
   count?: number;
   /** Defaults to `latestFirst` */
   order?: "earliestFirst" | "latestFirst";
   trimBody?: number;
-  filter?: LogsListFilters;
-};
+} & LogsListRequest;
 
 /**
  * Deprecated. Use `LogsRequest` instead.
@@ -602,41 +601,13 @@ export class Client {
    * ```
    */
   public async logs(request: LogsRequest = {}): Promise<GetLogsResponse> {
-    const {
-      urlGroup,
-      // eslint-disable-next-line @typescript-eslint/no-deprecated
-      topicName,
-      fromDate,
-      toDate,
-      callerIp,
-      messageIds,
-      // eslint-disable-next-line @typescript-eslint/no-deprecated
-      count: filterCount,
-      ...restFilter
-    } = request.filter ?? {};
-
-    const filterPayload = {
-      ...restFilter,
-      topicName: urlGroup ?? topicName,
-      fromDate,
-      toDate,
-      callerIp,
-    };
-
-    let cursorString: string | undefined;
-    if (typeof request.cursor === "number" && request.cursor > 0) {
-      cursorString = request.cursor.toString();
-    } else if (typeof request.cursor === "string" && request.cursor !== "") {
-      cursorString = request.cursor;
-    }
-
     const query = {
-      cursor: cursorString,
-      count: request.count ?? filterCount,
+      count: request.count,
       order: request.order,
       trimBody: request.trimBody,
-      messageIds,
-      ...filterPayload,
+      ...("messageIds" in request
+        ? { messageIds: request.messageIds }
+        : { ...renameUrlGroup(request.filter ?? {}), cursor: request.cursor }),
     };
 
     const responsePayload = await this.http.request<GetLogsPayload>({

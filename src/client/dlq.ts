@@ -1,7 +1,7 @@
 import type { Requester } from "./http";
 import type { Message } from "./messages";
-import type { DLQBulkActionFilters, DLQListFilters } from "./filter-types";
-import { buildBulkActionFilterPayload, normalizeCursor } from "./utils";
+import type { DLQBulkActionFilters, DLQListRequest } from "./filter-types";
+import { buildBulkActionFilterPayload, normalizeCursor, renameUrlGroup } from "./utils";
 
 type DlqMessage = Message & {
   /**
@@ -39,8 +39,6 @@ export type DlqMessageGetPayload = {
   cursor?: string;
 };
 
-export type DLQFilter = DLQListFilters;
-
 export class DLQ {
   private readonly http: Requester;
 
@@ -50,36 +48,36 @@ export class DLQ {
 
   /**
    * List messages in the dlq
+   *
+   * Can be called with:
+   * - Filters: `listMessages({ filter: { url: "https://example.com" } })`
+   * - DLQ IDs: `listMessages({ dlqIds: ["id1", "id2"] })`
+   * - No filter (list all): `listMessages()`
    */
   public async listMessages(
     options: {
-      cursor?: string;
       count?: number;
-      /** Defaults to `latestFirst` */
+      /** Defaults to `earliestFirst` */
       order?: "earliestFirst" | "latestFirst";
       trimBody?: number;
-      filter?: DLQListFilters;
-    } = {}
+    } & DLQListRequest = {}
   ): Promise<{
     messages: DlqMessage[];
     cursor?: string;
   }> {
-    const { urlGroup, ...restFilter } = options.filter ?? {};
-    const filterPayload = {
-      ...restFilter,
-      ...(urlGroup === undefined ? {} : { topicName: urlGroup }),
+    const query = {
+      count: options.count,
+      order: options.order,
+      trimBody: options.trimBody,
+      ...("dlqIds" in options
+        ? { dlqIds: options.dlqIds }
+        : { ...renameUrlGroup(options.filter ?? {}), cursor: options.cursor }),
     };
 
     const messagesPayload = await this.http.request<DlqMessageGetPayload>({
       method: "GET",
       path: ["v2", "dlq"],
-      query: {
-        cursor: options.cursor,
-        count: options.count,
-        order: options.order,
-        trimBody: options.trimBody,
-        ...filterPayload,
-      },
+      query,
     });
     return {
       messages: messagesPayload.messages.map((message) => {
@@ -100,7 +98,7 @@ export class DLQ {
    * - A single dlqId: `delete("id")`
    * - An array of dlqIds: `delete(["id1", "id2"])`
    * - An object with dlqIds: `delete({ dlqIds: ["id1", "id2"] })`
-   * - A filter object: `delete({ url: "https://example.com", label: "label" })`
+   * - A filter object: `delete({ filter: { url: "https://example.com", label: "label" } })`
    * - All messages: `delete({ all: true })`
    *
    * Note: passing an empty array returns `{ deleted: 0 }` without making a request.
@@ -121,7 +119,7 @@ export class DLQ {
 
     // Handle string[]
     if (Array.isArray(request) && request.length === 0) return { deleted: 0 };
-    const filters: DLQBulkActionFilters = Array.isArray(request) ? { dlqIds: request } : request;
+    const filters = Array.isArray(request) ? { dlqIds: request } : request;
 
     return normalizeCursor(
       await this.http.request({
@@ -150,7 +148,7 @@ export class DLQ {
    * - A single dlqId: `retry("id")`
    * - An array of dlqIds: `retry(["id1", "id2"])`
    * - An object with dlqIds: `retry({ dlqIds: ["id1", "id2"] })`
-   * - A filter object: `retry({ url: "https://example.com", label: "label" })`
+   * - A filter object: `retry({ filter: { url: "https://example.com", label: "label" } })`
    * - All messages: `retry({ all: true })`
    *
    * Note: passing an empty array returns `{ responses: [] }` without making a request.

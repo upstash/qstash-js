@@ -199,54 +199,34 @@ export function decodeBase64(base64: string) {
 }
 
 /**
- * Builds a filter payload object, handling the `urlGroup` → `topicName` rename
- * and `Date` → ms conversions for `fromDate` / `toDate`.
- * Returns an empty object when `all: true`.
+ * Builds a filter payload object from the three-branch union types
+ * (`{ dlqIds }`, `{ messageIds }`, `{ filter }`, or `{ all }`).
  *
- * Pass `{ callerIpCasing: true }` to remap `callerIp` → `callerIP` (uppercase P),
- * required by endpoints whose server schema uses the uppercase variant.
+ * Handles the `urlGroup` → `topicName` rename.
+ * Returns an empty object when `all: true`.
  */
-export function buildBulkActionFilterPayload(
-  request: DLQBulkActionFilters | MessageCancelFilters,
-  options?: { callerIpCasing?: true }
-): Record<string, string | string[] | number | boolean | Date | undefined> {
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- runtime guard for JS consumers
-  const hasDlqIds = "dlqIds" in request && request.dlqIds !== undefined;
-  const hasAll = "all" in request && Boolean(request.all);
-  const filterKeys = Object.keys(request).filter((k) => k !== "dlqIds" && k !== "all");
-  const hasFilters = filterKeys.length > 0;
+export function buildBulkActionFilterPayload(request: DLQBulkActionFilters | MessageCancelFilters) {
+  const cursor = "cursor" in request ? request.cursor : undefined;
 
-  if (hasDlqIds && hasAll) {
-    throw new QstashError("dlqIds and all: true are mutually exclusive.");
-  }
-  if (hasDlqIds && hasFilters) {
-    throw new QstashError(
-      `dlqIds cannot be combined with filter fields: ${filterKeys.join(", ")}.`
-    );
-  }
-  if (hasAll && hasFilters) {
-    throw new QstashError(
-      `all: true cannot be combined with filter fields: ${filterKeys.join(", ")}.`
-    );
-  }
+  if ("all" in request) return { cursor };
+  if ("dlqIds" in request) return { dlqIds: request.dlqIds, cursor };
+  if ("messageIds" in request) return { messageIds: request.messageIds, cursor };
 
-  if (hasAll) return {};
-  const { urlGroup, callerIp, ...rest } = request as Record<string, unknown>;
-  const payload = {
-    ...rest,
-    ...(urlGroup === undefined || typeof urlGroup !== "string" ? {} : { topicName: urlGroup }),
-    ...(callerIp === undefined || typeof callerIp !== "string"
-      ? {}
-      : options?.callerIpCasing
-        ? { callerIP: callerIp }
-        : { callerIp }),
+  // Filter branch
+  return {
+    ...renameUrlGroup(request.filter as Record<string, unknown> & { urlGroup?: string }),
+    cursor,
   };
-  if (Object.keys(payload).length === 0) {
-    throw new QstashError(
-      "No filters provided. Pass { all: true } to explicitly target all messages."
-    );
-  }
-  return payload;
+}
+
+/**
+ * Renames `urlGroup` to `topicName` in a filter object.
+ */
+export function renameUrlGroup<T extends { urlGroup?: string }>(
+  filter: T
+): Omit<T, "urlGroup"> & { topicName?: string } {
+  const { urlGroup, ...rest } = filter;
+  return { ...rest, ...(urlGroup === undefined ? {} : { topicName: urlGroup }) };
 }
 
 /**

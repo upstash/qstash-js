@@ -161,7 +161,7 @@ describe("Messages", () => {
       });
 
       // Cancel all messages with the specific flowControlKey
-      const result = await client.messages.cancel({ flowControlKey });
+      const result = await client.messages.cancel({ filter: { flowControlKey } });
 
       // Should cancel at least the 2 messages with the matching flowControlKey
       expect(result.cancelled).toBeGreaterThanOrEqual(2);

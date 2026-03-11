@@ -444,7 +444,7 @@ describe("DLQ", () => {
       expect(dlqBefore.messages.length).toBeGreaterThanOrEqual(2);
 
       // Delete using filter overload
-      const deleteResult = await client.dlq.delete({ label });
+      const deleteResult = await client.dlq.delete({ filter: { label } });
 
       expect(deleteResult).toBeDefined();
       expect(deleteResult.deleted).toBeGreaterThanOrEqual(2);
@@ -542,7 +542,7 @@ describe("DLQ", () => {
       expect(dlqBefore.messages.length).toBeGreaterThanOrEqual(2);
 
       // Retry using filter overload
-      const retryResult = await client.dlq.retry({ label });
+      const retryResult = await client.dlq.retry({ filter: { label } });
 
       expect(retryResult).toBeDefined();
       expect(retryResult.responses).toBeInstanceOf(Array);
@@ -550,15 +550,10 @@ describe("DLQ", () => {
       expect(retryResult.responses.every((r) => r.messageId)).toBe(true);
 
       // Clean up
-      await client.dlq.delete({ label });
+      await client.dlq.delete({ filter: { label } });
     },
     { timeout: 20_000 }
   );
-
-  test("should throw when delete is called with an empty object", () => {
-    // @ts-expect-error intentionally bypassing type check to verify runtime guard
-    expect(client.dlq.delete({})).rejects.toThrow("No filters provided");
-  });
 
   test("should return empty result when retry is called with an empty array", async () => {
     const result = await client.dlq.retry([]);
@@ -633,7 +628,7 @@ describe("DLQ", () => {
         { timeout: 15_000, interval: 1000 }
       );
 
-      const result = await client.dlq.delete({ flowControlKey: flowKey });
+      const result = await client.dlq.delete({ filter: { flowControlKey: flowKey } });
       expect(result).toBeDefined();
       expect(result.deleted).toBe(1);
     },
@@ -679,7 +674,7 @@ describe("DLQ", () => {
       expect(earliest.messages[0].createdAt).toBeLessThanOrEqual(earliest.messages[1].createdAt);
       expect(latest.messages[0].createdAt).toBeGreaterThanOrEqual(latest.messages[1].createdAt);
 
-      await client.dlq.delete({ label });
+      await client.dlq.delete({ filter: { label } });
     },
     { timeout: 25_000 }
   );
@@ -702,12 +697,12 @@ describe("DLQ", () => {
         { timeout: 15_000, interval: 1000 }
       );
 
-      const retryResult = await client.dlq.retry({ label });
+      const retryResult = await client.dlq.retry({ filter: { label } });
 
       expect(retryResult.responses.length).toBe(1);
       expect(retryResult.responses[0].messageId).toBeDefined();
 
-      await client.dlq.delete({ label });
+      await client.dlq.delete({ filter: { label } });
     },
     { timeout: 20_000 }
   );
