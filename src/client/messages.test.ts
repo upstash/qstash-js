@@ -100,7 +100,7 @@ describe("Messages", () => {
     const ratePerSecond = 5;
     const period = "1d";
     const { messageId } = await client.publish({
-      url: "https://httpstat.us/200",
+      url: "https://httpbin.org/status/200",
       body: "hello",
       delay: "10d",
       flowControl: {
@@ -127,7 +127,7 @@ describe("Messages", () => {
       const flowControlKey = "flow-key";
       // Create messages with the same flow control key
       await client.publish({
-        url: "https://httpstat.us/200",
+        url: "https://httpbin.org/status/200",
         body: "hello",
         delay: "10d",
         flowControl: {
@@ -138,7 +138,7 @@ describe("Messages", () => {
       });
 
       await client.publish({
-        url: "https://httpstat.us/200",
+        url: "https://httpbin.org/status/200",
         body: "hello",
         delay: "10d",
         flowControl: {
@@ -150,7 +150,7 @@ describe("Messages", () => {
 
       // Create a message with a different flow control key
       const message3 = await client.publish({
-        url: "https://httpstat.us/200",
+        url: "https://httpbin.org/status/200",
         body: "hello",
         delay: "10d",
         flowControl: {
@@ -175,7 +175,7 @@ describe("Messages", () => {
     "should cancel all messages using all: true",
     async () => {
       await client.publish({
-        url: "https://httpstat.us/200",
+        url: "https://httpbin.org/status/200",
         body: "hello",
         delay: "10d",
       });
@@ -191,7 +191,7 @@ describe("Messages", () => {
     "should return cancelled count when cancelling a single message",
     async () => {
       const message = await client.publish({
-        url: "https://httpstat.us/200",
+        url: "https://httpbin.org/status/200",
         body: "hello",
         delay: "10d",
       });

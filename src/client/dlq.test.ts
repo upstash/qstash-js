@@ -178,7 +178,7 @@ describe("DLQ", () => {
       const retryDelay = "2000 * retried";
       const randomKey = `flow-control-key-${Date.now()}`;
       const { messageId } = await client.publish({
-        url: "https://httpstat.us/400",
+        url: "https://httpbin.org/status/400",
         body: "hello",
         retries: 0,
         flowControl: {
@@ -217,7 +217,7 @@ describe("DLQ", () => {
     async () => {
       const testLabel = `dlq-test-label-${Date.now()}`;
       await client.publish({
-        url: `https://httpstat.us/400`, // Any broken link will work
+        url: `https://httpbin.org/status/400`, // Any broken link will work
         retries: 0,
         label: testLabel,
       });
@@ -613,7 +613,7 @@ describe("DLQ", () => {
     async () => {
       const flowKey = `dlq-flow-key-${Date.now()}`;
       await client.publish({
-        url: "https://httpstat.us/400",
+        url: "https://httpbin.org/status/400",
         body: "hello",
         retries: 0,
         flowControl: {
