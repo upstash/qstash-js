@@ -10,23 +10,6 @@ import { eventually } from "./logs.test";
 const SECONDS_IN_A_DAY = 24 * 60 * 60;
 
 describe("DLQ", () => {
-  test(
-    "should filter DLQ messages by label",
-    async () => {
-      const label = `dlq-label-${Date.now()}`;
-      await client.publish({
-        url: "https://example.com/force-dlq",
-        retries: 0,
-        label,
-      });
-      await sleep(10_000);
-      const dlqLogs = await client.dlq.listMessages({ filter: { label } });
-      expect(dlqLogs.messages.some((m) => m.label === label)).toBe(true);
-    },
-    {
-      timeout: 15_000,
-    }
-  );
   const client = new Client({ token: process.env.QSTASH_TOKEN! });
   const urlGroup = "someUrlGroup";
 
@@ -148,7 +131,7 @@ describe("DLQ", () => {
       const retryDelay = "2000 * retried";
       const randomKey = `flow-control-key-${Date.now()}`;
       const { messageId } = await client.publish({
-        url: "https://httpstat.us/400",
+        url: "https://mock.httpstatus.io/400",
         body: "hello",
         retries: 0,
         flowControl: {
@@ -187,7 +170,7 @@ describe("DLQ", () => {
     async () => {
       const testLabel = `dlq-test-label-${Date.now()}`;
       await client.publish({
-        url: `https://httpstat.us/400`, // Any broken link will work
+        url: `https://mock.httpstatus.io/400`, // Any broken link will work
         retries: 0,
         label: testLabel,
       });
