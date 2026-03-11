@@ -6,11 +6,11 @@ import { Client } from "./client";
 
 describe("FlowControl", () => {
   const client = new Client({ token: process.env.QSTASH_TOKEN! });
-  const flowControlKey = "test-flow-control-key";
 
   test(
     "should publish with flow control, then get flow control info",
     async () => {
+      const flowControlKey = `fc-info-${Date.now()}`;
       // Publish a message with flow control to ensure the key exists
       const { messageId } = await client.publish({
         url: "https://mock.httpstatus.io/200?sleep=30000",
@@ -49,6 +49,7 @@ describe("FlowControl", () => {
   test(
     "should pause and resume a flow control key",
     async () => {
+      const flowControlKey = `fc-pause-${Date.now()}`;
       // Publish a message with flow control to ensure the key exists
       const { messageId } = await client.publish({
         url: "https://mock.httpstatus.io/200?sleep=30000",
@@ -84,6 +85,7 @@ describe("FlowControl", () => {
   test(
     "should pin and unpin a flow control key configuration",
     async () => {
+      const flowControlKey = `fc-pin-${Date.now()}`;
       // Publish a message with flow control to ensure the key exists
       const { messageId } = await client.publish({
         url: "https://mock.httpstatus.io/200?sleep=30000",
@@ -131,6 +133,7 @@ describe("FlowControl", () => {
   test(
     "should reset rate for a flow control key",
     async () => {
+      const flowControlKey = `fc-reset-${Date.now()}`;
       // Publish a message with flow control to ensure the key exists
       const { messageId } = await client.publish({
         url: "https://mock.httpstatus.io/200?sleep=30000",
