@@ -23,9 +23,6 @@ type FilterAllOrIds<F extends Record<string, unknown>, Ids extends Record<string
 
 /** Shared filter fields accepted by every qstash & workflow endpoint. */
 export type UniversalFilterFields = {
-  /**
-   * aslkdjasd
-   */
   fromDate?: Date | number;
   toDate?: Date | number;
   callerIp?: string;
