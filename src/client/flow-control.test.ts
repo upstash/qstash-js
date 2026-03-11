@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-magic-numbers */
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 
 import { describe, expect, test } from "bun:test";
@@ -12,7 +13,7 @@ describe("FlowControl", () => {
     async () => {
       // Publish a message with flow control to ensure the key exists
       const { messageId } = await client.publish({
-        url: "https://httpstat.us/200?sleep=30000",
+        url: "https://mock.httpstatus.io/200?sleep=30000",
         body: "hello",
         flowControl: {
           key: flowControlKey,
@@ -43,5 +44,115 @@ describe("FlowControl", () => {
       expect(typeof info.parallelismCount).toBe("number");
     },
     { timeout: 20_000 }
+  );
+
+  test(
+    "should pause and resume a flow control key",
+    async () => {
+      // Publish a message with flow control to ensure the key exists
+      const { messageId } = await client.publish({
+        url: "https://mock.httpstatus.io/200?sleep=30000",
+        body: "hello",
+        flowControl: {
+          key: flowControlKey,
+          parallelism: 5,
+          rate: 10,
+          period: "1m",
+        },
+      });
+
+      // Pause the flow control key
+      await client.flowControl.pause(flowControlKey);
+
+      // Verify it's paused
+      const paused = await client.flowControl.get(flowControlKey);
+      expect(paused.isPaused).toBe(true);
+
+      // Resume the flow control key
+      await client.flowControl.resume(flowControlKey);
+
+      // Verify it's resumed
+      const resumed = await client.flowControl.get(flowControlKey);
+      expect(resumed.isPaused).toBe(false);
+
+      // Clean up
+      await client.messages.delete(messageId);
+    },
+    { timeout: 30_000 }
+  );
+
+  test(
+    "should pin and unpin a flow control key configuration",
+    async () => {
+      // Publish a message with flow control to ensure the key exists
+      const { messageId } = await client.publish({
+        url: "https://mock.httpstatus.io/200?sleep=30000",
+        body: "hello",
+        flowControl: {
+          key: flowControlKey,
+          parallelism: 5,
+          rate: 10,
+          period: "1m",
+        },
+      });
+
+      // Pin the configuration
+      await client.flowControl.pin(flowControlKey, {
+        parallelism: 3,
+        rate: 20,
+        period: 120,
+      });
+
+      // Verify it's pinned
+      const pinned = await client.flowControl.get(flowControlKey);
+      expect(pinned.isParallelismStatic).toBe(true);
+      expect(pinned.isRateStatic).toBe(true);
+      expect(pinned.parallelismMax).toBe(3);
+      expect(pinned.rateMax).toBe(20);
+      expect(pinned.ratePeriod).toBe(120);
+
+      // Unpin the configuration
+      await client.flowControl.unpin(flowControlKey, {
+        parallelism: true,
+        rate: true,
+      });
+
+      // Verify it's unpinned
+      const unpinned = await client.flowControl.get(flowControlKey);
+      expect(unpinned.isParallelismStatic).toBe(false);
+      expect(unpinned.isRateStatic).toBe(false);
+
+      // Clean up
+      await client.messages.delete(messageId);
+    },
+    { timeout: 30_000 }
+  );
+
+  test(
+    "should reset rate for a flow control key",
+    async () => {
+      // Publish a message with flow control to ensure the key exists
+      const { messageId } = await client.publish({
+        url: "https://mock.httpstatus.io/200?sleep=30000",
+        body: "hello",
+        flowControl: {
+          key: flowControlKey,
+          parallelism: 5,
+          rate: 10,
+          period: "1m",
+        },
+      });
+
+      // Reset the rate
+      await client.flowControl.resetRate(flowControlKey);
+
+      // Verify rate was reset by checking the flow control info
+      const info = await client.flowControl.get(flowControlKey);
+      expect(info.rateCount).toBe(0);
+
+      // Clean up
+      await client.messages.delete(messageId);
+    },
+    { timeout: 30_000 }
   );
 });
