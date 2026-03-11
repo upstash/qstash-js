@@ -4,12 +4,6 @@ import type { PublishRequest } from "./client";
 import { QstashError } from "./error";
 import type { DLQBulkActionFilters, MessageCancelFilters } from "./filter-types";
 
-/**
- * Converts a `Date` object or a Unix timestamp in milliseconds to a number.
- */
-export const toMs = (d: Date | number | string): number =>
-  d instanceof Date ? d.getTime() : Number(d);
-
 const isIgnoredHeader = (header: string) => {
   const lowerCaseHeader = header.toLowerCase();
   return lowerCaseHeader.startsWith("content-type") || lowerCaseHeader.startsWith("upstash-");
@@ -263,15 +257,6 @@ export function normalizeCursor<T>(response: T): T {
   const cursor = (response as { cursor?: string }).cursor;
   // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
   return { ...response, cursor: cursor || undefined };
-}
-
-export function parseCursor(cursor: string) {
-  const [timestamp, sequence] = cursor.split("-");
-
-  return {
-    timestamp: Number.parseInt(timestamp, 10),
-    sequence: Number.parseInt(sequence, 10),
-  };
 }
 
 export function getRuntime() {
