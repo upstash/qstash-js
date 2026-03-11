@@ -121,13 +121,11 @@ export class DLQ {
     if (Array.isArray(request) && request.length === 0) return { deleted: 0 };
     const filters = Array.isArray(request) ? { dlqIds: request } : request;
 
-    return normalizeCursor(
-      await this.http.request({
-        method: "DELETE",
-        path: ["v2", "dlq"],
-        query: buildBulkActionFilterPayload(filters),
-      })
-    );
+    return await this.http.request({
+      method: "DELETE",
+      path: ["v2", "dlq"],
+      query: buildBulkActionFilterPayload(filters),
+    });
   }
 
   /**

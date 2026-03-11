@@ -701,9 +701,36 @@ describe("DLQ", () => {
 
       expect(retryResult.responses.length).toBe(1);
       expect(retryResult.responses[0].messageId).toBeDefined();
+      expect(retryResult.cursor).toBeUndefined();
 
       await client.dlq.delete({ filter: { label } });
     },
     { timeout: 20_000 }
+  );
+
+  test(
+    "should return undefined cursor on last page of listMessages",
+    async () => {
+      const result = await client.dlq.listMessages({
+        filter: {
+          label: `non-existent-label-${Date.now()}`,
+        },
+      });
+
+      expect(result.cursor).toBeUndefined();
+    },
+    { timeout: 30_000 }
+  );
+
+  test(
+    "should return undefined cursor (not empty string) from delete with no-match filter",
+    async () => {
+      const result = await client.dlq.delete({
+        filter: { url: "https://definitely-does-not-exist-12345.example.com" },
+      });
+      expect(result.deleted).toBe(0);
+      expect(result.cursor).toBeUndefined();
+    },
+    { timeout: 10_000 }
   );
 });

@@ -213,7 +213,7 @@ export class Messages {
    * @deprecated Use `cancel(messageIds: string[])` instead
    */
   public async deleteMany(messageIds: string[]): Promise<number> {
-    const result = (await this.cancel(messageIds)) as { cancelled: number };
+    const result = await this.cancel(messageIds);
     return result.cancelled;
   }
 
@@ -222,7 +222,7 @@ export class Messages {
    * @deprecated Use `cancel({all: true})` to cancel all
    */
   public async deleteAll(): Promise<number> {
-    const result = (await this.cancel({ all: true })) as { cancelled: number };
+    const result = await this.cancel({ all: true });
     return result.cancelled;
   }
 }

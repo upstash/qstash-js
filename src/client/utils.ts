@@ -231,8 +231,8 @@ export function renameUrlGroup<T extends { urlGroup?: string; api?: string }>(
 }
 
 /**
- * Converts empty string to `undefined` for the `cursor` field
- * so that callers can reliably use `cursor` as a boolean presence check.
+ * Currently only the DLQ retry endpoint (POST /v2/dlq/retry) returns `cursor: ""`
+ * this function normalizes that to `cursor: undefined` for better consistency across the SDK.
  */
 export function normalizeCursor<T>(response: T): T {
   const cursor = (response as { cursor?: string }).cursor;
