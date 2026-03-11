@@ -82,12 +82,23 @@ export type DLQListRequest = Exclusive<
 
 export type LogsListRequest = Exclusive<
   { messageIds: string[] },
-  { filter?: LogsListFilters; cursor?: string }
+  {
+    filter?: LogsListFilters;
+    /**
+     * Passing `number` may silently break due to JavaScript integer precision
+     * limits — cursor values can exceed `Number.MAX_SAFE_INTEGER`. Use `string` instead.
+     */
+    cursor?: string | number;
+  }
 >;
 
 export type LogsListFilters = UniversalFilterFields &
   Omit<QStashIdentityFields, "messageId"> &
   LogsFilterFields & {
+    /**
+     * @deprecated `api` filter has been removed from the API and will be ignored
+     */
+    api?: string;
     /**
      * @deprecated use `messageIds` in the root instead of `messageId` in the `filter` object
      *

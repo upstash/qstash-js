@@ -222,10 +222,11 @@ export function buildBulkActionFilterPayload(request: DLQBulkActionFilters | Mes
 /**
  * Renames `urlGroup` to `topicName` in a filter object.
  */
-export function renameUrlGroup<T extends { urlGroup?: string }>(
+export function renameUrlGroup<T extends { urlGroup?: string; api?: string }>(
   filter: T
-): Omit<T, "urlGroup"> & { topicName?: string } {
-  const { urlGroup, ...rest } = filter;
+): Omit<T, "urlGroup" | "api"> & { topicName?: string } {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { urlGroup, api, ...rest } = filter;
   return { ...rest, ...(urlGroup === undefined ? {} : { topicName: urlGroup }) };
 }
 
