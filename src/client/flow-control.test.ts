@@ -107,8 +107,8 @@ describe("FlowControl", () => {
 
       // Verify it's pinned
       const pinned = await client.flowControl.get(flowControlKey);
-      expect(pinned.isParallelismStatic).toBe(true);
-      expect(pinned.isRateStatic).toBe(true);
+      expect(pinned.isPinnedParallelism).toBe(true);
+      expect(pinned.isPinnedRate).toBe(true);
       expect(pinned.parallelismMax).toBe(3);
       expect(pinned.rateMax).toBe(20);
       expect(pinned.ratePeriod).toBe(120);
@@ -121,8 +121,8 @@ describe("FlowControl", () => {
 
       // Verify it's unpinned
       const unpinned = await client.flowControl.get(flowControlKey);
-      expect(unpinned.isParallelismStatic).toBe(false);
-      expect(unpinned.isRateStatic).toBe(false);
+      expect(unpinned.isPinnedParallelism).toBe(false);
+      expect(unpinned.isPinnedRate).toBe(false);
 
       // Clean up
       await client.messages.delete(messageId);

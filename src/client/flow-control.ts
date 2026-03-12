@@ -49,12 +49,12 @@ export type FlowControlInfo = {
   /**
    * Whether the parallelism configuration is pinned.
    */
-  isParallelismStatic: boolean;
+  isPinnedParallelism: boolean;
 
   /**
    * Whether the rate configuration is pinned.
    */
-  isRateStatic: boolean;
+  isPinnedRate: boolean;
 };
 
 export type GlobalParallelismInfo = {
