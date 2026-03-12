@@ -131,6 +131,45 @@ describe("FlowControl", () => {
   );
 
   test(
+    "should unpin a single field while keeping the other pinned",
+    async () => {
+      const flowControlKey = `fc-unpin-single-${Date.now()}`;
+      const { messageId } = await client.publish({
+        url: "https://mock.httpstatus.io/200?sleep=30000",
+        body: "hello",
+        flowControl: {
+          key: flowControlKey,
+          parallelism: 5,
+          rate: 10,
+          period: "1m",
+        },
+      });
+
+      // Pin both parallelism and rate
+      await client.flowControl.pin(flowControlKey, {
+        parallelism: 3,
+        rate: 20,
+        period: 120,
+      });
+
+      const pinned = await client.flowControl.get(flowControlKey);
+      expect(pinned.isPinnedParallelism).toBe(true);
+      expect(pinned.isPinnedRate).toBe(true);
+
+      // Unpin only parallelism
+      await client.flowControl.unpin(flowControlKey, { parallelism: true });
+
+      const partial = await client.flowControl.get(flowControlKey);
+      expect(partial.isPinnedParallelism).toBe(false);
+      expect(partial.isPinnedRate).toBe(true);
+
+      // Clean up
+      await client.messages.delete(messageId);
+    },
+    { timeout: 30_000 }
+  );
+
+  test(
     "should reset rate for a flow control key",
     async () => {
       const flowControlKey = `fc-reset-${Date.now()}`;
