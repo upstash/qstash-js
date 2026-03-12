@@ -161,14 +161,14 @@ export class FlowControlApi {
    * While pinned, the system ignores configurations provided by incoming
    * messages and uses the pinned configuration instead.
    */
-  public async pin(flowControlKey: string, options?: PinFlowControlOptions): Promise<void> {
+  public async pin(flowControlKey: string, options: PinFlowControlOptions): Promise<void> {
     await this.http.request({
       method: "POST",
       path: ["v2", "flowControl", flowControlKey, "pin"],
       query: {
-        parallelism: options?.parallelism,
-        rate: options?.rate,
-        period: options?.period,
+        parallelism: options.parallelism,
+        rate: options.rate,
+        period: options.period,
       },
       parseResponseAsJson: false,
     });
@@ -180,13 +180,13 @@ export class FlowControlApi {
    * After unpinning, the system resumes updating the configuration
    * based on incoming messages.
    */
-  public async unpin(flowControlKey: string, options?: UnpinFlowControlOptions): Promise<void> {
+  public async unpin(flowControlKey: string, options: UnpinFlowControlOptions): Promise<void> {
     await this.http.request({
       method: "POST",
       path: ["v2", "flowControl", flowControlKey, "unpin"],
       query: {
-        parallelism: options?.parallelism,
-        rate: options?.rate,
+        parallelism: options.parallelism,
+        rate: options.rate,
       },
       parseResponseAsJson: false,
     });
