@@ -12,7 +12,7 @@ describe("FlowControl", () => {
     async () => {
       // Publish a message with flow control to ensure the key exists
       const { messageId } = await client.publish({
-        url: "https://httpstat.us/200?sleep=30000",
+        url: "https://example.com",
         body: "hello",
         flowControl: {
           key: flowControlKey,
