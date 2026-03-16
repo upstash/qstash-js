@@ -1,10 +1,13 @@
 /* eslint-disable @typescript-eslint/no-magic-numbers */
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 /* eslint-disable @typescript-eslint/no-deprecated */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { sleep } from "bun";
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { Client } from "./client";
 import { eventually } from "./logs.test";
+import { MOCK_QSTASH_SERVER_URL, mockQStashServer } from "./workflow/test-utils";
+import type { HttpClient } from "./http";
 
 // Updated to use constants for magic numbers
 const SECONDS_IN_A_DAY = 24 * 60 * 60;
@@ -565,9 +568,9 @@ describe("DLQ", () => {
     expect(result).toEqual({ deleted: 0 });
   });
 
-  test("should return empty result when delete is called with { dlqIds: [] }", async () => {
-    const result = await client.dlq.delete({ dlqIds: [] });
-    expect(result).toEqual({ deleted: 0 });
+  // eslint-disable-next-line @typescript-eslint/require-await
+  test("should throw when delete is called with { dlqIds: [] }", async () => {
+    expect(client.dlq.delete({ dlqIds: [] })).rejects.toThrow("Empty dlqIds array");
   });
 
   test(
@@ -733,4 +736,148 @@ describe("DLQ", () => {
     },
     { timeout: 10_000 }
   );
+
+  test(
+    "should retry with ALL DLQ filter fields without error",
+    async () => {
+      const label = `dlq-all-fields-${Date.now()}`;
+      const targetUrl = "https://example.com/all-fields-test";
+
+      await client.publish({
+        url: targetUrl,
+        retries: 0,
+        label,
+      });
+
+      await eventually(
+        async () => {
+          const dlqLogs = await client.dlq.listMessages({ filter: { label } });
+          expect(dlqLogs.messages.length).toBeGreaterThanOrEqual(1);
+        },
+        { timeout: 15_000, interval: 1000 }
+      );
+
+      // Test each filter field individually to make sure none of them error
+      const filterFields = [
+        { messageId: "non-existent-id" },
+        { url: "https://non-existent-url.example.com" },
+        { urlGroup: "non-existent-url-group" },
+        { scheduleId: "non-existent-schedule" },
+        { queueName: "non-existent-queue" },
+        { callerIp: "0.0.0.0" },
+        { label: "non-existent-label" },
+        { flowControlKey: "non-existent-key" },
+        { responseStatus: 999 },
+        { fromDate: new Date("2099-01-01") },
+        { toDate: new Date("2000-01-01") },
+      ] as const;
+
+      for (const filter of filterFields) {
+        const retryResult = await client.dlq.retry({ filter });
+        expect(retryResult).toBeDefined();
+        expect(retryResult.responses).toBeInstanceOf(Array);
+      }
+
+      // Clean up
+      await client.dlq.delete({ filter: { label } });
+    },
+    { timeout: 30_000 }
+  );
+
+  test(
+    "should get server error when sending wrong filter field with typo",
+    // eslint-disable-next-line @typescript-eslint/require-await
+    async () => {
+      // Sending an unknown/typo filter field should cause the server to return an error
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      const bogusFilter = { labeel: "some-value" } as any;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      const promise = client.dlq.listMessages({ filter: bogusFilter });
+      expect(promise).rejects.toThrow();
+    },
+    { timeout: 10_000 }
+  );
+
+  // eslint-disable-next-line @typescript-eslint/require-await
+  test("should throw when retry is called with { dlqIds: [] }", async () => {
+    expect(client.dlq.retry({ dlqIds: [] })).rejects.toThrow("Empty dlqIds array");
+  });
+});
+
+describe("DLQ - mocked early return", () => {
+  test("should not send request when delete is called with empty string array", async () => {
+    await mockQStashServer({
+      execute: async () => {
+        const mockClient = new Client({
+          token: "mock-token",
+          baseUrl: MOCK_QSTASH_SERVER_URL,
+        });
+        const result = await mockClient.dlq.delete([]);
+        expect(result).toEqual({ deleted: 0 });
+      },
+      responseFields: { body: {}, status: 200 },
+      receivesRequest: false,
+    });
+  });
+
+  test("should not send request when delete is called with { dlqIds: [] } and throw", async () => {
+    await mockQStashServer({
+      execute: () => {
+        const mockClient = new Client({
+          token: "mock-token",
+          baseUrl: MOCK_QSTASH_SERVER_URL,
+        });
+        expect(mockClient.dlq.delete({ dlqIds: [] })).rejects.toThrow("Empty dlqIds array");
+      },
+      responseFields: { body: {}, status: 200 },
+      receivesRequest: false,
+    });
+  });
+
+  test("should not send request when retry is called with empty string array", async () => {
+    await mockQStashServer({
+      execute: async () => {
+        const mockClient = new Client({
+          token: "mock-token",
+          baseUrl: MOCK_QSTASH_SERVER_URL,
+        });
+        const result = await mockClient.dlq.retry([]);
+        expect(result).toEqual({ responses: [] });
+      },
+      responseFields: { body: {}, status: 200 },
+      receivesRequest: false,
+    });
+  });
+
+  test("should not send request when retry is called with { dlqIds: [] } and throw", async () => {
+    await mockQStashServer({
+      execute: () => {
+        const mockClient = new Client({
+          token: "mock-token",
+          baseUrl: MOCK_QSTASH_SERVER_URL,
+        });
+        expect(mockClient.dlq.retry({ dlqIds: [] })).rejects.toThrow("Empty dlqIds array");
+      },
+      responseFields: { body: {}, status: 200 },
+      receivesRequest: false,
+    });
+  });
+
+  // eslint-disable-next-line @typescript-eslint/require-await
+  test("http client should throw when empty array is passed in query params", async () => {
+    const mockClient = new Client({
+      token: "mock-token",
+      baseUrl: MOCK_QSTASH_SERVER_URL,
+    });
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    const http = (mockClient as any).http as HttpClient;
+
+    const promise = http.request({
+      method: "GET",
+      path: ["v2", "dlq"],
+      query: { dlqIds: [] as string[] },
+    });
+    expect(promise).rejects.toThrow("Empty array");
+  });
+
 });

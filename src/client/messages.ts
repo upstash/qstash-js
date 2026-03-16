@@ -181,7 +181,7 @@ export class Messages {
       });
     }
 
-    // Handle string[], { messageIds }, { all: true }, or filter object
+    // Early return for empty string[]
     if (Array.isArray(request) && request.length === 0) return { cancelled: 0 };
     const filters: MessageCancelFilters = Array.isArray(request)
       ? { messageIds: request }

@@ -4,6 +4,7 @@ import {
   QstashRatelimitError,
   QstashChatRatelimitError,
   QstashDailyRatelimitError,
+  QstashEmptyArrayError,
 } from "./error";
 import type { BodyInit, HeadersInit, HTTPMethods, RequestOptions } from "./types";
 import type { ChatCompletionChunk } from "./llm/types";
@@ -224,6 +225,9 @@ export class HttpClient implements Requester {
       for (const [key, value] of Object.entries(request.query)) {
         if (value === undefined) continue;
         if (Array.isArray(value)) {
+          if ((value as unknown[]).length === 0) {
+            throw new QstashEmptyArrayError(key);
+          }
           for (const item of value) {
             url.searchParams.append(key, item);
           }

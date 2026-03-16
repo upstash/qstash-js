@@ -209,8 +209,25 @@ export function buildBulkActionFilterPayload(request: DLQBulkActionFilters | Mes
   const cursor = "cursor" in request ? request.cursor : undefined;
 
   if ("all" in request) return { cursor };
-  if ("dlqIds" in request) return { dlqIds: request.dlqIds, cursor };
-  if ("messageIds" in request) return { messageIds: request.messageIds, cursor };
+
+  if ("dlqIds" in request) {
+    const ids = request.dlqIds;
+    if (Array.isArray(ids) && ids.length === 0) {
+      throw new QstashError(
+        "Empty dlqIds array provided. If you intend to target all DLQ messages, use { all: true } explicitly."
+      );
+    }
+    return { dlqIds: ids, cursor };
+  }
+
+  if ("messageIds" in request && request.messageIds) {
+    if (request.messageIds.length === 0) {
+      throw new QstashError(
+        "Empty messageIds array provided. If you intend to target all messages, use { all: true } explicitly."
+      );
+    }
+    return { messageIds: request.messageIds, cursor };
+  }
 
   // Filter branch
   return {

@@ -115,7 +115,7 @@ export class DLQ {
       return { deleted: 1 };
     }
 
-    // Handle string[]
+    // Early return for empty string[]
     if (Array.isArray(request) && request.length === 0) return { deleted: 0 };
     const filters = Array.isArray(request) ? { dlqIds: request } : request;
 
@@ -150,7 +150,7 @@ export class DLQ {
   public async retry(
     request: string | string[] | DLQBulkActionFilters
   ): Promise<{ cursor?: string; responses: { messageId: string }[] }> {
-    // Handle string or string[]
+    // Handle string or string[] (the object form is caught in buildBulkActionFilterPayload)
     if (typeof request === "string") request = [request];
     if (Array.isArray(request) && request.length === 0) return { responses: [] };
     const filters: DLQBulkActionFilters = Array.isArray(request) ? { dlqIds: request } : request;

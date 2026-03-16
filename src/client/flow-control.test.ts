@@ -30,7 +30,7 @@ describe("FlowControl", () => {
       expect(typeof single.parallelismCount).toBe("number");
 
       // Clean up the published message
-      await client.messages.delete(messageId);
+      await client.messages.cancel(messageId);
     },
     { timeout: 30_000 }
   );
