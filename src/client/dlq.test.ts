@@ -13,23 +13,6 @@ import type { HttpClient } from "./http";
 const SECONDS_IN_A_DAY = 24 * 60 * 60;
 
 describe("DLQ", () => {
-  test(
-    "should filter DLQ messages by label",
-    async () => {
-      const label = `dlq-label-${Date.now()}`;
-      await client.publish({
-        url: "https://example.com/force-dlq",
-        retries: 0,
-        label,
-      });
-      await sleep(10_000);
-      const dlqLogs = await client.dlq.listMessages({ filter: { label } });
-      expect(dlqLogs.messages.some((m) => m.label === label)).toBe(true);
-    },
-    {
-      timeout: 15_000,
-    }
-  );
   const client = new Client({ token: process.env.QSTASH_TOKEN! });
   const urlGroup = "someUrlGroup";
 

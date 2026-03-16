@@ -100,7 +100,7 @@ describe("Messages", () => {
     const ratePerSecond = 5;
     const period = "1d";
     const { messageId } = await client.publish({
-      url: "https://httpbin.org/status/200",
+      url: "https://mock.httpstatus.io/200?sleep=30000",
       body: "hello",
       delay: "10d",
       flowControl: {
