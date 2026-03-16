@@ -100,8 +100,6 @@ export class DLQ {
    * - An object with dlqIds: `delete({ dlqIds: ["id1", "id2"] })`
    * - A filter object: `delete({ filter: { url: "https://example.com", label: "label" } })`
    * - All messages: `delete({ all: true })`
-   *
-   * Note: passing an empty array returns `{ deleted: 0 }` without making a request.
    */
   public async delete(
     request: string | string[] | DLQBulkActionFilters
@@ -148,8 +146,6 @@ export class DLQ {
    * - An object with dlqIds: `retry({ dlqIds: ["id1", "id2"] })`
    * - A filter object: `retry({ filter: { url: "https://example.com", label: "label" } })`
    * - All messages: `retry({ all: true })`
-   *
-   * Note: passing an empty array returns `{ responses: [] }` without making a request.
    */
   public async retry(
     request: string | string[] | DLQBulkActionFilters
