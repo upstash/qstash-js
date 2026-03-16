@@ -306,20 +306,20 @@ describe("E2E Queue", () => {
   const client = new Client({ token: process.env.QSTASH_TOKEN! });
 
   afterAll(async () => {
-    const queueDetails = await client.queue().list();
-    const urlGroups = await client.urlGroups.list();
+    const [queueDetails, urlGroups] = await Promise.all([
+      client.queue().list(),
+      client.urlGroups.list(),
+    ]);
 
-    await Promise.all(
-      urlGroups.map(async (t) => {
+    await Promise.all([
+      ...urlGroups.map(async (t) => {
         await client.urlGroups.delete(t.name);
-      })
-    );
+      }),
 
-    await Promise.all(
-      queueDetails.map(async (q) => {
+      ...queueDetails.map(async (q) => {
         await client.queue({ queueName: q.name }).delete();
-      })
-    );
+      }),
+    ]);
   });
 
   test(
