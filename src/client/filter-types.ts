@@ -47,7 +47,14 @@ type LogsFilterFields = {
 
 // ── Composed Filter Field Types ───────────────────────────────
 
-type DLQFilterFields = UniversalFilterFields & QStashIdentityFields & DLQResponseFields;
+type DLQFilterFields = UniversalFilterFields &
+  QStashIdentityFields &
+  DLQResponseFields & {
+    /**
+     * @deprecated `api` filter has been removed from the API and will be ignored
+     */
+    api?: string;
+  };
 
 type MessageCancelFilterFields = UniversalFilterFields & Omit<QStashIdentityFields, "messageId">;
 
