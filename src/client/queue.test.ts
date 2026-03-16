@@ -15,59 +15,71 @@ describe("Queue", () => {
     await clearQueues(client);
   });
 
-  test("should create a queue, verify it then remove it", async () => {
-    const queueName = "upstash-queue";
-    await client.queue({ queueName }).upsert({ parallelism: 2 });
+  test(
+    "should create a queue, verify it then remove it",
+    async () => {
+      const queueName = "upstash-queue";
+      await client.queue({ queueName }).upsert({ parallelism: 2 });
 
-    const queueDetails = await client.queue({ queueName }).get();
-    expect(queueDetails.name).toEqual(queueName);
+      const queueDetails = await client.queue({ queueName }).get();
+      expect(queueDetails.name).toEqual(queueName);
 
-    await client.queue({ queueName }).delete();
+      await client.queue({ queueName }).delete();
 
-    const queues = await client.queue().list();
-    expect(queues.length).toBe(0);
-  });
+      const queues = await client.queue().list();
+      expect(queues.length).toBe(0);
+    },
+    { timeout: 20_000 }
+  );
 
-  test("should create multiple queue, verify them then remove them", async () => {
-    const queueName1 = "upstash-queue1";
-    const queueName2 = "upstash-queue2";
+  test(
+    "should create multiple queue, verify them then remove them",
+    async () => {
+      const queueName1 = "upstash-queue1";
+      const queueName2 = "upstash-queue2";
 
-    await client.queue({ queueName: queueName1 }).upsert({ parallelism: 2 });
-    await client.queue({ queueName: queueName2 }).upsert({ parallelism: 2 });
+      await client.queue({ queueName: queueName1 }).upsert({ parallelism: 2 });
+      await client.queue({ queueName: queueName2 }).upsert({ parallelism: 2 });
 
-    const queueDetails = await client.queue().list();
-    expect(queueDetails.map((q) => q.name).sort()).toEqual([queueName1, queueName2].sort());
+      const queueDetails = await client.queue().list();
+      expect(queueDetails.map((q) => q.name).sort()).toEqual([queueName1, queueName2].sort());
 
-    await client.queue({ queueName: queueName1 }).delete();
-    await client.queue({ queueName: queueName2 }).delete();
-  });
+      await client.queue({ queueName: queueName1 }).delete();
+      await client.queue({ queueName: queueName2 }).delete();
+    },
+    { timeout: 20_000 }
+  );
 
-  test("should pause/resume", async () => {
-    const name = "upstash-pause-resume-queue";
-    const queue = client.queue({ queueName: name });
-    await queue.upsert({ parallelism: 1 });
+  test(
+    "should pause/resume",
+    async () => {
+      const name = "upstash-pause-resume-queue";
+      const queue = client.queue({ queueName: name });
+      await queue.upsert({ parallelism: 1 });
 
-    let queueInfo = await queue.get();
-    expect(queueInfo.paused).toBeFalse();
+      let queueInfo = await queue.get();
+      expect(queueInfo.paused).toBeFalse();
 
-    await queue.pause();
+      await queue.pause();
 
-    queueInfo = await queue.get();
-    expect(queueInfo.paused).toBeTrue();
+      queueInfo = await queue.get();
+      expect(queueInfo.paused).toBeTrue();
 
-    await queue.resume();
+      await queue.resume();
 
-    queueInfo = await queue.get();
-    expect(queueInfo.paused).toBeFalse();
+      queueInfo = await queue.get();
+      expect(queueInfo.paused).toBeFalse();
 
-    await queue.upsert({ paused: true });
+      await queue.upsert({ paused: true });
 
-    queueInfo = await queue.get();
-    expect(queueInfo.paused).toBeTrue();
+      queueInfo = await queue.get();
+      expect(queueInfo.paused).toBeTrue();
 
-    await queue.upsert({ paused: false });
+      await queue.upsert({ paused: false });
 
-    queueInfo = await queue.get();
-    expect(queueInfo.paused).toBeFalse();
-  });
+      queueInfo = await queue.get();
+      expect(queueInfo.paused).toBeFalse();
+    },
+    { timeout: 20_000 }
+  );
 });

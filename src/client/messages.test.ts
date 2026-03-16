@@ -101,7 +101,7 @@ describe("Messages", () => {
     const ratePerSecond = 5;
     const period = "1d";
     const { messageId } = await client.publish({
-      url: "https://httpstat.us/200?sleep=30000",
+      url: "https://mock.httpstatus.io/200?sleep=30000",
       body: "hello",
       flowControl: {
         key: "flow-key",
