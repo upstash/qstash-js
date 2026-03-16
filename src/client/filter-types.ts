@@ -18,7 +18,7 @@ type Exclusive3<A, B, C> =
 // ── Filter Field Groups ───────────────────────────────────────
 
 /** Shared filter fields accepted by every qstash & workflow endpoint. */
-export type UniversalFilterFields = {
+type UniversalFilterFields = {
   fromDate?: Date | number;
   toDate?: Date | number;
   callerIp?: string;
