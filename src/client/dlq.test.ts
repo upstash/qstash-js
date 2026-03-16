@@ -790,9 +790,9 @@ describe("DLQ", () => {
     async () => {
       // Sending an unknown/typo filter field should cause the server to return an error
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      const bogusFilter = { labeel: "some-value" } as any;
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      const promise = client.dlq.listMessages({ filter: bogusFilter });
+      const bogusFilter = { filter: { labeel: "some-value" } } as any;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument
+      const promise = client.dlq.delete(bogusFilter);
       expect(promise).rejects.toThrow();
     },
     { timeout: 10_000 }
@@ -879,5 +879,4 @@ describe("DLQ - mocked early return", () => {
     });
     expect(promise).rejects.toThrow("Empty array");
   });
-
 });

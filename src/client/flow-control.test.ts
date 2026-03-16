@@ -30,7 +30,8 @@ describe("FlowControl", () => {
       expect(typeof single.parallelismCount).toBe("number");
 
       // Clean up the published message
-      await client.messages.cancel(messageId);
+      // eslint-disable-next-line @typescript-eslint/no-deprecated
+      await client.messages.delete(messageId);
     },
     { timeout: 30_000 }
   );
