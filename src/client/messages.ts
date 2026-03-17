@@ -167,13 +167,13 @@ export class Messages {
    * Can be called with:
    * - A single messageId: `cancel("id")`
    * - An array of messageIds: `cancel(["id1", "id2"])`
-   * - A filter object: `cancel({ flowControlKey: "key", label: "label" })`
+   * - A filter object: `cancel({ filter: { flowControlKey: "key", label: "label" }})`
    * - All messages: `cancel({ all: true })`
    */
   public async cancel(
     request: string | string[] | MessageCancelFilters
   ): Promise<{ cancelled: number }> {
-    // Handle single string seperately, for backwards compatibility on the response
+    // Handle single string separately, for backwards compatibility on the response
     if (typeof request === "string") {
       return await this.http.request({
         method: "DELETE",
