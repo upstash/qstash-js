@@ -188,6 +188,41 @@ describe("Messages", () => {
   );
 
   test(
+    "should respect count: 1 with all: true",
+    async () => {
+      await client.batchJSON([
+        { url: "https://httpbin.org/status/200", body: { n: 1 }, delay: "10d" },
+        { url: "https://httpbin.org/status/200", body: { n: 2 }, delay: "10d" },
+      ]);
+
+      const result = await client.messages.cancel({ all: true, count: 1 });
+      expect(result.cancelled).toBe(1);
+
+      // clean up remaining
+      await client.messages.cancel({ all: true });
+    },
+    { timeout: 20_000 }
+  );
+
+  test(
+    "should respect count: 1 with filter",
+    async () => {
+      const label = `cancel-count-filter-${Date.now()}`;
+      await client.batchJSON([
+        { url: "https://httpbin.org/status/200", body: { n: 1 }, delay: "10d", label },
+        { url: "https://httpbin.org/status/200", body: { n: 2 }, delay: "10d", label },
+      ]);
+
+      const result = await client.messages.cancel({ filter: { label }, count: 1 });
+      expect(result.cancelled).toBe(1);
+
+      // clean up remaining
+      await client.messages.cancel({ filter: { label } });
+    },
+    { timeout: 20_000 }
+  );
+
+  test(
     "should return cancelled count when cancelling a single message",
     async () => {
       const message = await client.publish({

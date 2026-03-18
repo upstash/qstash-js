@@ -57,9 +57,6 @@ export class DLQ {
   public async listMessages(
     options: {
       count?: number;
-      /** Defaults to `earliestFirst` */
-      order?: "earliestFirst" | "latestFirst";
-      trimBody?: number;
     } & DLQListRequest = {}
   ): Promise<{
     messages: DlqMessage[];
@@ -67,8 +64,6 @@ export class DLQ {
   }> {
     const query = {
       count: options.count,
-      order: options.order,
-      trimBody: options.trimBody,
       ...("dlqIds" in options
         ? { dlqIds: options.dlqIds }
         : { ...renameUrlGroup(options.filter ?? {}), cursor: options.cursor }),
@@ -100,6 +95,17 @@ export class DLQ {
    * - An object with dlqIds: `delete({ dlqIds: ["id1", "id2"] })`
    * - A filter object: `delete({ filter: { url: "https://example.com", label: "label" } })`
    * - All messages: `delete({ all: true })`
+   *
+   * Pass `count` to limit the number of messages processed per call.
+   * `count` defaults to 250 to avoid database lock issues.
+   * Call in a loop until `deleted` is 0:
+   *
+   * ```ts
+   * let deleted: number;
+   * do {
+   *   ({ deleted } = await dlq.delete({ all: true, count: 250 }));
+   * } while (deleted > 0);
+   * ```
    */
   public async delete(
     request: string | string[] | DLQBulkActionFilters
@@ -146,6 +152,17 @@ export class DLQ {
    * - An object with dlqIds: `retry({ dlqIds: ["id1", "id2"] })`
    * - A filter object: `retry({ filter: { url: "https://example.com", label: "label" } })`
    * - All messages: `retry({ all: true })`
+   *
+   * Pass `count` to limit the number of messages processed per call.
+   * `count` defaults to 250 to avoid database lock issues.
+   * Call in a loop until `responses` is empty:
+   *
+   * ```ts
+   * let responses: { messageId: string }[];
+   * do {
+   *   ({ responses } = await dlq.retry({ all: true, count: 250 }));
+   * } while (responses.length > 0);
+   * ```
    */
   public async retry(
     request: string | string[] | DLQBulkActionFilters

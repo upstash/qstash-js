@@ -167,8 +167,19 @@ export class Messages {
    * Can be called with:
    * - A single messageId: `cancel("id")`
    * - An array of messageIds: `cancel(["id1", "id2"])`
-   * - A filter object: `cancel({ filter: { flowControlKey: "key", label: "label" }})`
+   * - A filter object: `cancel({ filter: { flowControlKey: "key", label: "label" } })`
    * - All messages: `cancel({ all: true })`
+   *
+   * Pass `count` to limit the number of messages processed per call.
+   * `count` defaults to 250 to avoid database lock issues.
+   * Call in a loop until `cancelled` is 0:
+   *
+   * ```ts
+   * let cancelled: number;
+   * do {
+   *   ({ cancelled } = await messages.cancel({ all: true, count: 250 }));
+   * } while (cancelled > 0);
+   * ```
    */
   public async cancel(
     request: string | string[] | MessageCancelFilters

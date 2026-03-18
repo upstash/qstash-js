@@ -541,6 +541,102 @@ describe("DLQ", () => {
     { timeout: 20_000 }
   );
 
+  test(
+    "should respect count: 1 with all: true in delete",
+    async () => {
+      const label = `dlq-count-all-${Date.now()}`;
+      await client.publish({ url: "https://example.com/1", retries: 0, label });
+      await client.publish({ url: "https://example.com/2", retries: 0, label });
+
+      await eventually(
+        async () => {
+          const dlq = await client.dlq.listMessages({ filter: { label } });
+          expect(dlq.messages.length).toBe(2);
+        },
+        { timeout: 15_000, interval: 1000 }
+      );
+
+      const result = await client.dlq.delete({ all: true, count: 1 });
+      expect(result.deleted).toBe(1);
+
+      // clean up remaining
+      await client.dlq.delete({ filter: { label } });
+    },
+    { timeout: 25_000 }
+  );
+
+  test(
+    "should respect count: 1 with filter in delete",
+    async () => {
+      const label = `dlq-count-filter-${Date.now()}`;
+      await client.publish({ url: "https://example.com/1", retries: 0, label });
+      await client.publish({ url: "https://example.com/2", retries: 0, label });
+
+      await eventually(
+        async () => {
+          const dlq = await client.dlq.listMessages({ filter: { label } });
+          expect(dlq.messages.length).toBe(2);
+        },
+        { timeout: 15_000, interval: 1000 }
+      );
+
+      const result = await client.dlq.delete({ filter: { label }, count: 1 });
+      expect(result.deleted).toBe(1);
+
+      // clean up remaining
+      await client.dlq.delete({ filter: { label } });
+    },
+    { timeout: 25_000 }
+  );
+
+  test(
+    "should respect count: 1 with all: true in retry",
+    async () => {
+      const label = `dlq-retry-count-all-${Date.now()}`;
+      await client.publish({ url: "https://example.com/1", retries: 0, label });
+      await client.publish({ url: "https://example.com/2", retries: 0, label });
+
+      await eventually(
+        async () => {
+          const dlq = await client.dlq.listMessages({ filter: { label } });
+          expect(dlq.messages.length).toBe(2);
+        },
+        { timeout: 15_000, interval: 1000 }
+      );
+
+      const result = await client.dlq.retry({ all: true, count: 1 });
+      expect(result.responses.length).toBe(1);
+
+      // clean up remaining
+      await client.dlq.delete({ filter: { label } });
+    },
+    { timeout: 25_000 }
+  );
+
+  test(
+    "should respect count: 1 with filter in retry",
+    async () => {
+      const label = `dlq-retry-count-filter-${Date.now()}`;
+      await client.publish({ url: "https://example.com/1", retries: 0, label });
+      await client.publish({ url: "https://example.com/2", retries: 0, label });
+
+      await eventually(
+        async () => {
+          const dlq = await client.dlq.listMessages({ filter: { label } });
+          expect(dlq.messages.length).toBe(2);
+        },
+        { timeout: 15_000, interval: 1000 }
+      );
+
+      const result = await client.dlq.retry({ filter: { label }, count: 1 });
+      expect(result.responses.length).toBe(1);
+
+      // clean up remaining
+      await client.dlq.delete({ filter: { label } });
+    },
+    { timeout: 25_000 }
+  );
+
   test("should return empty result when retry is called with an empty array", async () => {
     const result = await client.dlq.retry([]);
     expect(result).toEqual({ responses: [] });
@@ -619,50 +715,6 @@ describe("DLQ", () => {
       expect(result.deleted).toBe(1);
     },
     { timeout: 20_000 }
-  );
-
-  test(
-    "should respect order option in listMessages",
-    async () => {
-      const label = `dlq-order-${Date.now()}`;
-      await client.publish({
-        url: `https://example.com/first`,
-        retries: 0,
-        label,
-      });
-      await sleep(1000);
-      await client.publish({
-        url: `https://example.com/second`,
-        retries: 0,
-        label,
-      });
-
-      await eventually(
-        async () => {
-          const dlqLogs = await client.dlq.listMessages({ filter: { label } });
-          expect(dlqLogs.messages.length).toBe(2);
-        },
-        { timeout: 15_000, interval: 1000 }
-      );
-
-      const earliest = await client.dlq.listMessages({
-        order: "earliestFirst",
-        filter: { label },
-      });
-      const latest = await client.dlq.listMessages({
-        order: "latestFirst",
-        filter: { label },
-      });
-
-      expect(earliest.messages.length).toBe(2);
-      expect(latest.messages.length).toBe(2);
-
-      expect(earliest.messages[0].createdAt).toBeLessThanOrEqual(earliest.messages[1].createdAt);
-      expect(latest.messages[0].createdAt).toBeGreaterThanOrEqual(latest.messages[1].createdAt);
-
-      await client.dlq.delete({ filter: { label } });
-    },
-    { timeout: 25_000 }
   );
 
   test(

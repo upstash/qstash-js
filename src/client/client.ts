@@ -315,9 +315,6 @@ export type PublishJsonRequest = Omit<PublishRequest, "body"> & {
 export type LogsRequest = {
   /** Max 1000. Defaults to 10 when `groupBy` is used. */
   count?: number;
-  /** Defaults to `latestFirst` */
-  order?: "earliestFirst" | "latestFirst";
-  trimBody?: number;
 } & LogsListRequest;
 
 /**
@@ -613,8 +610,6 @@ export class Client {
   public async logs(request: LogsRequest = {}): Promise<GetLogsResponse> {
     const query = {
       count: request.count,
-      order: request.order,
-      trimBody: request.trimBody,
       ...("messageIds" in request
         ? { messageIds: request.messageIds }
         : { ...renameUrlGroup(request.filter ?? {}), cursor: request.cursor }),

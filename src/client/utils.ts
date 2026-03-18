@@ -4,6 +4,8 @@ import type { PublishRequest } from "./client";
 import { QstashError } from "./error";
 import type { DLQBulkActionFilters, MessageCancelFilters } from "./filter-types";
 
+export const DEFAULT_BULK_COUNT = 250;
+
 const isIgnoredHeader = (header: string) => {
   const lowerCaseHeader = header.toLowerCase();
   return lowerCaseHeader.startsWith("content-type") || lowerCaseHeader.startsWith("upstash-");
@@ -203,12 +205,15 @@ export function decodeBase64(base64: string) {
  * (`{ dlqIds }`, `{ messageIds }`, `{ filter }`, or `{ all }`).
  *
  * Handles the `urlGroup` → `topicName` rename.
- * Returns an empty object when `all: true`.
+ * Defaults `count` to 250 when `all: true`.
  */
 export function buildBulkActionFilterPayload(request: DLQBulkActionFilters | MessageCancelFilters) {
   const cursor = "cursor" in request ? request.cursor : undefined;
 
-  if ("all" in request) return { cursor };
+  if ("all" in request) {
+    const count = "count" in request ? (request.count ?? DEFAULT_BULK_COUNT) : DEFAULT_BULK_COUNT;
+    return { count, cursor };
+  }
 
   if ("dlqIds" in request) {
     const ids = request.dlqIds;
@@ -230,8 +235,10 @@ export function buildBulkActionFilterPayload(request: DLQBulkActionFilters | Mes
   }
 
   // Filter branch
+  const count = "count" in request ? (request.count ?? DEFAULT_BULK_COUNT) : DEFAULT_BULK_COUNT;
   return {
     ...renameUrlGroup(request.filter as Record<string, unknown> & { urlGroup?: string }),
+    count,
     cursor,
   };
 }

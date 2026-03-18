@@ -9,12 +9,6 @@ type NeverKeys<T> = { [K in keyof T]?: never };
 /** Two-branch exclusive union: A or B, never both. */
 type Exclusive<A, B> = (A & NeverKeys<B>) | (B & NeverKeys<A>);
 
-/** Three-branch exclusive union: exactly one of A, B, or C. */
-type Exclusive3<A, B, C> =
-  | (A & NeverKeys<B> & NeverKeys<C>)
-  | (B & NeverKeys<A> & NeverKeys<C>)
-  | (C & NeverKeys<A> & NeverKeys<B>);
-
 // ── Filter Field Groups ───────────────────────────────────────
 
 /** Shared filter fields accepted by every qstash & workflow endpoint. */
@@ -64,11 +58,23 @@ type MessageCancelFilterFields = UniversalFilterFields & Omit<QStashIdentityFiel
  * Doesn't allow a single messageId because this is a bulk action.
  * Cancel does not support cursor.
  */
-export type MessageCancelFilters = Exclusive3<
-  { messageIds: string[] },
-  { filter: RequireAtLeastOne<MessageCancelFilterFields> },
-  { all: true }
->;
+export type MessageCancelFilters =
+  | { messageIds: string[]; filter?: never; all?: never; count?: never }
+  | ({
+      filter: RequireAtLeastOne<MessageCancelFilterFields>;
+      messageIds?: never;
+      all?: never;
+    } & MessageCancelCount)
+  | ({ all: true; messageIds?: never; filter?: never } & MessageCancelCount);
+
+type MessageCancelCount = {
+  /**
+   * Maximum number of messages to cancel per call.
+   *
+   * @default 250
+   */
+  count?: number;
+};
 
 /**
  * DLQ bulk actions support three modes:
@@ -76,11 +82,28 @@ export type MessageCancelFilters = Exclusive3<
  * - By filter fields (with optional cursor)
  * - All (with optional cursor)
  */
-export type DLQBulkActionFilters = Exclusive3<
-  { dlqIds: string | string[] },
-  { filter: RequireAtLeastOne<DLQFilterFields>; cursor?: string },
-  { all: true; cursor?: string }
->;
+export type DLQBulkActionFilters =
+  | { dlqIds: string | string[]; filter?: never; all?: never; count?: never; cursor?: never }
+  | ({
+      filter: RequireAtLeastOne<DLQFilterFields>;
+      dlqIds?: never;
+      all?: never;
+    } & DLQBulkActionCount)
+  | ({
+      all: true;
+      dlqIds?: never;
+      filter?: never;
+    } & DLQBulkActionCount);
+
+type DLQBulkActionCount = {
+  cursor?: string;
+  /**
+   * Maximum number of messages to process per call.
+   *
+   * @default 250
+   */
+  count?: number;
+};
 
 export type DLQListRequest = Exclusive<
   { dlqIds: string | string[] },

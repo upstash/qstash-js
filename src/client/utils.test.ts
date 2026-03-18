@@ -1,4 +1,4 @@
-import { buildBulkActionFilterPayload, processHeaders } from "./utils";
+import { buildBulkActionFilterPayload, DEFAULT_BULK_COUNT, processHeaders } from "./utils";
 import { describe, expect, test } from "bun:test";
 import { prefixHeaders } from "./utils";
 import type { DLQBulkActionFilters } from "./filter-types";
@@ -22,8 +22,30 @@ describe("prefixHeaders", () => {
 });
 
 describe("buildFilterPayload", () => {
-  test("should return empty object for all: true", () => {
-    expect(buildBulkActionFilterPayload({ all: true })).toEqual({ cursor: undefined });
+  test("should return default count for all: true", () => {
+    expect(buildBulkActionFilterPayload({ all: true })).toEqual({
+      count: DEFAULT_BULK_COUNT,
+      cursor: undefined,
+    });
+  });
+
+  test("should allow overriding count for all: true", () => {
+    expect(buildBulkActionFilterPayload({ all: true, count: 100 })).toEqual({
+      count: 100,
+      cursor: undefined,
+    });
+  });
+
+  test("should return default count for filter", () => {
+    const request: DLQBulkActionFilters = { filter: { label: "test" } };
+    const result = buildBulkActionFilterPayload(request);
+    expect(result).toHaveProperty("count", DEFAULT_BULK_COUNT);
+  });
+
+  test("should allow overriding count for filter", () => {
+    const request: DLQBulkActionFilters = { filter: { label: "test" }, count: 100 };
+    const result = buildBulkActionFilterPayload(request);
+    expect(result).toHaveProperty("count", 100);
   });
 
   test("should return dlqIds when provided", () => {
