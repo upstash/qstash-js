@@ -2,6 +2,9 @@
 import { getProviderInfo } from "./api/utils";
 import type { PublishRequest } from "./client";
 import { QstashError } from "./error";
+import type { DLQBulkActionFilters, MessageCancelFilters } from "./filter-types";
+
+export const DEFAULT_BULK_COUNT = 100;
 
 const isIgnoredHeader = (header: string) => {
   const lowerCaseHeader = header.toLowerCase();
@@ -197,13 +200,68 @@ export function decodeBase64(base64: string) {
   }
 }
 
-export function parseCursor(cursor: string) {
-  const [timestamp, sequence] = cursor.split("-");
+/**
+ * Builds a filter payload object from the three-branch union types
+ * (`{ dlqIds }`, `{ messageIds }`, `{ filter }`, or `{ all }`).
+ *
+ * Handles the `urlGroup` → `topicName` rename.
+ * Defaults `count` to 100 when `all: true`.
+ */
+export function buildBulkActionFilterPayload(request: DLQBulkActionFilters | MessageCancelFilters) {
+  const cursor = "cursor" in request ? request.cursor : undefined;
 
+  if ("all" in request) {
+    const count = "count" in request ? request.count ?? DEFAULT_BULK_COUNT : DEFAULT_BULK_COUNT;
+    return { count, cursor };
+  }
+
+  if ("dlqIds" in request) {
+    const ids = request.dlqIds;
+    if (Array.isArray(ids) && ids.length === 0) {
+      throw new QstashError(
+        "Empty dlqIds array provided. If you intend to target all DLQ messages, use { all: true } explicitly."
+      );
+    }
+    return { dlqIds: ids, cursor };
+  }
+
+  if ("messageIds" in request && request.messageIds) {
+    if (request.messageIds.length === 0) {
+      throw new QstashError(
+        "Empty messageIds array provided. If you intend to target all messages, use { all: true } explicitly."
+      );
+    }
+    return { messageIds: request.messageIds, cursor };
+  }
+
+  // Filter branch
+  const count = "count" in request ? request.count ?? DEFAULT_BULK_COUNT : DEFAULT_BULK_COUNT;
   return {
-    timestamp: Number.parseInt(timestamp, 10),
-    sequence: Number.parseInt(sequence, 10),
+    ...renameUrlGroup(request.filter as Record<string, unknown> & { urlGroup?: string }),
+    count,
+    cursor,
   };
+}
+
+/**
+ * Renames `urlGroup` to `topicName` in a filter object.
+ */
+export function renameUrlGroup<T extends { urlGroup?: string; api?: string }>(
+  filter: T
+): Omit<T, "urlGroup" | "api"> & { topicName?: string } {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { urlGroup, api, ...rest } = filter;
+  return { ...rest, ...(urlGroup === undefined ? {} : { topicName: urlGroup }) };
+}
+
+/**
+ * Currently only the DLQ retry endpoint (POST /v2/dlq/retry) returns `cursor: ""`
+ * this function normalizes that to `cursor: undefined` for better consistency across the SDK.
+ */
+export function normalizeCursor<T>(response: T): T {
+  const cursor = (response as { cursor?: string }).cursor;
+  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
+  return { ...response, cursor: cursor || undefined };
 }
 
 export function getRuntime() {

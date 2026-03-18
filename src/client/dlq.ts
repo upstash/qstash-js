@@ -1,5 +1,7 @@
 import type { Requester } from "./http";
 import type { Message } from "./messages";
+import type { DLQBulkActionFilters, DLQListRequest } from "./filter-types";
+import { buildBulkActionFilterPayload, normalizeCursor, renameUrlGroup } from "./utils";
 
 type DlqMessage = Message & {
   /**
@@ -37,65 +39,6 @@ export type DlqMessageGetPayload = {
   cursor?: string;
 };
 
-export type DLQFilter = {
-  /**
-   * Filter DLQ entries by message id
-   */
-  messageId?: string;
-
-  /**
-   * Filter DLQ entries by url
-   */
-  url?: string;
-
-  /**
-   * Filter DLQ entries by url group name
-   */
-  urlGroup?: string;
-
-  /**
-   * Filter DLQ entries by api name
-   */
-  api?: string;
-
-  /**
-   * Filter DLQ entries by queue name
-   */
-  queueName?: string;
-
-  /**
-   * Filter DLQ entries by schedule id
-   */
-  scheduleId?: string;
-
-  /**
-   * Filter DLQ entries by starting time, in milliseconds
-   */
-  fromDate?: number;
-
-  /**
-   * Filter DLQ entries by ending time, in milliseconds
-   */
-  toDate?: number;
-
-  /**
-   * Filter DLQ entries by label
-   */
-  label?: string;
-
-  /**
-   * Filter DLQ entries by HTTP status of the response
-   */
-  responseStatus?: number;
-
-  /**
-   * Filter DLQ entries by IP address of the publisher of the message
-   */
-  callerIp?: string;
-};
-
-export type DLQFilterPayload = Omit<DLQFilter, "urlGroup"> & { topicName?: string };
-
 export class DLQ {
   private readonly http: Requester;
 
@@ -105,28 +48,31 @@ export class DLQ {
 
   /**
    * List messages in the dlq
+   *
+   * Can be called with:
+   * - Filters: `listMessages({ filter: { url: "https://example.com" } })`
+   * - DLQ IDs: `listMessages({ dlqIds: ["id1", "id2"] })`
+   * - No filter (list all): `listMessages()`
    */
-  public async listMessages(options?: {
-    cursor?: string;
-    count?: number;
-    filter?: DLQFilter;
-  }): Promise<{
+  public async listMessages(
+    options: {
+      count?: number;
+    } & DLQListRequest = {}
+  ): Promise<{
     messages: DlqMessage[];
     cursor?: string;
   }> {
-    const filterPayload: DLQFilterPayload = {
-      ...options?.filter,
-      topicName: options?.filter?.urlGroup,
+    const query = {
+      count: options.count,
+      ...("dlqIds" in options
+        ? { dlqIds: options.dlqIds }
+        : { ...renameUrlGroup(options.filter ?? {}), cursor: options.cursor }),
     };
 
     const messagesPayload = await this.http.request<DlqMessageGetPayload>({
       method: "GET",
       path: ["v2", "dlq"],
-      query: {
-        cursor: options?.cursor,
-        count: options?.count,
-        ...filterPayload,
-      },
+      query,
     });
     return {
       messages: messagesPayload.messages.map((message) => {
@@ -141,25 +87,97 @@ export class DLQ {
   }
 
   /**
-   * Remove a message from the dlq using it's `dlqId`
+   * Remove messages from the dlq.
+   *
+   * Can be called with:
+   * - A single dlqId: `delete("id")`
+   * - An array of dlqIds: `delete(["id1", "id2"])`
+   * - An object with dlqIds: `delete({ dlqIds: ["id1", "id2"] })`
+   * - A filter object: `delete({ filter: { url: "https://example.com", label: "label" } })`
+   * - All messages: `delete({ all: true })`
+   *
+   * Pass `count` to limit the number of messages processed per call (defaults to 100).
+   * Call in a loop until cursor is undefined:
+   *
+   * ```ts
+   * let cursor: string | undefined;
+   * do {
+   *   const result = await dlq.delete({ all: true, count: 100, cursor });
+   *   cursor = result.cursor;
+   * } while (cursor);
+   * ```
    */
-  public async delete(dlqMessageId: string): Promise<void> {
+  public async delete(
+    request: string | string[] | DLQBulkActionFilters
+  ): Promise<{ deleted: number; cursor?: string }> {
+    // Handle single string via single-item endpoint to preserve 404 semantics.
+    // For backwards compatibility
+    if (typeof request === "string") {
+      await this.http.request({
+        method: "DELETE",
+        path: ["v2", "dlq", request],
+        parseResponseAsJson: false,
+      });
+      return { deleted: 1 };
+    }
+
+    // Early return for empty string[]
+    if (Array.isArray(request) && request.length === 0) return { deleted: 0 };
+    const filters = Array.isArray(request) ? { dlqIds: request } : request;
+
     return await this.http.request({
       method: "DELETE",
-      path: ["v2", "dlq", dlqMessageId],
-      parseResponseAsJson: false, // there is no response
+      path: ["v2", "dlq"],
+      query: buildBulkActionFilterPayload(filters),
     });
   }
 
   /**
    * Remove multiple messages from the dlq using their `dlqId`s
+   *
+   * @deprecated Use `delete` instead
    */
-  public async deleteMany(request: { dlqIds: string[] }): Promise<{ deleted: number }> {
-    return await this.http.request({
-      method: "DELETE",
-      path: ["v2", "dlq"],
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ dlqIds: request.dlqIds }),
-    });
+  public async deleteMany(request: {
+    dlqIds: string[];
+  }): Promise<{ deleted: number; cursor?: string }> {
+    return await this.delete(request);
+  }
+
+  /**
+   * Retry messages from the dlq.
+   *
+   * Can be called with:
+   * - A single dlqId: `retry("id")`
+   * - An array of dlqIds: `retry(["id1", "id2"])`
+   * - An object with dlqIds: `retry({ dlqIds: ["id1", "id2"] })`
+   * - A filter object: `retry({ filter: { url: "https://example.com", label: "label" } })`
+   * - All messages: `retry({ all: true })`
+   *
+   * Pass `count` to limit the number of messages processed per call (defaults to 100).
+   * Call in a loop until cursor is undefined:
+   *
+   * ```ts
+   * let cursor: string | undefined;
+   * do {
+   *   const result = await dlq.retry({ all: true, count: 100, cursor });
+   *   cursor = result.cursor;
+   * } while (cursor);
+   * ```
+   */
+  public async retry(
+    request: string | string[] | DLQBulkActionFilters
+  ): Promise<{ cursor?: string; responses: { messageId: string }[] }> {
+    // Handle string or string[] (the object form is caught in buildBulkActionFilterPayload)
+    if (typeof request === "string") request = [request];
+    if (Array.isArray(request) && request.length === 0) return { responses: [] };
+    const filters: DLQBulkActionFilters = Array.isArray(request) ? { dlqIds: request } : request;
+
+    return normalizeCursor(
+      await this.http.request<{ cursor?: string; responses: { messageId: string }[] }>({
+        method: "POST",
+        path: ["v2", "dlq", "retry"],
+        query: buildBulkActionFilterPayload(filters),
+      })
+    );
   }
 }

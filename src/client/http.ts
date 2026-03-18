@@ -4,6 +4,7 @@ import {
   QstashRatelimitError,
   QstashChatRatelimitError,
   QstashDailyRatelimitError,
+  QstashEmptyArrayError,
 } from "./error";
 import type { BodyInit, HeadersInit, HTTPMethods, RequestOptions } from "./types";
 import type { ChatCompletionChunk } from "./llm/types";
@@ -35,7 +36,7 @@ export type UpstashRequest = {
    */
   method?: HTTPMethods;
 
-  query?: Record<string, string | number | boolean | undefined>;
+  query?: Record<string, string | number | boolean | Date | string[] | undefined>;
 
   /**
    * if enabled, call `res.json()`
@@ -222,7 +223,17 @@ export class HttpClient implements Requester {
     const url = new URL([request.baseUrl ?? this.baseUrl, ...request.path].join("/"));
     if (request.query) {
       for (const [key, value] of Object.entries(request.query)) {
-        if (value !== undefined) {
+        if (value === undefined) continue;
+        if (Array.isArray(value)) {
+          if ((value as unknown[]).length === 0) {
+            throw new QstashEmptyArrayError(key);
+          }
+          for (const item of value) {
+            url.searchParams.append(key, item);
+          }
+        } else if (value instanceof Date) {
+          url.searchParams.set(key, value.getTime().toString());
+        } else {
           url.searchParams.set(key, value.toString());
         }
       }

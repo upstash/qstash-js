@@ -1,6 +1,8 @@
 import type { PublishRequest } from "./client";
 import type { Requester } from "./http";
 import type { HTTPMethods } from "./types";
+import type { MessageCancelFilters } from "./filter-types";
+import { buildBulkActionFilterPayload } from "./utils";
 
 export type Message = {
   /**
@@ -160,31 +162,78 @@ export class Messages {
   }
 
   /**
-   * Cancel a message
+   * Cancel messages.
+   *
+   * Can be called with:
+   * - A single messageId: `cancel("id")`
+   * - An array of messageIds: `cancel(["id1", "id2"])`
+   * - A filter object: `cancel({ filter: { flowControlKey: "key", label: "label" } })`
+   * - All messages: `cancel({ all: true })`
+   *
+   * Pass `count` to limit the number of messages processed per call (defaults to 100).
+   * Call in a loop until `cancelled` is 0:
+   *
+   * ```ts
+   * let cancelled: number;
+   * do {
+   *   const result = await messages.cancel({ all: true, count: 100 });
+   *   cancelled = result.cancelled;
+   * } while (cancelled > 0);
+   * ```
+   */
+  public async cancel(
+    request: string | string[] | MessageCancelFilters
+  ): Promise<{ cancelled: number }> {
+    // Handle single string separately, for backwards compatibility on the response
+    if (typeof request === "string") {
+      return await this.http.request({
+        method: "DELETE",
+        path: ["v2", "messages", request],
+      });
+    }
+
+    // Early return for empty string[]
+    if (Array.isArray(request) && request.length === 0) return { cancelled: 0 };
+    const filters: MessageCancelFilters = Array.isArray(request)
+      ? { messageIds: request }
+      : request;
+
+    return await this.http.request({
+      method: "DELETE",
+      path: ["v2", "messages"],
+      query: buildBulkActionFilterPayload(filters),
+    });
+  }
+
+  /**
+   * Delete a message.
+   *
+   * @deprecated Use `cancel(messageId: string)` instead
    */
   public async delete(messageId: string): Promise<void> {
-    return await this.http.request({
+    await this.http.request({
       method: "DELETE",
       path: ["v2", "messages", messageId],
       parseResponseAsJson: false,
     });
   }
 
+  /**
+   * Cancel multiple messages by their messageIds.
+   *
+   * @deprecated Use `cancel(messageIds: string[])` instead
+   */
   public async deleteMany(messageIds: string[]): Promise<number> {
-    const result = (await this.http.request({
-      method: "DELETE",
-      path: ["v2", "messages"],
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ messageIds }),
-    })) as { cancelled: number };
+    const result = await this.cancel(messageIds);
     return result.cancelled;
   }
 
+  /**
+   * Cancel all messages
+   * @deprecated Use `cancel({all: true})` to cancel all
+   */
   public async deleteAll(): Promise<number> {
-    const result = (await this.http.request({
-      method: "DELETE",
-      path: ["v2", "messages"],
-    })) as { cancelled: number };
+    const result = await this.cancel({ all: true });
     return result.cancelled;
   }
 }

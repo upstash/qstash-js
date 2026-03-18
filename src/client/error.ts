@@ -65,6 +65,21 @@ export class QstashDailyRatelimitError extends QstashError {
 }
 
 /**
+ * Raised when an empty array is passed as a query parameter.
+ * This is a safety net to prevent accidental bulk operations
+ * (e.g. delete-all, cancel-all) when no IDs were intended.
+ */
+export class QstashEmptyArrayError extends QstashError {
+  constructor(parameterName: string) {
+    super(
+      `Empty array provided for query parameter "${parameterName}". ` +
+        `This would result in no filter being applied, which could affect all resources.`
+    );
+    this.name = "QstashEmptyArrayError";
+  }
+}
+
+/**
  * Error raised during Workflow execution
  */
 export class QStashWorkflowError extends QstashError {

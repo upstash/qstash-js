@@ -31,6 +31,7 @@ describe("FlowControl", () => {
       expect(typeof single.parallelismCount).toBe("number");
 
       // Clean up the published message
+      // eslint-disable-next-line @typescript-eslint/no-deprecated
       await client.messages.delete(messageId);
     },
     { timeout: 30_000 }
@@ -77,6 +78,7 @@ describe("FlowControl", () => {
       expect(resumed.isPaused).toBe(false);
 
       // Clean up
+      // eslint-disable-next-line @typescript-eslint/no-deprecated
       await client.messages.delete(messageId);
     },
     { timeout: 30_000 }
@@ -125,6 +127,7 @@ describe("FlowControl", () => {
       expect(unpinned.isPinnedRate).toBe(false);
 
       // Clean up
+      // eslint-disable-next-line @typescript-eslint/no-deprecated
       await client.messages.delete(messageId);
     },
     { timeout: 30_000 }
@@ -164,6 +167,7 @@ describe("FlowControl", () => {
       expect(partial.isPinnedRate).toBe(true);
 
       // Clean up
+      // eslint-disable-next-line @typescript-eslint/no-deprecated
       await client.messages.delete(messageId);
     },
     { timeout: 30_000 }
@@ -193,6 +197,7 @@ describe("FlowControl", () => {
       expect(info.rateCount).toBe(0);
 
       // Clean up
+      // eslint-disable-next-line @typescript-eslint/no-deprecated
       await client.messages.delete(messageId);
     },
     { timeout: 30_000 }

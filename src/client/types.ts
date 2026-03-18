@@ -37,7 +37,7 @@ export type Event = Log;
 export type LogPayload = Omit<Log, "urlGroup"> & { topicName: string };
 
 /**
- * Deprecated. Use the `EventPayload` type instead.
+ * Deprecated. Use the `LogPayload` type instead.
  *
  * @deprecated
  */
