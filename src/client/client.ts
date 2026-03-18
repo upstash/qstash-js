@@ -221,6 +221,20 @@ export type PublishRequest<TBody = BodyInit> = {
    * @default undefined
    */
   label?: string;
+
+  /**
+   * Configure which fields should be redacted in logs.
+   *
+   * - `body: true` redacts the request body
+   * - `header: true` redacts all headers
+   * - `header: ["X"]` redacts specific headers (e.g., ["Authorization"])
+   *
+   * @default undefined
+   */
+  redact?: {
+    body?: true;
+    header?: true | string[];
+  };
 } & (
   | {
       /**

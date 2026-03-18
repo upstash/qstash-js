@@ -1,8 +1,9 @@
-/* eslint-disable @typescript-eslint/no-magic-numbers */
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { nanoid } from "nanoid";
 import { Client } from "./client";
 import { clearQueues } from "./client.test";
+import { MOCK_QSTASH_SERVER_URL, mockQStashServer } from "./workflow/test-utils";
 
 describe("Queue", () => {
   const client = new Client({ token: process.env.QSTASH_TOKEN! });
@@ -82,4 +83,31 @@ describe("Queue", () => {
     },
     { timeout: 20_000 }
   );
+
+  test("should enqueue with redact fields", async () => {
+    const token = process.env.QSTASH_TOKEN!;
+    await mockQStashServer({
+      execute: async () => {
+        const client = new Client({ baseUrl: MOCK_QSTASH_SERVER_URL, token });
+        await client.queue({ queueName: "test-queue" }).enqueueJSON({
+          url: "https://example.com/",
+          body: { hello: "world" },
+          redact: { body: true, header: ["Authorization"] },
+        });
+      },
+      responseFields: {
+        body: { messageId: nanoid() },
+        status: 200,
+      },
+      receivesRequest: {
+        method: "POST",
+        token,
+        body: { hello: "world" },
+        url: "http://localhost:8080/v2/enqueue/test-queue/https://example.com/",
+      },
+      validateRequest: (request) => {
+        expect(request.headers.get("Upstash-Redact-Fields")).toBe("body,header[Authorization]");
+      },
+    });
+  });
 });
