@@ -211,7 +211,7 @@ export function buildBulkActionFilterPayload(request: DLQBulkActionFilters | Mes
   const cursor = "cursor" in request ? request.cursor : undefined;
 
   if ("all" in request) {
-    const count = "count" in request ? (request.count ?? DEFAULT_BULK_COUNT) : DEFAULT_BULK_COUNT;
+    const count = "count" in request ? request.count ?? DEFAULT_BULK_COUNT : DEFAULT_BULK_COUNT;
     return { count, cursor };
   }
 
@@ -235,7 +235,7 @@ export function buildBulkActionFilterPayload(request: DLQBulkActionFilters | Mes
   }
 
   // Filter branch
-  const count = "count" in request ? (request.count ?? DEFAULT_BULK_COUNT) : DEFAULT_BULK_COUNT;
+  const count = "count" in request ? request.count ?? DEFAULT_BULK_COUNT : DEFAULT_BULK_COUNT;
   return {
     ...renameUrlGroup(request.filter as Record<string, unknown> & { urlGroup?: string }),
     count,
