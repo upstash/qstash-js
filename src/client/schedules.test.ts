@@ -297,6 +297,7 @@ describe("Schedules", () => {
       receivesRequest: {
         method: "POST",
         token: qstashToken,
+        body: { secret: "data" },
         url: "http://localhost:8080/v2/schedules/https://requestcatcher.com/",
         headers: {
           "upstash-redact-fields": "body,header[Authorization]",

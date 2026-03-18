@@ -682,6 +682,7 @@ describe("Redact Fields", () => {
       receivesRequest: {
         method: "POST",
         token,
+        body: { hello: "world" },
         url: "http://localhost:8080/v2/publish/https://example.com/",
       },
       validateRequest: (request) => {
@@ -707,6 +708,7 @@ describe("Redact Fields", () => {
       receivesRequest: {
         method: "POST",
         token,
+        body: { hello: "world" },
         url: "http://localhost:8080/v2/publish/https://example.com/",
       },
       validateRequest: (request) => {
@@ -732,6 +734,7 @@ describe("Redact Fields", () => {
       receivesRequest: {
         method: "POST",
         token,
+        body: { hello: "world" },
         url: "http://localhost:8080/v2/publish/https://example.com/",
       },
       validateRequest: (request) => {
@@ -759,6 +762,7 @@ describe("Redact Fields", () => {
       receivesRequest: {
         method: "POST",
         token,
+        body: { hello: "world" },
         url: "http://localhost:8080/v2/publish/https://example.com/",
       },
       validateRequest: (request) => {
@@ -784,6 +788,7 @@ describe("Redact Fields", () => {
       receivesRequest: {
         method: "POST",
         token,
+        body: { hello: "world" },
         url: "http://localhost:8080/v2/publish/https://example.com/",
       },
       validateRequest: (request) => {

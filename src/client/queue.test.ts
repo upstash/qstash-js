@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-magic-numbers */
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { nanoid } from "nanoid";
@@ -103,6 +102,7 @@ describe("Queue", () => {
       receivesRequest: {
         method: "POST",
         token,
+        body: { hello: "world" },
         url: "http://localhost:8080/v2/enqueue/test-queue/https://example.com/",
       },
       validateRequest: (request) => {
