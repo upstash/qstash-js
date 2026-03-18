@@ -71,7 +71,7 @@ type MessageCancelCount = {
   /**
    * Maximum number of messages to cancel per call.
    *
-   * @default 250
+   * @default 100
    */
   count?: number;
 };
@@ -100,7 +100,7 @@ type DLQBulkActionCount = {
   /**
    * Maximum number of messages to process per call.
    *
-   * @default 250
+   * @default 100
    */
   count?: number;
 };

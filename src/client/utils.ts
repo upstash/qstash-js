@@ -4,7 +4,7 @@ import type { PublishRequest } from "./client";
 import { QstashError } from "./error";
 import type { DLQBulkActionFilters, MessageCancelFilters } from "./filter-types";
 
-export const DEFAULT_BULK_COUNT = 250;
+export const DEFAULT_BULK_COUNT = 100;
 
 const isIgnoredHeader = (header: string) => {
   const lowerCaseHeader = header.toLowerCase();
@@ -205,7 +205,7 @@ export function decodeBase64(base64: string) {
  * (`{ dlqIds }`, `{ messageIds }`, `{ filter }`, or `{ all }`).
  *
  * Handles the `urlGroup` → `topicName` rename.
- * Defaults `count` to 250 when `all: true`.
+ * Defaults `count` to 100 when `all: true`.
  */
 export function buildBulkActionFilterPayload(request: DLQBulkActionFilters | MessageCancelFilters) {
   const cursor = "cursor" in request ? request.cursor : undefined;

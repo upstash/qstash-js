@@ -96,15 +96,15 @@ export class DLQ {
    * - A filter object: `delete({ filter: { url: "https://example.com", label: "label" } })`
    * - All messages: `delete({ all: true })`
    *
-   * Pass `count` to limit the number of messages processed per call.
-   * `count` defaults to 250 to avoid database lock issues.
-   * Call in a loop until `deleted` is 0:
+   * Pass `count` to limit the number of messages processed per call (defaults to 100).
+   * Call in a loop until cursor is undefined:
    *
    * ```ts
-   * let deleted: number;
+   * let cursor: string | undefined;
    * do {
-   *   ({ deleted } = await dlq.delete({ all: true, count: 250 }));
-   * } while (deleted > 0);
+   *   const result = await dlq.delete({ all: true, count: 100, cursor });
+   *   cursor = result.cursor;
+   * } while (cursor);
    * ```
    */
   public async delete(
@@ -153,15 +153,15 @@ export class DLQ {
    * - A filter object: `retry({ filter: { url: "https://example.com", label: "label" } })`
    * - All messages: `retry({ all: true })`
    *
-   * Pass `count` to limit the number of messages processed per call.
-   * `count` defaults to 250 to avoid database lock issues.
-   * Call in a loop until `responses` is empty:
+   * Pass `count` to limit the number of messages processed per call (defaults to 100).
+   * Call in a loop until cursor is undefined:
    *
    * ```ts
-   * let responses: { messageId: string }[];
+   * let cursor: string | undefined;
    * do {
-   *   ({ responses } = await dlq.retry({ all: true, count: 250 }));
-   * } while (responses.length > 0);
+   *   const result = await dlq.retry({ all: true, count: 100, cursor });
+   *   cursor = result.cursor;
+   * } while (cursor);
    * ```
    */
   public async retry(

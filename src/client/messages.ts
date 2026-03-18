@@ -170,14 +170,14 @@ export class Messages {
    * - A filter object: `cancel({ filter: { flowControlKey: "key", label: "label" } })`
    * - All messages: `cancel({ all: true })`
    *
-   * Pass `count` to limit the number of messages processed per call.
-   * `count` defaults to 250 to avoid database lock issues.
+   * Pass `count` to limit the number of messages processed per call (defaults to 100).
    * Call in a loop until `cancelled` is 0:
    *
    * ```ts
    * let cancelled: number;
    * do {
-   *   ({ cancelled } = await messages.cancel({ all: true, count: 250 }));
+   *   const result = await messages.cancel({ all: true, count: 100 });
+   *   cancelled = result.cancelled;
    * } while (cancelled > 0);
    * ```
    */
