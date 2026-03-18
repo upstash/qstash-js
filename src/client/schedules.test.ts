@@ -269,4 +269,39 @@ describe("Schedules", () => {
     expect(schedule.period).toBe(SECONDS_IN_A_DAY); // 1d in seconds
     expect(schedule.retryDelayExpression).toBe(retryDelay);
   });
+
+  test("should create schedule with redact fields", async () => {
+    const qstashToken = nanoid();
+
+    const client = new Client({
+      baseUrl: MOCK_QSTASH_SERVER_URL,
+      token: qstashToken,
+    });
+    await mockQStashServer({
+      execute: async () => {
+        await client.schedules.create({
+          scheduleId: "test-redact",
+          destination: MOCK_SERVER_URL,
+          cron: "* * * * 1",
+          body: JSON.stringify({ secret: "data" }),
+          redact: {
+            body: true,
+            header: ["Authorization"],
+          },
+        });
+      },
+      responseFields: {
+        body: { scheduleId: "test-redact" },
+        status: 200,
+      },
+      receivesRequest: {
+        method: "POST",
+        token: qstashToken,
+        url: "http://localhost:8080/v2/schedules/https://requestcatcher.com/",
+        headers: {
+          "upstash-redact-fields": "body,header[Authorization]",
+        },
+      },
+    });
+  });
 });

@@ -133,6 +133,28 @@ export function processHeaders(request: PublishRequest) {
     headers.set("Upstash-Label", request.label);
   }
 
+  if (request.redact !== undefined) {
+    const redactParts: string[] = [];
+
+    if (request.redact.body) {
+      redactParts.push("body");
+    }
+
+    if (request.redact.header !== undefined) {
+      if (request.redact.header === true) {
+        redactParts.push("header");
+      } else if (Array.isArray(request.redact.header) && request.redact.header.length > 0) {
+        for (const headerName of request.redact.header) {
+          redactParts.push(`header[${headerName}]`);
+        }
+      }
+    }
+
+    if (redactParts.length > 0) {
+      headers.set("Upstash-Redact-Fields", redactParts.join(","));
+    }
+  }
+
   return headers;
 }
 

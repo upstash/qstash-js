@@ -662,6 +662,137 @@ describe("Telemetry headers", () => {
   });
 });
 
+describe("Redact Fields", () => {
+  const token = process.env.QSTASH_TOKEN!;
+
+  test("should redact body only", async () => {
+    await mockQStashServer({
+      execute: async () => {
+        const client = new Client({ baseUrl: MOCK_QSTASH_SERVER_URL, token });
+        await client.publishJSON({
+          url: "https://example.com/",
+          body: { hello: "world" },
+          redact: { body: true },
+        });
+      },
+      responseFields: {
+        body: { messageId: nanoid() },
+        status: 200,
+      },
+      receivesRequest: {
+        method: "POST",
+        token,
+        url: "http://localhost:8080/v2/publish/https://example.com/",
+      },
+      validateRequest: (request) => {
+        expect(request.headers.get("Upstash-Redact-Fields")).toBe("body");
+      },
+    });
+  });
+
+  test("should redact all headers", async () => {
+    await mockQStashServer({
+      execute: async () => {
+        const client = new Client({ baseUrl: MOCK_QSTASH_SERVER_URL, token });
+        await client.publishJSON({
+          url: "https://example.com/",
+          body: { hello: "world" },
+          redact: { header: true },
+        });
+      },
+      responseFields: {
+        body: { messageId: nanoid() },
+        status: 200,
+      },
+      receivesRequest: {
+        method: "POST",
+        token,
+        url: "http://localhost:8080/v2/publish/https://example.com/",
+      },
+      validateRequest: (request) => {
+        expect(request.headers.get("Upstash-Redact-Fields")).toBe("header");
+      },
+    });
+  });
+
+  test("should redact specific headers", async () => {
+    await mockQStashServer({
+      execute: async () => {
+        const client = new Client({ baseUrl: MOCK_QSTASH_SERVER_URL, token });
+        await client.publishJSON({
+          url: "https://example.com/",
+          body: { hello: "world" },
+          redact: { header: ["Authorization", "X-Api-Key"] },
+        });
+      },
+      responseFields: {
+        body: { messageId: nanoid() },
+        status: 200,
+      },
+      receivesRequest: {
+        method: "POST",
+        token,
+        url: "http://localhost:8080/v2/publish/https://example.com/",
+      },
+      validateRequest: (request) => {
+        expect(request.headers.get("Upstash-Redact-Fields")).toBe(
+          "header[Authorization],header[X-Api-Key]"
+        );
+      },
+    });
+  });
+
+  test("should redact body and all headers", async () => {
+    await mockQStashServer({
+      execute: async () => {
+        const client = new Client({ baseUrl: MOCK_QSTASH_SERVER_URL, token });
+        await client.publishJSON({
+          url: "https://example.com/",
+          body: { hello: "world" },
+          redact: { body: true, header: true },
+        });
+      },
+      responseFields: {
+        body: { messageId: nanoid() },
+        status: 200,
+      },
+      receivesRequest: {
+        method: "POST",
+        token,
+        url: "http://localhost:8080/v2/publish/https://example.com/",
+      },
+      validateRequest: (request) => {
+        expect(request.headers.get("Upstash-Redact-Fields")).toBe("body,header");
+      },
+    });
+  });
+
+  test("should redact body and specific headers", async () => {
+    await mockQStashServer({
+      execute: async () => {
+        const client = new Client({ baseUrl: MOCK_QSTASH_SERVER_URL, token });
+        await client.publishJSON({
+          url: "https://example.com/",
+          body: { hello: "world" },
+          redact: { body: true, header: ["Authorization"] },
+        });
+      },
+      responseFields: {
+        body: { messageId: nanoid() },
+        status: 200,
+      },
+      receivesRequest: {
+        method: "POST",
+        token,
+        url: "http://localhost:8080/v2/publish/https://example.com/",
+      },
+      validateRequest: (request) => {
+        expect(request.headers.get("Upstash-Redact-Fields")).toBe("body,header[Authorization]");
+      },
+    });
+  });
+});
+
 describe("Client init", () => {
   test("should use correct baseUrl if invalid one is passed", () => {
     const client = new Client({
