@@ -6,6 +6,7 @@ import { Client } from "./client";
 import type { PublishToUrlResponse } from "../../dist";
 import { MOCK_QSTASH_SERVER_URL, mockQStashServer } from "./workflow/test-utils";
 import type { HttpClient } from "./http";
+import { eventually } from "./logs.test";
 
 export const clearQueues = async (client: Client) => {
   const queueDetails = await client.queue().list();
@@ -660,6 +661,123 @@ describe("Telemetry headers", () => {
       },
     });
   });
+});
+
+describe("E2E Redact", () => {
+  const client = new Client({ token: process.env.QSTASH_TOKEN! });
+
+  test(
+    "should redact body in logs",
+    async () => {
+      const result = (await client.publishJSON({
+        url: "https://example.com/",
+        body: { secret: "super-secret-value" },
+        redact: { body: true },
+      })) as PublishToUrlResponse;
+
+      await eventually(
+        async () => {
+          const logs = await client.logs({
+            filter: { messageId: result.messageId },
+          });
+          expect(logs.logs.length).toBeGreaterThan(0);
+
+          const log = logs.logs[0];
+          // body should be redacted (empty or absent)
+          expect(log.body ?? "").not.toContain("super-secret-value");
+        },
+        { interval: 1000 }
+      );
+    },
+    { timeout: 15_000 }
+  );
+
+  test(
+    "should redact all headers in logs",
+    async () => {
+      const result = (await client.publishJSON({
+        url: "https://example.com/",
+        body: { hello: "world" },
+        headers: { "X-Custom-Secret": "header-secret-value" },
+        redact: { header: true },
+      })) as PublishToUrlResponse;
+
+      await eventually(
+        async () => {
+          const logs = await client.logs({
+            filter: { messageId: result.messageId },
+          });
+          expect(logs.logs.length).toBeGreaterThan(0);
+
+          const log = logs.logs[0];
+          const headerValues = Object.values(log.header ?? {}).join(",");
+          expect(headerValues).not.toContain("header-secret-value");
+        },
+        { interval: 1000 }
+      );
+    },
+    { timeout: 15_000 }
+  );
+
+  test(
+    "should redact specific headers in logs",
+    async () => {
+      const result = (await client.publishJSON({
+        url: "https://example.com/",
+        body: { hello: "world" },
+        headers: {
+          "X-Secret-Header": "should-be-redacted",
+          "X-Public-Header": "should-be-visible",
+        },
+        redact: { header: ["X-Secret-Header"] },
+      })) as PublishToUrlResponse;
+
+      await eventually(
+        async () => {
+          const logs = await client.logs({
+            filter: { messageId: result.messageId },
+          });
+          expect(logs.logs.length).toBeGreaterThan(0);
+
+          const log = logs.logs[0];
+          const headerValues = Object.values(log.header ?? {}).join(",");
+          expect(headerValues).not.toContain("should-be-redacted");
+        },
+        { interval: 1000 }
+      );
+    },
+    { timeout: 15_000 }
+  );
+
+  test(
+    "should redact body and specific headers in logs",
+    async () => {
+      const result = (await client.publishJSON({
+        url: "https://example.com/",
+        body: { password: "my-password-123" },
+        headers: { Authorization: "Bearer token-to-redact" },
+        redact: { body: true, header: ["Authorization"] },
+      })) as PublishToUrlResponse;
+
+      await eventually(
+        async () => {
+          const logs = await client.logs({
+            filter: { messageId: result.messageId },
+          });
+          expect(logs.logs.length).toBeGreaterThan(0);
+
+          const log = logs.logs[0];
+          // body should be redacted
+          expect(log.body ?? "").not.toContain("my-password-123");
+          // Authorization header should be redacted
+          const headerValues = Object.values(log.header ?? {}).join(",");
+          expect(headerValues).not.toContain("token-to-redact");
+        },
+        { interval: 1000 }
+      );
+    },
+    { timeout: 15_000 }
+  );
 });
 
 describe("Redact Fields", () => {
