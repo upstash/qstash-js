@@ -19,7 +19,7 @@ import {
   wrapWithGlobalHeaders,
 } from "./utils";
 import { Workflow } from "./workflow";
-import type { PublishEmailApi, PublishLLMApi } from "./api/types";
+import type { PublishEmailApi, PublishLLMApi, PublishSearchApi } from "./api/types";
 import { processApi } from "./api/utils";
 import { VERSION } from "../../version";
 import { getClientCredentials } from "./multi-region";
@@ -294,6 +294,16 @@ export type PublishRequest<TBody = BodyInit> = {
        * The api endpoint the request should be sent to.
        */
       api: PublishEmailApi;
+      topic?: never;
+      callback?: string;
+    }
+  | {
+      url?: never;
+      urlGroup?: never;
+      /**
+       * The api endpoint the request should be sent to.
+       */
+      api: PublishSearchApi;
       topic?: never;
       callback?: string;
     }
