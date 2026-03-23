@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 /* eslint-disable @typescript-eslint/no-magic-numbers */
+/* eslint-disable @typescript-eslint/no-deprecated */
 import { beforeAll, describe, expect, test } from "bun:test";
 import { Client } from "./client";
 
@@ -10,7 +11,7 @@ describe("Messages", () => {
   const client = new Client({ token: process.env.QSTASH_TOKEN! });
 
   beforeAll(async () => {
-    await client.messages.cancel({ all: true });
+    await client.messages.deleteAll();
   });
 
   test(
@@ -35,7 +36,7 @@ describe("Messages", () => {
       const verifiedMessage = await client.messages.get(message.messageId);
       expect(new Headers(verifiedMessage.header).get("Test-Header")).toBe("test-value");
       expect(verifiedMessage.retryDelayExpression).toBe(retryDelay);
-      await client.messages.cancel(message.messageId);
+      await client.messages.delete(message.messageId);
     },
     { timeout: 20_000 }
   );
@@ -51,13 +52,13 @@ describe("Messages", () => {
 
       const verifiedMessage = await client.messages.get(message.messageId);
       expect(verifiedMessage.messageId).toBeTruthy();
-      await client.messages.cancel(message.messageId);
+      await client.messages.delete(message.messageId);
     },
     { timeout: 20_000 }
   );
 
   test(
-    "should cancel many and all",
+    "should delete many and all",
     async () => {
       const messages = await client.batchJSON([
         {
@@ -82,15 +83,15 @@ describe("Messages", () => {
 
       expect(messages.length).toBe(3);
 
-      const cancelled = await client.messages.cancel([
+      const deleted = await client.messages.deleteMany([
         messages[0].messageId,
         messages[1].messageId,
       ]);
 
-      expect(cancelled.cancelled).toBe(2);
+      expect(deleted).toBe(2);
 
-      const cancelledAll = await client.messages.cancel({ all: true });
-      expect(cancelledAll.cancelled).toBe(1);
+      const deletedAll = await client.messages.deleteAll();
+      expect(deletedAll).toBe(1);
     },
     { timeout: 20_000 }
   );
@@ -100,9 +101,8 @@ describe("Messages", () => {
     const ratePerSecond = 5;
     const period = "1d";
     const { messageId } = await client.publish({
-      url: "https://mock.httpstatus.io/200?sleep=30000",
+      url: "https://httpstat.us/200?sleep=30000",
       body: "hello",
-      delay: "10d",
       flowControl: {
         key: "flow-key",
         parallelism,
@@ -115,128 +115,10 @@ describe("Messages", () => {
 
     expect(message.flowControlKey).toBe("flow-key");
     expect(message.parallelism).toBe(parallelism);
+    expect(message.ratePerSecond).toBe(ratePerSecond);
     expect(message.rate).toBe(ratePerSecond);
 
     const dayInSeconds = SECONDS_IN_A_DAY;
     expect(message.period).toBe(dayInSeconds);
   });
-
-  test(
-    "should cancel all messages with flowControlKey filter",
-    async () => {
-      const flowControlKey = "flow-key";
-      // Create messages with the same flow control key
-      await client.publish({
-        url: "https://httpbin.org/status/200",
-        body: "hello",
-        delay: "10d",
-        flowControl: {
-          key: flowControlKey,
-          parallelism: 5,
-          ratePerSecond: 10,
-        },
-      });
-
-      await client.publish({
-        url: "https://httpbin.org/status/200",
-        body: "hello",
-        delay: "10d",
-        flowControl: {
-          key: flowControlKey,
-          parallelism: 5,
-          ratePerSecond: 10,
-        },
-      });
-
-      // Create a message with a different flow control key
-      const message3 = await client.publish({
-        url: "https://httpbin.org/status/200",
-        body: "hello",
-        delay: "10d",
-        flowControl: {
-          key: "different-flow-key",
-          parallelism: 5,
-          ratePerSecond: 10,
-        },
-      });
-
-      // Cancel all messages with the specific flowControlKey
-      const result = await client.messages.cancel({ filter: { flowControlKey } });
-
-      // Should cancel at least the 2 messages with the matching flowControlKey
-      expect(result.cancelled).toBeGreaterThanOrEqual(2);
-
-      await client.messages.cancel(message3.messageId);
-    },
-    { timeout: 20_000 }
-  );
-
-  test(
-    "should cancel all messages using all: true",
-    async () => {
-      await client.publish({
-        url: "https://httpbin.org/status/200",
-        body: "hello",
-        delay: "10d",
-      });
-
-      const cancelled = await client.messages.cancel({ all: true });
-
-      expect(cancelled.cancelled).toBeGreaterThanOrEqual(1);
-    },
-    { timeout: 20_000 }
-  );
-
-  test(
-    "should respect count: 1 with all: true",
-    async () => {
-      await client.batchJSON([
-        { url: "https://httpbin.org/status/200", body: { n: 1 }, delay: "10d" },
-        { url: "https://httpbin.org/status/200", body: { n: 2 }, delay: "10d" },
-      ]);
-
-      const result = await client.messages.cancel({ all: true, count: 1 });
-      expect(result.cancelled).toBe(1);
-
-      // clean up remaining
-      await client.messages.cancel({ all: true });
-    },
-    { timeout: 20_000 }
-  );
-
-  test(
-    "should respect count: 1 with filter",
-    async () => {
-      const label = `cancel-count-filter-${Date.now()}`;
-      await client.batchJSON([
-        { url: "https://httpbin.org/status/200", body: { n: 1 }, delay: "10d", label },
-        { url: "https://httpbin.org/status/200", body: { n: 2 }, delay: "10d", label },
-      ]);
-
-      const result = await client.messages.cancel({ filter: { label }, count: 1 });
-      expect(result.cancelled).toBe(1);
-
-      // clean up remaining
-      await client.messages.cancel({ filter: { label } });
-    },
-    { timeout: 20_000 }
-  );
-
-  test(
-    "should return cancelled count when cancelling a single message",
-    async () => {
-      const message = await client.publish({
-        url: "https://httpbin.org/status/200",
-        body: "hello",
-        delay: "10d",
-      });
-
-      const result = await client.messages.cancel(message.messageId);
-
-      expect(result).toBeDefined();
-      expect(typeof result.cancelled).toBe("number");
-      expect(result.cancelled).toBe(1);
-    },
-    { timeout: 20_000 }
-  );
 });

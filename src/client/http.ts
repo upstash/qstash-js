@@ -4,8 +4,9 @@ import {
   QstashRatelimitError,
   QstashChatRatelimitError,
   QstashDailyRatelimitError,
-  QstashEmptyArrayError,
 } from "./error";
+// eslint-disable-next-line unicorn/prevent-abbreviations
+import { ensureDevelopmentServer } from "../dev-server";
 import type { BodyInit, HeadersInit, HTTPMethods, RequestOptions } from "./types";
 import type { ChatCompletionChunk } from "./llm/types";
 
@@ -36,7 +37,7 @@ export type UpstashRequest = {
    */
   method?: HTTPMethods;
 
-  query?: Record<string, string | number | boolean | Date | string[] | undefined>;
+  query?: Record<string, string | number | boolean | undefined>;
 
   /**
    * if enabled, call `res.json()`
@@ -86,6 +87,7 @@ export type HttpClientConfig = {
   retry?: RetryConfig;
   headers?: Headers;
   telemetryHeaders?: Headers;
+  devMode?: boolean;
 };
 
 export class HttpClient implements Requester {
@@ -94,6 +96,8 @@ export class HttpClient implements Requester {
   public readonly authorization: string;
 
   public readonly options?: { backend?: string };
+
+  public readonly devMode?: boolean;
 
   public retry: {
     attempts: number;
@@ -107,6 +111,8 @@ export class HttpClient implements Requester {
     this.baseUrl = config.baseUrl.replace(/\/$/, "");
 
     this.authorization = config.authorization;
+
+    this.devMode = config.devMode;
 
     this.retry =
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
@@ -125,6 +131,7 @@ export class HttpClient implements Requester {
   }
 
   public async request<TResult>(request: UpstashRequest): Promise<UpstashResponse<TResult>> {
+    await ensureDevelopmentServer(undefined, this.devMode);
     const { response } = await this.requestWithBackoff(request);
     if (request.parseResponseAsJson === false) {
       return undefined as unknown as UpstashResponse<TResult>;
@@ -133,6 +140,7 @@ export class HttpClient implements Requester {
   }
 
   public async *requestStream(request: UpstashRequest): AsyncIterable<ChatCompletionChunk> {
+    await ensureDevelopmentServer(undefined, this.devMode);
     const { response } = await this.requestWithBackoff(request);
 
     if (!response.body) {
@@ -223,17 +231,7 @@ export class HttpClient implements Requester {
     const url = new URL([request.baseUrl ?? this.baseUrl, ...request.path].join("/"));
     if (request.query) {
       for (const [key, value] of Object.entries(request.query)) {
-        if (value === undefined) continue;
-        if (Array.isArray(value)) {
-          if ((value as unknown[]).length === 0) {
-            throw new QstashEmptyArrayError(key);
-          }
-          for (const item of value) {
-            url.searchParams.append(key, item);
-          }
-        } else if (value instanceof Date) {
-          url.searchParams.set(key, value.getTime().toString());
-        } else {
+        if (value !== undefined) {
           url.searchParams.set(key, value.toString());
         }
       }

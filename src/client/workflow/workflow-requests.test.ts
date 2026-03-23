@@ -132,7 +132,7 @@ describe("Workflow Requests", () => {
       url: WORKFLOW_ENDPOINT,
     });
 
-    const spy = spyOn(context.qstashClient.http, "request").mockResolvedValue({});
+    const spy = spyOn(context.qstashClient.http, "request");
     await triggerWorkflowDelete(context);
     expect(spy).toHaveBeenCalledTimes(1);
     expect(spy).toHaveBeenLastCalledWith({

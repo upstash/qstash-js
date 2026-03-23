@@ -1,18 +1,32 @@
 /* eslint-disable @typescript-eslint/no-magic-numbers */
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 /* eslint-disable @typescript-eslint/no-deprecated */
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { sleep } from "bun";
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { Client } from "./client";
 import { eventually } from "./logs.test";
-import { MOCK_QSTASH_SERVER_URL, mockQStashServer } from "./workflow/test-utils";
-import type { HttpClient } from "./http";
 
 // Updated to use constants for magic numbers
 const SECONDS_IN_A_DAY = 24 * 60 * 60;
 
 describe("DLQ", () => {
+  test(
+    "should filter DLQ messages by label",
+    async () => {
+      const label = `dlq-label-${Date.now()}`;
+      await client.publish({
+        url: "https://example.com/force-dlq",
+        retries: 0,
+        label,
+      });
+      await sleep(10_000);
+      const dlqLogs = await client.dlq.listMessages({ filter: { label } });
+      expect(dlqLogs.messages.some((m) => m.label === label)).toBe(true);
+    },
+    {
+      timeout: 15_000,
+    }
+  );
   const client = new Client({ token: process.env.QSTASH_TOKEN! });
   const urlGroup = "someUrlGroup";
 
@@ -33,7 +47,7 @@ describe("DLQ", () => {
 
     const dlqLogs = await client.dlq.listMessages();
     if (dlqLogs.messages.length === 0) return;
-    await client.dlq.delete({ dlqIds: dlqLogs.messages.map((dlq) => dlq.dlqId) });
+    await client.dlq.deleteMany({ dlqIds: dlqLogs.messages.map((dlq) => dlq.dlqId) });
   });
 
   test(
@@ -64,8 +78,6 @@ describe("DLQ", () => {
 
       let dlqLogs = await client.dlq.listMessages({ filter: { messageId: message.messageId } });
       let dlqMessage = dlqLogs.messages.find((dlq) => dlq.messageId === message.messageId);
-      expect(dlqMessage).toBeDefined();
-      const deletedDlqId = dlqMessage?.dlqId ?? "";
 
       await client.dlq.delete(dlqMessage?.dlqId ?? "");
 
@@ -73,9 +85,6 @@ describe("DLQ", () => {
       dlqMessage = dlqLogs.messages.find((dlq) => dlq.messageId === message.messageId);
 
       expect(dlqMessage).toBeUndefined();
-
-      // Single-item delete should preserve 404 semantics when item no longer exists.
-      expect(client.dlq.delete(deletedDlqId)).rejects.toThrow();
     },
     { timeout: 20_000 }
   );
@@ -88,28 +97,16 @@ describe("DLQ", () => {
         retries: 0,
       });
 
-      await eventually(
-        async () => {
-          const result = await client.dlq.listMessages({
-            filter: {
-              messageId: message.messageId,
-            },
-          });
-
-          expect(result.messages.length).toBe(1);
-          expect(result.messages[0].messageId).toBe(message.messageId);
-        },
-        {
-          timeout: 15_000,
-          interval: 1000,
-        }
-      );
+      await sleep(10_000);
 
       const result = await client.dlq.listMessages({
         filter: {
           messageId: message.messageId,
         },
       });
+
+      expect(result.messages.length).toBe(1);
+      expect(result.messages[0].messageId).toBe(message.messageId);
 
       await client.dlq.delete(result.messages[0].dlqId);
     },
@@ -128,30 +125,17 @@ describe("DLQ", () => {
         retries: 0,
       });
 
-      await eventually(
-        async () => {
-          const result = await client.dlq.listMessages({
-            filter: {
-              urlGroup: urlGroup,
-            },
-          });
+      await eventually(async () => {
+        const result = await client.dlq.listMessages({
+          filter: {
+            urlGroup: urlGroup,
+          },
+        });
 
-          expect(result.messages.length).toBe(1);
-          expect(result.messages[0].messageId).toBe(message[0].messageId);
-        },
-        {
-          timeout: 15_000,
-          interval: 1000,
-        }
-      );
-
-      const result = await client.dlq.listMessages({
-        filter: {
-          urlGroup: urlGroup,
-        },
+        expect(result.messages.length).toBe(1);
+        expect(result.messages[0].messageId).toBe(message[0].messageId);
+        await client.dlq.delete(result.messages[0].dlqId);
       });
-
-      await client.dlq.delete(result.messages[0].dlqId);
     },
     { timeout: 20_000 }
   );
@@ -164,7 +148,7 @@ describe("DLQ", () => {
       const retryDelay = "2000 * retried";
       const randomKey = `flow-control-key-${Date.now()}`;
       const { messageId } = await client.publish({
-        url: "https://httpbin.org/status/400",
+        url: "https://httpstat.us/400",
         body: "hello",
         retries: 0,
         flowControl: {
@@ -203,7 +187,7 @@ describe("DLQ", () => {
     async () => {
       const testLabel = `dlq-test-label-${Date.now()}`;
       await client.publish({
-        url: `https://httpbin.org/status/400`, // Any broken link will work
+        url: `https://httpstat.us/400`, // Any broken link will work
         retries: 0,
         label: testLabel,
       });
@@ -225,693 +209,4 @@ describe("DLQ", () => {
     },
     { timeout: 20_000 }
   );
-
-  test(
-    "should retry multiple messages from DLQ",
-    async () => {
-      // Publish multiple messages that will fail
-      const message1 = await client.publish({
-        url: `https://example.com/123/?asdasd=ooo`,
-        retries: 0,
-      });
-      const message2 = await client.publish({
-        url: `https://example.com/456/?asdasd=ooo`,
-        retries: 0,
-      });
-      const message3 = await client.publish({
-        url: `https://example.com/789/?asdasd=ooo`,
-        retries: 0,
-      });
-
-      let dlqMessage1: { dlqId: string; messageId: string } | undefined;
-      let dlqMessage2: { dlqId: string; messageId: string } | undefined;
-      let dlqMessage3: { dlqId: string; messageId: string } | undefined;
-
-      // Wait for all messages to appear in DLQ
-      await eventually(
-        async () => {
-          // Get all messages from DLQ
-          const dlqLogs1 = await client.dlq.listMessages({
-            filter: { messageId: message1.messageId },
-          });
-          const dlqLogs2 = await client.dlq.listMessages({
-            filter: { messageId: message2.messageId },
-          });
-          const dlqLogs3 = await client.dlq.listMessages({
-            filter: { messageId: message3.messageId },
-          });
-
-          dlqMessage1 = dlqLogs1.messages.find((dlq) => dlq.messageId === message1.messageId);
-          dlqMessage2 = dlqLogs2.messages.find((dlq) => dlq.messageId === message2.messageId);
-          dlqMessage3 = dlqLogs3.messages.find((dlq) => dlq.messageId === message3.messageId);
-
-          expect(dlqMessage1).toBeDefined();
-          expect(dlqMessage2).toBeDefined();
-          expect(dlqMessage3).toBeDefined();
-        },
-        {
-          timeout: 15_000,
-          interval: 1000,
-        }
-      );
-
-      // Retry all three messages
-      const dlqIds = [dlqMessage1!.dlqId, dlqMessage2!.dlqId, dlqMessage3!.dlqId];
-
-      const retryResult = await client.dlq.retry({ dlqIds });
-
-      // Verify the response contains messageIds
-      expect(retryResult).toBeDefined();
-      expect(retryResult.responses).toBeInstanceOf(Array);
-      expect(retryResult.responses.length).toBe(3);
-      expect(retryResult.responses.every((result) => result.messageId)).toBe(true);
-
-      // Clean up - delete the retried messages from DLQ
-      await client.dlq.deleteMany({ dlqIds });
-    },
-    { timeout: 20_000 }
-  );
-
-  test(
-    "should delete multiple messages from DLQ",
-    async () => {
-      // Publish multiple messages that will fail
-      const message1 = await client.publish({
-        url: `https://example.com/123/?asdasd=ooo`,
-        retries: 0,
-      });
-      const message2 = await client.publish({
-        url: `https://example.com/456/?asdasd=ooo`,
-        retries: 0,
-      });
-      const message3 = await client.publish({
-        url: `https://example.com/789/?asdasd=ooo`,
-        retries: 0,
-      });
-
-      await sleep(10_000);
-
-      // Get all messages from DLQ
-      const dlqLogs1 = await client.dlq.listMessages({ filter: { messageId: message1.messageId } });
-      const dlqLogs2 = await client.dlq.listMessages({ filter: { messageId: message2.messageId } });
-      const dlqLogs3 = await client.dlq.listMessages({ filter: { messageId: message3.messageId } });
-
-      const dlqMessage1 = dlqLogs1.messages.find((dlq) => dlq.messageId === message1.messageId);
-      const dlqMessage2 = dlqLogs2.messages.find((dlq) => dlq.messageId === message2.messageId);
-      const dlqMessage3 = dlqLogs3.messages.find((dlq) => dlq.messageId === message3.messageId);
-
-      expect(dlqMessage1).toBeDefined();
-      expect(dlqMessage2).toBeDefined();
-      expect(dlqMessage3).toBeDefined();
-
-      // Delete all three messages
-      const dlqIds = [dlqMessage1!.dlqId, dlqMessage2!.dlqId, dlqMessage3!.dlqId];
-
-      const deleteResult = await client.dlq.deleteMany({ dlqIds });
-
-      // Verify the response contains the correct deleted count
-      expect(deleteResult).toBeDefined();
-      expect(deleteResult.deleted).toBe(3);
-
-      // Verify the messages are actually deleted from DLQ
-      const dlqLogsAfterDelete1 = await client.dlq.listMessages({
-        filter: { messageId: message1.messageId },
-      });
-      const dlqLogsAfterDelete2 = await client.dlq.listMessages({
-        filter: { messageId: message2.messageId },
-      });
-      const dlqLogsAfterDelete3 = await client.dlq.listMessages({
-        filter: { messageId: message3.messageId },
-      });
-
-      const dlqMessageAfterDelete1 = dlqLogsAfterDelete1.messages.find(
-        (dlq) => dlq.messageId === message1.messageId
-      );
-      const dlqMessageAfterDelete2 = dlqLogsAfterDelete2.messages.find(
-        (dlq) => dlq.messageId === message2.messageId
-      );
-      const dlqMessageAfterDelete3 = dlqLogsAfterDelete3.messages.find(
-        (dlq) => dlq.messageId === message3.messageId
-      );
-
-      expect(dlqMessageAfterDelete1).toBeUndefined();
-      expect(dlqMessageAfterDelete2).toBeUndefined();
-      expect(dlqMessageAfterDelete3).toBeUndefined();
-    },
-    { timeout: 20_000 }
-  );
-
-  test(
-    "should delete multiple messages from DLQ using string array overload",
-    async () => {
-      const message1 = await client.publish({
-        url: `https://example.com/123/?asdasd=ooo`,
-        retries: 0,
-      });
-      const message2 = await client.publish({
-        url: `https://example.com/456/?asdasd=ooo`,
-        retries: 0,
-      });
-
-      await sleep(10_000);
-
-      const dlqLogs1 = await client.dlq.listMessages({ filter: { messageId: message1.messageId } });
-      const dlqLogs2 = await client.dlq.listMessages({ filter: { messageId: message2.messageId } });
-
-      const dlqMessage1 = dlqLogs1.messages.find((dlq) => dlq.messageId === message1.messageId);
-      const dlqMessage2 = dlqLogs2.messages.find((dlq) => dlq.messageId === message2.messageId);
-
-      expect(dlqMessage1).toBeDefined();
-      expect(dlqMessage2).toBeDefined();
-
-      // Delete using string[] overload
-      const deleteResult = await client.dlq.delete([dlqMessage1!.dlqId, dlqMessage2!.dlqId]);
-
-      expect(deleteResult).toBeDefined();
-      expect(deleteResult.deleted).toBe(2);
-
-      // Verify deletion
-      const afterDelete1 = await client.dlq.listMessages({
-        filter: { messageId: message1.messageId },
-      });
-      const afterDelete2 = await client.dlq.listMessages({
-        filter: { messageId: message2.messageId },
-      });
-
-      expect(
-        afterDelete1.messages.find((dlq) => dlq.messageId === message1.messageId)
-      ).toBeUndefined();
-      expect(
-        afterDelete2.messages.find((dlq) => dlq.messageId === message2.messageId)
-      ).toBeUndefined();
-    },
-    { timeout: 20_000 }
-  );
-
-  test(
-    "should delete DLQ messages using filter overload",
-    async () => {
-      const label = `dlq-delete-filter-${Date.now()}`;
-      await client.publish({
-        url: `https://example.com/123/?asdasd=ooo`,
-        retries: 0,
-        label,
-      });
-      await client.publish({
-        url: `https://example.com/456/?asdasd=ooo`,
-        retries: 0,
-        label,
-      });
-
-      await sleep(10_000);
-
-      // Verify messages are in DLQ
-      const dlqBefore = await client.dlq.listMessages({ filter: { label } });
-      expect(dlqBefore.messages.length).toBeGreaterThanOrEqual(2);
-
-      // Delete using filter overload
-      const deleteResult = await client.dlq.delete({ filter: { label } });
-
-      expect(deleteResult).toBeDefined();
-      expect(deleteResult.deleted).toBeGreaterThanOrEqual(2);
-
-      // Verify deletion
-      const dlqAfter = await client.dlq.listMessages({ filter: { label } });
-      expect(dlqAfter.messages.length).toBe(0);
-    },
-    { timeout: 20_000 }
-  );
-
-  test(
-    "should retry single DLQ message using string overload",
-    async () => {
-      const message = await client.publish({
-        url: `https://example.com/123/?asdasd=ooo`,
-        retries: 0,
-      });
-
-      await sleep(10_000);
-
-      const dlqLogs = await client.dlq.listMessages({ filter: { messageId: message.messageId } });
-      const dlqMessage = dlqLogs.messages.find((dlq) => dlq.messageId === message.messageId);
-
-      expect(dlqMessage).toBeDefined();
-
-      // Retry using single string overload
-      const retryResult = await client.dlq.retry(dlqMessage!.dlqId);
-
-      expect(retryResult).toBeDefined();
-      expect(retryResult.responses).toBeInstanceOf(Array);
-      expect(retryResult.responses.length).toBe(1);
-      expect(retryResult.responses[0].messageId).toBeDefined();
-      expect(client.dlq.delete(dlqMessage!.dlqId)).rejects.toThrow();
-    },
-    { timeout: 20_000 }
-  );
-
-  test(
-    "should retry DLQ messages using string array overload",
-    async () => {
-      const message1 = await client.publish({
-        url: `https://example.com/123/?asdasd=ooo`,
-        retries: 0,
-      });
-      const message2 = await client.publish({
-        url: `https://example.com/456/?asdasd=ooo`,
-        retries: 0,
-      });
-
-      await sleep(10_000);
-
-      const dlqLogs1 = await client.dlq.listMessages({ filter: { messageId: message1.messageId } });
-      const dlqLogs2 = await client.dlq.listMessages({ filter: { messageId: message2.messageId } });
-
-      const dlqMessage1 = dlqLogs1.messages.find((dlq) => dlq.messageId === message1.messageId);
-      const dlqMessage2 = dlqLogs2.messages.find((dlq) => dlq.messageId === message2.messageId);
-
-      expect(dlqMessage1).toBeDefined();
-      expect(dlqMessage2).toBeDefined();
-
-      // Retry using string[] overload
-      const retryResult = await client.dlq.retry([dlqMessage1!.dlqId, dlqMessage2!.dlqId]);
-
-      expect(retryResult).toBeDefined();
-      expect(retryResult.responses).toBeInstanceOf(Array);
-      expect(retryResult.responses.length).toBe(2);
-      expect(retryResult.responses.every((r) => r.messageId)).toBe(true);
-
-      // Clean up
-      await client.dlq.delete([dlqMessage1!.dlqId, dlqMessage2!.dlqId]);
-    },
-    { timeout: 20_000 }
-  );
-
-  test(
-    "should retry DLQ messages using filter overload",
-    async () => {
-      const label = `dlq-retry-filter-${Date.now()}`;
-      await client.publish({
-        url: `https://example.com/123/?asdasd=ooo`,
-        retries: 0,
-        label,
-      });
-      await client.publish({
-        url: `https://example.com/456/?asdasd=ooo`,
-        retries: 0,
-        label,
-      });
-
-      await sleep(10_000);
-
-      // Verify messages are in DLQ
-      const dlqBefore = await client.dlq.listMessages({ filter: { label } });
-      expect(dlqBefore.messages.length).toBeGreaterThanOrEqual(2);
-
-      // Retry using filter overload
-      const retryResult = await client.dlq.retry({ filter: { label } });
-
-      expect(retryResult).toBeDefined();
-      expect(retryResult.responses).toBeInstanceOf(Array);
-      expect(retryResult.responses.length).toBeGreaterThanOrEqual(2);
-      expect(retryResult.responses.every((r) => r.messageId)).toBe(true);
-
-      // Clean up
-      await client.dlq.delete({ filter: { label } });
-    },
-    { timeout: 20_000 }
-  );
-
-  test(
-    "should respect count: 1 with all: true in delete",
-    async () => {
-      const label = `dlq-count-all-${Date.now()}`;
-      await client.publish({ url: "https://example.com/1", retries: 0, label });
-      await client.publish({ url: "https://example.com/2", retries: 0, label });
-
-      await eventually(
-        async () => {
-          const dlq = await client.dlq.listMessages({ filter: { label } });
-          expect(dlq.messages.length).toBe(2);
-        },
-        { timeout: 15_000, interval: 1000 }
-      );
-
-      const result = await client.dlq.delete({ all: true, count: 1 });
-      expect(result.deleted).toBe(1);
-
-      // clean up remaining
-      await client.dlq.delete({ filter: { label } });
-    },
-    { timeout: 25_000 }
-  );
-
-  test(
-    "should respect count: 1 with filter in delete",
-    async () => {
-      const label = `dlq-count-filter-${Date.now()}`;
-      await client.publish({ url: "https://example.com/1", retries: 0, label });
-      await client.publish({ url: "https://example.com/2", retries: 0, label });
-
-      await eventually(
-        async () => {
-          const dlq = await client.dlq.listMessages({ filter: { label } });
-          expect(dlq.messages.length).toBe(2);
-        },
-        { timeout: 15_000, interval: 1000 }
-      );
-
-      const result = await client.dlq.delete({ filter: { label }, count: 1 });
-      expect(result.deleted).toBe(1);
-
-      // clean up remaining
-      await client.dlq.delete({ filter: { label } });
-    },
-    { timeout: 25_000 }
-  );
-
-  test(
-    "should respect count: 1 with all: true in retry",
-    async () => {
-      const label = `dlq-retry-count-all-${Date.now()}`;
-      await client.publish({ url: "https://example.com/1", retries: 0, label });
-      await client.publish({ url: "https://example.com/2", retries: 0, label });
-
-      await eventually(
-        async () => {
-          const dlq = await client.dlq.listMessages({ filter: { label } });
-          expect(dlq.messages.length).toBe(2);
-        },
-        { timeout: 15_000, interval: 1000 }
-      );
-
-      const result = await client.dlq.retry({ all: true, count: 1 });
-      expect(result.responses.length).toBe(1);
-
-      // clean up remaining
-      await client.dlq.delete({ filter: { label } });
-    },
-    { timeout: 25_000 }
-  );
-
-  test(
-    "should respect count: 1 with filter in retry",
-    async () => {
-      const label = `dlq-retry-count-filter-${Date.now()}`;
-      await client.publish({ url: "https://example.com/1", retries: 0, label });
-      await client.publish({ url: "https://example.com/2", retries: 0, label });
-
-      await eventually(
-        async () => {
-          const dlq = await client.dlq.listMessages({ filter: { label } });
-          expect(dlq.messages.length).toBe(2);
-        },
-        { timeout: 15_000, interval: 1000 }
-      );
-
-      const result = await client.dlq.retry({ filter: { label }, count: 1 });
-      expect(result.responses.length).toBe(1);
-
-      // clean up remaining
-      await client.dlq.delete({ filter: { label } });
-    },
-    { timeout: 25_000 }
-  );
-
-  test("should return empty result when retry is called with an empty array", async () => {
-    const result = await client.dlq.retry([]);
-    expect(result).toEqual({ responses: [] });
-  });
-
-  test("should return empty result when delete is called with an empty array", async () => {
-    const result = await client.dlq.delete([]);
-    expect(result).toEqual({ deleted: 0 });
-  });
-
-  // eslint-disable-next-line @typescript-eslint/require-await
-  test("should throw when delete is called with { dlqIds: [] }", async () => {
-    expect(client.dlq.delete({ dlqIds: [] })).rejects.toThrow("Empty dlqIds array");
-  });
-
-  test(
-    "should return optional cursor from retry with dlqIds",
-    async () => {
-      const message = await client.publish({
-        url: `https://example.com/123/?asdasd=ooo`,
-        retries: 0,
-      });
-
-      await eventually(
-        async () => {
-          const dlqLogs = await client.dlq.listMessages({
-            filter: { messageId: message.messageId },
-          });
-          expect(dlqLogs.messages.length).toBe(1);
-        },
-        { timeout: 15_000, interval: 1000 }
-      );
-
-      const dlqLogs = await client.dlq.listMessages({
-        filter: { messageId: message.messageId },
-      });
-      const dlqMessage = dlqLogs.messages[0];
-
-      const retryResult = await client.dlq.retry(dlqMessage.dlqId);
-
-      expect(retryResult.responses.length).toBe(1);
-      expect(retryResult.responses[0].messageId).toBeDefined();
-      // cursor should not be returned when using explicit dlqIds
-      expect(retryResult.cursor).toBeUndefined();
-    },
-    { timeout: 20_000 }
-  );
-
-  test(
-    "should filter DLQ messages by flowControlKey",
-    async () => {
-      const flowKey = `dlq-flow-key-${Date.now()}`;
-      await client.publish({
-        url: "https://httpbin.org/status/400",
-        body: "hello",
-        retries: 0,
-        flowControl: {
-          key: flowKey,
-          parallelism: 1,
-        },
-      });
-
-      await eventually(
-        async () => {
-          const result = await client.dlq.listMessages({
-            filter: { flowControlKey: flowKey },
-          });
-          expect(result.messages.length).toBe(1);
-          expect(result.messages[0].flowControlKey).toBe(flowKey);
-        },
-        { timeout: 15_000, interval: 1000 }
-      );
-
-      const result = await client.dlq.delete({ filter: { flowControlKey: flowKey } });
-      expect(result).toBeDefined();
-      expect(result.deleted).toBe(1);
-    },
-    { timeout: 20_000 }
-  );
-
-  test(
-    "should retry with filter and get responses with messageId",
-    async () => {
-      const label = `dlq-retry-filter-verify-${Date.now()}`;
-      await client.publish({
-        url: `https://example.com/retry-filter-test`,
-        retries: 0,
-        label,
-      });
-
-      await eventually(
-        async () => {
-          const dlqBefore = await client.dlq.listMessages({ filter: { label } });
-          expect(dlqBefore.messages.length).toBeGreaterThanOrEqual(1);
-        },
-        { timeout: 15_000, interval: 1000 }
-      );
-
-      const retryResult = await client.dlq.retry({ filter: { label } });
-
-      expect(retryResult.responses.length).toBe(1);
-      expect(retryResult.responses[0].messageId).toBeDefined();
-      expect(retryResult.cursor).toBeUndefined();
-
-      await client.dlq.delete({ filter: { label } });
-    },
-    { timeout: 20_000 }
-  );
-
-  test(
-    "should return undefined cursor on last page of listMessages",
-    async () => {
-      const result = await client.dlq.listMessages({
-        filter: {
-          label: `non-existent-label-${Date.now()}`,
-        },
-      });
-
-      expect(result.cursor).toBeUndefined();
-    },
-    { timeout: 30_000 }
-  );
-
-  test(
-    "should return undefined cursor (not empty string) from delete with no-match filter",
-    async () => {
-      const result = await client.dlq.delete({
-        filter: { url: "https://definitely-does-not-exist-12345.example.com" },
-      });
-      expect(result.deleted).toBe(0);
-      expect(result.cursor).toBeUndefined();
-    },
-    { timeout: 10_000 }
-  );
-
-  test(
-    "should retry with ALL DLQ filter fields without error",
-    async () => {
-      const label = `dlq-all-fields-${Date.now()}`;
-      const targetUrl = "https://example.com/all-fields-test";
-
-      await client.publish({
-        url: targetUrl,
-        retries: 0,
-        label,
-      });
-
-      await eventually(
-        async () => {
-          const dlqLogs = await client.dlq.listMessages({ filter: { label } });
-          expect(dlqLogs.messages.length).toBeGreaterThanOrEqual(1);
-        },
-        { timeout: 15_000, interval: 1000 }
-      );
-
-      // Test each filter field individually to make sure none of them error
-      const filterFields = [
-        { messageId: "non-existent-id" },
-        { url: "https://non-existent-url.example.com" },
-        { urlGroup: "non-existent-url-group" },
-        { scheduleId: "non-existent-schedule" },
-        { queueName: "non-existent-queue" },
-        { callerIp: "0.0.0.0" },
-        { label: "non-existent-label" },
-        { flowControlKey: "non-existent-key" },
-        { responseStatus: 999 },
-        { fromDate: new Date("2099-01-01") },
-        { toDate: new Date("2000-01-01") },
-      ] as const;
-
-      for (const filter of filterFields) {
-        const retryResult = await client.dlq.retry({ filter });
-        expect(retryResult).toBeDefined();
-        expect(retryResult.responses).toBeInstanceOf(Array);
-      }
-
-      // Clean up
-      await client.dlq.delete({ filter: { label } });
-    },
-    { timeout: 30_000 }
-  );
-
-  test(
-    "should get server error when sending wrong filter field with typo",
-    // eslint-disable-next-line @typescript-eslint/require-await
-    async () => {
-      // Sending an unknown/typo filter field should cause the server to return an error
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      const bogusFilter = { filter: { labeel: "some-value" } } as any;
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument
-      const promise = client.dlq.delete(bogusFilter);
-      expect(promise).rejects.toThrow();
-    },
-    { timeout: 10_000 }
-  );
-
-  // eslint-disable-next-line @typescript-eslint/require-await
-  test("should throw when retry is called with { dlqIds: [] }", async () => {
-    expect(client.dlq.retry({ dlqIds: [] })).rejects.toThrow("Empty dlqIds array");
-  });
-});
-
-describe("DLQ - mocked early return", () => {
-  test("should not send request when delete is called with empty string array", async () => {
-    await mockQStashServer({
-      execute: async () => {
-        const mockClient = new Client({
-          token: "mock-token",
-          baseUrl: MOCK_QSTASH_SERVER_URL,
-        });
-        const result = await mockClient.dlq.delete([]);
-        expect(result).toEqual({ deleted: 0 });
-      },
-      responseFields: { body: {}, status: 200 },
-      receivesRequest: false,
-    });
-  });
-
-  test("should not send request when delete is called with { dlqIds: [] } and throw", async () => {
-    await mockQStashServer({
-      execute: () => {
-        const mockClient = new Client({
-          token: "mock-token",
-          baseUrl: MOCK_QSTASH_SERVER_URL,
-        });
-        expect(mockClient.dlq.delete({ dlqIds: [] })).rejects.toThrow("Empty dlqIds array");
-      },
-      responseFields: { body: {}, status: 200 },
-      receivesRequest: false,
-    });
-  });
-
-  test("should not send request when retry is called with empty string array", async () => {
-    await mockQStashServer({
-      execute: async () => {
-        const mockClient = new Client({
-          token: "mock-token",
-          baseUrl: MOCK_QSTASH_SERVER_URL,
-        });
-        const result = await mockClient.dlq.retry([]);
-        expect(result).toEqual({ responses: [] });
-      },
-      responseFields: { body: {}, status: 200 },
-      receivesRequest: false,
-    });
-  });
-
-  test("should not send request when retry is called with { dlqIds: [] } and throw", async () => {
-    await mockQStashServer({
-      execute: () => {
-        const mockClient = new Client({
-          token: "mock-token",
-          baseUrl: MOCK_QSTASH_SERVER_URL,
-        });
-        expect(mockClient.dlq.retry({ dlqIds: [] })).rejects.toThrow("Empty dlqIds array");
-      },
-      responseFields: { body: {}, status: 200 },
-      receivesRequest: false,
-    });
-  });
-
-  // eslint-disable-next-line @typescript-eslint/require-await
-  test("http client should throw when empty array is passed in query params", async () => {
-    const mockClient = new Client({
-      token: "mock-token",
-      baseUrl: MOCK_QSTASH_SERVER_URL,
-    });
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    const http = (mockClient as any).http as HttpClient;
-
-    const promise = http.request({
-      method: "GET",
-      path: ["v2", "dlq"],
-      query: { dlqIds: [] as string[] },
-    });
-    expect(promise).rejects.toThrow("Empty array");
-  });
 });
