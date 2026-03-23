@@ -50,20 +50,6 @@ describe("logs", () => {
     expect(result.logs).toBeDefined();
     expect(Array.isArray(result.logs)).toBe(true);
   });
-
-  test(
-    "should return undefined cursor on last page, not empty string",
-    async () => {
-      const result = await client.logs({
-        filter: {
-          label: `non-existent-label-${Date.now()}`,
-        },
-      });
-
-      expect(result.cursor).toBeUndefined();
-    },
-    { timeout: 10_000 }
-  );
 });
 
 describe("events (deprecated)", () => {

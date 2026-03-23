@@ -6,8 +6,15 @@ import { Chat } from "./llm/chat";
 import { Messages } from "./messages";
 import { Queue } from "./queue";
 import { Schedules } from "./schedules";
-import type { BodyInit, Log, FlowControl, GetLogsPayload, HeadersInit, HTTPMethods } from "./types";
-import type { LogsListRequest } from "./filter-types";
+import type {
+  BodyInit,
+  Log,
+  FlowControl,
+  GetLogsPayload,
+  HeadersInit,
+  HTTPMethods,
+  State,
+} from "./types";
 import { UrlGroups } from "./url-groups";
 import {
   getRequestPath,
@@ -15,7 +22,6 @@ import {
   getSafeEnvironment,
   prefixHeaders,
   processHeaders,
-  renameUrlGroup,
   wrapWithGlobalHeaders,
 } from "./utils";
 import { Workflow } from "./workflow";
@@ -23,6 +29,8 @@ import type { PublishEmailApi, PublishLLMApi } from "./api/types";
 import { processApi } from "./api/utils";
 import { VERSION } from "../../version";
 import { getClientCredentials } from "./multi-region";
+
+import { shouldUseDevelopmentMode, ensureDevelopmentServer } from "../dev-server";
 
 type ClientConfig = {
   /**
@@ -64,6 +72,16 @@ type ClientConfig = {
    * @default true
    */
   enableTelemetry?: boolean;
+
+  /**
+   * Controls the local dev server.
+   * - `true`: force dev mode on (downloads, starts, and manages the dev server automatically)
+   * - `false`: force dev mode off (ignores QSTASH_DEV env var)
+   * - `undefined`: check QSTASH_DEV env var
+   *
+   * @default undefined
+   */
+  devMode?: boolean;
 };
 
 export type PublishBatchRequest<TBody = BodyInit> = PublishRequest<TBody> & {
@@ -221,20 +239,6 @@ export type PublishRequest<TBody = BodyInit> = {
    * @default undefined
    */
   label?: string;
-
-  /**
-   * Configure which fields should be redacted in logs.
-   *
-   * - `body: true` redacts the request body
-   * - `header: true` redacts all headers
-   * - `header: ["X"]` redacts specific headers (e.g., ["Authorization"])
-   *
-   * @default undefined
-   */
-  redact?: {
-    body?: true;
-    header?: true | string[];
-  };
 } & (
   | {
       /**
@@ -327,9 +331,9 @@ export type PublishJsonRequest = Omit<PublishRequest, "body"> & {
 };
 
 export type LogsRequest = {
-  /** Max 1000. Defaults to 10 when `groupBy` is used. */
-  count?: number;
-} & LogsListRequest;
+  cursor?: string | number;
+  filter?: LogsRequestFilter;
+};
 
 /**
  * Deprecated. Use `LogsRequest` instead.
@@ -337,6 +341,21 @@ export type LogsRequest = {
  * @deprecated
  */
 export type EventsRequest = LogsRequest;
+
+type LogsRequestFilter = {
+  messageId?: string;
+  state?: State;
+  url?: string;
+  urlGroup?: string;
+  topicName?: string;
+  api?: string;
+  scheduleId?: string;
+  queueName?: string;
+  fromDate?: number; // unix timestamp (ms)
+  toDate?: number; // unix timestamp (ms)
+  count?: number;
+  label?: string;
+};
 
 export type GetLogsResponse = {
   cursor?: string;
@@ -368,7 +387,16 @@ export class Client {
     const environment = getSafeEnvironment();
 
     // Resolve credentials using multi-region logic
-    const { baseUrl, token } = getClientCredentials({ environment, config });
+    const { baseUrl, token } = getClientCredentials({
+      environment,
+      config,
+      devMode: config?.devMode,
+    });
+
+    // Fire-and-forget dev server startup
+    if (shouldUseDevelopmentMode(config?.devMode, environment)) {
+      void ensureDevelopmentServer(environment, config?.devMode);
+    }
 
     const enableTelemetry = environment.UPSTASH_DISABLE_TELEMETRY
       ? false
@@ -400,6 +428,7 @@ export class Client {
       headers: prefixHeaders(new Headers(config?.headers ?? {})),
       //@ts-expect-error caused by undici and bunjs type overlap
       telemetryHeaders: telemetryHeaders,
+      devMode: config?.devMode,
     });
 
     this.token = token;
@@ -621,21 +650,43 @@ export class Client {
    * }
    * ```
    */
-  public async logs(request: LogsRequest = {}): Promise<GetLogsResponse> {
-    const query = {
-      count: request.count,
-      ...("messageIds" in request
-        ? { messageIds: request.messageIds }
-        : { ...renameUrlGroup(request.filter ?? {}), cursor: request.cursor }),
-    };
+  public async logs(request?: LogsRequest): Promise<GetLogsResponse> {
+    const query: Record<string, string> = {};
+
+    if (typeof request?.cursor === "number" && request.cursor > 0) {
+      query.cursor = request.cursor.toString();
+    } else if (typeof request?.cursor === "string" && request.cursor !== "") {
+      query.cursor = request.cursor;
+    }
+
+    for (const [key, value] of Object.entries(request?.filter ?? {})) {
+      if (typeof value === "number" && value < 0) {
+        continue;
+      }
+      if (key === "urlGroup") {
+        query.topicName = value.toString();
+        // eslint-disable-next-line unicorn/no-typeof-undefined
+      } else if (typeof value !== "undefined") {
+        query[key] = value.toString();
+      }
+    }
 
     const responsePayload = await this.http.request<GetLogsPayload>({
       path: ["v2", "events"],
       method: "GET",
       query,
     });
-    const logs = responsePayload.events.map((event) => ({ ...event, urlGroup: event.topicName }));
-    return { cursor: responsePayload.cursor, logs, events: logs };
+    const logs = responsePayload.events.map((event) => {
+      return {
+        ...event,
+        urlGroup: event.topicName,
+      };
+    });
+    return {
+      cursor: responsePayload.cursor,
+      logs: logs,
+      events: logs,
+    };
   }
 
   /**

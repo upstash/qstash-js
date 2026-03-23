@@ -2,9 +2,6 @@
 import { getProviderInfo } from "./api/utils";
 import type { PublishRequest } from "./client";
 import { QstashError } from "./error";
-import type { DLQBulkActionFilters, MessageCancelFilters } from "./filter-types";
-
-export const DEFAULT_BULK_COUNT = 100;
 
 const isIgnoredHeader = (header: string) => {
   const lowerCaseHeader = header.toLowerCase();
@@ -136,28 +133,6 @@ export function processHeaders(request: PublishRequest) {
     headers.set("Upstash-Label", request.label);
   }
 
-  if (request.redact !== undefined) {
-    const redactParts: string[] = [];
-
-    if (request.redact.body) {
-      redactParts.push("body");
-    }
-
-    if (request.redact.header !== undefined) {
-      if (request.redact.header === true) {
-        redactParts.push("header");
-      } else if (Array.isArray(request.redact.header) && request.redact.header.length > 0) {
-        for (const headerName of request.redact.header) {
-          redactParts.push(`header[${headerName}]`);
-        }
-      }
-    }
-
-    if (redactParts.length > 0) {
-      headers.set("Upstash-Redact-Fields", redactParts.join(","));
-    }
-  }
-
   return headers;
 }
 
@@ -222,68 +197,13 @@ export function decodeBase64(base64: string) {
   }
 }
 
-/**
- * Builds a filter payload object from the three-branch union types
- * (`{ dlqIds }`, `{ messageIds }`, `{ filter }`, or `{ all }`).
- *
- * Handles the `urlGroup` → `topicName` rename.
- * Defaults `count` to 100 when `all: true`.
- */
-export function buildBulkActionFilterPayload(request: DLQBulkActionFilters | MessageCancelFilters) {
-  const cursor = "cursor" in request ? request.cursor : undefined;
+export function parseCursor(cursor: string) {
+  const [timestamp, sequence] = cursor.split("-");
 
-  if ("all" in request) {
-    const count = "count" in request ? request.count ?? DEFAULT_BULK_COUNT : DEFAULT_BULK_COUNT;
-    return { count, cursor };
-  }
-
-  if ("dlqIds" in request) {
-    const ids = request.dlqIds;
-    if (Array.isArray(ids) && ids.length === 0) {
-      throw new QstashError(
-        "Empty dlqIds array provided. If you intend to target all DLQ messages, use { all: true } explicitly."
-      );
-    }
-    return { dlqIds: ids, cursor };
-  }
-
-  if ("messageIds" in request && request.messageIds) {
-    if (request.messageIds.length === 0) {
-      throw new QstashError(
-        "Empty messageIds array provided. If you intend to target all messages, use { all: true } explicitly."
-      );
-    }
-    return { messageIds: request.messageIds, cursor };
-  }
-
-  // Filter branch
-  const count = "count" in request ? request.count ?? DEFAULT_BULK_COUNT : DEFAULT_BULK_COUNT;
   return {
-    ...renameUrlGroup(request.filter as Record<string, unknown> & { urlGroup?: string }),
-    count,
-    cursor,
+    timestamp: Number.parseInt(timestamp, 10),
+    sequence: Number.parseInt(sequence, 10),
   };
-}
-
-/**
- * Renames `urlGroup` to `topicName` in a filter object.
- */
-export function renameUrlGroup<T extends { urlGroup?: string; api?: string }>(
-  filter: T
-): Omit<T, "urlGroup" | "api"> & { topicName?: string } {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { urlGroup, api, ...rest } = filter;
-  return { ...rest, ...(urlGroup === undefined ? {} : { topicName: urlGroup }) };
-}
-
-/**
- * Currently only the DLQ retry endpoint (POST /v2/dlq/retry) returns `cursor: ""`
- * this function normalizes that to `cursor: undefined` for better consistency across the SDK.
- */
-export function normalizeCursor<T>(response: T): T {
-  const cursor = (response as { cursor?: string }).cursor;
-  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
-  return { ...response, cursor: cursor || undefined };
 }
 
 export function getRuntime() {
