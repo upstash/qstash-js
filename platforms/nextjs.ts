@@ -9,6 +9,7 @@ import { Receiver } from "../src/receiver";
 
 import type { WorkflowServeOptions, RouteFunction } from "../src/client/workflow";
 import { serve as serveBase } from "../src/client/workflow";
+import { ensureDevelopmentServer } from "../src/dev-server";
 
 export type VerifySignatureConfig = {
   currentSigningKey?: string;
@@ -260,3 +261,35 @@ export const servePagesRouter = <TInitialPayload = unknown>(
     res.status(response.status).json(await response.json());
   };
 };
+
+/**
+ * Start the QStash dev server early during Next.js initialization.
+ *
+ * Call this inside your `instrumentation.ts` `register()` function so
+ * the dev server is ready before any request — including edge routes
+ * that cannot start it themselves.
+ *
+ * No-op in production, during `next build`, or in edge runtime.
+ *
+ * @example
+ * ```ts
+ * // instrumentation.ts
+ * import { registerQStashDev } from "@upstash/qstash/nextjs";
+ *
+ * export function register() {
+ *   registerQStashDev();
+ * }
+ * ```
+ */
+export async function registerQStashDev(): Promise<void> {
+  // Edge runtime — can't spawn processes
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  if (typeof process === "undefined" || !process.release?.name) return;
+  // Production — dev server should never run
+  if (process.env.NODE_ENV === "production") return;
+  // next build — NEXT_RUNTIME is set to "nodejs" during build too,
+  // but NEXT_PHASE tells us if we're building
+  if (process.env.NEXT_PHASE === "phase-production-build") return;
+
+  await ensureDevelopmentServer(undefined, true);
+}

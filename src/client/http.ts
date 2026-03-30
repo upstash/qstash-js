@@ -6,6 +6,8 @@ import {
   QstashDailyRatelimitError,
   QstashEmptyArrayError,
 } from "./error";
+// eslint-disable-next-line unicorn/prevent-abbreviations
+import { ensureDevelopmentServer } from "../dev-server";
 import type { BodyInit, HeadersInit, HTTPMethods, RequestOptions } from "./types";
 import type { ChatCompletionChunk } from "./llm/types";
 
@@ -86,6 +88,7 @@ export type HttpClientConfig = {
   retry?: RetryConfig;
   headers?: Headers;
   telemetryHeaders?: Headers;
+  devMode?: boolean;
 };
 
 export class HttpClient implements Requester {
@@ -94,6 +97,8 @@ export class HttpClient implements Requester {
   public readonly authorization: string;
 
   public readonly options?: { backend?: string };
+
+  public readonly devMode?: boolean;
 
   public retry: {
     attempts: number;
@@ -107,6 +112,8 @@ export class HttpClient implements Requester {
     this.baseUrl = config.baseUrl.replace(/\/$/, "");
 
     this.authorization = config.authorization;
+
+    this.devMode = config.devMode;
 
     this.retry =
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
@@ -125,6 +132,7 @@ export class HttpClient implements Requester {
   }
 
   public async request<TResult>(request: UpstashRequest): Promise<UpstashResponse<TResult>> {
+    await ensureDevelopmentServer(undefined, this.devMode);
     const { response } = await this.requestWithBackoff(request);
     if (request.parseResponseAsJson === false) {
       return undefined as unknown as UpstashResponse<TResult>;
@@ -133,6 +141,7 @@ export class HttpClient implements Requester {
   }
 
   public async *requestStream(request: UpstashRequest): AsyncIterable<ChatCompletionChunk> {
+    await ensureDevelopmentServer(undefined, this.devMode);
     const { response } = await this.requestWithBackoff(request);
 
     if (!response.body) {
