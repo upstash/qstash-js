@@ -85,6 +85,8 @@ export default [
             args: false,
             props: false,
             db: false,
+            dev: false,
+            env: false,
           },
         },
       ],

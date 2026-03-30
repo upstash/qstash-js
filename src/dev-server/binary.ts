@@ -1,28 +1,48 @@
-/* eslint-disable unicorn/prevent-abbreviations */
-/* eslint-disable @typescript-eslint/no-magic-numbers */
-/* eslint-disable @typescript-eslint/no-empty-function */
 /* eslint-disable no-console */
-
 import {
-  DEFAULT_DEV_PORT,
-  LOCK_EXPIRY_MS,
   BINARY_URL_BASE,
   GITHUB_RELEASES_URL,
   importFs,
   importChildProcess,
   importOs,
 } from "./constants";
-import type { NodeFs } from "./constants";
-import { getNativeGet } from "./health";
+import { nativeGet } from "./http";
 
-export const fetchLatestVersion = async (): Promise<string> => {
-  const nativeGet = await getNativeGet();
-  const { statusCode, body } = await nativeGet(GITHUB_RELEASES_URL, {
+/**
+ * Resolve the version (with network fallback to cached), then download if needed.
+ * Returns the path to the ready-to-run binary.
+ */
+export const ensureBinary = async (): Promise<string> => {
+  const fs = await importFs();
+  const cacheDirectory = await findCacheDirectory();
+  const binaryPath = `${cacheDirectory}/qstash`;
+  const versionFile = `${cacheDirectory}/.version`;
+
+  let version: string;
+  try {
+    version = await fetchLatestVersion();
+  } catch (error) {
+    // Network failed — if we have a cached binary, use it
+    if (fs.existsSync(binaryPath)) {
+      const cachedVersion = fs.existsSync(versionFile)
+        ? fs.readFileSync(versionFile, "utf8").trim()
+        : "unknown";
+      console.log(`[QStash Dev] Offline, using local v${cachedVersion}`);
+      return binaryPath;
+    }
+    throw error;
+  }
+
+  return downloadBinary(version, cacheDirectory);
+};
+
+const fetchLatestVersion = async (): Promise<string> => {
+  const { ok, statusCode, body } = await nativeGet(GITHUB_RELEASES_URL, {
     Accept: "application/vnd.github.v3+json",
     "User-Agent": "upstash-qstash-js",
   });
 
-  if (statusCode < 200 || statusCode >= 300) {
+  if (!ok) {
     throw new Error(`[QStash Dev] Failed to fetch latest version: HTTP ${statusCode}`);
   }
 
@@ -30,7 +50,7 @@ export const fetchLatestVersion = async (): Promise<string> => {
   return data.tag_name.replace(/^v/, "");
 };
 
-export const findCacheDirectory = async (): Promise<string> => {
+const findCacheDirectory = async (): Promise<string> => {
   const fs = await importFs();
   const os = await importOs();
 
@@ -39,51 +59,13 @@ export const findCacheDirectory = async (): Promise<string> => {
 
   // Use OS-standard cache directories so the binary is shared across projects.
   const base = platform === "darwin" ? `${home}/Library/Caches/upstash` : `${home}/.cache/upstash`;
-  const cacheDir = `${base}/qstash-dev`;
+  const cacheDirectory = `${base}/qstash-dev`;
 
-  await fs.promises.mkdir(cacheDir, { recursive: true });
-  return cacheDir;
+  await fs.promises.mkdir(cacheDirectory, { recursive: true });
+  return cacheDirectory;
 };
 
-export const acquireLock = async (
-  lockPath: string,
-  fs: typeof NodeFs
-): Promise<(() => Promise<void>) | undefined> => {
-  try {
-    const stat = await fs.promises.stat(lockPath).catch(() => {});
-    if (stat) {
-      const age = Date.now() - stat.mtimeMs;
-      if (age < LOCK_EXPIRY_MS) {
-        // Another process is actively downloading
-        return undefined;
-      }
-      // Stale lock — remove it
-      await fs.promises.unlink(lockPath).catch(() => {});
-    }
-    await fs.promises.writeFile(lockPath, `${process.pid}`, { flag: "wx" });
-    return async () => {
-      await fs.promises.unlink(lockPath).catch(() => {});
-    };
-  } catch {
-    // Lock file was created by another process between our check and write
-    return undefined;
-  }
-};
-
-export const waitForLock = async (
-  lockPath: string,
-  fs: typeof NodeFs,
-  expiryMs: number = LOCK_EXPIRY_MS
-): Promise<void> => {
-  const start = Date.now();
-  while (Date.now() - start < expiryMs) {
-    const exists = fs.existsSync(lockPath);
-    if (!exists) return;
-    await new Promise((r) => setTimeout(r, 200));
-  }
-};
-
-export const downloadBinary = async (version: string, cacheDir: string): Promise<string> => {
+const downloadBinary = async (version: string, cacheDirectory: string): Promise<string> => {
   const fs = await importFs();
   const childProcess = await importChildProcess();
   const os = await importOs();
@@ -91,9 +73,8 @@ export const downloadBinary = async (version: string, cacheDir: string): Promise
   const osPlatform = os.platform();
   if (osPlatform === "win32") {
     throw new Error(
-      "[QStash Dev] Windows is not supported. " +
-        "Please use WSL or start the dev server manually:\n\n" +
-        `  npx @upstash/qstash-cli dev --port ${DEFAULT_DEV_PORT}\n`
+      "[QStash Dev] The local dev server is not supported on Windows.\n" +
+        "Use a local tunnel instead: https://upstash.com/docs/workflow/howto/local-development/local-tunnel\n"
     );
   }
 
@@ -101,9 +82,8 @@ export const downloadBinary = async (version: string, cacheDir: string): Promise
   const arch = os.arch() === "arm64" ? "arm64" : "amd64";
 
   const tarballName = `qstash-server_${version}_${platform}_${arch}`;
-  const binaryPath = `${cacheDir}/qstash`;
-  const versionFile = `${cacheDir}/.version`;
-  const lockPath = `${cacheDir}/.download.lock`;
+  const binaryPath = `${cacheDirectory}/qstash`;
+  const versionFile = `${cacheDirectory}/.version`;
 
   // Check if cached binary is already the right version
   if (fs.existsSync(binaryPath) && fs.existsSync(versionFile)) {
@@ -113,49 +93,25 @@ export const downloadBinary = async (version: string, cacheDir: string): Promise
     }
   }
 
-  // Acquire a lock to prevent concurrent downloads across processes
-  const releaseLock = await acquireLock(lockPath, fs);
-  if (!releaseLock) {
-    // Another process is downloading — wait for it to finish
-    await waitForLock(lockPath, fs);
-    // After waiting, the binary should be available
-    if (fs.existsSync(binaryPath)) {
-      return binaryPath;
-    }
-    throw new Error("[QStash Dev] Another process was downloading the binary but it failed");
+  const tarballUrl = `${BINARY_URL_BASE}/${version}/${tarballName}.tar.gz`;
+  console.log(`[QStash Dev] Downloading dev server v${version}...`);
+
+  const { ok, statusCode, body } = await nativeGet(tarballUrl);
+  if (!ok) {
+    throw new Error(`[QStash Dev] Failed to download binary: HTTP ${statusCode}`);
   }
 
-  try {
-    // Re-check after acquiring lock (another process may have finished between our check and lock)
-    if (fs.existsSync(binaryPath) && fs.existsSync(versionFile)) {
-      const cachedVersion = fs.readFileSync(versionFile, "utf8").trim();
-      if (cachedVersion === version) {
-        return binaryPath;
-      }
-      fs.unlinkSync(binaryPath);
-    }
+  const tarballPath = `${cacheDirectory}/${tarballName}.tar.gz`;
+  await fs.promises.writeFile(tarballPath, new Uint8Array(body));
 
-    const tarballUrl = `${BINARY_URL_BASE}/${version}/${tarballName}.tar.gz`;
-    console.log(`[QStash Dev] Downloading dev server v${version}...`);
+  childProcess.execFileSync("tar", ["-xzf", tarballPath, "-C", cacheDirectory], { stdio: "pipe" });
 
-    const nativeGet = await getNativeGet();
-    const { statusCode, body } = await nativeGet(tarballUrl);
-    if (statusCode < 200 || statusCode >= 300) {
-      throw new Error(`[QStash Dev] Failed to download binary: HTTP ${statusCode}`);
-    }
+  const EXECUTABLE_PERMISSION = 0o755;
+  await fs.promises.chmod(binaryPath, EXECUTABLE_PERMISSION);
 
-    const tarballPath = `${cacheDir}/${tarballName}.tar.gz`;
-    await fs.promises.writeFile(tarballPath, new Uint8Array(body));
+  await fs.promises.writeFile(versionFile, version);
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
+  await fs.promises.unlink(tarballPath).catch(() => {});
 
-    childProcess.execFileSync("tar", ["-xzf", tarballPath, "-C", cacheDir], { stdio: "pipe" });
-
-    await fs.promises.chmod(binaryPath, 0o755);
-
-    await fs.promises.writeFile(versionFile, version);
-    await fs.promises.unlink(tarballPath).catch(() => {});
-
-    return binaryPath;
-  } finally {
-    await releaseLock();
-  }
+  return binaryPath;
 };

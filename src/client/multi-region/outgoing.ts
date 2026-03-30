@@ -49,6 +49,12 @@ const resolveCredentials = ({
 }: ClientCredentialConfig): CredentialsWithRegion => {
   // 0. Dev mode takes highest priority
   if (shouldUseDevelopmentMode(devMode, environment)) {
+    if (config?.baseUrl || config?.token) {
+      console.warn(
+        "[QStash Dev] Dev mode is active — ignoring explicit baseUrl/token config. " +
+          "Set devMode: false to use your own credentials."
+      );
+    }
     const developmentCreds = getDevelopmentCredentials(environment);
     return {
       baseUrl: developmentCreds.baseUrl,

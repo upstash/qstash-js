@@ -1,104 +1,239 @@
-import { describe, test, expect } from "bun:test";
+/* eslint-disable no-console */
+import { describe, test, expect, beforeAll } from "bun:test";
+import { Client } from "../client/client";
+import { getClientCredentials } from "../client/multi-region/outgoing";
+import { getReceiverSigningKeys } from "../client/multi-region/incoming";
 import {
   shouldUseDevelopmentMode,
-  getDevelopmentCredentials,
-  getDevUrl as getDevelopmentUrl,
+  getDevUrl,
   getRuntime,
+  getDevelopmentCredentials,
+  ensureDevelopmentServer,
 } from "./index";
-import {
-  DEV_QSTASH_TOKEN,
-  DEV_QSTASH_CURRENT_SIGNING_KEY,
-  DEV_QSTASH_NEXT_SIGNING_KEY,
-} from "./constants";
+import { DEV_CREDENTIALS, DEFAULT_DEV_PORT } from "./constants";
+
+// Dev mode must work without any real credentials
+delete process.env.QSTASH_TOKEN;
+delete process.env.QSTASH_CURRENT_SIGNING_KEY;
+delete process.env.QSTASH_NEXT_SIGNING_KEY;
+
+// ── shouldUseDevelopmentMode ────────────────────────────────────────────
 
 describe("shouldUseDevelopmentMode", () => {
-  test("returns true when devMode is true", () => {
-    expect(shouldUseDevelopmentMode(true)).toBe(true);
-  });
-
-  test("returns false when devMode is false", () => {
-    expect(shouldUseDevelopmentMode(false)).toBe(false);
-  });
-
-  test("returns false when devMode is false even if env says true", () => {
-    expect(shouldUseDevelopmentMode(false, { QSTASH_DEV: "true" })).toBe(false);
-  });
-
-  test("returns true when devMode is true even if env says false", () => {
+  test("devMode: true returns true regardless of env", () => {
+    expect(shouldUseDevelopmentMode(true, {})).toBe(true);
     expect(shouldUseDevelopmentMode(true, { QSTASH_DEV: "false" })).toBe(true);
   });
 
-  test("returns true when env QSTASH_DEV is 'true'", () => {
+  test("devMode: false returns false regardless of env", () => {
+    expect(shouldUseDevelopmentMode(false, {})).toBe(false);
+    expect(shouldUseDevelopmentMode(false, { QSTASH_DEV: "true" })).toBe(false);
+  });
+
+  test("undefined + QSTASH_DEV=true returns true", () => {
     expect(shouldUseDevelopmentMode(undefined, { QSTASH_DEV: "true" })).toBe(true);
   });
 
-  test("returns true when env QSTASH_DEV is '1'", () => {
+  test("undefined + QSTASH_DEV=1 returns true", () => {
     expect(shouldUseDevelopmentMode(undefined, { QSTASH_DEV: "1" })).toBe(true);
   });
 
-  test("returns true when env QSTASH_DEV is empty string", () => {
-    expect(shouldUseDevelopmentMode(undefined, { QSTASH_DEV: "" })).toBe(true);
-  });
-
-  test("returns false when env QSTASH_DEV is 'false'", () => {
+  test("undefined + QSTASH_DEV=false returns false", () => {
     expect(shouldUseDevelopmentMode(undefined, { QSTASH_DEV: "false" })).toBe(false);
   });
 
-  test("returns false when env QSTASH_DEV is '0'", () => {
+  test("undefined + QSTASH_DEV=0 returns false", () => {
     expect(shouldUseDevelopmentMode(undefined, { QSTASH_DEV: "0" })).toBe(false);
   });
 
-  test("returns false when env QSTASH_DEV is undefined", () => {
-    expect(shouldUseDevelopmentMode(undefined, {})).toBe(false);
+  test("undefined + QSTASH_DEV='' (empty string) returns false", () => {
+    expect(shouldUseDevelopmentMode(undefined, { QSTASH_DEV: "" })).toBe(false);
   });
 
-  test("throws on invalid QSTASH_DEV value", () => {
-    expect(() => shouldUseDevelopmentMode(undefined, { QSTASH_DEV: "maybe" })).toThrow(
+  test("undefined + no QSTASH_DEV returns false", () => {
+    expect(shouldUseDevelopmentMode(undefined, {})).toBe(false);
+    // eslint-disable-next-line unicorn/no-useless-undefined
+    expect(shouldUseDevelopmentMode(undefined, undefined)).toBe(false);
+  });
+
+  test("undefined + QSTASH_DEV=invalid throws", () => {
+    expect(() => shouldUseDevelopmentMode(undefined, { QSTASH_DEV: "invalid" })).toThrow(
       "Invalid value for QSTASH_DEV"
     );
   });
 });
 
+// ── getDevUrl ───────────────────────────────────────────────────────────
+
 describe("getDevUrl", () => {
-  test("returns default URL when no port set", () => {
-    expect(getDevelopmentUrl({})).toBe("http://127.0.0.1:8642");
+  test("returns default port when no QSTASH_DEV_PORT", () => {
+    expect(getDevUrl({})).toBe(`http://127.0.0.1:${DEFAULT_DEV_PORT}`);
   });
 
-  test("uses QSTASH_DEV_PORT from env", () => {
-    expect(getDevelopmentUrl({ QSTASH_DEV_PORT: "9999" })).toBe("http://127.0.0.1:9999");
+  test("uses custom port from env object", () => {
+    expect(getDevUrl({ QSTASH_DEV_PORT: "9999" })).toBe("http://127.0.0.1:9999");
   });
 
-  test("ignores invalid port", () => {
-    expect(getDevelopmentUrl({ QSTASH_DEV_PORT: "not-a-number" })).toBe("http://127.0.0.1:8642");
+  test("uses custom port from process.env when env object has no key", () => {
+    const original = process.env.QSTASH_DEV_PORT;
+    process.env.QSTASH_DEV_PORT = "7777";
+    try {
+      // undefined env falls back to process.env
+      expect(getDevUrl()).toBe("http://127.0.0.1:7777");
+    } finally {
+      if (original === undefined) delete process.env.QSTASH_DEV_PORT;
+      else process.env.QSTASH_DEV_PORT = original;
+    }
   });
 
-  test("ignores negative port", () => {
-    expect(getDevelopmentUrl({ QSTASH_DEV_PORT: "-1" })).toBe("http://127.0.0.1:8642");
-  });
-
-  test("ignores zero port", () => {
-    expect(getDevelopmentUrl({ QSTASH_DEV_PORT: "0" })).toBe("http://127.0.0.1:8642");
+  test("invalid port string falls back to default", () => {
+    expect(getDevUrl({ QSTASH_DEV_PORT: "not-a-number" })).toBe(
+      `http://127.0.0.1:${DEFAULT_DEV_PORT}`
+    );
+    expect(getDevUrl({ QSTASH_DEV_PORT: "-1" })).toBe(`http://127.0.0.1:${DEFAULT_DEV_PORT}`);
+    expect(getDevUrl({ QSTASH_DEV_PORT: "0" })).toBe(`http://127.0.0.1:${DEFAULT_DEV_PORT}`);
   });
 });
 
-describe("getDevelopmentCredentials", () => {
-  test("returns hardcoded dev credentials with default port", () => {
-    const creds = getDevelopmentCredentials({});
-    expect(creds.token).toBe(DEV_QSTASH_TOKEN);
-    expect(creds.currentSigningKey).toBe(DEV_QSTASH_CURRENT_SIGNING_KEY);
-    expect(creds.nextSigningKey).toBe(DEV_QSTASH_NEXT_SIGNING_KEY);
-    expect(creds.baseUrl).toBe("http://127.0.0.1:8642");
-  });
-
-  test("respects custom port", () => {
-    const creds = getDevelopmentCredentials({ QSTASH_DEV_PORT: "7777" });
-    expect(creds.baseUrl).toBe("http://127.0.0.1:7777");
-  });
-});
+// ── getRuntime ──────────────────────────────────────────────────────────
 
 describe("getRuntime", () => {
-  test("returns nodejs in bun/node environment", () => {
-    // In bun test runner, process.release.name is set
+  test("returns 'nodejs' in Node/Bun", () => {
     expect(getRuntime()).toBe("nodejs");
   });
+});
+
+// ── getDevelopmentCredentials ───────────────────────────────────────────
+
+describe("getDevelopmentCredentials", () => {
+  test("returns hardcoded credentials with default port", () => {
+    const creds = getDevelopmentCredentials({});
+    expect(creds.token).toBe(DEV_CREDENTIALS.token);
+    expect(creds.currentSigningKey).toBe(DEV_CREDENTIALS.currentSigningKey);
+    expect(creds.nextSigningKey).toBe(DEV_CREDENTIALS.nextSigningKey);
+    expect(creds.baseUrl).toBe(`http://127.0.0.1:${DEFAULT_DEV_PORT}`);
+  });
+
+  test("uses custom port from env", () => {
+    const creds = getDevelopmentCredentials({ QSTASH_DEV_PORT: "9999" });
+    expect(creds.baseUrl).toBe("http://127.0.0.1:9999");
+  });
+});
+
+// ── ensureDevelopmentServer ────────────────────────────────────────────
+
+describe("ensureDevelopmentServer", () => {
+  test("no-op when devMode is false", async () => {
+    // Should resolve immediately without starting anything
+    await ensureDevelopmentServer({}, false);
+  });
+
+  test("no-op when QSTASH_DEV is not set and devMode is undefined", async () => {
+    // eslint-disable-next-line unicorn/no-useless-undefined
+    await ensureDevelopmentServer({}, undefined);
+  });
+
+  test("returns singleton promise on repeated calls", () => {
+    const p1 = ensureDevelopmentServer(undefined, true);
+    const p2 = ensureDevelopmentServer(undefined, true);
+    expect(p1).toBe(p2);
+  });
+});
+
+// ── Credential priority (outgoing) ─────────────────────────────────────
+
+describe("credential priority", () => {
+  test("devMode: true overrides explicit config credentials", () => {
+    const result = getClientCredentials({
+      environment: {},
+      config: { token: "real-token", baseUrl: "https://real.example.com" },
+      devMode: true,
+    });
+    expect(result.token).toBe(DEV_CREDENTIALS.token);
+    expect(result.baseUrl).toBe(`http://127.0.0.1:${DEFAULT_DEV_PORT}`);
+  });
+
+  test("devMode: false ignores QSTASH_DEV env var", () => {
+    const result = getClientCredentials({
+      environment: { QSTASH_DEV: "true", QSTASH_TOKEN: "env-token" },
+      config: {},
+      devMode: false,
+    });
+    expect(result.token).toBe("env-token");
+  });
+
+  test("devMode: true overrides explicit signing key config", () => {
+    const result = getReceiverSigningKeys({
+      environment: {},
+      config: { currentSigningKey: "real-current", nextSigningKey: "real-next" },
+      devMode: true,
+    });
+    expect(result?.currentSigningKey).toBe(DEV_CREDENTIALS.currentSigningKey);
+    expect(result?.nextSigningKey).toBe(DEV_CREDENTIALS.nextSigningKey);
+  });
+
+  test("devMode: false ignores QSTASH_DEV for signing keys", () => {
+    const result = getReceiverSigningKeys({
+      environment: {
+        QSTASH_DEV: "true",
+        QSTASH_CURRENT_SIGNING_KEY: "real-current",
+        QSTASH_NEXT_SIGNING_KEY: "real-next",
+      },
+      devMode: false,
+    });
+    expect(result?.currentSigningKey).toBe("real-current");
+    expect(result?.nextSigningKey).toBe("real-next");
+  });
+});
+
+// ── Integration tests (require dev server) ─────────────────────────────
+
+describe("dev server integration", () => {
+  let client: Client;
+
+  beforeAll(async () => {
+    client = new Client({ devMode: true });
+    // Ensure server is up before running tests
+    await client.publish({ url: "https://example.com", body: "warmup" });
+  });
+
+  test(
+    "publish works with no credentials and devMode: true",
+    async () => {
+      const result = await client.publishJSON({
+        url: "https://example.com",
+        body: { test: true },
+      });
+      expect(result.messageId).toBeDefined();
+    },
+    { timeout: 15_000 }
+  );
+
+  test(
+    "batch publish works",
+    async () => {
+      const result = await client.batchJSON([
+        { url: "https://example.com/1", body: { test: 1 } },
+        { url: "https://example.com/2", body: { test: 2 } },
+      ]);
+      const BATCH_SIZE = 2;
+      expect(result).toHaveLength(BATCH_SIZE);
+      expect(result[0].messageId).toBeDefined();
+      expect(result[1].messageId).toBeDefined();
+    },
+    { timeout: 15_000 }
+  );
+
+  test(
+    "queue enqueue works",
+    async () => {
+      const queue = client.queue({ queueName: "test-queue" });
+      const result = await queue.enqueue({
+        url: "https://example.com",
+        body: "queued message",
+      });
+      expect(result.messageId).toBeDefined();
+    },
+    { timeout: 15_000 }
+  );
 });

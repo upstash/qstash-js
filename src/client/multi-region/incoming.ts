@@ -4,10 +4,7 @@ import {
   normalizeRegionHeader,
   readReceiverEnvironmentVariables,
 } from "./utils";
-import {
-  shouldUseDevelopmentMode,
-  getDevelopmentCredentials as getDevelopmentCredentials,
-} from "../../dev-server";
+import { shouldUseDevelopmentMode, getDevelopmentCredentials } from "../../dev-server";
 
 type SigningKeys = {
   currentSigningKey?: string;
@@ -47,6 +44,12 @@ export const getReceiverSigningKeys = ({
 }: ReceiverCredentialConfig): CredentialsWithRegion | undefined => {
   // 0. Dev mode takes highest priority
   if (shouldUseDevelopmentMode(devMode, environment)) {
+    if (config?.currentSigningKey || config?.nextSigningKey) {
+      console.warn(
+        "[QStash Dev] Dev mode is active — ignoring explicit signing key config. " +
+          "Set devMode: false to use your own keys."
+      );
+    }
     const developmentCreds = getDevelopmentCredentials(environment);
     return {
       currentSigningKey: developmentCreds.currentSigningKey,

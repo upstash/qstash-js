@@ -1,69 +1,11 @@
-/* eslint-disable unicorn/prevent-abbreviations */
-/* eslint-disable @typescript-eslint/no-magic-numbers */
 /* eslint-disable no-console */
-
-import {
-  DEFAULT_DEV_PORT,
-  CONSOLE_URL,
-  DEV_QSTASH_TOKEN,
-  DEV_QSTASH_CURRENT_SIGNING_KEY,
-  DEV_QSTASH_NEXT_SIGNING_KEY,
-} from "./constants";
-import type { DevelopmentCredentials, Runtime } from "./constants";
+import { DEFAULT_DEV_PORT, CONSOLE_URL, DEV_CREDENTIALS } from "./constants";
+import type { Runtime } from "./constants";
 import { isDevServerRunning, checkDevServerReachable } from "./health";
-import { fetchLatestVersion, findCacheDirectory, downloadBinary } from "./binary";
-import { spawnServer, registerCleanup } from "./process";
-import { importFs } from "./constants";
+import { ensureBinary } from "./binary";
+import { spawnServer } from "./process";
 
-/**
- * Detect the current JS runtime environment.
- */
-export const getRuntime = (): Runtime => {
-  // Cloudflare Workers: navigator.userAgent === "Cloudflare-Workers"
-  if (typeof navigator !== "undefined" && navigator.userAgent === "Cloudflare-Workers") {
-    return "cloudflare-workers";
-  }
-  // No process at all — browser
-  if (typeof process === "undefined") {
-    return "browser";
-  }
-  // process exists but no release info — edge runtime (Next.js edge, Vercel Edge, etc.)
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-  if (!process.release?.name) {
-    return "edge";
-  }
-  return "nodejs";
-};
-
-/**
- * Get the dev server URL from environment or use default.
- */
-export const getDevUrl = (env?: Record<string, string | undefined>): string => {
-  const portStr = env?.QSTASH_DEV_PORT ?? getProcessEnv("QSTASH_DEV_PORT");
-  let port = DEFAULT_DEV_PORT;
-  if (portStr) {
-    const parsed = Number.parseInt(portStr, 10);
-    if (!Number.isNaN(parsed) && parsed > 0) {
-      port = parsed;
-    }
-  }
-  return `http://127.0.0.1:${port}`;
-};
-
-/**
- * Get dev server credentials.
- */
-export const getDevelopmentCredentials = (
-  env?: Record<string, string | undefined>
-): DevelopmentCredentials => {
-  return {
-    token: DEV_QSTASH_TOKEN,
-    currentSigningKey: DEV_QSTASH_CURRENT_SIGNING_KEY,
-    nextSigningKey: DEV_QSTASH_NEXT_SIGNING_KEY,
-    baseUrl: getDevUrl(env),
-  };
-};
-
+// Singleton promise so multiple callers (Client, HttpClient, etc.) share one startup sequence.
 let devServerPromise: Promise<void> | undefined;
 
 /**
@@ -72,109 +14,108 @@ let devServerPromise: Promise<void> | undefined;
  *
  * No-op when:
  * - `typeof process === "undefined"` (edge/browser)
- * - dev mode is not enabled (via `devMode` param or `QSTASH_DEV` env var)
+ * - dev mode is not enabled
  *
- * @param env - Environment variables
  * @param devMode - Explicit override: `true` forces on, `false` forces off, `undefined` checks env
  */
 export const ensureDevelopmentServer = (
-  env?: Record<string, string | undefined>,
-  devMode?: boolean
+  env: Record<string, string | undefined> | undefined,
+  devMode: boolean | undefined
 ): Promise<void> => {
+  if (!shouldUseDevelopmentMode(devMode, env)) return Promise.resolve();
+
   const runtime = getRuntime();
+
+  // Edge/browser can't spawn processes, just verify the server is reachable
+  // so the user gets a helpful error instead of a generic "fetch failed".
   if (runtime !== "nodejs") {
-    // If dev mode is active, verify the server is reachable — otherwise
-    // the user will get an unhelpful "fetch failed" error later.
-    if (shouldUseDevelopmentMode(devMode, env)) {
-      return checkDevServerReachable(getDevUrl(env), runtime);
-    }
-    return Promise.resolve();
+    return checkDevServerReachable(getDevUrl(env), runtime);
   }
-  if (!shouldUseDevelopmentMode(devMode, env)) {
-    return Promise.resolve();
+
+  if (!devServerPromise) {
+    devServerPromise = startPipeline(env).catch((error: unknown) => {
+      devServerPromise = undefined;
+      throw error;
+    });
   }
-  if (devServerPromise) {
-    return devServerPromise;
-  }
-  devServerPromise = startPipeline(env).catch((error: unknown) => {
-    devServerPromise = undefined;
-    throw error;
-  });
+
   return devServerPromise;
 };
+
+const startPipeline = async (env?: Record<string, string | undefined>): Promise<void> => {
+  const baseUrl = getDevUrl(env);
+  const port = new URL(baseUrl).port;
+  const consoleLink = `\u001B[36m${CONSOLE_URL}?port=${port}\u001B[0m`;
+
+  if (await isDevServerRunning(baseUrl)) {
+    console.log(`[QStash Dev] Server already running at ${baseUrl}\n  Console: ${consoleLink}\n`);
+    return;
+  }
+
+  const binaryPath = await ensureBinary();
+
+  await spawnServer(binaryPath, port, () => {
+    // Reset singleton so the next call to ensureDevelopmentServer restarts the server
+    devServerPromise = undefined;
+  });
+
+  console.log(`[QStash Dev] Server ready at ${baseUrl}\n  Console: ${consoleLink}\n`);
+};
+
+// --- Utils ---
 
 /**
  * Determine if dev mode should be active.
  * `devMode` param takes priority: `true` → on, `false` → off, `undefined` → check env.
  */
 export const shouldUseDevelopmentMode = (
-  devMode?: boolean,
-  env?: Record<string, string | undefined>
+  devMode: boolean | undefined,
+  env: Record<string, string | undefined> | undefined
 ): boolean => {
-  if (devMode !== undefined) {
-    return devMode;
-  }
-  const value = env?.QSTASH_DEV ?? getProcessEnv("QSTASH_DEV");
-  if (value === undefined) return false;
-  if (value === "true" || value === "1" || value === "") return true;
-  if (value === "false" || value === "0") return false;
+  if (devMode !== undefined) return devMode;
+
+  const value = env?.QSTASH_DEV ?? getProcessEnvironment("QSTASH_DEV");
+
+  if (value === undefined || value === "" || value === "false" || value === "0") return false;
+  if (value === "true" || value === "1") return true;
+
   throw new Error(`[QStash Dev] Invalid value for QSTASH_DEV in environment: ${value}`);
 };
 
-const getProcessEnv = (key: string): string | undefined => {
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-  if (typeof process !== "undefined" && process.env) return process.env[key];
-  return undefined;
+export const getDevelopmentCredentials = (env?: Record<string, string | undefined>) => {
+  return {
+    ...DEV_CREDENTIALS,
+    baseUrl: getDevUrl(env),
+  };
 };
 
-const getPortFromUrl = (url: string): string => {
-  return new URL(url).port;
-};
-
-const startPipeline = async (env?: Record<string, string | undefined>): Promise<void> => {
-  const baseUrl = getDevUrl(env);
-
-  if (await isDevServerRunning(baseUrl)) {
-    console.log(
-      `[QStash Dev] Server already running at ${baseUrl}\n` +
-        `  Console: \u001B[36m${CONSOLE_URL}?port=${getPortFromUrl(baseUrl)}\u001B[0m\n`
-    );
-    return;
-  }
-
-  const cacheDir = await findCacheDirectory();
-
-  const fs = await importFs();
-  const cachedBinaryPath = `${cacheDir}/qstash`;
-  const versionFile = `${cacheDir}/.version`;
-  let version: string;
-  try {
-    version = await fetchLatestVersion();
-  } catch (error) {
-    // Network failed — if we have a cached binary, use it
-    if (fs.existsSync(cachedBinaryPath)) {
-      const cachedVersion = fs.existsSync(versionFile)
-        ? fs.readFileSync(versionFile, "utf8").trim()
-        : "unknown";
-      console.log(`[QStash Dev] Could not check for updates, using cached v${cachedVersion}`);
-      version = cachedVersion;
-    } else {
-      throw error;
+export const getDevUrl = (env?: Record<string, string | undefined>): string => {
+  const portString = env?.QSTASH_DEV_PORT ?? getProcessEnvironment("QSTASH_DEV_PORT");
+  let port = DEFAULT_DEV_PORT;
+  if (portString) {
+    const parsed = Number.parseInt(portString, 10);
+    if (!Number.isNaN(parsed) && parsed > 0) {
+      port = parsed;
     }
   }
-  const binaryPath = await downloadBinary(version, cacheDir);
-
-  const child = await spawnServer(binaryPath, getPortFromUrl(baseUrl));
-
-  registerCleanup(child);
-
-  console.log(
-    `[QStash Dev] Server ready at ${baseUrl}\n` +
-      `  Console: \u001B[36m${CONSOLE_URL}?port=${getPortFromUrl(baseUrl)}\u001B[0m\n`
-  );
+  return `http://127.0.0.1:${port}`;
 };
 
-/** Reset the singleton for testing */
-export const _resetDevServerPromise = () => {
-  devServerPromise = undefined;
+export const getRuntime = (): Runtime => {
+  if (typeof navigator !== "undefined" && navigator.userAgent === "Cloudflare-Workers") {
+    return "cloudflare-workers";
+  }
+  if (typeof process === "undefined") {
+    return "browser";
+  }
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  if (!process.release?.name) {
+    return "edge";
+  }
+  // Bun also sets process.release.name to "node", so this covers both
+  return "nodejs";
 };
+
+const getProcessEnvironment = (key: string): string | undefined =>
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  typeof process !== "undefined" && process.env ? process.env[key] : undefined;
