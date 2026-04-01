@@ -52,13 +52,11 @@ export const spawnServer = async (
         return;
       }
       clearTimeout(timeout);
-      if (code !== null && code !== 0) {
-        reject(
-          new Error(
-            `[QStash Dev] Server exited with code ${code}${stderrOutput ? `: ${stderrOutput}` : ""}`
-          )
-        );
-      }
+      reject(
+        new Error(
+          `[QStash Dev] Server exited unexpectedly${code ? ` with code ${code}` : ""}${stderrOutput ? `: ${stderrOutput}` : ""}`
+        )
+      );
     });
   });
 

@@ -15,5 +15,5 @@
     "allowJs": true,
     "types": ["bun-types"]
   },
-  "exclude": ["examples", "test-envs"]
+  "exclude": ["examples"]
 }
