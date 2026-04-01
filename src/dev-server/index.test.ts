@@ -1,5 +1,5 @@
 /* eslint-disable no-console */
-import { describe, test, expect, beforeAll } from "bun:test";
+import { describe, test, expect, beforeAll, afterAll } from "bun:test";
 import { Client } from "../client/client";
 import { getClientCredentials } from "../client/multi-region/outgoing";
 import { getReceiverSigningKeys } from "../client/multi-region/incoming";
@@ -12,10 +12,23 @@ import {
 } from "./index";
 import { DEV_CREDENTIALS, DEFAULT_DEV_PORT } from "./constants";
 
-// Dev mode must work without any real credentials
-delete process.env.QSTASH_TOKEN;
-delete process.env.QSTASH_CURRENT_SIGNING_KEY;
-delete process.env.QSTASH_NEXT_SIGNING_KEY;
+// Dev mode must work without any real credentials — save and restore so other
+// test files running in the same process are not affected.
+const savedToken = process.env.QSTASH_TOKEN;
+const savedCurrentKey = process.env.QSTASH_CURRENT_SIGNING_KEY;
+const savedNextKey = process.env.QSTASH_NEXT_SIGNING_KEY;
+
+beforeAll(() => {
+  delete process.env.QSTASH_TOKEN;
+  delete process.env.QSTASH_CURRENT_SIGNING_KEY;
+  delete process.env.QSTASH_NEXT_SIGNING_KEY;
+});
+
+afterAll(() => {
+  if (savedToken !== undefined) process.env.QSTASH_TOKEN = savedToken;
+  if (savedCurrentKey !== undefined) process.env.QSTASH_CURRENT_SIGNING_KEY = savedCurrentKey;
+  if (savedNextKey !== undefined) process.env.QSTASH_NEXT_SIGNING_KEY = savedNextKey;
+});
 
 // ── shouldUseDevelopmentMode ────────────────────────────────────────────
 
