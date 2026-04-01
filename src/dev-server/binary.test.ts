@@ -4,10 +4,15 @@ import { execFileSync } from "node:child_process";
 import { rmSync } from "node:fs";
 import { homedir, platform } from "node:os";
 
-const CACHE_DIR =
-  platform() === "darwin"
-    ? `${homedir()}/Library/Caches/upstash/qstash-dev`
-    : `${homedir()}/.cache/upstash/qstash-dev`;
+const getCacheDirectory = () => {
+  const p = platform();
+  if (p === "darwin") return `${homedir()}/Library/Caches/upstash/qstash-dev`;
+  if (p === "win32")
+    return `${process.env.LOCALAPPDATA ?? `${homedir()}/AppData/Local`}/upstash/qstash-dev`;
+  return `${homedir()}/.cache/upstash/qstash-dev`;
+};
+
+const CACHE_DIR = getCacheDirectory();
 
 describe("ensureBinary", () => {
   beforeAll(() => {

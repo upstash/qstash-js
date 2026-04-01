@@ -14,8 +14,11 @@ import { nativeGet } from "./http";
  */
 export const ensureBinary = async (): Promise<string> => {
   const fs = await importFs();
+  const os = await importOs();
   const cacheDirectory = await findCacheDirectory();
-  const binaryPath = `${cacheDirectory}/qstash`;
+  const isWindows = os.platform() === "win32";
+  const binaryName = isWindows ? "qstash.exe" : "qstash";
+  const binaryPath = `${cacheDirectory}/${binaryName}`;
   const versionFile = `${cacheDirectory}/.version`;
 
   let version: string;
@@ -58,7 +61,14 @@ const findCacheDirectory = async (): Promise<string> => {
   const platform = os.platform();
 
   // Use OS-standard cache directories so the binary is shared across projects.
-  const base = platform === "darwin" ? `${home}/Library/Caches/upstash` : `${home}/.cache/upstash`;
+  let base: string;
+  if (platform === "darwin") {
+    base = `${home}/Library/Caches/upstash`;
+  } else if (platform === "win32") {
+    base = `${process.env.LOCALAPPDATA ?? `${home}/AppData/Local`}/upstash`;
+  } else {
+    base = `${home}/.cache/upstash`;
+  }
   const cacheDirectory = `${base}/qstash-dev`;
 
   await fs.promises.mkdir(cacheDirectory, { recursive: true });
@@ -71,18 +81,13 @@ const downloadBinary = async (version: string, cacheDirectory: string): Promise<
   const os = await importOs();
 
   const osPlatform = os.platform();
-  if (osPlatform === "win32") {
-    throw new Error(
-      "[QStash Dev] The local dev server is not supported on Windows.\n" +
-        "Use a local tunnel instead: https://upstash.com/docs/workflow/howto/local-development/local-tunnel\n"
-    );
-  }
-
-  const platform = osPlatform === "darwin" ? "darwin" : "linux";
+  const isWindows = osPlatform === "win32";
+  const platform = isWindows ? "windows" : osPlatform === "darwin" ? "darwin" : "linux";
   const arch = os.arch() === "arm64" ? "arm64" : "amd64";
 
-  const tarballName = `qstash-server_${version}_${platform}_${arch}`;
-  const binaryPath = `${cacheDirectory}/qstash`;
+  const archiveName = `qstash-server_${version}_${platform}_${arch}`;
+  const binaryName = isWindows ? "qstash.exe" : "qstash";
+  const binaryPath = `${cacheDirectory}/${binaryName}`;
   const versionFile = `${cacheDirectory}/.version`;
 
   // Check if cached binary is already the right version
@@ -93,25 +98,30 @@ const downloadBinary = async (version: string, cacheDirectory: string): Promise<
     }
   }
 
-  const tarballUrl = `${BINARY_URL_BASE}/${version}/${tarballName}.tar.gz`;
+  const extension = isWindows ? "zip" : "tar.gz";
+  const archiveUrl = `${BINARY_URL_BASE}/${version}/${archiveName}.${extension}`;
   console.log(`[QStash Dev] Downloading dev server v${version}...`);
 
-  const { ok, statusCode, body } = await nativeGet(tarballUrl);
+  const { ok, statusCode, body } = await nativeGet(archiveUrl);
   if (!ok) {
     throw new Error(`[QStash Dev] Failed to download binary: HTTP ${statusCode}`);
   }
 
-  const tarballPath = `${cacheDirectory}/${tarballName}.tar.gz`;
-  await fs.promises.writeFile(tarballPath, new Uint8Array(body));
+  const archivePath = `${cacheDirectory}/${archiveName}.${extension}`;
+  await fs.promises.writeFile(archivePath, new Uint8Array(body));
 
-  childProcess.execFileSync("tar", ["-xzf", tarballPath, "-C", cacheDirectory], { stdio: "pipe" });
+  childProcess.execFileSync("tar", ["-xf", archivePath, "-C", cacheDirectory], {
+    stdio: "pipe",
+  });
 
-  const EXECUTABLE_PERMISSION = 0o755;
-  await fs.promises.chmod(binaryPath, EXECUTABLE_PERMISSION);
+  if (!isWindows) {
+    const EXECUTABLE_PERMISSION = 0o755;
+    await fs.promises.chmod(binaryPath, EXECUTABLE_PERMISSION);
+  }
 
   await fs.promises.writeFile(versionFile, version);
   // eslint-disable-next-line @typescript-eslint/no-empty-function
-  await fs.promises.unlink(tarballPath).catch(() => {});
+  await fs.promises.unlink(archivePath).catch(() => {});
 
   return binaryPath;
 };
