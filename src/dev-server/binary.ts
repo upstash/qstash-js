@@ -120,6 +120,8 @@ const downloadBinary = async (version: string, cacheDirectory: string): Promise<
   }
 
   await fs.promises.writeFile(versionFile, version);
+
+  // Unlink deletes the file if it's not a link
   // eslint-disable-next-line @typescript-eslint/no-empty-function
   await fs.promises.unlink(archivePath).catch(() => {});
 
