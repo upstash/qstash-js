@@ -1,6 +1,7 @@
 import { importChildProcess } from "./constants";
 
 const STARTUP_TIMEOUT_MS = 30_000;
+const PREFIX = "\u001B[2m[QStash CLI]\u001B[0m";
 
 type ChildProcess = {
   kill: (signal?: NodeJS.Signals | number) => boolean;
@@ -28,17 +29,16 @@ export const spawnServer = async (
     let stderrOutput = "";
     let started = false;
 
-    child.stdout.on("data", (data: Buffer) => {
-      const output = data.toString();
-      if (/runn+ing at/i.test(output)) {
+    forwardWithPrefix(child.stdout, process.stdout, (line) => {
+      if (!started && /runn+ing at/i.test(line)) {
         clearTimeout(timeout);
         started = true;
         resolve(child);
       }
     });
 
-    child.stderr.on("data", (data: Buffer) => {
-      stderrOutput += data.toString();
+    forwardWithPrefix(child.stderr, process.stderr, (line) => {
+      stderrOutput += `${line}\n`;
     });
 
     child.on("error", (error: Error) => {
@@ -61,6 +61,34 @@ export const spawnServer = async (
   });
 
   registerCleanup(child);
+};
+
+const forwardWithPrefix = (
+  source: NodeJS.ReadableStream | null,
+  destination: NodeJS.WritableStream,
+  onLine: (line: string) => void
+): void => {
+  if (!source) return;
+  let buffer = "";
+  const flushLine = (line: string) => {
+    destination.write(`${PREFIX} ${line}\n`);
+    onLine(line);
+  };
+  source.on("data", (data: Buffer) => {
+    buffer += data.toString();
+    let newlineIndex = buffer.indexOf("\n");
+    while (newlineIndex !== -1) {
+      flushLine(buffer.slice(0, newlineIndex));
+      buffer = buffer.slice(newlineIndex + 1);
+      newlineIndex = buffer.indexOf("\n");
+    }
+  });
+  source.on("end", () => {
+    if (buffer.length > 0) {
+      flushLine(buffer);
+      buffer = "";
+    }
+  });
 };
 
 const registerCleanup = (child: ChildProcess): void => {
