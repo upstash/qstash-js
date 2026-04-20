@@ -1,4 +1,4 @@
-export const DEFAULT_DEV_PORT = 8642;
+export const DEFAULT_DEV_PORT = 8080;
 
 // These are public, deterministic dev-only credentials baked into the QStash dev
 // server binary. They are NOT secrets and are safe to ship in the npm package.
