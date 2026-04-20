@@ -98,6 +98,11 @@ const downloadBinary = async (version: string, cacheDirectory: string): Promise<
     }
   }
 
+  // Wipe the cache dir so stale files (old binary, version file, leftover archives)
+  // can't mix with the new version on extraction failure.
+  await fs.promises.rm(cacheDirectory, { recursive: true, force: true });
+  await fs.promises.mkdir(cacheDirectory, { recursive: true });
+
   const extension = isWindows ? "zip" : "tar.gz";
   const archiveUrl = `${BINARY_URL_BASE}/${version}/${archiveName}.${extension}`;
   console.log(`[QStash Dev] Downloading dev server v${version}...`);
