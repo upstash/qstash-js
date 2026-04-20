@@ -58,8 +58,6 @@ const startPipeline = async (env?: Record<string, string | undefined>): Promise<
     // Reset singleton so the next call to ensureDevelopmentServer restarts the server
     devServerPromise = undefined;
   });
-
-  console.log(`[QStash Dev] Server ready at ${baseUrl}\n  Console: ${consoleLink}\n`);
 };
 
 // --- Utils ---
