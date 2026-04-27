@@ -94,22 +94,32 @@ const forwardWithPrefix = (
   source.on("error", () => {});
 };
 
-const registerCleanup = (child: ChildProcess): void => {
-  const cleanup = () => {
-    try {
-      child.kill("SIGTERM" as NodeJS.Signals);
-    } catch {
-      // Process may already be dead
-    }
-  };
+let currentChild: ChildProcess | undefined;
+let processHandlersRegistered = false;
 
-  process.on("exit", cleanup);
-  process.on("SIGINT", () => {
-    cleanup();
-    process.exit(0);
-  });
-  process.on("SIGTERM", () => {
-    cleanup();
-    process.exit(0);
-  });
+const killCurrentChild = () => {
+  if (!currentChild) return;
+  try {
+    currentChild.kill("SIGTERM" as NodeJS.Signals);
+  } catch {
+    // Process may already be dead
+  }
+  currentChild = undefined;
+};
+
+const registerCleanup = (child: ChildProcess): void => {
+  currentChild = child;
+
+  if (!processHandlersRegistered) {
+    processHandlersRegistered = true;
+    process.on("exit", killCurrentChild);
+    process.on("SIGINT", () => {
+      killCurrentChild();
+      process.exit(0);
+    });
+    process.on("SIGTERM", () => {
+      killCurrentChild();
+      process.exit(0);
+    });
+  }
 };
