@@ -36,7 +36,9 @@ export const spawnServer = async (
 
     forwardWithPrefix(child.stdout, process.stdout, (line) => {
       bufferLine(line);
-      if (!started && /runn+ing at/i.test(line)) {
+      // 2.32.x prints "...is runnning at http://..." (typo, three n's, URL on same line).
+      // 2.36.x prints "...is running." (URL on a separate QSTASH_URL= line).
+      if (!started && /runn+ing( at|\.)/i.test(line)) {
         clearTimeout(timeout);
         started = true;
         resolve(child);
