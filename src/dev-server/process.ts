@@ -26,10 +26,16 @@ export const spawnServer = async (
       reject(new Error("[QStash Dev] Server failed to start within 30 seconds"));
     }, STARTUP_TIMEOUT_MS);
 
-    let stderrOutput = "";
+    let startupOutput = "";
     let started = false;
 
+    // The CLI writes its FTL failure logs to stdout, so we buffer both streams pre-readiness.
+    const bufferLine = (line: string) => {
+      if (!started) startupOutput += `${line}\n`;
+    };
+
     forwardWithPrefix(child.stdout, process.stdout, (line) => {
+      bufferLine(line);
       if (!started && /runn+ing at/i.test(line)) {
         clearTimeout(timeout);
         started = true;
@@ -37,30 +43,44 @@ export const spawnServer = async (
       }
     });
 
-    forwardWithPrefix(child.stderr, process.stderr, (line) => {
-      stderrOutput += `${line}\n`;
-    });
+    forwardWithPrefix(child.stderr, process.stderr, bufferLine);
 
     child.on("error", (error: Error) => {
       clearTimeout(timeout);
       reject(new Error(`[QStash Dev] Failed to start server: ${error.message}`));
     });
 
-    child.on("exit", (code: number | null, _signal: string | null) => {
-      if (started && onUnexpectedExit) {
-        onUnexpectedExit();
+    // 'close' (not 'exit') waits for stdio to drain, so startupOutput captures the final line.
+    child.on("close", (code: number | null, _signal: string | null) => {
+      if (started) {
+        onUnexpectedExit?.();
         return;
       }
       clearTimeout(timeout);
-      reject(
-        new Error(
-          `[QStash Dev] Server exited unexpectedly${code ? ` with code ${code}` : ""}${stderrOutput ? `: ${stderrOutput}` : ""}`
-        )
-      );
+      reject(new Error(formatStartupError(code, startupOutput)));
     });
   });
 
   registerCleanup(child);
+};
+
+const formatStartupError = (code: number | null, startupOutput: string): string => {
+  // Strip ANSI color codes and the CLI's `9:47AM FTL ` timestamp/level prefix.
+  const cleaned = startupOutput
+    // eslint-disable-next-line no-control-regex
+    .replaceAll(/\u001B\[[\d;]*m/g, "")
+    .replaceAll(/^\d{1,2}:\d{2}(AM|PM)\s+\w{3}\s+/gm, "")
+    .trim();
+
+  if (/address already in use/i.test(cleaned)) {
+    const match = /:(\d+)\s*$/.exec(cleaned);
+    const portHint = match ? ` on port ${match[1]}` : "";
+    return `[QStash Dev] Port already in use${portHint}. Set QSTASH_DEV_PORT to use a different port, or stop the process holding it.`;
+  }
+
+  const codeSuffix = code ? ` with code ${code}` : "";
+  const detail = cleaned ? `: ${cleaned}` : "";
+  return `[QStash Dev] Server exited unexpectedly${codeSuffix}${detail}`;
 };
 
 const forwardWithPrefix = (
