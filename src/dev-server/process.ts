@@ -89,6 +89,9 @@ const forwardWithPrefix = (
       buffer = "";
     }
   });
+  // Unhandled 'error' on an EventEmitter throws; a broken pipe to the child shouldn't crash us.
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
+  source.on("error", () => {});
 };
 
 const registerCleanup = (child: ChildProcess): void => {
