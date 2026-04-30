@@ -5,7 +5,7 @@ import { verifySignatureAppRouter } from "@upstash/qstash/nextjs";
 const received = new Set<string>();
 
 export const POST = verifySignatureAppRouter(
-  async (request) => {
+  async (request: Request) => {
     const messageId = request.headers.get("upstash-message-id");
     if (messageId) received.add(messageId);
     return NextResponse.json({ ok: true, messageId });
