@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { verifySignatureAppRouter } from "@upstash/qstash/nextjs";
 
+// Don't run at build time — devMode talks to a local QStash binary.
+export const dynamic = "force-dynamic";
+
 // Module-scoped set so the test can poll for delivery via GET ?check=<id>.
 const received = new Set<string>();
 
