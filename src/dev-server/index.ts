@@ -37,6 +37,14 @@ export const ensureDevelopmentServer = (
 ): Promise<void> => {
   if (!shouldUseDevelopmentMode(devMode, env)) return Promise.resolve();
 
+  // Don't spawn during a build (`next build`, etc.) — the route module may be
+  // evaluated at build time but the dev binary should only run in `next dev`.
+  // Also short-circuit in production so an accidental devMode: true in prod
+  // doesn't try to download a binary.
+  const procEnv = _processGlobal()?.env;
+  if (procEnv?.NEXT_PHASE === "phase-production-build") return Promise.resolve();
+  if (procEnv?.NODE_ENV === "production") return Promise.resolve();
+
   const runtime = getRuntime();
 
   // Edge/browser can't spawn processes, just verify the server is reachable
