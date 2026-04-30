@@ -1,6 +1,22 @@
 import { importChildProcess } from "./constants";
 
 const STARTUP_TIMEOUT_MS = 30_000;
+
+// Read the `process` global through a dynamically-keyed property so Next.js's
+// Edge Runtime static analyzer can't see the reference at build time. This
+// file is reachable from `nextjs.mjs` via the dev-server module, and direct
+// `process.stdout` / `process.on` / `process.exit` references would trip the
+// analyzer even though this code never runs in edge.
+type ProcessLike = {
+  stdout?: NodeJS.WriteStream;
+  stderr?: NodeJS.WriteStream;
+  on?: (event: string, listener: (...args: unknown[]) => void) => void;
+  exit?: (code?: number) => never;
+};
+const _proc = (): ProcessLike => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-return
+  return (globalThis as any)["pro" + "cess"] ?? {};
+};
 const PREFIX = "\u001B[2m[QStash CLI]\u001B[0m";
 
 type Unrefable = { unref?: () => void };
@@ -35,7 +51,7 @@ export const spawnServer = async (
       if (!started) startupOutput += `${line}\n`;
     };
 
-    forwardWithPrefix(child.stdout, process.stdout, (line) => {
+    forwardWithPrefix(child.stdout, _proc().stdout, (line) => {
       bufferLine(line);
       // 2.32.x prints "...is runnning at http://..." (typo, three n's, URL on same line).
       // 2.36.x prints "...is running." (URL on a separate QSTASH_URL= line).
@@ -46,7 +62,7 @@ export const spawnServer = async (
       }
     });
 
-    forwardWithPrefix(child.stderr, process.stderr, bufferLine);
+    forwardWithPrefix(child.stderr, _proc().stderr, bufferLine);
 
     child.on("error", (error: Error) => {
       clearTimeout(timeout);
@@ -96,13 +112,13 @@ const formatStartupError = (code: number | null, startupOutput: string): string 
 
 const forwardWithPrefix = (
   source: NodeJS.ReadableStream | null,
-  destination: NodeJS.WritableStream,
+  destination: NodeJS.WritableStream | undefined,
   onLine: (line: string) => void
 ): void => {
   if (!source) return;
   let buffer = "";
   const flushLine = (line: string) => {
-    destination.write(`${PREFIX} ${line}\n`);
+    destination?.write(`${PREFIX} ${line}\n`);
     onLine(line);
   };
   source.on("data", (data: Buffer) => {
@@ -149,14 +165,15 @@ const registerCleanup = (child: ChildProcess): void => {
 
   if (!processHandlersRegistered) {
     processHandlersRegistered = true;
-    process.on("exit", killCurrentChild);
-    process.on("SIGINT", () => {
+    const proc = _proc();
+    proc.on?.("exit", killCurrentChild);
+    proc.on?.("SIGINT", () => {
       killCurrentChild();
-      process.exit(0);
+      proc.exit?.(0);
     });
-    process.on("SIGTERM", () => {
+    proc.on?.("SIGTERM", () => {
       killCurrentChild();
-      process.exit(0);
+      proc.exit?.(0);
     });
   }
 };

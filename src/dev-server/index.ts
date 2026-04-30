@@ -3,19 +3,10 @@ import { DEFAULT_DEV_PORT, CONSOLE_URL, DEV_CREDENTIALS } from "./constants";
 import type { Runtime } from "./constants";
 import { isDevServerRunning, checkDevServerReachable } from "./health";
 import { ensureBinary } from "./binary";
-import type { spawnServer as SpawnServer, stopCurrentServer as StopCurrentServer } from "./process";
+import { spawnServer, stopCurrentServer } from "./process";
 
-// `process.ts` references Node-only globals (process.stdout, process.on, ...)
-// that Next.js's Edge Runtime static analyzer flags at build time, even when
-// the code is unreachable at runtime. Load it lazily so an edge bundle that
-// transitively imports this file never walks into it.
-const _p = "./process";
-const importProcessModule = (): Promise<{
-  spawnServer: typeof SpawnServer;
-  stopCurrentServer: typeof StopCurrentServer;
-}> => import(/* webpackIgnore: true */ _p);
-
-// Same evasion for the `process` global itself: Next's analyzer scans direct
+// Read the `process` global through a dynamically-keyed property so Next.js's
+// Edge Runtime static analyzer can't see the reference: it scans direct
 // `process.X` references but not property reads on a dynamically-keyed object.
 type ProcessLike = {
   release?: { name?: string };
@@ -69,8 +60,7 @@ export const ensureDevelopmentServer = (
  * call to {@link ensureDevelopmentServer} starts a fresh process. Intended
  * for tests that need to release the port between runs.
  */
-export const stopDevelopmentServer = async (): Promise<void> => {
-  const { stopCurrentServer } = await importProcessModule();
+export const stopDevelopmentServer = (): void => {
   stopCurrentServer();
   devServerPromise = undefined;
 };
@@ -86,7 +76,6 @@ const startPipeline = async (env?: Record<string, string | undefined>): Promise<
   }
 
   const binaryPath = await ensureBinary();
-  const { spawnServer } = await importProcessModule();
 
   await spawnServer(binaryPath, port, () => {
     // Reset singleton so the next call to ensureDevelopmentServer restarts the server
