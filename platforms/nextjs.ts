@@ -28,6 +28,18 @@ export type VerifySignatureConfig = {
    * @default 0
    */
   clockTolerance?: number;
+
+  /**
+   * Use the local dev server signing keys. Pair this with
+   * `new Client({ devMode: true })` for end-to-end local development.
+   *
+   * - `true`: use dev server signing keys
+   * - `false`: never use dev server signing keys (ignores QSTASH_DEV env var)
+   * - `undefined`: check QSTASH_DEV env var
+   *
+   * @default undefined
+   */
+  devMode?: boolean;
 };
 
 const BAD_REQUEST = 400;
@@ -40,7 +52,7 @@ export function verifySignature(
   const nextSigningKey = config?.nextSigningKey ?? process.env.QSTASH_NEXT_SIGNING_KEY;
 
   // Only throw if both keys are missing and not in multi-region mode
-  if (!currentSigningKey && !nextSigningKey && !process.env.QSTASH_REGION) {
+  if (!config?.devMode && !currentSigningKey && !nextSigningKey && !process.env.QSTASH_REGION) {
     throw new Error(
       "currentSigningKey and nextSigningKey are required, either in the config or as env variables (QSTASH_CURRENT_SIGNING_KEY and QSTASH_NEXT_SIGNING_KEY)"
     );
@@ -49,6 +61,7 @@ export function verifySignature(
   const receiver = new Receiver({
     currentSigningKey,
     nextSigningKey,
+    devMode: config?.devMode,
   });
 
   return async (request: NextApiRequest, response: NextApiResponse) => {
@@ -105,7 +118,7 @@ export function verifySignatureEdge(
   const nextSigningKey = config?.nextSigningKey ?? process.env.QSTASH_NEXT_SIGNING_KEY;
 
   // Only throw if both keys are missing and not in multi-region mode
-  if (!currentSigningKey && !nextSigningKey && !process.env.QSTASH_REGION) {
+  if (!config?.devMode && !currentSigningKey && !nextSigningKey && !process.env.QSTASH_REGION) {
     throw new Error(
       "currentSigningKey and nextSigningKey are required, either in the config or as env variables (QSTASH_CURRENT_SIGNING_KEY and QSTASH_NEXT_SIGNING_KEY)"
     );
@@ -114,6 +127,7 @@ export function verifySignatureEdge(
   const receiver = new Receiver({
     currentSigningKey,
     nextSigningKey,
+    devMode: config?.devMode,
   });
 
   return async (request: NextRequest, nfe: NextFetchEvent) => {
@@ -158,7 +172,7 @@ export function verifySignatureAppRouter(
   const nextSigningKey = config?.nextSigningKey ?? process.env.QSTASH_NEXT_SIGNING_KEY;
 
   // Only throw if both keys are missing and not in multi-region mode
-  if (!currentSigningKey && !nextSigningKey && !process.env.QSTASH_REGION) {
+  if (!config?.devMode && !currentSigningKey && !nextSigningKey && !process.env.QSTASH_REGION) {
     throw new Error(
       "currentSigningKey and nextSigningKey are required, either in the config or as env variables (QSTASH_CURRENT_SIGNING_KEY and QSTASH_NEXT_SIGNING_KEY)"
     );
@@ -167,6 +181,7 @@ export function verifySignatureAppRouter(
   const receiver = new Receiver({
     currentSigningKey,
     nextSigningKey,
+    devMode: config?.devMode,
   });
 
   return async (request: NextRequest | Request, params?: any) => {
