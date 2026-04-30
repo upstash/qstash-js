@@ -3,12 +3,13 @@ import { importChildProcess } from "./constants";
 const STARTUP_TIMEOUT_MS = 30_000;
 const PREFIX = "\u001B[2m[QStash CLI]\u001B[0m";
 
+type Unrefable = { unref?: () => void };
 type ChildProcess = {
   kill: (signal?: NodeJS.Signals | number) => boolean;
   pid?: number;
-  stdout: NodeJS.ReadableStream | null;
-  stderr: NodeJS.ReadableStream | null;
-};
+  stdout: (NodeJS.ReadableStream & Unrefable) | null;
+  stderr: (NodeJS.ReadableStream & Unrefable) | null;
+} & Unrefable;
 
 export const spawnServer = async (
   binaryPath: string,
@@ -64,6 +65,14 @@ export const spawnServer = async (
   });
 
   registerCleanup(child);
+
+  // Don't keep the user's event loop alive solely because of the dev server —
+  // a one-shot script (e.g. `node script.ts` that publishes once) should exit
+  // when its own work is done. The exit/SIGINT handlers in registerCleanup
+  // still kill the child cleanly when the parent does exit.
+  child.unref?.();
+  child.stdout?.unref?.();
+  child.stderr?.unref?.();
 };
 
 const formatStartupError = (code: number | null, startupOutput: string): string => {

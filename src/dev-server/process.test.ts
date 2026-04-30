@@ -68,6 +68,34 @@ describe("spawnServer", () => {
     expect(writes).toContain(`${DIM_PREFIX} running at http://localhost:dev\n`);
   });
 
+  test("does not keep parent event loop alive after readiness", async () => {
+    // Verifies the spawned dev-server child doesn't pin the parent's event loop.
+    // Without unref(), a script that does `await spawnServer(...)` and then ends
+    // will hang forever — the original /dev route + asd.ts repro.
+    const bin = createFakeBinary('echo "running at http://localhost:$1"; sleep 30');
+    const helperPath = join(temporaryDirectory, "helper.ts");
+    const processModulePath = join(import.meta.dir, "process.ts");
+    writeFileSync(
+      helperPath,
+      `import { spawnServer } from ${JSON.stringify(processModulePath)};\n` +
+        `await spawnServer(${JSON.stringify(bin)}, "9999");\n`
+    );
+
+    const helper = Bun.spawn(["bun", helperPath], { stdio: ["ignore", "pipe", "pipe"] });
+    const HELPER_TIMEOUT_MS = 3000;
+    const result = await Promise.race([
+      helper.exited.then((code) => ({ kind: "exited" as const, code })),
+      Bun.sleep(HELPER_TIMEOUT_MS).then(() => ({ kind: "timeout" as const })),
+    ]);
+
+    if (result.kind === "timeout") {
+      helper.kill();
+      await helper.exited;
+      throw new Error("helper script hung — spawnServer kept the event loop alive");
+    }
+    expect(result.code).toBe(0);
+  });
+
   test("forwards child stderr to process.stderr with dim prefix", async () => {
     const writes: string[] = [];
     const spy = spyOn(process.stderr, "write").mockImplementation((chunk: Uint8Array | string) => {
