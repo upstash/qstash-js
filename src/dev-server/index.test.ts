@@ -164,8 +164,8 @@ describe("ensureDevelopmentServer", () => {
   // The singleton-promise test above actually spawns the dev binary on the
   // default port. Stop it so the integration block below can rebind on a
   // non-default port and so other test files don't inherit a held 8080.
-  afterAll(() => {
-    stopDevelopmentServer();
+  afterAll(async () => {
+    await stopDevelopmentServer();
   });
 });
 
@@ -228,10 +228,10 @@ describe("dev server integration", () => {
     await client.publish({ url: "https://example.com", body: "warmup" });
   });
 
-  afterAll(() => {
+  afterAll(async () => {
     // Kill the spawned binary so it doesn't hold the port for the rest of the
     // test process (workflow test-utils and others bind 8080 / would race here).
-    stopDevelopmentServer();
+    await stopDevelopmentServer();
     if (savedPort === undefined) delete process.env.QSTASH_DEV_PORT;
     else process.env.QSTASH_DEV_PORT = savedPort;
   });

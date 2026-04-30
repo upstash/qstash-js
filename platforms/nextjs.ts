@@ -297,10 +297,9 @@ export const servePagesRouter = <TInitialPayload = unknown>(
  * ```
  */
 export async function registerQStashDev(): Promise<void> {
-  // Edge runtime — can't spawn processes
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-  if (typeof process === "undefined" || !process.release?.name) return;
-  // Production — dev server should never run
+  // Production — dev server should never run.
+  // (Edge-runtime gating happens inside ensureDevelopmentServer → getRuntime;
+  // referencing process.release directly here trips Next.js's edge analyzer.)
   if (process.env.NODE_ENV === "production") return;
   // next build — NEXT_RUNTIME is set to "nodejs" during build too,
   // but NEXT_PHASE tells us if we're building

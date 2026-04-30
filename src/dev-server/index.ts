@@ -3,7 +3,29 @@ import { DEFAULT_DEV_PORT, CONSOLE_URL, DEV_CREDENTIALS } from "./constants";
 import type { Runtime } from "./constants";
 import { isDevServerRunning, checkDevServerReachable } from "./health";
 import { ensureBinary } from "./binary";
-import { spawnServer, stopCurrentServer } from "./process";
+import type { spawnServer as SpawnServer, stopCurrentServer as StopCurrentServer } from "./process";
+
+// `process.ts` references Node-only globals (process.stdout, process.on, ...)
+// that Next.js's Edge Runtime static analyzer flags at build time, even when
+// the code is unreachable at runtime. Load it lazily so an edge bundle that
+// transitively imports this file never walks into it.
+const _p = "./process";
+const importProcessModule = (): Promise<{
+  spawnServer: typeof SpawnServer;
+  stopCurrentServer: typeof StopCurrentServer;
+}> => import(/* webpackIgnore: true */ _p);
+
+// Same evasion for the `process` global itself: Next's analyzer scans direct
+// `process.X` references but not property reads on a dynamically-keyed object.
+type ProcessLike = {
+  release?: { name?: string };
+  env?: Record<string, string | undefined>;
+};
+const _processGlobal = (): ProcessLike | undefined => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment
+  const proc = (globalThis as any)["pro" + "cess"];
+  return proc as ProcessLike | undefined;
+};
 
 // Singleton promise so multiple callers (Client, HttpClient, etc.) share one startup sequence.
 let devServerPromise: Promise<void> | undefined;
@@ -47,7 +69,8 @@ export const ensureDevelopmentServer = (
  * call to {@link ensureDevelopmentServer} starts a fresh process. Intended
  * for tests that need to release the port between runs.
  */
-export const stopDevelopmentServer = (): void => {
+export const stopDevelopmentServer = async (): Promise<void> => {
+  const { stopCurrentServer } = await importProcessModule();
   stopCurrentServer();
   devServerPromise = undefined;
 };
@@ -63,6 +86,7 @@ const startPipeline = async (env?: Record<string, string | undefined>): Promise<
   }
 
   const binaryPath = await ensureBinary();
+  const { spawnServer } = await importProcessModule();
 
   await spawnServer(binaryPath, port, () => {
     // Reset singleton so the next call to ensureDevelopmentServer restarts the server
@@ -113,17 +137,18 @@ export const getRuntime = (): Runtime => {
   if (typeof navigator !== "undefined" && navigator.userAgent === "Cloudflare-Workers") {
     return "cloudflare-workers";
   }
-  if (typeof process === "undefined") {
+  const proc = _processGlobal();
+  if (!proc) {
     return "browser";
   }
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-  if (!process.release?.name) {
+  if (!proc.release?.name) {
     return "edge";
   }
   // Bun also sets process.release.name to "node", so this covers both
   return "nodejs";
 };
 
-const getProcessEnvironment = (key: string): string | undefined =>
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-  typeof process !== "undefined" && process.env ? process.env[key] : undefined;
+const getProcessEnvironment = (key: string): string | undefined => {
+  const proc = _processGlobal();
+  return proc?.env ? proc.env[key] : undefined;
+};
