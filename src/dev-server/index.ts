@@ -3,7 +3,7 @@ import { DEFAULT_DEV_PORT, CONSOLE_URL, DEV_CREDENTIALS } from "./constants";
 import type { Runtime } from "./constants";
 import { isDevServerRunning, checkDevServerReachable } from "./health";
 import { ensureBinary } from "./binary";
-import { spawnServer } from "./process";
+import { spawnServer, stopCurrentServer } from "./process";
 
 // Singleton promise so multiple callers (Client, HttpClient, etc.) share one startup sequence.
 let devServerPromise: Promise<void> | undefined;
@@ -40,6 +40,16 @@ export const ensureDevelopmentServer = (
   }
 
   return devServerPromise;
+};
+
+/**
+ * Stop the spawned dev server (if any) and reset the singleton so a future
+ * call to {@link ensureDevelopmentServer} starts a fresh process. Intended
+ * for tests that need to release the port between runs.
+ */
+export const stopDevelopmentServer = (): void => {
+  stopCurrentServer();
+  devServerPromise = undefined;
 };
 
 const startPipeline = async (env?: Record<string, string | undefined>): Promise<void> => {

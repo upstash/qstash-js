@@ -138,6 +138,12 @@ const killCurrentChild = () => {
   currentChild = undefined;
 };
 
+/**
+ * Kill the currently-running dev server child, if any. Exported for tests
+ * so they can release the port between runs.
+ */
+export const stopCurrentServer = killCurrentChild;
+
 const registerCleanup = (child: ChildProcess): void => {
   currentChild = child;
 

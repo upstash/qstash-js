@@ -9,8 +9,13 @@ import {
   getRuntime,
   getDevelopmentCredentials,
   ensureDevelopmentServer,
+  stopDevelopmentServer,
 } from "./index";
 import { DEV_CREDENTIALS, DEFAULT_DEV_PORT } from "./constants";
+
+// Integration tests boot the QStash binary on a non-default port so they don't
+// collide with other test files that bind 8080 (e.g. workflow test-utils).
+const INTEGRATION_PORT = "8181";
 
 // Dev mode must work without any real credentials — save and restore so other
 // test files running in the same process are not affected.
@@ -146,10 +151,21 @@ describe("ensureDevelopmentServer", () => {
     await ensureDevelopmentServer({}, undefined);
   });
 
-  test("returns singleton promise on repeated calls", () => {
+  test("returns singleton promise on repeated calls", async () => {
     const p1 = ensureDevelopmentServer(undefined, true);
     const p2 = ensureDevelopmentServer(undefined, true);
     expect(p1).toBe(p2);
+    // Await so the spawn actually finishes before afterAll tries to stop it,
+    // otherwise the child registers after stopDevelopmentServer is a no-op
+    // and the binary is left running on the default port.
+    await p1;
+  });
+
+  // The singleton-promise test above actually spawns the dev binary on the
+  // default port. Stop it so the integration block below can rebind on a
+  // non-default port and so other test files don't inherit a held 8080.
+  afterAll(() => {
+    stopDevelopmentServer();
   });
 });
 
@@ -203,11 +219,21 @@ describe("credential priority", () => {
 
 describe("dev server integration", () => {
   let client: Client;
+  const savedPort = process.env.QSTASH_DEV_PORT;
 
   beforeAll(async () => {
+    process.env.QSTASH_DEV_PORT = INTEGRATION_PORT;
     client = new Client({ devMode: true });
     // Ensure server is up before running tests
     await client.publish({ url: "https://example.com", body: "warmup" });
+  });
+
+  afterAll(() => {
+    // Kill the spawned binary so it doesn't hold the port for the rest of the
+    // test process (workflow test-utils and others bind 8080 / would race here).
+    stopDevelopmentServer();
+    if (savedPort === undefined) delete process.env.QSTASH_DEV_PORT;
+    else process.env.QSTASH_DEV_PORT = savedPort;
   });
 
   test(
