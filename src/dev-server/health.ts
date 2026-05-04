@@ -1,5 +1,5 @@
 import type { Runtime } from "./constants";
-import { DEV_CREDENTIALS } from "./constants";
+import { DEV_CREDENTIALS, DEV_PREFIX } from "./constants";
 import { nativeGet } from "./http";
 
 const HEALTH_CHECK_TIMEOUT_MS = 2000;
@@ -55,14 +55,14 @@ const _doCheckDevServerReachable = async (baseUrl: string, runtime?: Runtime): P
 
   if (runtime === "cloudflare-workers") {
     console.error(
-      `\n[QStash Dev] The dev server is not running at ${baseUrl}.\n\n` +
+      `\n${DEV_PREFIX} The dev server is not running at ${baseUrl}.\n\n` +
         `Cloudflare Workers cannot start the dev server automatically.\n` +
         `Start it manually before running wrangler dev:\n\n` +
         `  ${manualStartCmd}\n`
     );
   } else {
     console.error(
-      `\n[QStash Dev] The dev server is not running at ${baseUrl}.\n\n` +
+      `\n${DEV_PREFIX} The dev server is not running at ${baseUrl}.\n\n` +
         `Edge runtimes cannot start the dev server automatically.\n` +
         `Either:\n` +
         `  1. Add the instrumentation hook to start it with your app:\n\n` +

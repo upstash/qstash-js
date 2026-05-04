@@ -13,6 +13,12 @@ export const GITHUB_RELEASES_URL =
 export const BINARY_URL_BASE = "https://artifacts.upstash.com/qstash/versions";
 export const CONSOLE_URL = "https://console.upstash.com/qstash/local-mode-user";
 
+// Dim ANSI prefixes for console output. SDK-emitted lines use [QStash Dev];
+// stdout/stderr forwarded from the spawned binary use [QStash CLI].
+// Not used in thrown Error messages: ANSI codes don't belong in Error.message.
+export const DEV_PREFIX = "\u001B[2m[QStash Dev]\u001B[0m";
+export const CLI_PREFIX = "\u001B[2m[QStash CLI]\u001B[0m";
+
 export type Runtime = "nodejs" | "edge" | "cloudflare-workers" | "browser";
 
 // All Node.js built-in imports use template literal concatenation so that

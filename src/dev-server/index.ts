@@ -1,5 +1,6 @@
 /* eslint-disable no-console */
-import { DEFAULT_DEV_PORT, CONSOLE_URL, DEV_CREDENTIALS } from "./constants";
+import { DEFAULT_DEV_PORT, CONSOLE_URL, DEV_CREDENTIALS, DEV_PREFIX } from "./constants";
+export { DEV_PREFIX } from "./constants";
 import type { Runtime } from "./constants";
 import { isDevServerRunning, checkDevServerReachable } from "./health";
 import { ensureBinary } from "./binary";
@@ -79,7 +80,9 @@ const startPipeline = async (env?: Record<string, string | undefined>): Promise<
   const consoleLink = `\u001B[36m${CONSOLE_URL}?port=${port}\u001B[0m`;
 
   if (await isDevServerRunning(baseUrl)) {
-    console.log(`[QStash Dev] Server already running at ${baseUrl}\n  Console: ${consoleLink}\n`);
+    console.log(
+      `${DEV_PREFIX} Server already running at ${baseUrl}\n${DEV_PREFIX} Console: ${consoleLink}`
+    );
     return;
   }
 

@@ -5,7 +5,7 @@ import {
   readClientEnvironmentVariables,
 } from "./utils";
 
-import { shouldUseDevelopmentMode, getDevelopmentCredentials } from "../../dev-server";
+import { shouldUseDevelopmentMode, getDevelopmentCredentials, DEV_PREFIX } from "../../dev-server";
 
 type Credentials = {
   baseUrl?: string;
@@ -51,7 +51,7 @@ const resolveCredentials = ({
   if (shouldUseDevelopmentMode(devMode, environment)) {
     if (config?.baseUrl || config?.token) {
       console.warn(
-        "[QStash Dev] Dev mode is active — ignoring explicit baseUrl/token config. " +
+        `${DEV_PREFIX} Dev mode is active. Ignoring baseUrl/token from config. ` +
           "Set devMode: false to use your own credentials."
       );
     }

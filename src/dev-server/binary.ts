@@ -1,6 +1,7 @@
 /* eslint-disable no-console */
 import {
   BINARY_URL_BASE,
+  DEV_PREFIX,
   GITHUB_RELEASES_URL,
   importFs,
   importChildProcess,
@@ -30,7 +31,7 @@ export const ensureBinary = async (): Promise<string> => {
       const cachedVersion = fs.existsSync(versionFile)
         ? fs.readFileSync(versionFile, "utf8").trim()
         : "unknown";
-      console.log(`[QStash Dev] Offline, using local v${cachedVersion}`);
+      console.log(`${DEV_PREFIX} Offline, using local v${cachedVersion}`);
       return binaryPath;
     }
     throw error;
@@ -105,7 +106,7 @@ const downloadBinary = async (version: string, cacheDirectory: string): Promise<
 
   const extension = isWindows ? "zip" : "tar.gz";
   const archiveUrl = `${BINARY_URL_BASE}/${version}/${archiveName}.${extension}`;
-  console.log(`[QStash Dev] Downloading dev server v${version}...`);
+  console.log(`${DEV_PREFIX} Downloading dev server v${version}...`);
 
   const { ok, statusCode, body } = await nativeGet(archiveUrl);
   if (!ok) {

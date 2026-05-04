@@ -1,4 +1,4 @@
-import { importChildProcess } from "./constants";
+import { CLI_PREFIX, importChildProcess } from "./constants";
 
 const STARTUP_TIMEOUT_MS = 30_000;
 
@@ -17,7 +17,6 @@ const _proc = (): ProcessLike => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-return
   return (globalThis as any)["pro" + "cess"] ?? {};
 };
-const PREFIX = "\u001B[2m[QStash CLI]\u001B[0m";
 
 type Unrefable = { unref?: () => void };
 type ChildProcess = {
@@ -118,7 +117,7 @@ const forwardWithPrefix = (
   if (!source) return;
   let buffer = "";
   const flushLine = (line: string) => {
-    destination?.write(`${PREFIX} ${line}\n`);
+    destination?.write(`${CLI_PREFIX} ${line}\n`);
     onLine(line);
   };
   source.on("data", (data: Buffer) => {
