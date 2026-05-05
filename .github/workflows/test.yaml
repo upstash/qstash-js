@@ -135,6 +135,14 @@ jobs:
   nextjs-local-build:
     runs-on: ubuntu-latest
     name: NextJS Local Build
+    # The /serverless and /edge example routes call verifySignatureAppRouter()
+    # at module load (page-data collection at build, route compile at dev).
+    # Without keys in env it throws synchronously, so provide dummies. Real
+    # signature verification isn't exercised on these paths in CI; /dev/receive
+    # uses devMode: true and supplies its own dev keys.
+    env:
+      QSTASH_CURRENT_SIGNING_KEY: sig_dummy_for_local_build
+      QSTASH_NEXT_SIGNING_KEY: sig_dummy_for_local_build
     steps:
       - name: Setup repo
         uses: actions/checkout@v4
