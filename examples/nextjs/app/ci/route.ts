@@ -1,6 +1,9 @@
 import { Client } from "@upstash/qstash"
 import { CRON, DESTINATION } from "./constants";
 
+// Don't run at build time — talks to the live QStash API.
+export const dynamic = "force-dynamic";
+
 export const GET = async () => {
   if (!process.env.QSTASH_TOKEN) {
     throw new Error("CI test failed. QSTASH_TOKEN is missing.")

@@ -1,8 +1,8 @@
 import { test, expect } from "bun:test";
 
-// Hits the /dev routes which use `devMode: true` — that triggers the qstash
+// Hits the /dev routes which use devMode: true. That triggers the qstash
 // CLI dev server to spawn inside the Next.js process. Run after starting the
-// example with `bun dev` (or via the CI nextjs-local-build job).
+// example with `bun dev`. Also runs in CI via the nextjs-local-build job.
 const deploymentURL = process.env.DEPLOYMENT_URL;
 if (!deploymentURL) {
   throw new Error("DEPLOYMENT_URL not set");

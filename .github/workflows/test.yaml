@@ -134,9 +134,6 @@ jobs:
 
   nextjs-local-build:
     runs-on: ubuntu-latest
-    # disabled because of a local build issue. Will be tested properly in
-    # the deployment test
-    if: false
     name: NextJS Local Build
     steps:
       - name: Setup repo
@@ -168,7 +165,12 @@ jobs:
         working-directory: examples/nextjs
 
       - name: Install local package
-        run: pnpm install @upstash/qstash@../../dist
+        # `file:../../dist` (with the `file:` prefix) tells pnpm to install the
+        # dist folder as if it were a real package, not as a symlink. A plain
+        # `pnpm install ../../dist` symlinks instead, which leaves two copies
+        # of `next` resolvable (one in the qstash-js root, one in the example)
+        # and TS sees them as distinct types, breaking the build.
+        run: pnpm add @upstash/qstash@file:../../dist
         working-directory: examples/nextjs
 
       - name: Local build
@@ -179,8 +181,25 @@ jobs:
         run: pnpm dev &
         working-directory: examples/nextjs
 
-      - name: Test
+      - name: Wait for next dev to be ready
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:3000/ > /dev/null; then exit 0; fi
+            sleep 1
+          done
+          echo "next dev never became ready"; exit 1
+
+      - name: Test (production routes)
         run: bun test ci.test.ts
+        working-directory: examples/nextjs
+        env:
+          DEPLOYMENT_URL: http://localhost:3000
+
+      - name: Test (devMode round-trip)
+        # Exercises the SDK auto-spawning the QStash dev binary inside the
+        # Next.js process, publishing a signed message, and the receiver
+        # verifying it. This is the only CI coverage of devMode end-to-end.
+        run: bun test dev.test.ts
         working-directory: examples/nextjs
         env:
           DEPLOYMENT_URL: http://localhost:3000
@@ -228,7 +247,7 @@ jobs:
       version: ${{ steps.version.outputs.version }}
     needs:
       - cloudflare-workers-local-build
-      # - nextjs-local-build
+      - nextjs-local-build
       - local-tests
 
     name: Release

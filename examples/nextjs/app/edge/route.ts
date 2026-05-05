@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { verifySignatureAppRouter } from "@upstash/qstash/nextjs";
 
-async function handler(_req: NextRequest) {
+async function handler(_req: Request) {
   // simulate work
   await new Promise((r) => setTimeout(r, 1000));
 
