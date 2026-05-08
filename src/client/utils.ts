@@ -295,6 +295,9 @@ type ProcessLike = {
   env?: Record<string, string | undefined>;
 };
 function _processGlobal(): ProcessLike | undefined {
+  // The string is split so the substring "process" never appears as a literal
+  // token in the bundle, Next.js's Edge analyzer pattern-matches on the
+  // literal and would warn even though the access is dynamic at runtime.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment
   const proc = (globalThis as any)["pro" + "cess"];
   return proc as ProcessLike | undefined;
