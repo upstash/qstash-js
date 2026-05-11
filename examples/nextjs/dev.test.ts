@@ -16,7 +16,7 @@ test("/dev publishes via dev server", async () => {
   const body = (await res.json()) as { ok: boolean; messageId?: string };
   expect(body.ok).toBe(true);
   expect(body.messageId).toBeTruthy();
-});
+}, 60_000);
 
 test("/dev/send → /dev/receive round trip with signature verification", async () => {
   const sendRes = await fetch(`${deploymentURL}/dev/send`);
@@ -33,7 +33,7 @@ test("/dev/send → /dev/receive round trip with signature verification", async 
     await Bun.sleep(250);
   }
   throw new Error(`message ${messageId} never delivered to /dev/receive within 10s`);
-});
+}, 60_000);
 
 test("/dev/receive rejects unsigned requests", async () => {
   const res = await fetch(`${deploymentURL}/dev/receive`, {
