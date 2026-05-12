@@ -4,6 +4,7 @@ import {
   normalizeRegionHeader,
   readReceiverEnvironmentVariables,
 } from "./utils";
+import { shouldUseDevelopmentMode, getDevelopmentCredentials, DEV_PREFIX } from "../../dev-server";
 
 type SigningKeys = {
   currentSigningKey?: string;
@@ -14,6 +15,7 @@ type ReceiverCredentialConfig = {
   environment: Record<string, string | undefined>;
   regionFromHeader?: string;
   config?: SigningKeys;
+  devMode?: boolean;
 };
 
 type CredentialsWithRegion = Required<SigningKeys> & {
@@ -38,7 +40,23 @@ export const getReceiverSigningKeys = ({
   environment,
   regionFromHeader,
   config,
+  devMode,
 }: ReceiverCredentialConfig): CredentialsWithRegion | undefined => {
+  // 0. Dev mode takes highest priority
+  if (shouldUseDevelopmentMode(devMode, environment)) {
+    if (config?.currentSigningKey || config?.nextSigningKey) {
+      console.warn(
+        `${DEV_PREFIX} Dev mode is active. Ignoring signing keys from config. ` +
+          "Set devMode: false to use your own keys."
+      );
+    }
+    const developmentCreds = getDevelopmentCredentials(environment);
+    return {
+      currentSigningKey: developmentCreds.currentSigningKey,
+      nextSigningKey: developmentCreds.nextSigningKey,
+    };
+  }
+
   // 1. Check for config overrides
   if (config?.currentSigningKey && config.nextSigningKey) {
     return {

@@ -5,6 +5,8 @@ import {
   readClientEnvironmentVariables,
 } from "./utils";
 
+import { shouldUseDevelopmentMode, getDevelopmentCredentials, DEV_PREFIX } from "../../dev-server";
+
 type Credentials = {
   baseUrl?: string;
   token?: string;
@@ -13,6 +15,7 @@ type Credentials = {
 type ClientCredentialConfig = {
   environment: Record<string, string | undefined>;
   config?: Credentials;
+  devMode?: boolean;
 };
 
 type CredentialsWithRegion = Required<Credentials> & {
@@ -42,7 +45,23 @@ export const getClientCredentials = (
 const resolveCredentials = ({
   environment,
   config,
+  devMode,
 }: ClientCredentialConfig): CredentialsWithRegion => {
+  // 0. Dev mode takes highest priority
+  if (shouldUseDevelopmentMode(devMode, environment)) {
+    if (config?.baseUrl || config?.token) {
+      console.warn(
+        `${DEV_PREFIX} Dev mode is active. Ignoring baseUrl/token from config. ` +
+          "Set devMode: false to use your own credentials."
+      );
+    }
+    const developmentCreds = getDevelopmentCredentials(environment);
+    return {
+      baseUrl: developmentCreds.baseUrl,
+      token: developmentCreds.token,
+    };
+  }
+
   // 1. Check for config overrides
   if (config?.baseUrl && config.token) {
     return {

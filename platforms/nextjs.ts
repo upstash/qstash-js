@@ -9,6 +9,7 @@ import { Receiver } from "../src/receiver";
 
 import type { WorkflowServeOptions, RouteFunction } from "../src/client/workflow";
 import { serve as serveBase } from "../src/client/workflow";
+import { ensureDevelopmentServer, shouldUseDevelopmentMode } from "../src/dev-server";
 
 export type VerifySignatureConfig = {
   currentSigningKey?: string;
@@ -27,6 +28,18 @@ export type VerifySignatureConfig = {
    * @default 0
    */
   clockTolerance?: number;
+
+  /**
+   * Use the local dev server signing keys. Pair this with
+   * `new Client({ devMode: true })` for end-to-end local development.
+   *
+   * - `true`: use dev server signing keys
+   * - `false`: never use dev server signing keys (ignores QSTASH_DEV env var)
+   * - `undefined`: check QSTASH_DEV env var
+   *
+   * @default undefined
+   */
+  devMode?: boolean;
 };
 
 const BAD_REQUEST = 400;
@@ -38,8 +51,9 @@ export function verifySignature(
   const currentSigningKey = config?.currentSigningKey ?? process.env.QSTASH_CURRENT_SIGNING_KEY;
   const nextSigningKey = config?.nextSigningKey ?? process.env.QSTASH_NEXT_SIGNING_KEY;
 
-  // Only throw if both keys are missing and not in multi-region mode
-  if (!currentSigningKey && !nextSigningKey && !process.env.QSTASH_REGION) {
+  // Skip the throw in dev mode (config flag OR QSTASH_DEV env) — Receiver auto-picks dev keys.
+  const devMode = shouldUseDevelopmentMode(config?.devMode, process.env);
+  if (!devMode && !currentSigningKey && !nextSigningKey && !process.env.QSTASH_REGION) {
     throw new Error(
       "currentSigningKey and nextSigningKey are required, either in the config or as env variables (QSTASH_CURRENT_SIGNING_KEY and QSTASH_NEXT_SIGNING_KEY)"
     );
@@ -48,6 +62,7 @@ export function verifySignature(
   const receiver = new Receiver({
     currentSigningKey,
     nextSigningKey,
+    devMode: config?.devMode,
   });
 
   return async (request: NextApiRequest, response: NextApiResponse) => {
@@ -103,8 +118,9 @@ export function verifySignatureEdge(
   const currentSigningKey = config?.currentSigningKey ?? process.env.QSTASH_CURRENT_SIGNING_KEY;
   const nextSigningKey = config?.nextSigningKey ?? process.env.QSTASH_NEXT_SIGNING_KEY;
 
-  // Only throw if both keys are missing and not in multi-region mode
-  if (!currentSigningKey && !nextSigningKey && !process.env.QSTASH_REGION) {
+  // Skip the throw in dev mode (config flag OR QSTASH_DEV env) — Receiver auto-picks dev keys.
+  const devMode = shouldUseDevelopmentMode(config?.devMode, process.env);
+  if (!devMode && !currentSigningKey && !nextSigningKey && !process.env.QSTASH_REGION) {
     throw new Error(
       "currentSigningKey and nextSigningKey are required, either in the config or as env variables (QSTASH_CURRENT_SIGNING_KEY and QSTASH_NEXT_SIGNING_KEY)"
     );
@@ -113,6 +129,7 @@ export function verifySignatureEdge(
   const receiver = new Receiver({
     currentSigningKey,
     nextSigningKey,
+    devMode: config?.devMode,
   });
 
   return async (request: NextRequest, nfe: NextFetchEvent) => {
@@ -156,8 +173,9 @@ export function verifySignatureAppRouter(
   const currentSigningKey = config?.currentSigningKey ?? process.env.QSTASH_CURRENT_SIGNING_KEY;
   const nextSigningKey = config?.nextSigningKey ?? process.env.QSTASH_NEXT_SIGNING_KEY;
 
-  // Only throw if both keys are missing and not in multi-region mode
-  if (!currentSigningKey && !nextSigningKey && !process.env.QSTASH_REGION) {
+  // Skip the throw in dev mode (config flag OR QSTASH_DEV env) — Receiver auto-picks dev keys.
+  const devMode = shouldUseDevelopmentMode(config?.devMode, process.env);
+  if (!devMode && !currentSigningKey && !nextSigningKey && !process.env.QSTASH_REGION) {
     throw new Error(
       "currentSigningKey and nextSigningKey are required, either in the config or as env variables (QSTASH_CURRENT_SIGNING_KEY and QSTASH_NEXT_SIGNING_KEY)"
     );
@@ -166,6 +184,7 @@ export function verifySignatureAppRouter(
   const receiver = new Receiver({
     currentSigningKey,
     nextSigningKey,
+    devMode: config?.devMode,
   });
 
   return async (request: NextRequest | Request, params?: any) => {
@@ -260,3 +279,34 @@ export const servePagesRouter = <TInitialPayload = unknown>(
     res.status(response.status).json(await response.json());
   };
 };
+
+/**
+ * Start the QStash dev server early during Next.js initialization.
+ *
+ * Call this inside your `instrumentation.ts` `register()` function so
+ * the dev server is ready before any request — including edge routes
+ * that cannot start it themselves.
+ *
+ * No-op in production, during `next build`, or in edge runtime.
+ *
+ * @example
+ * ```ts
+ * // instrumentation.ts
+ * import { registerQStashDev } from "@upstash/qstash/nextjs";
+ *
+ * export function register() {
+ *   registerQStashDev();
+ * }
+ * ```
+ */
+export async function registerQStashDev(): Promise<void> {
+  // Production — dev server should never run.
+  // (Edge-runtime gating happens inside ensureDevelopmentServer → getRuntime;
+  // referencing process.release directly here trips Next.js's edge analyzer.)
+  if (process.env.NODE_ENV === "production") return;
+  // next build — NEXT_RUNTIME is set to "nodejs" during build too,
+  // but NEXT_PHASE tells us if we're building
+  if (process.env.NEXT_PHASE === "phase-production-build") return;
+
+  await ensureDevelopmentServer(undefined, true);
+}

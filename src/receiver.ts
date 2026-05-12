@@ -21,6 +21,15 @@ export type ReceiverConfig = {
    * and UPSTASH_REGION header.
    */
   nextSigningKey?: string;
+  /**
+   * Controls the local dev server signing keys.
+   * - `true`: use dev server signing keys
+   * - `false`: never use dev server signing keys (ignores QSTASH_DEV env var)
+   * - `undefined`: check QSTASH_DEV env var
+   *
+   * @default undefined
+   */
+  devMode?: boolean;
 };
 
 export type VerifyRequest = {
@@ -68,10 +77,12 @@ export class SignatureError extends Error {
 export class Receiver {
   private readonly currentSigningKey?: string;
   private readonly nextSigningKey?: string;
+  private readonly devMode?: boolean;
 
   constructor(config?: ReceiverConfig) {
     this.currentSigningKey = config?.currentSigningKey;
     this.nextSigningKey = config?.nextSigningKey;
+    this.devMode = config?.devMode;
   }
 
   /**
@@ -93,6 +104,7 @@ export class Receiver {
         currentSigningKey: this.currentSigningKey,
         nextSigningKey: this.nextSigningKey,
       },
+      devMode: this.devMode,
     });
 
     if (!signingKeys) {

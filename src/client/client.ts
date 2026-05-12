@@ -24,6 +24,8 @@ import { processApi } from "./api/utils";
 import { VERSION } from "../../version";
 import { getClientCredentials } from "./multi-region";
 
+import { shouldUseDevelopmentMode, ensureDevelopmentServer } from "../dev-server";
+
 type ClientConfig = {
   /**
    * Url of the QStash api server.
@@ -64,6 +66,16 @@ type ClientConfig = {
    * @default true
    */
   enableTelemetry?: boolean;
+
+  /**
+   * Controls the local dev server.
+   * - `true`: force dev mode on (downloads, starts, and manages the dev server automatically)
+   * - `false`: force dev mode off (ignores QSTASH_DEV env var)
+   * - `undefined`: check QSTASH_DEV env var
+   *
+   * @default undefined
+   */
+  devMode?: boolean;
 };
 
 export type PublishBatchRequest<TBody = BodyInit> = PublishRequest<TBody> & {
@@ -368,7 +380,16 @@ export class Client {
     const environment = getSafeEnvironment();
 
     // Resolve credentials using multi-region logic
-    const { baseUrl, token } = getClientCredentials({ environment, config });
+    const { baseUrl, token } = getClientCredentials({
+      environment,
+      config,
+      devMode: config?.devMode,
+    });
+
+    // Fire-and-forget dev server startup
+    if (shouldUseDevelopmentMode(config?.devMode, environment)) {
+      void ensureDevelopmentServer(environment, config?.devMode);
+    }
 
     const enableTelemetry = environment.UPSTASH_DISABLE_TELEMETRY
       ? false
@@ -400,6 +421,7 @@ export class Client {
       headers: prefixHeaders(new Headers(config?.headers ?? {})),
       //@ts-expect-error caused by undici and bunjs type overlap
       telemetryHeaders: telemetryHeaders,
+      devMode: config?.devMode,
     });
 
     this.token = token;

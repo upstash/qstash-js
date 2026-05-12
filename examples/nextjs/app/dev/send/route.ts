@@ -1,0 +1,16 @@
+import { NextResponse } from "next/server";
+import { Client } from "@upstash/qstash";
+
+// Don't run at build time — devMode talks to a local QStash binary.
+export const dynamic = "force-dynamic";
+
+const client = new Client({ token: "dev-token", devMode: true });
+
+export const GET = async (request: Request) => {
+  const origin = new URL(request.url).origin;
+  const { messageId } = await client.publishJSON({
+    url: `${origin}/dev/receive`,
+    body: { hello: "from /dev/send" },
+  });
+  return NextResponse.json({ ok: true, messageId });
+};
