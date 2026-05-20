@@ -127,6 +127,26 @@ const result = await client.publishJSON({
 });
 ```
 
+## Local Development
+
+Set `QSTASH_DEV=true` in your environment variables, and the SDK will download and connect to a local QStash dev server automatically. No tokens or signing keys required: the SDK injects deterministic dev credentials.
+
+```bash .env
+QSTASH_DEV=true
+```
+
+Alternatively, pass `devMode: true` to explicitly enable dev mode:
+
+```ts
+import { Client } from "@upstash/qstash";
+
+const client = new Client({ devMode: true });
+```
+
+The same flag works on the receiving side: pass `devMode: true` to `Receiver` or `verifySignature*` to verify signatures with the dev server's keys. Dev mode is automatically a no-op when `NODE_ENV=production` and in browser/edge runtimes.
+
+See [Local Development](https://docs.upstash.com/qstash/howto/local-development) for the full walkthrough, including the `registerQStashDev()` helper for Next.js edge routes.
+
 ## Docs
 
 See [the documentation](https://docs.upstash.com/qstash) for details.
