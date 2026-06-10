@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-magic-numbers */
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
+/* eslint-disable @typescript-eslint/no-deprecated */
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { nanoid } from "nanoid";
 import { Client } from "./client";
@@ -26,6 +27,21 @@ describe("E2E Publish", () => {
     });
     const verifiedMessage = await client.messages.get(result.messageId);
     expect(verifiedMessage.label).toBe("test-label");
+  });
+
+  test("should publish a message with multiple labels", async () => {
+    const labelOne = `multi-a-${Date.now()}`;
+    const labelTwo = `multi-b-${Date.now()}`;
+    const result = await client.publish({
+      url: "https://example.com/",
+      body: "test-body",
+      label: [labelOne, labelTwo],
+    });
+    const verifiedMessage = await client.messages.get(result.messageId);
+    // legacy `label` carries only the first label
+    expect(verifiedMessage.label).toBe(labelOne);
+    // new `labels` carries all of them
+    expect(verifiedMessage.labels).toEqual([labelOne, labelTwo]);
   });
   const client = new Client({ token: process.env.QSTASH_TOKEN! });
 

@@ -24,7 +24,19 @@ export type Log = {
   endpointName?: string;
   header?: Record<string, string>;
   body?: string; // base64 encoded
+  /**
+   * Label of the message.
+   *
+   * @deprecated Use `labels` instead. When a message has multiple labels, this
+   *   field only contains the first one.
+   */
   label?: string;
+  /**
+   * Labels attached to the message.
+   *
+   * A message can have multiple labels when published with `label: string[]`.
+   */
+  labels?: string[];
 };
 
 /**

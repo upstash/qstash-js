@@ -132,8 +132,18 @@ export type Message = {
 
   /**
    * The label assigned to the message for filtering purposes.
+   *
+   * @deprecated Use `labels` instead. When a message has multiple labels, this
+   *   field only contains the first one.
    */
   label?: string;
+
+  /**
+   * The labels assigned to the message for filtering purposes.
+   *
+   * A message can have multiple labels when published with `label: string[]`.
+   */
+  labels?: string[];
 };
 
 export type MessagePayload = Omit<Message, "urlGroup"> & { topicName: string };

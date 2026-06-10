@@ -230,9 +230,12 @@ export type PublishRequest<TBody = BodyInit> = {
   /**
    * Assign a label to the request to filter logs later.
    *
+   * Pass an array to attach multiple labels to a single message; they are
+   * sent as a comma-separated value in the `Upstash-Label` header.
+   *
    * @default undefined
    */
-  label?: string;
+  label?: string | string[];
 
   /**
    * Configure which fields should be redacted in logs.

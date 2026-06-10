@@ -47,7 +47,9 @@ export const checkDevServerReachable = async (
 const pingEdge = async (baseUrl: string): Promise<boolean> => {
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), HEALTH_CHECK_TIMEOUT_MS);
+    const timeout = setTimeout(() => {
+      controller.abort();
+    }, HEALTH_CHECK_TIMEOUT_MS);
     const response = await fetch(`${baseUrl}/v2/keys`, {
       headers: { Authorization: `Bearer ${DEV_CREDENTIALS.token}` },
       signal: controller.signal,
