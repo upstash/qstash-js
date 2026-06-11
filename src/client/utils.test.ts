@@ -1,6 +1,11 @@
-import { buildBulkActionFilterPayload, DEFAULT_BULK_COUNT, processHeaders } from "./utils";
+import {
+  buildBulkActionFilterPayload,
+  DEFAULT_BULK_COUNT,
+  prefixHeaders,
+  processHeaders,
+  serializeLabel,
+} from "./utils";
 import { describe, expect, test } from "bun:test";
-import { prefixHeaders } from "./utils";
 import type { DLQBulkActionFilters } from "./filter-types";
 
 describe("prefixHeaders", () => {
@@ -77,9 +82,27 @@ describe("buildFilterPayload", () => {
   });
 });
 
+describe("serializeLabel", () => {
+  test("should return a single label as-is", () => {
+    expect(serializeLabel("my-label")).toBe("my-label");
+  });
+
+  test("should join multiple labels with a comma", () => {
+    expect(serializeLabel(["label-1", "label-2"])).toBe("label-1,label-2");
+  });
+});
+
 describe("processHeaders", () => {
   test("should set Upstash-Label header if label is present", () => {
     const headers = processHeaders({ url: "https://example.com", label: "my-label" });
     expect(headers.get("Upstash-Label")).toBe("my-label");
+  });
+
+  test("should set comma-separated Upstash-Label header for an array of labels", () => {
+    const headers = processHeaders({
+      url: "https://example.com",
+      label: ["label-1", "label-2"],
+    });
+    expect(headers.get("Upstash-Label")).toBe("label-1,label-2");
   });
 });

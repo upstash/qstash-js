@@ -6,6 +6,15 @@ import type { DLQBulkActionFilters, MessageCancelFilters } from "./filter-types"
 
 export const DEFAULT_BULK_COUNT = 100;
 
+/**
+ * Serializes a label (string or array of strings) into the header value.
+ * Arrays are joined with `,` so multiple labels can be sent in a single
+ * `Upstash-Label` header.
+ */
+export function serializeLabel(label: string | string[]): string {
+  return Array.isArray(label) ? label.join(",") : label;
+}
+
 const isIgnoredHeader = (header: string) => {
   const lowerCaseHeader = header.toLowerCase();
   return lowerCaseHeader.startsWith("content-type") || lowerCaseHeader.startsWith("upstash-");
@@ -133,7 +142,7 @@ export function processHeaders(request: PublishRequest) {
   }
 
   if (request.label !== undefined) {
-    headers.set("Upstash-Label", request.label);
+    headers.set("Upstash-Label", serializeLabel(request.label));
   }
 
   if (request.redact !== undefined) {

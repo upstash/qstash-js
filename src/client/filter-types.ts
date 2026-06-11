@@ -16,7 +16,14 @@ type UniversalFilterFields = {
   fromDate?: Date | number;
   toDate?: Date | number;
   callerIp?: string;
-  label?: string;
+  /**
+   * Filter by label.
+   *
+   * Pass an array to match runs that have any of the given labels (OR semantics).
+   * For example, with runs labelled `[label_1, label_2]` and `[label_2, label_3]`,
+   * filtering by `[label_1, label_2]` returns both.
+   */
+  label?: string | string[];
   flowControlKey?: string;
 };
 

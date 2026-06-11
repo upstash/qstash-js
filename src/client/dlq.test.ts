@@ -227,6 +227,77 @@ describe("DLQ", () => {
   );
 
   test(
+    "should round-trip multiple labels on a DLQ message (label first, labels all)",
+    async () => {
+      const labelOne = `dlq-multi-a-${Date.now()}`;
+      const labelTwo = `dlq-multi-b-${Date.now()}`;
+
+      const { messageId } = await client.publish({
+        url: `https://httpbin.org/status/400`, // Any broken link will work
+        retries: 0,
+        label: [labelOne, labelTwo],
+      });
+
+      await sleep(4000);
+
+      const dlqLogs = await client.dlq.listMessages({
+        filter: { label: [labelOne, labelTwo] },
+      });
+
+      const message = dlqLogs.messages.find((m) => m.messageId === messageId);
+      expect(message).toBeDefined();
+      // legacy `label` carries only the first label
+      expect(message!.label).toBe(labelOne);
+      // new `labels` carries all of them
+      expect(message!.labels).toEqual([labelOne, labelTwo]);
+
+      await client.dlq.delete({ filter: { label: [labelOne, labelTwo] } });
+    },
+    { timeout: 20_000 }
+  );
+
+  test(
+    "should filter DLQ messages by multiple labels (OR semantics)",
+    async () => {
+      const labelA = `dlq-or-a-${Date.now()}`;
+      const labelB = `dlq-or-b-${Date.now()}`;
+      const labelC = `dlq-or-c-${Date.now()}`;
+
+      // msg1: [A, B], msg2: [B, C], msg3: [C]
+      const { messageId: messageAB } = await client.publish({
+        url: `https://httpbin.org/status/400`,
+        retries: 0,
+        label: [labelA, labelB],
+      });
+      const { messageId: messageBC } = await client.publish({
+        url: `https://httpbin.org/status/400`,
+        retries: 0,
+        label: [labelB, labelC],
+      });
+      const { messageId: messageC } = await client.publish({
+        url: `https://httpbin.org/status/400`,
+        retries: 0,
+        label: labelC,
+      });
+
+      await sleep(4000);
+
+      // filtering by [A, B] should match msgAB and msgBC (both share a label)
+      // but NOT msgC.
+      const dlqLogs = await client.dlq.listMessages({
+        filter: { label: [labelA, labelB] },
+      });
+      const ids = new Set(dlqLogs.messages.map((m) => m.messageId));
+      expect(ids.has(messageAB)).toBe(true);
+      expect(ids.has(messageBC)).toBe(true);
+      expect(ids.has(messageC)).toBe(false);
+
+      await client.dlq.delete({ filter: { label: [labelA, labelB, labelC] } });
+    },
+    { timeout: 20_000 }
+  );
+
+  test(
     "should retry multiple messages from DLQ",
     async () => {
       // Publish multiple messages that will fail
@@ -913,5 +984,45 @@ describe("DLQ - mocked early return", () => {
       query: { dlqIds: [] as string[] },
     });
     expect(promise).rejects.toThrow("Empty array");
+  });
+});
+
+describe("DLQ - mocked filter url shape", () => {
+  const token = "mock-token";
+
+  test("should send a single label as a single query param", async () => {
+    const mockClient = new Client({ token, baseUrl: MOCK_QSTASH_SERVER_URL });
+    await mockQStashServer({
+      execute: async () => {
+        await mockClient.dlq.listMessages({ filter: { label: "label-1" } });
+      },
+      responseFields: { body: { messages: [] }, status: 200 },
+      receivesRequest: {
+        method: "GET",
+        token,
+        url: `${MOCK_QSTASH_SERVER_URL}/v2/dlq?label=label-1`,
+      },
+      validateRequest: (request) => {
+        expect(new URL(request.url).searchParams.getAll("label")).toEqual(["label-1"]);
+      },
+    });
+  });
+
+  test("should send multiple labels as repeated query params (OR semantics)", async () => {
+    const mockClient = new Client({ token, baseUrl: MOCK_QSTASH_SERVER_URL });
+    await mockQStashServer({
+      execute: async () => {
+        await mockClient.dlq.listMessages({ filter: { label: ["label-1", "label-2"] } });
+      },
+      responseFields: { body: { messages: [] }, status: 200 },
+      receivesRequest: {
+        method: "GET",
+        token,
+        url: `${MOCK_QSTASH_SERVER_URL}/v2/dlq?label=label-1&label=label-2`,
+      },
+      validateRequest: (request) => {
+        expect(new URL(request.url).searchParams.getAll("label")).toEqual(["label-1", "label-2"]);
+      },
+    });
   });
 });
