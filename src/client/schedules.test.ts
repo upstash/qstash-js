@@ -306,3 +306,33 @@ describe("Schedules", () => {
     });
   });
 });
+
+describe("Schedules empty id guard", () => {
+  test("should not send request when get is called with an empty string", async () => {
+    await mockQStashServer({
+      execute: () => {
+        const mockClient = new Client({
+          token: "mock-token",
+          baseUrl: MOCK_QSTASH_SERVER_URL,
+        });
+        expect(mockClient.schedules.get("")).rejects.toThrow("Schedule id cannot be empty");
+      },
+      responseFields: { body: {}, status: 200 },
+      receivesRequest: false,
+    });
+  });
+
+  test("should not send request when delete is called with an empty string", async () => {
+    await mockQStashServer({
+      execute: () => {
+        const mockClient = new Client({
+          token: "mock-token",
+          baseUrl: MOCK_QSTASH_SERVER_URL,
+        });
+        expect(mockClient.schedules.delete("")).rejects.toThrow("Schedule id cannot be empty");
+      },
+      responseFields: { body: {}, status: 200 },
+      receivesRequest: false,
+    });
+  });
+});

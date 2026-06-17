@@ -1,4 +1,5 @@
 import type { Requester } from "./http";
+import { assertNonEmptyId } from "./utils";
 
 export type FlowControlInfo = {
   /**
@@ -109,6 +110,7 @@ export class FlowControlApi {
    * Get a single flow control by key.
    */
   public async get(flowControlKey: string): Promise<FlowControlInfo> {
+    assertNonEmptyId(flowControlKey, "Flow control key");
     return await this.http.request<FlowControlInfo>({
       method: "GET",
       path: ["v2", "flowControl", flowControlKey],

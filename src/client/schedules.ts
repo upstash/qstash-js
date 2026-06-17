@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-deprecated */
-import { prefixHeaders, wrapWithGlobalHeaders } from "./utils";
+import { assertNonEmptyId, prefixHeaders, wrapWithGlobalHeaders } from "./utils";
 import type { Requester } from "./http";
 import type { BodyInit, FlowControl, HeadersInit, HTTPMethods } from "./types";
 import type { Duration } from "./duration";
@@ -329,6 +329,7 @@ export class Schedules {
    * Get a schedule
    */
   public async get(scheduleId: string): Promise<Schedule> {
+    assertNonEmptyId(scheduleId, "Schedule id");
     const schedule = await this.http.request<Schedule>({
       method: "GET",
       path: ["v2", "schedules", scheduleId],
@@ -359,6 +360,7 @@ export class Schedules {
    * Delete a schedule
    */
   public async delete(scheduleId: string): Promise<void> {
+    assertNonEmptyId(scheduleId, "Schedule id");
     return await this.http.request({
       method: "DELETE",
       path: ["v2", "schedules", scheduleId],

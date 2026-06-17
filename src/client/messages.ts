@@ -2,7 +2,7 @@ import type { PublishRequest } from "./client";
 import type { Requester } from "./http";
 import type { HTTPMethods } from "./types";
 import type { MessageCancelFilters } from "./filter-types";
-import { buildBulkActionFilterPayload } from "./utils";
+import { assertNonEmptyId, buildBulkActionFilterPayload } from "./utils";
 
 export type Message = {
   /**
@@ -159,6 +159,7 @@ export class Messages {
    * Get a message
    */
   public async get(messageId: string): Promise<Message> {
+    assertNonEmptyId(messageId, "Message id");
     const messagePayload = await this.http.request<MessagePayload>({
       method: "GET",
       path: ["v2", "messages", messageId],
@@ -196,6 +197,7 @@ export class Messages {
   ): Promise<{ cancelled: number }> {
     // Handle single string separately, for backwards compatibility on the response
     if (typeof request === "string") {
+      assertNonEmptyId(request, "Message id");
       return await this.http.request({
         method: "DELETE",
         path: ["v2", "messages", request],
@@ -221,6 +223,7 @@ export class Messages {
    * @deprecated Use `cancel(messageId: string)` instead
    */
   public async delete(messageId: string): Promise<void> {
+    assertNonEmptyId(messageId, "Message id");
     await this.http.request({
       method: "DELETE",
       path: ["v2", "messages", messageId],

@@ -969,6 +969,20 @@ describe("DLQ - mocked early return", () => {
     });
   });
 
+  test("should not send request when delete is called with an empty string", async () => {
+    await mockQStashServer({
+      execute: () => {
+        const mockClient = new Client({
+          token: "mock-token",
+          baseUrl: MOCK_QSTASH_SERVER_URL,
+        });
+        expect(mockClient.dlq.delete("")).rejects.toThrow("DLQ id cannot be empty");
+      },
+      responseFields: { body: {}, status: 200 },
+      receivesRequest: false,
+    });
+  });
+
   // eslint-disable-next-line @typescript-eslint/require-await
   test("http client should throw when empty array is passed in query params", async () => {
     const mockClient = new Client({
