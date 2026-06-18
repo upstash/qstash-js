@@ -22,6 +22,25 @@ describe("Messages empty id guard", () => {
     });
   });
 
+  test("should throw a QstashError (not a TypeError) when get is called with undefined", async () => {
+    await mockQStashServer({
+      execute: async () => {
+        const mockClient = new Client({
+          token: "mock-token",
+          baseUrl: MOCK_QSTASH_SERVER_URL,
+        });
+        // A JS consumer may accidentally pass a missing value; it should fail
+        // with the intended "cannot be empty" error, not a TypeError.
+        await expectToReject(
+          () => mockClient.messages.get(undefined as unknown as string),
+          "Message id cannot be empty"
+        );
+      },
+      responseFields: { body: {}, status: 200 },
+      receivesRequest: false,
+    });
+  });
+
   test("should not send request when cancel is called with an empty string", async () => {
     await mockQStashServer({
       execute: async () => {

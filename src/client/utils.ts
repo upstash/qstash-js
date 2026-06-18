@@ -7,15 +7,19 @@ import type { DLQBulkActionFilters, MessageCancelFilters } from "./filter-types"
 export const DEFAULT_BULK_COUNT = 100;
 
 /**
- * Guards single-resource endpoints against an empty identifier.
+ * Guards single-resource endpoints against a missing identifier.
  *
  * An empty id would otherwise be joined into the path as a trailing slash
  * (e.g. `v2/messages/`), which the server resolves to the collection/bulk
  * endpoint. For DELETE methods this silently triggers a bulk delete, so we
  * fail fast instead.
+ *
+ * Uses a falsy check rather than `id.length` so that a JS consumer passing
+ * `undefined`/`null` fails with a consistent `QstashError` instead of a
+ * `TypeError`.
  */
 export function assertNonEmptyId(id: string, label = "id"): void {
-  if (id.length === 0) {
+  if (!id) {
     throw new QstashError(`${label} cannot be empty`);
   }
 }
