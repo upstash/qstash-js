@@ -1,17 +1,17 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { describe, expect, test } from "bun:test";
 import { Client } from "./client";
-import { MOCK_QSTASH_SERVER_URL, mockQStashServer } from "./workflow/test-utils";
+import { MOCK_QSTASH_SERVER_URL, mockQStashServer, expectToReject } from "./workflow/test-utils";
 
 describe("url group empty id guard", () => {
   test("should not send request when get is called with an empty string", async () => {
     await mockQStashServer({
-      execute: () => {
+      execute: async () => {
         const mockClient = new Client({
           token: "mock-token",
           baseUrl: MOCK_QSTASH_SERVER_URL,
         });
-        expect(mockClient.urlGroups.get("")).rejects.toThrow("Url group name cannot be empty");
+        await expectToReject(() => mockClient.urlGroups.get(""), "Url group name cannot be empty");
       },
       responseFields: { body: {}, status: 200 },
       receivesRequest: false,
@@ -20,12 +20,15 @@ describe("url group empty id guard", () => {
 
   test("should not send request when delete is called with an empty string", async () => {
     await mockQStashServer({
-      execute: () => {
+      execute: async () => {
         const mockClient = new Client({
           token: "mock-token",
           baseUrl: MOCK_QSTASH_SERVER_URL,
         });
-        expect(mockClient.urlGroups.delete("")).rejects.toThrow("Url group name cannot be empty");
+        await expectToReject(
+          () => mockClient.urlGroups.delete(""),
+          "Url group name cannot be empty"
+        );
       },
       responseFields: { body: {}, status: 200 },
       receivesRequest: false,

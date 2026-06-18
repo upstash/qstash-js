@@ -5,7 +5,12 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { Client } from "./client";
 import type { Schedule } from "./schedules";
 import { nanoid } from "nanoid";
-import { MOCK_QSTASH_SERVER_URL, MOCK_SERVER_URL, mockQStashServer } from "./workflow/test-utils";
+import {
+  MOCK_QSTASH_SERVER_URL,
+  MOCK_SERVER_URL,
+  mockQStashServer,
+  expectToReject,
+} from "./workflow/test-utils";
 
 // Updated to use constants for magic numbers
 const SECONDS_IN_A_DAY = 24 * 60 * 60;
@@ -310,12 +315,12 @@ describe("Schedules", () => {
 describe("Schedules empty id guard", () => {
   test("should not send request when get is called with an empty string", async () => {
     await mockQStashServer({
-      execute: () => {
+      execute: async () => {
         const mockClient = new Client({
           token: "mock-token",
           baseUrl: MOCK_QSTASH_SERVER_URL,
         });
-        expect(mockClient.schedules.get("")).rejects.toThrow("Schedule id cannot be empty");
+        await expectToReject(() => mockClient.schedules.get(""), "Schedule id cannot be empty");
       },
       responseFields: { body: {}, status: 200 },
       receivesRequest: false,
@@ -324,12 +329,12 @@ describe("Schedules empty id guard", () => {
 
   test("should not send request when delete is called with an empty string", async () => {
     await mockQStashServer({
-      execute: () => {
+      execute: async () => {
         const mockClient = new Client({
           token: "mock-token",
           baseUrl: MOCK_QSTASH_SERVER_URL,
         });
-        expect(mockClient.schedules.delete("")).rejects.toThrow("Schedule id cannot be empty");
+        await expectToReject(() => mockClient.schedules.delete(""), "Schedule id cannot be empty");
       },
       responseFields: { body: {}, status: 200 },
       receivesRequest: false,
