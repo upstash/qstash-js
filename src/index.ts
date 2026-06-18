@@ -12,3 +12,5 @@ export * from "./client/llm/chat";
 export * from "./client/llm/types";
 export * from "./client/llm/providers";
 export * from "./client/api";
+
+export { startDevServer } from "./dev-server";

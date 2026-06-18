@@ -24,7 +24,7 @@ import { processApi } from "./api/utils";
 import { VERSION } from "../../version";
 import { getClientCredentials } from "./multi-region";
 
-import { shouldUseDevelopmentMode, ensureDevelopmentServer } from "../dev-server";
+import { shouldUseDevelopmentMode, ensureDevelopmentServer, DEV_PREFIX } from "../dev-server";
 
 type ClientConfig = {
   /**
@@ -391,7 +391,9 @@ export class Client {
 
     // Fire-and-forget dev server startup
     if (shouldUseDevelopmentMode(config?.devMode, environment)) {
-      void ensureDevelopmentServer(environment, config?.devMode);
+      ensureDevelopmentServer(environment, config?.devMode).catch((error: unknown) => {
+        console.warn(`${DEV_PREFIX} Could not start dev server:`, error);
+      });
     }
 
     const enableTelemetry = environment.UPSTASH_DISABLE_TELEMETRY
