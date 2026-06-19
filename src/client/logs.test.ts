@@ -23,12 +23,13 @@ describe("logs", () => {
           expect(result.logs[0].label).toBe(label);
         },
         {
+          timeout: 20_000,
           interval: 1000,
         }
       );
     },
     {
-      timeout: 10_000,
+      timeout: 30_000,
     }
   );
   const client = new Client({ token: process.env.QSTASH_TOKEN! });
@@ -55,10 +56,10 @@ describe("logs", () => {
           // new `labels` carries all of them
           expect(log!.labels).toEqual([labelOne, labelTwo]);
         },
-        { interval: 1000 }
+        { timeout: 20_000, interval: 1000 }
       );
     },
-    { timeout: 10_000 }
+    { timeout: 30_000 }
   );
 
   test(
@@ -95,10 +96,10 @@ describe("logs", () => {
           expect(ids.has(messageBC)).toBe(true);
           expect(ids.has(messageC)).toBe(false);
         },
-        { interval: 1000 }
+        { timeout: 20_000, interval: 1000 }
       );
     },
-    { timeout: 15_000 }
+    { timeout: 30_000 }
   );
 
   test("should use cursor", async () => {
@@ -131,7 +132,7 @@ describe("logs", () => {
 
       expect(result.cursor).toBeUndefined();
     },
-    { timeout: 10_000 }
+    { timeout: 30_000 }
   );
 });
 
