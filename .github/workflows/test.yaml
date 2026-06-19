@@ -248,7 +248,10 @@ jobs:
       - name: Deploy
         run: |
           pnpm add @upstash/qstash@${{needs.release.outputs.version}}
-          DEPLOYMENT_URL=$(npx vercel --token=${{ secrets.VERCEL_TOKEN }})
+          DEPLOYMENT_URL=$(npx vercel --token=${{ secrets.VERCEL_TOKEN }} \
+            -e QSTASH_TOKEN="$QSTASH_TOKEN" \
+            -e QSTASH_CURRENT_SIGNING_KEY="$QSTASH_CURRENT_SIGNING_KEY" \
+            -e QSTASH_NEXT_SIGNING_KEY="$QSTASH_NEXT_SIGNING_KEY")
           echo "DEPLOYMENT_URL=${DEPLOYMENT_URL}" >> $GITHUB_ENV
         env:
           VERCEL_ORG_ID: ${{secrets.VERCEL_TEAM_ID}}
@@ -257,6 +260,10 @@ jobs:
 
       - name: Test
         run: bun test ci.test.ts
+        working-directory: examples/nextjs
+
+      - name: Test delivery round-trip (publish → verify endpoint → delivered)
+        run: bun test verify.test.ts
         working-directory: examples/nextjs
 
   release:

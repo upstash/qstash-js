@@ -52,7 +52,7 @@ async function handleVerify(request: Request, env: Env): Promise<Response> {
 
   const signature = request.headers.get("Upstash-Signature");
   if (!signature) {
-    return new Response("missing Upstash-Signature header", { status: 401 });
+    return new Response("missing Upstash-Signature header", { status: 403 });
   }
 
   const receiver = new Receiver({
@@ -64,7 +64,7 @@ async function handleVerify(request: Request, env: Env): Promise<Response> {
   try {
     await receiver.verify({ signature, body });
   } catch (error) {
-    return new Response(`invalid signature: ${(error as Error).message}`, { status: 401 });
+    return new Response(`invalid signature: ${(error as Error).message}`, { status: 403 });
   }
 
   return new Response("OK", { status: 200 });

@@ -1,11 +1,13 @@
 import { Client } from "@upstash/qstash";
 import { test, expect } from "bun:test";
 
-// End-to-end delivery round trip. The worker publishes a message to its own
-// /verify endpoint (which runs a Receiver), QStash delivers the signed request,
-// and we poll the message logs until QStash reports it as DELIVERED.
+// End-to-end delivery round trip. The app publishes a message to its own
+// /roundtrip/verify endpoint (which runs verifySignatureAppRouter), QStash
+// delivers the signed request, and we poll the message logs until QStash
+// reports it as DELIVERED.
 //
-// Requires a publicly reachable worker, so this only runs in the deployed CI job.
+// Requires a publicly reachable deployment, so this only runs in the deployed
+// CI job.
 const deploymentURL = process.env.DEPLOYMENT_URL;
 if (!deploymentURL) {
   throw new Error("DEPLOYMENT_URL not set");
@@ -16,24 +18,28 @@ if (!token) {
   throw new Error("QSTASH_TOKEN not set");
 }
 
-test("verify endpoint rejects unsigned requests", async () => {
-  // Hitting the verifier directly without a valid Upstash-Signature header must
-  // be rejected, never answered with 200.
-  const res = await fetch(`${deploymentURL}/verify`, {
-    method: "POST",
-    body: JSON.stringify({ hello: "no signature" }),
-  });
+// Endpoints that verify the QStash signature. Hitting them directly (without a
+// valid Upstash-Signature header) must be rejected, never answered with 200.
+const VERIFIED_ENDPOINTS = ["/roundtrip/verify", "/serverless", "/edge"];
 
-  // The worker returns 403 when the Upstash-Signature header is missing.
-  expect(res.status).not.toBe(200);
-  expect(res.status).toBe(403);
+test("verified endpoints reject unsigned requests", async () => {
+  for (const path of VERIFIED_ENDPOINTS) {
+    const res = await fetch(`${deploymentURL}${path}`, {
+      method: "POST",
+      body: JSON.stringify({ hello: "no signature" }),
+    });
+
+    // verifySignatureAppRouter returns 403 when the signature header is missing.
+    expect(res.status).not.toBe(200);
+    expect(res.status).toBe(403);
+  }
 });
 
 test(
   "publishes to the verify endpoint and the message is delivered",
   async () => {
-    // 1. Ask the worker to publish a message to its own /verify endpoint.
-    const res = await fetch(`${deploymentURL}/publish`);
+    // 1. Ask the app to publish a message to its own /roundtrip/verify endpoint.
+    const res = await fetch(`${deploymentURL}/roundtrip/publish`);
     if (res.status !== 200) {
       console.log(await res.text());
     }
