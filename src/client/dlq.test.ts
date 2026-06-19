@@ -4,7 +4,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { Client } from "./client";
-import { eventually } from "./logs.test";
+import { eventually } from "./test-utils/eventually";
 import { MOCK_QSTASH_SERVER_URL, mockQStashServer } from "./workflow/test-utils";
 import type { HttpClient } from "./http";
 

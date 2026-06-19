@@ -11,12 +11,15 @@ import { getReceiverSigningKeys } from "./client/multi-region";
  * deprecated `url.parse()` and triggered Node.js DEP0169 warnings.
  */
 async function sha256Base64url(body: string): Promise<string> {
-  const hashBuffer = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(body));
-  let binary = "";
-  for (const byte of new Uint8Array(hashBuffer)) {
-    binary += String.fromCodePoint(byte);
+  const webCrypto = globalThis.crypto;
+  // The types claim `crypto.subtle` is always present, but it can be missing at
+  // runtime (older/edge runtimes), so keep the guard despite the lint rule.
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  if (!webCrypto?.subtle) {
+    throw new Error("[Upstash QStash] Web Crypto API is not available in this runtime.");
   }
-  return btoa(binary).replaceAll("+", "-").replaceAll("/", "_").replaceAll(/=+$/g, "");
+  const hashBuffer = await webCrypto.subtle.digest("SHA-256", new TextEncoder().encode(body));
+  return jose.base64url.encode(new Uint8Array(hashBuffer));
 }
 
 /**

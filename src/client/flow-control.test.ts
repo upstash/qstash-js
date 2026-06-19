@@ -3,7 +3,7 @@
 
 import { describe, expect, test } from "bun:test";
 import { Client } from "./client";
-import { eventually } from "./logs.test";
+import { eventually } from "./test-utils/eventually";
 
 describe("FlowControl", () => {
   const client = new Client({ token: process.env.QSTASH_TOKEN! });
