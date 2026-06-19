@@ -176,25 +176,28 @@ describe("DLQ", () => {
         retryDelay,
       });
 
-      await eventually(async () => {
-        const result = await client.dlq.listMessages({
-          filter: {
-            messageId,
-          },
-        });
-        expect(result.messages.length).toBe(1);
-        const message = result.messages[0];
+      await eventually(
+        async () => {
+          const result = await client.dlq.listMessages({
+            filter: {
+              messageId,
+            },
+          });
+          expect(result.messages.length).toBe(1);
+          const message = result.messages[0];
 
-        expect(message.flowControlKey).toBe(randomKey);
-        expect(message.parallelism).toBe(parallelism);
-        expect(message.ratePerSecond).toBe(ratePerSecond);
-        expect(message.rate).toBe(ratePerSecond);
-        expect(message.period).toBe(SECONDS_IN_A_DAY);
-        expect(message.retryDelayExpression).toBe(retryDelay);
-      });
+          expect(message.flowControlKey).toBe(randomKey);
+          expect(message.parallelism).toBe(parallelism);
+          expect(message.ratePerSecond).toBe(ratePerSecond);
+          expect(message.rate).toBe(ratePerSecond);
+          expect(message.period).toBe(SECONDS_IN_A_DAY);
+          expect(message.retryDelayExpression).toBe(retryDelay);
+        },
+        { timeout: 20_000, interval: 1000 }
+      );
     },
     {
-      timeout: 10_000,
+      timeout: 30_000,
     }
   );
 
@@ -500,11 +503,14 @@ describe("DLQ", () => {
         label,
       });
 
-      await sleep(10_000);
-
-      // Verify messages are in DLQ
-      const dlqBefore = await client.dlq.listMessages({ filter: { label } });
-      expect(dlqBefore.messages.length).toBeGreaterThanOrEqual(2);
+      // Wait for both messages to land in the DLQ
+      await eventually(
+        async () => {
+          const dlqBefore = await client.dlq.listMessages({ filter: { label } });
+          expect(dlqBefore.messages.length).toBeGreaterThanOrEqual(2);
+        },
+        { timeout: 20_000, interval: 1000 }
+      );
 
       // Delete using filter overload
       const deleteResult = await client.dlq.delete({ filter: { label } });
@@ -516,7 +522,7 @@ describe("DLQ", () => {
       const dlqAfter = await client.dlq.listMessages({ filter: { label } });
       expect(dlqAfter.messages.length).toBe(0);
     },
-    { timeout: 20_000 }
+    { timeout: 30_000 }
   );
 
   test(
@@ -527,12 +533,17 @@ describe("DLQ", () => {
         retries: 0,
       });
 
-      await sleep(10_000);
-
-      const dlqLogs = await client.dlq.listMessages({ filter: { messageId: message.messageId } });
-      const dlqMessage = dlqLogs.messages.find((dlq) => dlq.messageId === message.messageId);
-
-      expect(dlqMessage).toBeDefined();
+      let dlqMessage: { dlqId: string; messageId: string } | undefined;
+      await eventually(
+        async () => {
+          const dlqLogs = await client.dlq.listMessages({
+            filter: { messageId: message.messageId },
+          });
+          dlqMessage = dlqLogs.messages.find((dlq) => dlq.messageId === message.messageId);
+          expect(dlqMessage).toBeDefined();
+        },
+        { timeout: 20_000, interval: 1000 }
+      );
 
       // Retry using single string overload
       const retryResult = await client.dlq.retry(dlqMessage!.dlqId);
@@ -543,7 +554,7 @@ describe("DLQ", () => {
       expect(retryResult.responses[0].messageId).toBeDefined();
       expect(client.dlq.delete(dlqMessage!.dlqId)).rejects.toThrow();
     },
-    { timeout: 20_000 }
+    { timeout: 30_000 }
   );
 
   test(
