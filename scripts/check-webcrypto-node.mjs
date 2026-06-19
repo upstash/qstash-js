@@ -1,10 +1,10 @@
 // Runtime check for the receiver's SHA-256 hashing across Node.js versions.
 //
-// `bun test` can't cover this: Bun always has globalThis.crypto, so the
-// node:crypto fallback in sha256Base64url never runs there. This script runs
-// under plain `node` (see the node-versions CI job) and exercises BOTH paths:
-//   1. the global Web Crypto path (Node >= 19)
-//   2. the node:crypto fallback (Node < 19, and forced here on newer Node)
+// `bun test` can't cover this: it runs on Bun, which always has
+// globalThis.crypto. Running this under plain `node` across the version matrix
+// (see the node-versions CI job) exercises the real runtime behavior — most
+// importantly Node < 19, where Web Crypto isn't a global and the receiver must
+// fall back to node:crypto.
 //
 // It builds a valid Upstash signature with jose + node:crypto and asserts that
 // Receiver.verify() accepts it. Run after `bun run build` (imports ../dist).
@@ -43,30 +43,8 @@ async function verifyRoundTrip(label) {
   );
 }
 
-// 1. Whatever this Node version offers natively (global on >=19, fallback on <19).
+// Verify using whatever this Node version offers: the global Web Crypto on
+// Node >= 19, or the node:crypto fallback on Node < 19.
 await verifyRoundTrip("native path");
-
-// 2. Force the node:crypto fallback even on a runtime that has the global, so
-//    the fallback branch is covered regardless of version. Best-effort: some
-//    runtimes make globalThis.crypto non-configurable, in which case we skip
-//    (the Node 18 matrix entry still exercises the fallback for real).
-const savedCrypto = Object.getOwnPropertyDescriptor(globalThis, "crypto");
-let unset = false;
-try {
-  Object.defineProperty(globalThis, "crypto", { value: undefined, configurable: true });
-  unset = globalThis.crypto === undefined;
-} catch {
-  unset = false;
-}
-
-if (unset) {
-  try {
-    await verifyRoundTrip("forced node:crypto fallback");
-  } finally {
-    if (savedCrypto) Object.defineProperty(globalThis, "crypto", savedCrypto);
-  }
-} else {
-  console.log("• skipped forced fallback (globalThis.crypto is not configurable here)");
-}
 
 console.log("All Web Crypto runtime checks passed.");
