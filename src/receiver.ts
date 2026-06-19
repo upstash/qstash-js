@@ -27,7 +27,15 @@ async function digestSha256(data: Uint8Array): Promise<ArrayBuffer> {
   }
   // Fallback for older Node.js (< 19): use node:crypto's webcrypto, the same
   // approach jose uses, so verification keeps working on every runtime.
-  const nodeCrypto = await import("node:crypto");
+  //
+  // This branch never runs on edge/workers/browsers/Bun/Deno/Node >= 19 (they
+  // all have the global above). The specifier is held in a variable and marked
+  // webpackIgnore/@vite-ignore so bundlers (e.g. Next.js webpack, including the
+  // edge runtime, and Vite) don't try to resolve the node: builtin at build time.
+  const moduleName = "node:crypto";
+  const nodeCrypto = (await import(/* webpackIgnore: true */ /* @vite-ignore */ moduleName)) as {
+    webcrypto: { subtle: { digest(algorithm: string, data: Uint8Array): Promise<ArrayBuffer> } };
+  };
   return nodeCrypto.webcrypto.subtle.digest("SHA-256", data);
 }
 
