@@ -38,7 +38,9 @@ async function verifyRoundTrip(label) {
   const signature = await makeSignature(BODY);
   const ok = await receiver.verify({ signature, body: BODY });
   assert.strictEqual(ok, true, `${label}: verify() should return true`);
-  console.log(`✓ ${label} (node ${process.version}, globalThis.crypto: ${typeof globalThis.crypto})`);
+  console.log(
+    `✓ ${label} (node ${process.version}, globalThis.crypto: ${typeof globalThis.crypto})`
+  );
 }
 
 // 1. Whatever this Node version offers natively (global on >=19, fallback on <19).
