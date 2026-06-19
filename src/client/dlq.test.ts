@@ -2,7 +2,6 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 /* eslint-disable @typescript-eslint/no-deprecated */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { sleep } from "bun";
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { Client } from "./client";
 import { eventually } from "./logs.test";
@@ -44,12 +43,17 @@ describe("DLQ", () => {
         retries: 0,
       });
 
-      await sleep(10_000);
-
-      const dlqLogs = await client.dlq.listMessages({ filter: { messageId: message.messageId } });
-      expect(dlqLogs.messages.map((dlq) => dlq.messageId)).toContain(message.messageId);
+      await eventually(
+        async () => {
+          const dlqLogs = await client.dlq.listMessages({
+            filter: { messageId: message.messageId },
+          });
+          expect(dlqLogs.messages.map((dlq) => dlq.messageId)).toContain(message.messageId);
+        },
+        { timeout: 20_000, interval: 1000 }
+      );
     },
-    { timeout: 20_000 }
+    { timeout: 30_000 }
   );
 
   test(
@@ -60,24 +64,34 @@ describe("DLQ", () => {
         retries: 0,
       });
 
-      await sleep(10_000);
-
-      let dlqLogs = await client.dlq.listMessages({ filter: { messageId: message.messageId } });
-      let dlqMessage = dlqLogs.messages.find((dlq) => dlq.messageId === message.messageId);
-      expect(dlqMessage).toBeDefined();
+      let dlqMessage: { dlqId: string; messageId: string } | undefined;
+      await eventually(
+        async () => {
+          const dlqLogs = await client.dlq.listMessages({
+            filter: { messageId: message.messageId },
+          });
+          dlqMessage = dlqLogs.messages.find((dlq) => dlq.messageId === message.messageId);
+          expect(dlqMessage).toBeDefined();
+        },
+        { timeout: 20_000, interval: 1000 }
+      );
       const deletedDlqId = dlqMessage?.dlqId ?? "";
 
       await client.dlq.delete(dlqMessage?.dlqId ?? "");
 
-      dlqLogs = await client.dlq.listMessages({ filter: { messageId: message.messageId } });
-      dlqMessage = dlqLogs.messages.find((dlq) => dlq.messageId === message.messageId);
+      const dlqLogsAfter = await client.dlq.listMessages({
+        filter: { messageId: message.messageId },
+      });
+      const dlqMessageAfter = dlqLogsAfter.messages.find(
+        (dlq) => dlq.messageId === message.messageId
+      );
 
-      expect(dlqMessage).toBeUndefined();
+      expect(dlqMessageAfter).toBeUndefined();
 
       // Single-item delete should preserve 404 semantics when item no longer exists.
       expect(client.dlq.delete(deletedDlqId)).rejects.toThrow();
     },
-    { timeout: 20_000 }
+    { timeout: 30_000 }
   );
 
   test(
@@ -100,7 +114,7 @@ describe("DLQ", () => {
           expect(result.messages[0].messageId).toBe(message.messageId);
         },
         {
-          timeout: 15_000,
+          timeout: 20_000,
           interval: 1000,
         }
       );
@@ -113,7 +127,7 @@ describe("DLQ", () => {
 
       await client.dlq.delete(result.messages[0].dlqId);
     },
-    { timeout: 20_000 }
+    { timeout: 30_000 }
   );
 
   test(
@@ -140,7 +154,7 @@ describe("DLQ", () => {
           expect(result.messages[0].messageId).toBe(message[0].messageId);
         },
         {
-          timeout: 15_000,
+          timeout: 20_000,
           interval: 1000,
         }
       );
@@ -153,7 +167,7 @@ describe("DLQ", () => {
 
       await client.dlq.delete(result.messages[0].dlqId);
     },
-    { timeout: 20_000 }
+    { timeout: 30_000 }
   );
 
   test(
@@ -211,22 +225,25 @@ describe("DLQ", () => {
         label: testLabel,
       });
 
-      await sleep(4000);
+      await eventually(
+        async () => {
+          const dlqLogs = await client.dlq.listMessages({
+            filter: {
+              label: testLabel,
+            },
+          });
 
-      const dlqLogs = await client.dlq.listMessages({
-        filter: {
-          label: testLabel,
+          expect(dlqLogs.messages.length).toBeGreaterThanOrEqual(1);
+          for (const message of dlqLogs.messages) {
+            if (message.label !== undefined) {
+              expect(message.label).toBe(testLabel);
+            }
+          }
         },
-      });
-
-      expect(dlqLogs.messages.length).toBeGreaterThanOrEqual(1);
-      for (const message of dlqLogs.messages) {
-        if (message.label !== undefined) {
-          expect(message.label).toBe(testLabel);
-        }
-      }
+        { timeout: 20_000, interval: 1000 }
+      );
     },
-    { timeout: 20_000 }
+    { timeout: 30_000 }
   );
 
   test(
@@ -254,12 +271,12 @@ describe("DLQ", () => {
           // new `labels` carries all of them
           expect(message!.labels).toEqual([labelOne, labelTwo]);
         },
-        { timeout: 15_000, interval: 1000 }
+        { timeout: 20_000, interval: 1000 }
       );
 
       await client.dlq.delete({ filter: { label: [labelOne, labelTwo] } });
     },
-    { timeout: 20_000 }
+    { timeout: 30_000 }
   );
 
   test(
@@ -298,12 +315,12 @@ describe("DLQ", () => {
           expect(ids.has(messageBC)).toBe(true);
           expect(ids.has(messageC)).toBe(false);
         },
-        { timeout: 15_000, interval: 1000 }
+        { timeout: 20_000, interval: 1000 }
       );
 
       await client.dlq.delete({ filter: { label: [labelA, labelB, labelC] } });
     },
-    { timeout: 20_000 }
+    { timeout: 30_000 }
   );
 
   test(
@@ -350,7 +367,7 @@ describe("DLQ", () => {
           expect(dlqMessage3).toBeDefined();
         },
         {
-          timeout: 15_000,
+          timeout: 20_000,
           interval: 1000,
         }
       );
@@ -369,7 +386,7 @@ describe("DLQ", () => {
       // Clean up - delete the retried messages from DLQ
       await client.dlq.deleteMany({ dlqIds });
     },
-    { timeout: 20_000 }
+    { timeout: 30_000 }
   );
 
   test(
@@ -389,20 +406,32 @@ describe("DLQ", () => {
         retries: 0,
       });
 
-      await sleep(10_000);
+      // Wait for all three messages to land in the DLQ
+      let dlqMessage1: { dlqId: string; messageId: string } | undefined;
+      let dlqMessage2: { dlqId: string; messageId: string } | undefined;
+      let dlqMessage3: { dlqId: string; messageId: string } | undefined;
+      await eventually(
+        async () => {
+          const dlqLogs1 = await client.dlq.listMessages({
+            filter: { messageId: message1.messageId },
+          });
+          const dlqLogs2 = await client.dlq.listMessages({
+            filter: { messageId: message2.messageId },
+          });
+          const dlqLogs3 = await client.dlq.listMessages({
+            filter: { messageId: message3.messageId },
+          });
 
-      // Get all messages from DLQ
-      const dlqLogs1 = await client.dlq.listMessages({ filter: { messageId: message1.messageId } });
-      const dlqLogs2 = await client.dlq.listMessages({ filter: { messageId: message2.messageId } });
-      const dlqLogs3 = await client.dlq.listMessages({ filter: { messageId: message3.messageId } });
+          dlqMessage1 = dlqLogs1.messages.find((dlq) => dlq.messageId === message1.messageId);
+          dlqMessage2 = dlqLogs2.messages.find((dlq) => dlq.messageId === message2.messageId);
+          dlqMessage3 = dlqLogs3.messages.find((dlq) => dlq.messageId === message3.messageId);
 
-      const dlqMessage1 = dlqLogs1.messages.find((dlq) => dlq.messageId === message1.messageId);
-      const dlqMessage2 = dlqLogs2.messages.find((dlq) => dlq.messageId === message2.messageId);
-      const dlqMessage3 = dlqLogs3.messages.find((dlq) => dlq.messageId === message3.messageId);
-
-      expect(dlqMessage1).toBeDefined();
-      expect(dlqMessage2).toBeDefined();
-      expect(dlqMessage3).toBeDefined();
+          expect(dlqMessage1).toBeDefined();
+          expect(dlqMessage2).toBeDefined();
+          expect(dlqMessage3).toBeDefined();
+        },
+        { timeout: 20_000, interval: 1000 }
+      );
 
       // Delete all three messages
       const dlqIds = [dlqMessage1!.dlqId, dlqMessage2!.dlqId, dlqMessage3!.dlqId];
@@ -438,7 +467,7 @@ describe("DLQ", () => {
       expect(dlqMessageAfterDelete2).toBeUndefined();
       expect(dlqMessageAfterDelete3).toBeUndefined();
     },
-    { timeout: 20_000 }
+    { timeout: 30_000 }
   );
 
   test(
@@ -453,16 +482,25 @@ describe("DLQ", () => {
         retries: 0,
       });
 
-      await sleep(10_000);
+      let dlqMessage1: { dlqId: string; messageId: string } | undefined;
+      let dlqMessage2: { dlqId: string; messageId: string } | undefined;
+      await eventually(
+        async () => {
+          const dlqLogs1 = await client.dlq.listMessages({
+            filter: { messageId: message1.messageId },
+          });
+          const dlqLogs2 = await client.dlq.listMessages({
+            filter: { messageId: message2.messageId },
+          });
 
-      const dlqLogs1 = await client.dlq.listMessages({ filter: { messageId: message1.messageId } });
-      const dlqLogs2 = await client.dlq.listMessages({ filter: { messageId: message2.messageId } });
+          dlqMessage1 = dlqLogs1.messages.find((dlq) => dlq.messageId === message1.messageId);
+          dlqMessage2 = dlqLogs2.messages.find((dlq) => dlq.messageId === message2.messageId);
 
-      const dlqMessage1 = dlqLogs1.messages.find((dlq) => dlq.messageId === message1.messageId);
-      const dlqMessage2 = dlqLogs2.messages.find((dlq) => dlq.messageId === message2.messageId);
-
-      expect(dlqMessage1).toBeDefined();
-      expect(dlqMessage2).toBeDefined();
+          expect(dlqMessage1).toBeDefined();
+          expect(dlqMessage2).toBeDefined();
+        },
+        { timeout: 20_000, interval: 1000 }
+      );
 
       // Delete using string[] overload
       const deleteResult = await client.dlq.delete([dlqMessage1!.dlqId, dlqMessage2!.dlqId]);
@@ -485,7 +523,7 @@ describe("DLQ", () => {
         afterDelete2.messages.find((dlq) => dlq.messageId === message2.messageId)
       ).toBeUndefined();
     },
-    { timeout: 20_000 }
+    { timeout: 30_000 }
   );
 
   test(
@@ -569,16 +607,25 @@ describe("DLQ", () => {
         retries: 0,
       });
 
-      await sleep(10_000);
+      let dlqMessage1: { dlqId: string; messageId: string } | undefined;
+      let dlqMessage2: { dlqId: string; messageId: string } | undefined;
+      await eventually(
+        async () => {
+          const dlqLogs1 = await client.dlq.listMessages({
+            filter: { messageId: message1.messageId },
+          });
+          const dlqLogs2 = await client.dlq.listMessages({
+            filter: { messageId: message2.messageId },
+          });
 
-      const dlqLogs1 = await client.dlq.listMessages({ filter: { messageId: message1.messageId } });
-      const dlqLogs2 = await client.dlq.listMessages({ filter: { messageId: message2.messageId } });
+          dlqMessage1 = dlqLogs1.messages.find((dlq) => dlq.messageId === message1.messageId);
+          dlqMessage2 = dlqLogs2.messages.find((dlq) => dlq.messageId === message2.messageId);
 
-      const dlqMessage1 = dlqLogs1.messages.find((dlq) => dlq.messageId === message1.messageId);
-      const dlqMessage2 = dlqLogs2.messages.find((dlq) => dlq.messageId === message2.messageId);
-
-      expect(dlqMessage1).toBeDefined();
-      expect(dlqMessage2).toBeDefined();
+          expect(dlqMessage1).toBeDefined();
+          expect(dlqMessage2).toBeDefined();
+        },
+        { timeout: 20_000, interval: 1000 }
+      );
 
       // Retry using string[] overload
       const retryResult = await client.dlq.retry([dlqMessage1!.dlqId, dlqMessage2!.dlqId]);
@@ -591,7 +638,7 @@ describe("DLQ", () => {
       // Clean up
       await client.dlq.delete([dlqMessage1!.dlqId, dlqMessage2!.dlqId]);
     },
-    { timeout: 20_000 }
+    { timeout: 30_000 }
   );
 
   test(
@@ -609,11 +656,14 @@ describe("DLQ", () => {
         label,
       });
 
-      await sleep(10_000);
-
-      // Verify messages are in DLQ
-      const dlqBefore = await client.dlq.listMessages({ filter: { label } });
-      expect(dlqBefore.messages.length).toBeGreaterThanOrEqual(2);
+      // Wait for both messages to land in the DLQ
+      await eventually(
+        async () => {
+          const dlqBefore = await client.dlq.listMessages({ filter: { label } });
+          expect(dlqBefore.messages.length).toBeGreaterThanOrEqual(2);
+        },
+        { timeout: 20_000, interval: 1000 }
+      );
 
       // Retry using filter overload
       const retryResult = await client.dlq.retry({ filter: { label } });
@@ -626,7 +676,7 @@ describe("DLQ", () => {
       // Clean up
       await client.dlq.delete({ filter: { label } });
     },
-    { timeout: 20_000 }
+    { timeout: 30_000 }
   );
 
   test(
@@ -641,7 +691,7 @@ describe("DLQ", () => {
           const dlq = await client.dlq.listMessages({ filter: { label } });
           expect(dlq.messages.length).toBe(2);
         },
-        { timeout: 15_000, interval: 1000 }
+        { timeout: 20_000, interval: 1000 }
       );
 
       const result = await client.dlq.delete({ all: true, count: 1 });
@@ -650,7 +700,7 @@ describe("DLQ", () => {
       // clean up remaining
       await client.dlq.delete({ filter: { label } });
     },
-    { timeout: 25_000 }
+    { timeout: 30_000 }
   );
 
   test(
@@ -665,7 +715,7 @@ describe("DLQ", () => {
           const dlq = await client.dlq.listMessages({ filter: { label } });
           expect(dlq.messages.length).toBe(2);
         },
-        { timeout: 15_000, interval: 1000 }
+        { timeout: 20_000, interval: 1000 }
       );
 
       const result = await client.dlq.delete({ filter: { label }, count: 1 });
@@ -674,7 +724,7 @@ describe("DLQ", () => {
       // clean up remaining
       await client.dlq.delete({ filter: { label } });
     },
-    { timeout: 25_000 }
+    { timeout: 30_000 }
   );
 
   test(
@@ -689,7 +739,7 @@ describe("DLQ", () => {
           const dlq = await client.dlq.listMessages({ filter: { label } });
           expect(dlq.messages.length).toBe(2);
         },
-        { timeout: 15_000, interval: 1000 }
+        { timeout: 20_000, interval: 1000 }
       );
 
       const result = await client.dlq.retry({ all: true, count: 1 });
@@ -698,7 +748,7 @@ describe("DLQ", () => {
       // clean up remaining
       await client.dlq.delete({ filter: { label } });
     },
-    { timeout: 25_000 }
+    { timeout: 30_000 }
   );
 
   test(
@@ -713,7 +763,7 @@ describe("DLQ", () => {
           const dlq = await client.dlq.listMessages({ filter: { label } });
           expect(dlq.messages.length).toBe(2);
         },
-        { timeout: 15_000, interval: 1000 }
+        { timeout: 20_000, interval: 1000 }
       );
 
       const result = await client.dlq.retry({ filter: { label }, count: 1 });
@@ -722,7 +772,7 @@ describe("DLQ", () => {
       // clean up remaining
       await client.dlq.delete({ filter: { label } });
     },
-    { timeout: 25_000 }
+    { timeout: 30_000 }
   );
 
   test("should return empty result when retry is called with an empty array", async () => {
@@ -755,7 +805,7 @@ describe("DLQ", () => {
           });
           expect(dlqLogs.messages.length).toBe(1);
         },
-        { timeout: 15_000, interval: 1000 }
+        { timeout: 20_000, interval: 1000 }
       );
 
       const dlqLogs = await client.dlq.listMessages({
@@ -770,7 +820,7 @@ describe("DLQ", () => {
       // cursor should not be returned when using explicit dlqIds
       expect(retryResult.cursor).toBeUndefined();
     },
-    { timeout: 20_000 }
+    { timeout: 30_000 }
   );
 
   test(
@@ -795,14 +845,14 @@ describe("DLQ", () => {
           expect(result.messages.length).toBe(1);
           expect(result.messages[0].flowControlKey).toBe(flowKey);
         },
-        { timeout: 15_000, interval: 1000 }
+        { timeout: 20_000, interval: 1000 }
       );
 
       const result = await client.dlq.delete({ filter: { flowControlKey: flowKey } });
       expect(result).toBeDefined();
       expect(result.deleted).toBe(1);
     },
-    { timeout: 20_000 }
+    { timeout: 30_000 }
   );
 
   test(
@@ -820,7 +870,7 @@ describe("DLQ", () => {
           const dlqBefore = await client.dlq.listMessages({ filter: { label } });
           expect(dlqBefore.messages.length).toBeGreaterThanOrEqual(1);
         },
-        { timeout: 15_000, interval: 1000 }
+        { timeout: 20_000, interval: 1000 }
       );
 
       const retryResult = await client.dlq.retry({ filter: { label } });
@@ -831,7 +881,7 @@ describe("DLQ", () => {
 
       await client.dlq.delete({ filter: { label } });
     },
-    { timeout: 20_000 }
+    { timeout: 30_000 }
   );
 
   test(
@@ -877,7 +927,7 @@ describe("DLQ", () => {
           const dlqLogs = await client.dlq.listMessages({ filter: { label } });
           expect(dlqLogs.messages.length).toBeGreaterThanOrEqual(1);
         },
-        { timeout: 15_000, interval: 1000 }
+        { timeout: 20_000, interval: 1000 }
       );
 
       // Test each filter field individually to make sure none of them error
