@@ -5,6 +5,8 @@ on:
 
 env:
   QSTASH_TOKEN: ${{ secrets.QSTASH_TOKEN }}
+  QSTASH_CURRENT_SIGNING_KEY: ${{ secrets.QSTASH_CURRENT_SIGNING_KEY }}
+  QSTASH_NEXT_SIGNING_KEY: ${{ secrets.QSTASH_NEXT_SIGNING_KEY }}
   OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
   OPENAI_ORGANIZATION: ${{ secrets.OPENAI_ORGANIZATION }}
 jobs:
@@ -29,6 +31,59 @@ jobs:
 
       - name: Build
         run: bun run build
+
+  receiver-node-versions:
+    name: Receiver Web Crypto (Node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # 18 = oldest supported (no global Web Crypto, exercises node:crypto
+        # fallback); 20/22/24 = newer with native global Web Crypto.
+        node: [18, 20, 22, 24]
+    steps:
+      - name: Setup repo
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Install Dependencies
+        run: bun install
+
+      - name: Build
+        run: bun run build
+
+      - name: Setup Node.js ${{ matrix.node }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: Verify SHA-256 hashing under Node ${{ matrix.node }}
+        run: node scripts/check-webcrypto-node.mjs
+
+  receiver-bun-runtime:
+    name: Receiver Web Crypto (Bun)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup repo
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Install Dependencies
+        run: bun install
+
+      - name: Build
+        run: bun run build
+
+      - name: Verify SHA-256 hashing under Bun
+        run: bun scripts/check-webcrypto-node.mjs
 
   cloudflare-workers-local-build:
     runs-on: ubuntu-latest
@@ -114,6 +169,8 @@ jobs:
         run: |
           echo '[vars]' >> wrangler.toml
           echo "QSTASH_TOKEN = \"$QSTASH_TOKEN\"" >> ./wrangler.toml
+          echo "QSTASH_CURRENT_SIGNING_KEY = \"$QSTASH_CURRENT_SIGNING_KEY\"" >> ./wrangler.toml
+          echo "QSTASH_NEXT_SIGNING_KEY = \"$QSTASH_NEXT_SIGNING_KEY\"" >> ./wrangler.toml
         working-directory: examples/cloudflare-workers
 
       - name: Change main file to ci.ts
@@ -132,9 +189,22 @@ jobs:
         env:
           DEPLOYMENT_URL: https://upstash-qstash.upsdev.workers.dev
 
+      - name: Test delivery round-trip (publish → verify endpoint → delivered)
+        run: bun test verify.test.ts
+        working-directory: examples/cloudflare-workers
+        env:
+          DEPLOYMENT_URL: https://upstash-qstash.upsdev.workers.dev
+
   nextjs-local-build:
     runs-on: ubuntu-latest
-    name: NextJS Local Build
+    name: NextJS Local Build (Node ${{ matrix.node }})
+    strategy:
+      fail-fast: false
+      matrix:
+        # Build + run the example across supported Node versions so bundler and
+        # runtime regressions (e.g. the node:crypto import in the receiver) are
+        # caught everywhere, not just on the latest Node.
+        node: [18, 20, 22, 24]
     # The /serverless and /edge example routes call verifySignatureAppRouter()
     # at module load (page-data collection at build, route compile at dev).
     # Without keys in env it throws synchronously, so provide dummies. Real
@@ -158,10 +228,10 @@ jobs:
       - name: Build
         run: bun run build
 
-      - name: Install Node.js
+      - name: Install Node.js ${{ matrix.node }}
         uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: ${{ matrix.node }}
 
       - uses: pnpm/action-setup@v4
         name: Install pnpm
@@ -238,7 +308,10 @@ jobs:
       - name: Deploy
         run: |
           pnpm add @upstash/qstash@${{needs.release.outputs.version}}
-          DEPLOYMENT_URL=$(npx vercel --token=${{ secrets.VERCEL_TOKEN }})
+          DEPLOYMENT_URL=$(npx vercel --token=${{ secrets.VERCEL_TOKEN }} \
+            -e QSTASH_TOKEN="$QSTASH_TOKEN" \
+            -e QSTASH_CURRENT_SIGNING_KEY="$QSTASH_CURRENT_SIGNING_KEY" \
+            -e QSTASH_NEXT_SIGNING_KEY="$QSTASH_NEXT_SIGNING_KEY")
           echo "DEPLOYMENT_URL=${DEPLOYMENT_URL}" >> $GITHUB_ENV
         env:
           VERCEL_ORG_ID: ${{secrets.VERCEL_TEAM_ID}}
@@ -249,6 +322,10 @@ jobs:
         run: bun test ci.test.ts
         working-directory: examples/nextjs
 
+      - name: Test delivery round-trip (publish → verify endpoint → delivered)
+        run: bun test verify.test.ts
+        working-directory: examples/nextjs
+
   release:
     concurrency: release
     outputs:
@@ -257,6 +334,8 @@ jobs:
       - cloudflare-workers-local-build
       - nextjs-local-build
       - local-tests
+      - receiver-node-versions
+      - receiver-bun-runtime
 
     name: Release
     runs-on: ubuntu-latest

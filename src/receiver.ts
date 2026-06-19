@@ -1,7 +1,43 @@
 import * as jose from "jose";
-import crypto from "crypto-js";
 import { getSafeEnvironment } from "./client/utils";
 import { getReceiverSigningKeys } from "./client/multi-region";
+
+/**
+ * Computes the SHA-256 hash of the given string and returns it as a
+ * base64url-encoded value (without padding).
+ *
+ * Prefers the Web Crypto API (`globalThis.crypto.subtle`), which is native on
+ * browsers, Cloudflare Workers, Bun, Deno, edge runtimes and Node.js >= 19. On
+ * older Node.js (16/17/18), where Web Crypto is not exposed as a global, it
+ * falls back to `node:crypto`'s `webcrypto` — the same approach `jose` uses — so
+ * verification keeps working on every runtime. This replaces `crypto-js`, which
+ * relied on the deprecated `url.parse()` and triggered Node.js DEP0169 warnings.
+ */
+async function sha256Base64url(body: string): Promise<string> {
+  const hashBuffer = await digestSha256(new TextEncoder().encode(body));
+  return jose.base64url.encode(new Uint8Array(hashBuffer));
+}
+
+async function digestSha256(data: Uint8Array): Promise<ArrayBuffer> {
+  // The static types claim Web Crypto is always on the global, but on Node.js
+  // < 19 it isn't exposed there.
+  const globalCrypto = globalThis.crypto as typeof globalThis.crypto | undefined;
+  if (globalCrypto) {
+    return globalCrypto.subtle.digest("SHA-256", data);
+  }
+  // Fallback for older Node.js (< 19): use node:crypto's webcrypto, the same
+  // approach jose uses, so verification keeps working on every runtime.
+  //
+  // This branch never runs on edge/workers/browsers/Bun/Deno/Node >= 19 (they
+  // all have the global above). The specifier is held in a variable and marked
+  // webpackIgnore/@vite-ignore so bundlers (e.g. Next.js webpack, including the
+  // edge runtime, and Vite) don't try to resolve the node: builtin at build time.
+  const moduleName = "node:crypto";
+  const nodeCrypto = (await import(/* webpackIgnore: true */ /* @vite-ignore */ moduleName)) as {
+    webcrypto: { subtle: { digest(algorithm: string, data: Uint8Array): Promise<ArrayBuffer> } };
+  };
+  return nodeCrypto.webcrypto.subtle.digest("SHA-256", data);
+}
 
 /**
  * Necessary to verify the signature of a request.
@@ -119,7 +155,7 @@ export class Receiver {
     } catch {
       payload = await this.verifyWithKey(signingKeys.nextSigningKey, request);
     }
-    this.verifyBodyAndUrl(payload, request);
+    await this.verifyBodyAndUrl(payload, request);
     return true;
   }
 
@@ -139,7 +175,7 @@ export class Receiver {
     return jwt.payload;
   }
 
-  private verifyBodyAndUrl(payload: jose.JWTPayload, request: VerifyRequest) {
+  private async verifyBodyAndUrl(payload: jose.JWTPayload, request: VerifyRequest) {
     const p = payload as {
       iss: string;
       sub: string;
@@ -154,7 +190,7 @@ export class Receiver {
       throw new SignatureError(`invalid subject: ${p.sub}, want: ${request.url}`);
     }
 
-    const bodyHash = crypto.SHA256(request.body).toString(crypto.enc.Base64url);
+    const bodyHash = await sha256Base64url(request.body);
 
     const padding = new RegExp(/=+$/);
 

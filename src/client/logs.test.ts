@@ -3,6 +3,7 @@
 import { describe, expect, test } from "bun:test";
 import { Client } from "./client";
 import { MOCK_QSTASH_SERVER_URL, mockQStashServer } from "./workflow/test-utils";
+import { eventually } from "./test-utils/eventually";
 
 describe("logs", () => {
   test(
@@ -23,12 +24,13 @@ describe("logs", () => {
           expect(result.logs[0].label).toBe(label);
         },
         {
+          timeout: 20_000,
           interval: 1000,
         }
       );
     },
     {
-      timeout: 10_000,
+      timeout: 30_000,
     }
   );
   const client = new Client({ token: process.env.QSTASH_TOKEN! });
@@ -55,10 +57,10 @@ describe("logs", () => {
           // new `labels` carries all of them
           expect(log!.labels).toEqual([labelOne, labelTwo]);
         },
-        { interval: 1000 }
+        { timeout: 20_000, interval: 1000 }
       );
     },
-    { timeout: 10_000 }
+    { timeout: 30_000 }
   );
 
   test(
@@ -95,10 +97,10 @@ describe("logs", () => {
           expect(ids.has(messageBC)).toBe(true);
           expect(ids.has(messageC)).toBe(false);
         },
-        { interval: 1000 }
+        { timeout: 20_000, interval: 1000 }
       );
     },
-    { timeout: 15_000 }
+    { timeout: 30_000 }
   );
 
   test("should use cursor", async () => {
@@ -131,7 +133,7 @@ describe("logs", () => {
 
       expect(result.cursor).toBeUndefined();
     },
-    { timeout: 10_000 }
+    { timeout: 30_000 }
   );
 });
 
@@ -197,32 +199,3 @@ describe("events (deprecated)", () => {
     expect(Array.isArray(result.events)).toBe(true);
   });
 });
-
-const EVENTUALLY_TIMEOUT = 5000;
-
-export const eventually = async function (
-  function_: () => Promise<void> | void,
-  options: {
-    timeout?: number;
-    interval?: number;
-  } = {}
-): Promise<void> {
-  const { timeout = EVENTUALLY_TIMEOUT, interval = 100 } = options;
-
-  const startTime = Date.now();
-
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-  while (true) {
-    try {
-      await function_();
-      // Success case - all assertions passed
-      return;
-    } catch (error) {
-      const lastError = error as Error;
-      if (Date.now() - startTime >= timeout) {
-        throw new Error(`Assertions not satisfied within timeout: ${lastError.message}`);
-      }
-      await new Promise((resolve) => setTimeout(resolve, interval));
-    }
-  }
-};

@@ -3,6 +3,7 @@
 
 import { describe, expect, test } from "bun:test";
 import { Client } from "./client";
+import { eventually } from "./test-utils/eventually";
 
 describe("FlowControl", () => {
   const client = new Client({ token: process.env.QSTASH_TOKEN! });
@@ -189,12 +190,17 @@ describe("FlowControl", () => {
         },
       });
 
-      // Reset the rate
-      await client.flowControl.resetRate(flowControlKey);
-
-      // Verify rate was reset by checking the flow control info
-      const info = await client.flowControl.get(flowControlKey);
-      expect(info.rateCount).toBe(0);
+      // Reset the rate and verify it settles back to zero. The publish above is
+      // counted asynchronously, so it may land between the reset and the check;
+      // retry until the reset wins out.
+      await eventually(
+        async () => {
+          await client.flowControl.resetRate(flowControlKey);
+          const info = await client.flowControl.get(flowControlKey);
+          expect(info.rateCount).toBe(0);
+        },
+        { timeout: 15_000, interval: 1000 }
+      );
 
       // Clean up
       // eslint-disable-next-line @typescript-eslint/no-deprecated

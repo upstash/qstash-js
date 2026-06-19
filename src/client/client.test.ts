@@ -7,7 +7,7 @@ import { Client } from "./client";
 import type { PublishToUrlResponse } from "../../dist";
 import { MOCK_QSTASH_SERVER_URL, mockQStashServer } from "./workflow/test-utils";
 import type { HttpClient } from "./http";
-import { eventually } from "./logs.test";
+import { eventually } from "./test-utils/eventually";
 
 export const clearQueues = async (client: Client) => {
   const queueDetails = await client.queue().list();
@@ -19,30 +19,50 @@ export const clearQueues = async (client: Client) => {
 };
 
 describe("E2E Publish", () => {
-  test("should publish a message with a label", async () => {
-    const result = await client.publish({
-      url: "https://example.com/",
-      body: "test-body",
-      label: "test-label",
-    });
-    const verifiedMessage = await client.messages.get(result.messageId);
-    expect(verifiedMessage.label).toBe("test-label");
-  });
+  test(
+    "should publish a message with a label",
+    async () => {
+      const result = await client.publish({
+        url: "https://example.com/",
+        body: "test-body",
+        label: "test-label",
+      });
+      // The message isn't immediately retrievable after publish, so poll.
+      await eventually(
+        async () => {
+          const verifiedMessage = await client.messages.get(result.messageId);
+          expect(verifiedMessage.label).toBe("test-label");
+        },
+        { timeout: 20_000, interval: 1000 }
+      );
+    },
+    { timeout: 30_000 }
+  );
 
-  test("should publish a message with multiple labels", async () => {
-    const labelOne = `multi-a-${Date.now()}`;
-    const labelTwo = `multi-b-${Date.now()}`;
-    const result = await client.publish({
-      url: "https://example.com/",
-      body: "test-body",
-      label: [labelOne, labelTwo],
-    });
-    const verifiedMessage = await client.messages.get(result.messageId);
-    // legacy `label` carries only the first label
-    expect(verifiedMessage.label).toBe(labelOne);
-    // new `labels` carries all of them
-    expect(verifiedMessage.labels).toEqual([labelOne, labelTwo]);
-  });
+  test(
+    "should publish a message with multiple labels",
+    async () => {
+      const labelOne = `multi-a-${Date.now()}`;
+      const labelTwo = `multi-b-${Date.now()}`;
+      const result = await client.publish({
+        url: "https://example.com/",
+        body: "test-body",
+        label: [labelOne, labelTwo],
+      });
+      // The message isn't immediately retrievable after publish, so poll.
+      await eventually(
+        async () => {
+          const verifiedMessage = await client.messages.get(result.messageId);
+          // legacy `label` carries only the first label
+          expect(verifiedMessage.label).toBe(labelOne);
+          // new `labels` carries all of them
+          expect(verifiedMessage.labels).toEqual([labelOne, labelTwo]);
+        },
+        { timeout: 20_000, interval: 1000 }
+      );
+    },
+    { timeout: 30_000 }
+  );
   const client = new Client({ token: process.env.QSTASH_TOKEN! });
 
   afterAll(async () => {
