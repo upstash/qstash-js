@@ -197,7 +197,14 @@ jobs:
 
   nextjs-local-build:
     runs-on: ubuntu-latest
-    name: NextJS Local Build
+    name: NextJS Local Build (Node ${{ matrix.node }})
+    strategy:
+      fail-fast: false
+      matrix:
+        # Build + run the example across supported Node versions so bundler and
+        # runtime regressions (e.g. the node:crypto import in the receiver) are
+        # caught everywhere, not just on the latest Node.
+        node: [18, 20, 22, 24]
     # The /serverless and /edge example routes call verifySignatureAppRouter()
     # at module load (page-data collection at build, route compile at dev).
     # Without keys in env it throws synchronously, so provide dummies. Real
@@ -221,10 +228,10 @@ jobs:
       - name: Build
         run: bun run build
 
-      - name: Install Node.js
+      - name: Install Node.js ${{ matrix.node }}
         uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: ${{ matrix.node }}
 
       - uses: pnpm/action-setup@v4
         name: Install pnpm
