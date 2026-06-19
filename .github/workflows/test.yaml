@@ -32,6 +32,59 @@ jobs:
       - name: Build
         run: bun run build
 
+  receiver-node-versions:
+    name: Receiver Web Crypto (Node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # 18 = oldest supported (no global Web Crypto, exercises node:crypto
+        # fallback); 20/22/24 = newer with native global Web Crypto.
+        node: [18, 20, 22, 24]
+    steps:
+      - name: Setup repo
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Install Dependencies
+        run: bun install
+
+      - name: Build
+        run: bun run build
+
+      - name: Setup Node.js ${{ matrix.node }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: Verify SHA-256 hashing under Node ${{ matrix.node }}
+        run: node scripts/check-webcrypto-node.mjs
+
+  receiver-bun-runtime:
+    name: Receiver Web Crypto (Bun)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup repo
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Install Dependencies
+        run: bun install
+
+      - name: Build
+        run: bun run build
+
+      - name: Verify SHA-256 hashing under Bun
+        run: bun scripts/check-webcrypto-node.mjs
+
   cloudflare-workers-local-build:
     runs-on: ubuntu-latest
     name: CF Workers Local Build
@@ -274,6 +327,8 @@ jobs:
       - cloudflare-workers-local-build
       - nextjs-local-build
       - local-tests
+      - receiver-node-versions
+      - receiver-bun-runtime
 
     name: Release
     runs-on: ubuntu-latest
