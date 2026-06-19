@@ -1,7 +1,23 @@
 import * as jose from "jose";
-import crypto from "crypto-js";
 import { getSafeEnvironment } from "./client/utils";
 import { getReceiverSigningKeys } from "./client/multi-region";
+
+/**
+ * Computes the SHA-256 hash of the given string and returns it as a
+ * base64url-encoded value (without padding).
+ *
+ * Uses the Web Crypto API (`globalThis.crypto`), available in Node.js 16+,
+ * browsers, and edge runtimes. This replaces `crypto-js`, which relied on the
+ * deprecated `url.parse()` and triggered Node.js DEP0169 warnings.
+ */
+async function sha256Base64url(body: string): Promise<string> {
+  const hashBuffer = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(body));
+  let binary = "";
+  for (const byte of new Uint8Array(hashBuffer)) {
+    binary += String.fromCodePoint(byte);
+  }
+  return btoa(binary).replaceAll("+", "-").replaceAll("/", "_").replaceAll(/=+$/g, "");
+}
 
 /**
  * Necessary to verify the signature of a request.
@@ -119,7 +135,7 @@ export class Receiver {
     } catch {
       payload = await this.verifyWithKey(signingKeys.nextSigningKey, request);
     }
-    this.verifyBodyAndUrl(payload, request);
+    await this.verifyBodyAndUrl(payload, request);
     return true;
   }
 
@@ -139,7 +155,7 @@ export class Receiver {
     return jwt.payload;
   }
 
-  private verifyBodyAndUrl(payload: jose.JWTPayload, request: VerifyRequest) {
+  private async verifyBodyAndUrl(payload: jose.JWTPayload, request: VerifyRequest) {
     const p = payload as {
       iss: string;
       sub: string;
@@ -154,7 +170,7 @@ export class Receiver {
       throw new SignatureError(`invalid subject: ${p.sub}, want: ${request.url}`);
     }
 
-    const bodyHash = crypto.SHA256(request.body).toString(crypto.enc.Base64url);
+    const bodyHash = await sha256Base64url(request.body);
 
     const padding = new RegExp(/=+$/);
 
