@@ -6,7 +6,7 @@ import { sleep } from "bun";
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { Client } from "./client";
 import { eventually } from "./logs.test";
-import { MOCK_QSTASH_SERVER_URL, mockQStashServer } from "./workflow/test-utils";
+import { MOCK_QSTASH_SERVER_URL, mockQStashServer, expectToReject } from "./workflow/test-utils";
 import type { HttpClient } from "./http";
 
 // Updated to use constants for magic numbers
@@ -963,6 +963,20 @@ describe("DLQ - mocked early return", () => {
           baseUrl: MOCK_QSTASH_SERVER_URL,
         });
         expect(mockClient.dlq.retry({ dlqIds: [] })).rejects.toThrow("Empty dlqIds array");
+      },
+      responseFields: { body: {}, status: 200 },
+      receivesRequest: false,
+    });
+  });
+
+  test("should not send request when delete is called with an empty string", async () => {
+    await mockQStashServer({
+      execute: async () => {
+        const mockClient = new Client({
+          token: "mock-token",
+          baseUrl: MOCK_QSTASH_SERVER_URL,
+        });
+        await expectToReject(() => mockClient.dlq.delete(""), "DLQ id cannot be empty");
       },
       responseFields: { body: {}, status: 200 },
       receivesRequest: false,

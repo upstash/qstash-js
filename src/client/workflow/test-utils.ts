@@ -13,6 +13,27 @@ export const MOCK_QSTASH_SERVER_URL = `http://localhost:${MOCK_QSTASH_SERVER_POR
 export const MOCK_SERVER_URL = "https://requestcatcher.com/";
 export const WORKFLOW_ENDPOINT = "https://www.my-website.com/api";
 
+/**
+ * Asserts that calling `fn` rejects with an error whose message contains
+ * `message`.
+ *
+ * Unlike a floating `expect(promise).rejects.toThrow(...)`, this awaits the
+ * actual call, so the assertion runs deterministically before the caller (e.g.
+ * `mockQStashServer`) tears down its server — and a regression that resolves or
+ * throws a different error reliably fails the test instead of leaking an
+ * unhandled rejection.
+ */
+export const expectToReject = async (call: () => Promise<unknown>, message: string) => {
+  let error: unknown;
+  try {
+    await call();
+  } catch (error_) {
+    error = error_;
+  }
+  expect(error).toBeInstanceOf(Error);
+  expect((error as Error).message).toContain(message);
+};
+
 export type ResponseFields = {
   body: unknown;
   status: number;
