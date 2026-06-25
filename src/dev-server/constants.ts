@@ -8,9 +8,11 @@ export const DEV_CREDENTIALS = {
   nextSigningKey: "sig_5ZB6DVzB1wjE8S6rZ7eenA8Pdnhs",
 };
 
-export const GITHUB_RELEASES_URL =
-  "https://api.github.com/repos/upstash/qstash-cli/releases/latest";
 export const BINARY_URL_BASE = "https://artifacts.upstash.com/qstash/versions";
+// S3 list endpoint for the same bucket. Used to discover the latest version
+// without hitting GitHub's rate-limited unauthenticated API.
+export const ARTIFACTS_LIST_URL =
+  "https://s3.eu-central-1.amazonaws.com/artifacts.upstash.com/?prefix=qstash/versions/&delimiter=/";
 export const CONSOLE_URL = "https://console.upstash.com/qstash/local-mode-user";
 
 // Dim ANSI prefixes for console output. SDK-emitted lines use [QStash Dev];
