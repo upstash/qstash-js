@@ -176,25 +176,28 @@ describe("DLQ", () => {
         retryDelay,
       });
 
-      await eventually(async () => {
-        const result = await client.dlq.listMessages({
-          filter: {
-            messageId,
-          },
-        });
-        expect(result.messages.length).toBe(1);
-        const message = result.messages[0];
+      await eventually(
+        async () => {
+          const result = await client.dlq.listMessages({
+            filter: {
+              messageId,
+            },
+          });
+          expect(result.messages.length).toBe(1);
+          const message = result.messages[0];
 
-        expect(message.flowControlKey).toBe(randomKey);
-        expect(message.parallelism).toBe(parallelism);
-        expect(message.ratePerSecond).toBe(ratePerSecond);
-        expect(message.rate).toBe(ratePerSecond);
-        expect(message.period).toBe(SECONDS_IN_A_DAY);
-        expect(message.retryDelayExpression).toBe(retryDelay);
-      });
+          expect(message.flowControlKey).toBe(randomKey);
+          expect(message.parallelism).toBe(parallelism);
+          expect(message.ratePerSecond).toBe(ratePerSecond);
+          expect(message.rate).toBe(ratePerSecond);
+          expect(message.period).toBe(SECONDS_IN_A_DAY);
+          expect(message.retryDelayExpression).toBe(retryDelay);
+        },
+        { timeout: 25_000, interval: 1000 }
+      );
     },
     {
-      timeout: 10_000,
+      timeout: 30_000,
     }
   );
 

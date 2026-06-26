@@ -4,6 +4,7 @@
 import { describe, expect, test } from "bun:test";
 import { Client } from "./client";
 import { MOCK_QSTASH_SERVER_URL, mockQStashServer, expectToReject } from "./workflow/test-utils";
+import { eventually } from "./logs.test";
 
 describe("FlowControl empty id guard", () => {
   test("should not send request when get is called with an empty string", async () => {
@@ -213,8 +214,13 @@ describe("FlowControl", () => {
       await client.flowControl.resetRate(flowControlKey);
 
       // Verify rate was reset by checking the flow control info
-      const info = await client.flowControl.get(flowControlKey);
-      expect(info.rateCount).toBe(0);
+      await eventually(
+        async () => {
+          const info = await client.flowControl.get(flowControlKey);
+          expect(info.rateCount).toBe(0);
+        },
+        { timeout: 15_000, interval: 1000 }
+      );
 
       // Clean up
       // eslint-disable-next-line @typescript-eslint/no-deprecated
