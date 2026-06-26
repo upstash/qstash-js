@@ -256,6 +256,79 @@ describe("Messages", () => {
   );
 
   test(
+    "should cancel messages by multiple flowControlKeys (OR semantics)",
+    async () => {
+      const keyA = `cancel-multi-fc-a-${Date.now()}`;
+      const keyB = `cancel-multi-fc-b-${Date.now()}`;
+      const keyC = `cancel-multi-fc-c-${Date.now()}`;
+
+      for (const key of [keyA, keyB, keyC]) {
+        await client.publish({
+          url: "https://httpbin.org/status/200",
+          body: "hello",
+          delay: "10d",
+          flowControl: { key, parallelism: 1 },
+        });
+      }
+
+      // Cancelling [A, B] should match the A and B messages but NOT C.
+      const result = await client.messages.cancel({
+        filter: { flowControlKey: [keyA, keyB] },
+      });
+      expect(result.cancelled).toBe(2);
+
+      // C survived and can still be cancelled on its own.
+      const remaining = await client.messages.cancel({ filter: { flowControlKey: keyC } });
+      expect(remaining.cancelled).toBe(1);
+    },
+    { timeout: 20_000 }
+  );
+
+  test(
+    "should cancel messages by destination path (single and multi-value)",
+    async () => {
+      const stamp = Date.now();
+      const pathA = `/cancel-path-a-${stamp}`;
+      const pathB = `/cancel-path-b-${stamp}`;
+      const pathC = `/cancel-path-c-${stamp}`;
+
+      for (const path of [pathA, pathB, pathC]) {
+        await client.publish({ url: `https://example.com${path}`, body: "hello", delay: "10d" });
+      }
+
+      // Unique paths make this deterministic: [A, B] cancels exactly two.
+      const result = await client.messages.cancel({ filter: { path: [pathA, pathB] } });
+      expect(result.cancelled).toBe(2);
+
+      // C is untouched and matched by its own path.
+      const remaining = await client.messages.cancel({ filter: { path: pathC } });
+      expect(remaining.cancelled).toBe(1);
+    },
+    { timeout: 20_000 }
+  );
+
+  test(
+    "should cancel messages by destination host (host discriminates)",
+    async () => {
+      const stamp = Date.now();
+      const comPath = `/cancel-host-com-${stamp}`;
+      const orgPath = `/cancel-host-org-${stamp}`;
+
+      await client.publish({ url: `https://example.com${comPath}`, body: "hello", delay: "10d" });
+      await client.publish({ url: `https://example.org${orgPath}`, body: "hello", delay: "10d" });
+
+      // Cancelling host example.org must not touch the example.com message.
+      const orgResult = await client.messages.cancel({ filter: { host: "example.org" } });
+      expect(orgResult.cancelled).toBeGreaterThanOrEqual(1);
+
+      // The example.com message survived — proven by cancelling it via its path.
+      const comResult = await client.messages.cancel({ filter: { path: comPath } });
+      expect(comResult.cancelled).toBe(1);
+    },
+    { timeout: 20_000 }
+  );
+
+  test(
     "should respect count: 1 with all: true",
     async () => {
       await client.batchJSON([

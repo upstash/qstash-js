@@ -101,6 +101,74 @@ describe("logs", () => {
     { timeout: 15_000 }
   );
 
+  test(
+    "should filter logs by multiple urls (OR semantics)",
+    async () => {
+      const stamp = Date.now();
+      const urlA = `https://example.com/log-url-a-${stamp}`;
+      const urlB = `https://example.com/log-url-b-${stamp}`;
+      const urlC = `https://example.com/log-url-c-${stamp}`;
+
+      const { messageId: idA } = await client.publish({ url: urlA, body: "url-or-a" });
+      const { messageId: idB } = await client.publish({ url: urlB, body: "url-or-b" });
+      const { messageId: idC } = await client.publish({ url: urlC, body: "url-or-c" });
+
+      // filtering by [A, B] should match A and B but NOT C.
+      await eventually(
+        async () => {
+          const result = await client.logs({ filter: { url: [urlA, urlB] } });
+          const ids = new Set(result.logs.map((l) => l.messageId));
+          expect(ids.has(idA)).toBe(true);
+          expect(ids.has(idB)).toBe(true);
+          expect(ids.has(idC)).toBe(false);
+        },
+        { interval: 1000 }
+      );
+    },
+    { timeout: 15_000 }
+  );
+
+  test(
+    "should filter logs by destination host and path",
+    async () => {
+      const stamp = Date.now();
+      const comPath = `/log-host-com-${stamp}`;
+      const orgPath = `/log-host-org-${stamp}`;
+
+      const { messageId: comId } = await client.publish({
+        url: `https://example.com${comPath}`,
+        body: "host-com",
+      });
+      const { messageId: orgId } = await client.publish({
+        url: `https://example.org${orgPath}`,
+        body: "host-org",
+      });
+
+      // host discriminates: filtering host example.org excludes the example.com message.
+      await eventually(
+        async () => {
+          const byHost = await client.logs({ filter: { host: "example.org" } });
+          const ids = new Set(byHost.logs.map((l) => l.messageId));
+          expect(ids.has(orgId)).toBe(true);
+          expect(ids.has(comId)).toBe(false);
+        },
+        { interval: 1000 }
+      );
+
+      // path discriminates: filtering the unique example.com path excludes the example.org message.
+      await eventually(
+        async () => {
+          const byPath = await client.logs({ filter: { path: comPath } });
+          const ids = new Set(byPath.logs.map((l) => l.messageId));
+          expect(ids.has(comId)).toBe(true);
+          expect(ids.has(orgId)).toBe(false);
+        },
+        { interval: 1000 }
+      );
+    },
+    { timeout: 15_000 }
+  );
+
   test("should use cursor", async () => {
     await client.logs({
       filter: {
@@ -170,6 +238,33 @@ describe("logs - mocked filter url shape", () => {
       },
       validateRequest: (request) => {
         expect(new URL(request.url).searchParams.getAll("label")).toEqual(["label-1", "label-2"]);
+      },
+    });
+  });
+
+  test("should send multi-value url and host/path filters as repeated query params", async () => {
+    const client = new Client({ token, baseUrl: MOCK_QSTASH_SERVER_URL });
+    await mockQStashServer({
+      execute: async () => {
+        await client.logs({
+          filter: {
+            url: ["https://a.com", "https://b.com"],
+            host: ["a.com", "b.com"],
+            path: "/webhook",
+          },
+        });
+      },
+      responseFields: { body: { events: [] }, status: 200 },
+      receivesRequest: {
+        method: "GET",
+        token,
+        url: `${MOCK_QSTASH_SERVER_URL}/v2/events?url=${encodeURIComponent("https://a.com")}&url=${encodeURIComponent("https://b.com")}&host=a.com&host=b.com&path=%2Fwebhook`,
+      },
+      validateRequest: (request) => {
+        const parameters = new URL(request.url).searchParams;
+        expect(parameters.getAll("url")).toEqual(["https://a.com", "https://b.com"]);
+        expect(parameters.getAll("host")).toEqual(["a.com", "b.com"]);
+        expect(parameters.getAll("path")).toEqual(["/webhook"]);
       },
     });
   });

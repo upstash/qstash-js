@@ -11,11 +11,18 @@ type Exclusive<A, B> = (A & NeverKeys<B>) | (B & NeverKeys<A>);
 
 // ── Filter Field Groups ───────────────────────────────────────
 
-/** Shared filter fields accepted by every qstash & workflow endpoint. */
+/**
+ * Shared filter fields accepted by every qstash & workflow endpoint.
+ *
+ * Most fields support multi-value filtering: pass an array to match a record
+ * whose value equals any of the given values (OR semantics). Separate filters
+ * are combined with AND semantics.
+ */
 type UniversalFilterFields = {
   fromDate?: Date | number;
   toDate?: Date | number;
-  callerIp?: string;
+  /** Filter by the IP address of the publisher. Supports multiple values. */
+  callerIp?: string | string[];
   /**
    * Filter by label.
    *
@@ -24,16 +31,26 @@ type UniversalFilterFields = {
    * filtering by `[label_1, label_2]` returns both.
    */
   label?: string | string[];
-  flowControlKey?: string;
+  /** Filter by Flow Control Key. Supports multiple values. */
+  flowControlKey?: string | string[];
 };
 
-/** QStash-specific identity filters (DLQ + message endpoints). */
+/**
+ * QStash-specific identity filters (DLQ + message endpoints).
+ *
+ * Every field except `messageId` supports multi-value filtering: pass an array
+ * to match a record whose value equals any of the given values (OR semantics).
+ */
 type QStashIdentityFields = {
   messageId?: string;
-  url?: string;
-  urlGroup?: string;
-  scheduleId?: string;
-  queueName?: string;
+  /** Filter by destination URL. Supports multiple values. */
+  url?: string | string[];
+  /** Filter by URL Group name. Supports multiple values. */
+  urlGroup?: string | string[];
+  /** Filter by Schedule ID. Supports multiple values. */
+  scheduleId?: string | string[];
+  /** Filter by Queue name. Supports multiple values. */
+  queueName?: string | string[];
 };
 
 /** DLQ-specific response filter. */
@@ -44,6 +61,19 @@ type DLQResponseFields = {
 /** Logs-specific filter fields exclusive to log endpoints. */
 type LogsFilterFields = {
   state?: State;
+};
+
+/**
+ * Filter by the host/path of the destination URL.
+ *
+ * Supported by the message cancel and logs endpoints (the DLQ endpoint rejects
+ * these). Each supports multiple values: pass an array to match any value.
+ */
+type HostPathFilterFields = {
+  /** Filter by the host of the destination URL. Supports multiple values. */
+  host?: string | string[];
+  /** Filter by the path of the destination URL. Supports multiple values. */
+  path?: string | string[];
 };
 
 // ── Composed Filter Field Types ───────────────────────────────
@@ -57,7 +87,15 @@ type DLQFilterFields = UniversalFilterFields &
     api?: string;
   };
 
-type MessageCancelFilterFields = UniversalFilterFields & Omit<QStashIdentityFields, "messageId">;
+/**
+ * Filter fields for the bulk message cancel endpoint.
+ *
+ * Inherits the shared multi-value fields plus the `host`/`path` destination
+ * filters (also supported by logs).
+ */
+type MessageCancelFilterFields = UniversalFilterFields &
+  Omit<QStashIdentityFields, "messageId"> &
+  HostPathFilterFields;
 
 // ── QStash Composed Endpoint Filter Types ─────────────────────
 
@@ -131,6 +169,7 @@ export type LogsListRequest = Exclusive<
 
 export type LogsListFilters = UniversalFilterFields &
   Omit<QStashIdentityFields, "messageId"> &
+  HostPathFilterFields &
   LogsFilterFields & {
     /**
      * @deprecated `api` filter has been removed from the API and will be ignored

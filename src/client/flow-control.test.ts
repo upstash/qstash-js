@@ -4,6 +4,7 @@
 import { describe, expect, test } from "bun:test";
 import { Client } from "./client";
 import { MOCK_QSTASH_SERVER_URL, mockQStashServer, expectToReject } from "./workflow/test-utils";
+import { eventually } from "./logs.test";
 
 describe("FlowControl empty id guard", () => {
   test("should not send request when get is called with an empty string", async () => {
@@ -209,12 +210,20 @@ describe("FlowControl", () => {
         },
       });
 
-      // Reset the rate
-      await client.flowControl.resetRate(flowControlKey);
+      // Pause delivery so in-flight dispatches don't keep consuming the rate
+      // after we reset it (otherwise rateCount creeps back up).
+      await client.flowControl.pause(flowControlKey);
 
-      // Verify rate was reset by checking the flow control info
-      const info = await client.flowControl.get(flowControlKey);
-      expect(info.rateCount).toBe(0);
+      // Reset the rate and verify it was cleared. We reset inside the retry loop
+      // so the reset takes effect even if the pause/reset are eventually consistent.
+      await eventually(
+        async () => {
+          await client.flowControl.resetRate(flowControlKey);
+          const info = await client.flowControl.get(flowControlKey);
+          expect(info.rateCount).toBe(0);
+        },
+        { timeout: 15_000, interval: 1000 }
+      );
 
       // Clean up
       // eslint-disable-next-line @typescript-eslint/no-deprecated
