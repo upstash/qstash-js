@@ -164,7 +164,7 @@ describe("DLQ", () => {
       const retryDelay = "2000 * retried";
       const randomKey = `flow-control-key-${Date.now()}`;
       const { messageId } = await client.publish({
-        url: "https://httpbin.org/status/400",
+        url: `https://example.com/${randomKey}`,
         body: "hello",
         retries: 0,
         flowControl: {
@@ -814,7 +814,7 @@ describe("DLQ", () => {
     async () => {
       const flowKey = `dlq-flow-key-${Date.now()}`;
       await client.publish({
-        url: "https://httpbin.org/status/400",
+        url: `https://example.com/${flowKey}`,
         body: "hello",
         retries: 0,
         flowControl: {

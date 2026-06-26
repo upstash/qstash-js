@@ -210,12 +210,15 @@ describe("FlowControl", () => {
         },
       });
 
-      // Reset the rate
-      await client.flowControl.resetRate(flowControlKey);
+      // Pause delivery so in-flight dispatches don't keep consuming the rate
+      // after we reset it (otherwise rateCount creeps back up).
+      await client.flowControl.pause(flowControlKey);
 
-      // Verify rate was reset by checking the flow control info
+      // Reset the rate and verify it was cleared. We reset inside the retry loop
+      // so the reset takes effect even if the pause/reset are eventually consistent.
       await eventually(
         async () => {
+          await client.flowControl.resetRate(flowControlKey);
           const info = await client.flowControl.get(flowControlKey);
           expect(info.rateCount).toBe(0);
         },
