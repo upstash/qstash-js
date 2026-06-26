@@ -181,6 +181,11 @@ export class Messages {
    * - A filter object: `cancel({ filter: { flowControlKey: "key", label: "label" } })`
    * - All messages: `cancel({ all: true })`
    *
+   * Filters support multiple values: pass an array to match a message whose value
+   * equals any of the given values (OR logic). Separate filters are combined with
+   * AND logic. For example:
+   * `cancel({ filter: { url: ["https://a.com", "https://b.com"], host: "a.com" } })`
+   *
    * Pass `count` to limit the number of messages processed per call (defaults to 100).
    * Call in a loop until `cancelled` is 0:
    *

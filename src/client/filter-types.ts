@@ -57,7 +57,34 @@ type DLQFilterFields = UniversalFilterFields &
     api?: string;
   };
 
-type MessageCancelFilterFields = UniversalFilterFields & Omit<QStashIdentityFields, "messageId">;
+/**
+ * Filter fields for the bulk message cancel endpoint.
+ *
+ * Unlike the DLQ and logs endpoints, bulk cancel supports multi-value filtering:
+ * a message matches if its value equals any of the given values (OR logic), and
+ * separate filters are combined with AND logic. Pass an array to match any value.
+ */
+type MessageCancelFilterFields = Omit<
+  UniversalFilterFields & Omit<QStashIdentityFields, "messageId">,
+  "callerIp" | "flowControlKey" | "url" | "urlGroup" | "scheduleId" | "queueName"
+> & {
+  /** Filter by the IP address of the publisher. Supports multiple values. */
+  callerIp?: string | string[];
+  /** Filter by Flow Control Key. Supports multiple values. */
+  flowControlKey?: string | string[];
+  /** Filter by destination URL. Supports multiple values. */
+  url?: string | string[];
+  /** Filter by URL Group name. Supports multiple values. */
+  urlGroup?: string | string[];
+  /** Filter by Schedule ID. Supports multiple values. */
+  scheduleId?: string | string[];
+  /** Filter by Queue name. Supports multiple values. */
+  queueName?: string | string[];
+  /** Filter by the host of the destination URL. Supports multiple values. */
+  host?: string | string[];
+  /** Filter by the path of the destination URL. Supports multiple values. */
+  path?: string | string[];
+};
 
 // ── QStash Composed Endpoint Filter Types ─────────────────────
 
