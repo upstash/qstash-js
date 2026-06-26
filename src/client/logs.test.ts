@@ -261,10 +261,10 @@ describe("logs - mocked filter url shape", () => {
         url: `${MOCK_QSTASH_SERVER_URL}/v2/events?url=${encodeURIComponent("https://a.com")}&url=${encodeURIComponent("https://b.com")}&host=a.com&host=b.com&path=%2Fwebhook`,
       },
       validateRequest: (request) => {
-        const params = new URL(request.url).searchParams;
-        expect(params.getAll("url")).toEqual(["https://a.com", "https://b.com"]);
-        expect(params.getAll("host")).toEqual(["a.com", "b.com"]);
-        expect(params.getAll("path")).toEqual(["/webhook"]);
+        const parameters = new URL(request.url).searchParams;
+        expect(parameters.getAll("url")).toEqual(["https://a.com", "https://b.com"]);
+        expect(parameters.getAll("host")).toEqual(["a.com", "b.com"]);
+        expect(parameters.getAll("path")).toEqual(["/webhook"]);
       },
     });
   });

@@ -1095,9 +1095,9 @@ describe("DLQ - mocked filter url shape", () => {
         url: `${MOCK_QSTASH_SERVER_URL}/v2/dlq?url=${encodeURIComponent("https://a.com")}&url=${encodeURIComponent("https://b.com")}&flowControlKey=key-1&flowControlKey=key-2`,
       },
       validateRequest: (request) => {
-        const params = new URL(request.url).searchParams;
-        expect(params.getAll("url")).toEqual(["https://a.com", "https://b.com"]);
-        expect(params.getAll("flowControlKey")).toEqual(["key-1", "key-2"]);
+        const parameters = new URL(request.url).searchParams;
+        expect(parameters.getAll("url")).toEqual(["https://a.com", "https://b.com"]);
+        expect(parameters.getAll("flowControlKey")).toEqual(["key-1", "key-2"]);
       },
     });
   });
