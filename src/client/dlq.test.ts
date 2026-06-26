@@ -241,18 +241,21 @@ describe("DLQ", () => {
         label: [labelOne, labelTwo],
       });
 
-      await sleep(4000);
+      await eventually(
+        async () => {
+          const dlqLogs = await client.dlq.listMessages({
+            filter: { label: [labelOne, labelTwo] },
+          });
 
-      const dlqLogs = await client.dlq.listMessages({
-        filter: { label: [labelOne, labelTwo] },
-      });
-
-      const message = dlqLogs.messages.find((m) => m.messageId === messageId);
-      expect(message).toBeDefined();
-      // legacy `label` carries only the first label
-      expect(message!.label).toBe(labelOne);
-      // new `labels` carries all of them
-      expect(message!.labels).toEqual([labelOne, labelTwo]);
+          const message = dlqLogs.messages.find((m) => m.messageId === messageId);
+          expect(message).toBeDefined();
+          // legacy `label` carries only the first label
+          expect(message!.label).toBe(labelOne);
+          // new `labels` carries all of them
+          expect(message!.labels).toEqual([labelOne, labelTwo]);
+        },
+        { timeout: 15_000, interval: 1000 }
+      );
 
       await client.dlq.delete({ filter: { label: [labelOne, labelTwo] } });
     },
@@ -283,7 +286,17 @@ describe("DLQ", () => {
         label: labelC,
       });
 
-      await sleep(4000);
+      // wait for all three to land in the DLQ
+      await eventually(
+        async () => {
+          const all = await client.dlq.listMessages({
+            filter: { label: [labelA, labelB, labelC] },
+          });
+          const allIds = new Set(all.messages.map((m) => m.messageId));
+          expect(allIds.has(messageAB) && allIds.has(messageBC) && allIds.has(messageC)).toBe(true);
+        },
+        { timeout: 15_000, interval: 1000 }
+      );
 
       // filtering by [A, B] should match msgAB and msgBC (both share a label)
       // but NOT msgC.
