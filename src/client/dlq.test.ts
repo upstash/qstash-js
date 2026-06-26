@@ -298,6 +298,40 @@ describe("DLQ", () => {
   );
 
   test(
+    "should filter DLQ messages by multiple urls (OR semantics)",
+    async () => {
+      const stamp = Date.now();
+      const urlA = `https://example.com/dlq-url-a-${stamp}`;
+      const urlB = `https://example.com/dlq-url-b-${stamp}`;
+      const urlC = `https://example.com/dlq-url-c-${stamp}`;
+
+      const { messageId: idA } = await client.publish({ url: urlA, retries: 0 });
+      const { messageId: idB } = await client.publish({ url: urlB, retries: 0 });
+      const { messageId: idC } = await client.publish({ url: urlC, retries: 0 });
+
+      // wait for all three to land in the DLQ
+      await eventually(
+        async () => {
+          const all = await client.dlq.listMessages({ filter: { url: [urlA, urlB, urlC] } });
+          const ids = new Set(all.messages.map((m) => m.messageId));
+          expect(ids.has(idA) && ids.has(idB) && ids.has(idC)).toBe(true);
+        },
+        { timeout: 15_000, interval: 1000 }
+      );
+
+      // filtering by [A, B] should match A and B but NOT C.
+      const result = await client.dlq.listMessages({ filter: { url: [urlA, urlB] } });
+      const ids = new Set(result.messages.map((m) => m.messageId));
+      expect(ids.has(idA)).toBe(true);
+      expect(ids.has(idB)).toBe(true);
+      expect(ids.has(idC)).toBe(false);
+
+      await client.dlq.delete({ filter: { url: [urlA, urlB, urlC] } });
+    },
+    { timeout: 25_000 }
+  );
+
+  test(
     "should retry multiple messages from DLQ",
     async () => {
       // Publish multiple messages that will fail
@@ -1036,6 +1070,31 @@ describe("DLQ - mocked filter url shape", () => {
       },
       validateRequest: (request) => {
         expect(new URL(request.url).searchParams.getAll("label")).toEqual(["label-1", "label-2"]);
+      },
+    });
+  });
+
+  test("should send multi-value url and flowControlKey as repeated query params", async () => {
+    const mockClient = new Client({ token, baseUrl: MOCK_QSTASH_SERVER_URL });
+    await mockQStashServer({
+      execute: async () => {
+        await mockClient.dlq.listMessages({
+          filter: {
+            url: ["https://a.com", "https://b.com"],
+            flowControlKey: ["key-1", "key-2"],
+          },
+        });
+      },
+      responseFields: { body: { messages: [] }, status: 200 },
+      receivesRequest: {
+        method: "GET",
+        token,
+        url: `${MOCK_QSTASH_SERVER_URL}/v2/dlq?url=${encodeURIComponent("https://a.com")}&url=${encodeURIComponent("https://b.com")}&flowControlKey=key-1&flowControlKey=key-2`,
+      },
+      validateRequest: (request) => {
+        const params = new URL(request.url).searchParams;
+        expect(params.getAll("url")).toEqual(["https://a.com", "https://b.com"]);
+        expect(params.getAll("flowControlKey")).toEqual(["key-1", "key-2"]);
       },
     });
   });
