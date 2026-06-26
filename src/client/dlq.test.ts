@@ -206,25 +206,28 @@ describe("DLQ", () => {
     async () => {
       const testLabel = `dlq-test-label-${Date.now()}`;
       await client.publish({
-        url: `https://httpbin.org/status/400`, // Any broken link will work
+        url: `https://example.com/${testLabel}`, // Any broken link will work
         retries: 0,
         label: testLabel,
       });
 
-      await sleep(4000);
+      await eventually(
+        async () => {
+          const dlqLogs = await client.dlq.listMessages({
+            filter: {
+              label: testLabel,
+            },
+          });
 
-      const dlqLogs = await client.dlq.listMessages({
-        filter: {
-          label: testLabel,
+          expect(dlqLogs.messages.length).toBeGreaterThanOrEqual(1);
+          for (const message of dlqLogs.messages) {
+            if (message.label !== undefined) {
+              expect(message.label).toBe(testLabel);
+            }
+          }
         },
-      });
-
-      expect(dlqLogs.messages.length).toBeGreaterThanOrEqual(1);
-      for (const message of dlqLogs.messages) {
-        if (message.label !== undefined) {
-          expect(message.label).toBe(testLabel);
-        }
-      }
+        { timeout: 15_000, interval: 1000 }
+      );
     },
     { timeout: 20_000 }
   );
@@ -236,7 +239,7 @@ describe("DLQ", () => {
       const labelTwo = `dlq-multi-b-${Date.now()}`;
 
       const { messageId } = await client.publish({
-        url: `https://httpbin.org/status/400`, // Any broken link will work
+        url: `https://example.com/${labelOne}`, // Any broken link will work
         retries: 0,
         label: [labelOne, labelTwo],
       });
@@ -271,17 +274,17 @@ describe("DLQ", () => {
 
       // msg1: [A, B], msg2: [B, C], msg3: [C]
       const { messageId: messageAB } = await client.publish({
-        url: `https://httpbin.org/status/400`,
+        url: `https://example.com/${labelA}`,
         retries: 0,
         label: [labelA, labelB],
       });
       const { messageId: messageBC } = await client.publish({
-        url: `https://httpbin.org/status/400`,
+        url: `https://example.com/${labelB}`,
         retries: 0,
         label: [labelB, labelC],
       });
       const { messageId: messageC } = await client.publish({
-        url: `https://httpbin.org/status/400`,
+        url: `https://example.com/${labelC}`,
         retries: 0,
         label: labelC,
       });
