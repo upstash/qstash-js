@@ -298,8 +298,8 @@ export const servePagesRouter = <TInitialPayload = unknown>(
  * // instrumentation.ts
  * import { startDevServer } from "@upstash/qstash";
  *
- * export function register() {
- *   startDevServer();
+ * export async function register() {
+ *   await startDevServer();
  * }
  * ```
  */

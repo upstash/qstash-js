@@ -23,12 +23,17 @@ const _processGlobal = (): ProcessLike | undefined => {
 let devServerPromise: Promise<void> | undefined;
 
 /**
- * Ensure the dev server is running. Returns a singleton promise
- * that resolves once the server is ready.
+ * Ensure the dev server is running, resolving once it's ready.
  *
- * No-op when:
- * - `typeof process === "undefined"` (edge/browser)
- * - dev mode is not enabled
+ * Concurrent callers (Client, HttpClient, etc.) share a single startup:
+ * the spawn is deduped internally via a shared promise, so only one binary
+ * is launched even though each call returns its own promise awaiting it.
+ *
+ * Behaviour by situation:
+ * - dev mode not enabled, `next build`, or production → no-op
+ * - Node.js runtime → downloads (if needed) and spawns the dev binary
+ * - edge/browser/Cloudflare (can't spawn a process) → only verifies the
+ *   server is reachable, throwing a helpful error if it isn't
  *
  * @param devMode - Explicit override: `true` forces on, `false` forces off, `undefined` checks env
  */
