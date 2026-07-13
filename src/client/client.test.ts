@@ -7,7 +7,7 @@ import { Client } from "./client";
 import type { PublishToUrlResponse } from "../../dist";
 import { MOCK_QSTASH_SERVER_URL, mockQStashServer } from "./workflow/test-utils";
 import type { HttpClient } from "./http";
-import { eventually } from "./logs.test";
+import { eventually } from "./test-utils";
 
 export const clearQueues = async (client: Client) => {
   const queueDetails = await client.queue().list();
