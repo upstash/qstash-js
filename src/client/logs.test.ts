@@ -293,4 +293,3 @@ describe("events (deprecated)", () => {
     expect(Array.isArray(result.events)).toBe(true);
   });
 });
-
