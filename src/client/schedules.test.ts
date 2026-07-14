@@ -310,6 +310,37 @@ describe("Schedules", () => {
       },
     });
   });
+
+  test("should create schedule with multiple labels", async () => {
+    const qstashToken = nanoid();
+
+    const client = new Client({
+      baseUrl: MOCK_QSTASH_SERVER_URL,
+      token: qstashToken,
+    });
+    await mockQStashServer({
+      execute: async () => {
+        await client.schedules.create({
+          scheduleId: "test-labels",
+          destination: MOCK_SERVER_URL,
+          cron: "* * * * 1",
+          label: ["label-1", "label-2"],
+        });
+      },
+      responseFields: {
+        body: { scheduleId: "test-labels" },
+        status: 200,
+      },
+      receivesRequest: {
+        method: "POST",
+        token: qstashToken,
+        url: "http://localhost:8080/v2/schedules/https://requestcatcher.com/",
+        headers: {
+          "upstash-label": "label-1,label-2",
+        },
+      },
+    });
+  });
 });
 
 describe("Schedules empty id guard", () => {

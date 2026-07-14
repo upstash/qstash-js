@@ -286,7 +286,7 @@ export function buildBulkActionFilterPayload(request: DLQBulkActionFilters | Mes
   // Filter branch
   const count = "count" in request ? request.count ?? DEFAULT_BULK_COUNT : DEFAULT_BULK_COUNT;
   return {
-    ...renameUrlGroup(request.filter as Record<string, unknown> & { urlGroup?: string }),
+    ...renameUrlGroup(request.filter as Record<string, unknown> & { urlGroup?: string | string[] }),
     count,
     cursor,
   };
@@ -295,9 +295,9 @@ export function buildBulkActionFilterPayload(request: DLQBulkActionFilters | Mes
 /**
  * Renames `urlGroup` to `topicName` in a filter object.
  */
-export function renameUrlGroup<T extends { urlGroup?: string; api?: string }>(
+export function renameUrlGroup<T extends { urlGroup?: string | string[]; api?: string }>(
   filter: T
-): Omit<T, "urlGroup" | "api"> & { topicName?: string } {
+): Omit<T, "urlGroup" | "api"> & { topicName?: string | string[] } {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { urlGroup, api, ...rest } = filter;
   return { ...rest, ...(urlGroup === undefined ? {} : { topicName: urlGroup }) };
