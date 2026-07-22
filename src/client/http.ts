@@ -119,7 +119,7 @@ export class HttpClient implements Requester {
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       typeof config.retry === "boolean" && !config.retry
         ? {
-            attempts: 1,
+            attempts: 0,
             backoff: () => 0,
           }
         : {

@@ -5,7 +5,12 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { Client } from "./client";
 import type { Schedule } from "./schedules";
 import { nanoid } from "nanoid";
-import { MOCK_QSTASH_SERVER_URL, MOCK_SERVER_URL, mockQStashServer } from "./workflow/test-utils";
+import {
+  MOCK_QSTASH_SERVER_URL,
+  MOCK_SERVER_URL,
+  mockQStashServer,
+  expectToReject,
+} from "./workflow/test-utils";
 
 // Updated to use constants for magic numbers
 const SECONDS_IN_A_DAY = 24 * 60 * 60;
@@ -303,6 +308,67 @@ describe("Schedules", () => {
           "upstash-redact-fields": "body,header[Authorization]",
         },
       },
+    });
+  });
+
+  test("should create schedule with multiple labels", async () => {
+    const qstashToken = nanoid();
+
+    const client = new Client({
+      baseUrl: MOCK_QSTASH_SERVER_URL,
+      token: qstashToken,
+    });
+    await mockQStashServer({
+      execute: async () => {
+        await client.schedules.create({
+          scheduleId: "test-labels",
+          destination: MOCK_SERVER_URL,
+          cron: "* * * * 1",
+          label: ["label-1", "label-2"],
+        });
+      },
+      responseFields: {
+        body: { scheduleId: "test-labels" },
+        status: 200,
+      },
+      receivesRequest: {
+        method: "POST",
+        token: qstashToken,
+        url: "http://localhost:8080/v2/schedules/https://requestcatcher.com/",
+        headers: {
+          "upstash-label": "label-1,label-2",
+        },
+      },
+    });
+  });
+});
+
+describe("Schedules empty id guard", () => {
+  test("should not send request when get is called with an empty string", async () => {
+    await mockQStashServer({
+      execute: async () => {
+        const mockClient = new Client({
+          token: "mock-token",
+          baseUrl: MOCK_QSTASH_SERVER_URL,
+        });
+        await expectToReject(() => mockClient.schedules.get(""), "Schedule id cannot be empty");
+      },
+      responseFields: { body: {}, status: 200 },
+      receivesRequest: false,
+    });
+  });
+
+  test("should not send request when delete is called with an empty string", async () => {
+    await mockQStashServer({
+      execute: async () => {
+        const mockClient = new Client({
+          token: "mock-token",
+          baseUrl: MOCK_QSTASH_SERVER_URL,
+        });
+        await expectToReject(() => mockClient.schedules.delete(""), "Schedule id cannot be empty");
+      },
+      responseFields: { body: {}, status: 200 },
+      receivesRequest: false,
     });
   });
 });

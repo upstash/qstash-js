@@ -7,6 +7,24 @@ import type { DLQBulkActionFilters, MessageCancelFilters } from "./filter-types"
 export const DEFAULT_BULK_COUNT = 100;
 
 /**
+ * Guards single-resource endpoints against a missing identifier.
+ *
+ * An empty id would otherwise be joined into the path as a trailing slash
+ * (e.g. `v2/messages/`), which the server resolves to the collection/bulk
+ * endpoint. For DELETE methods this silently triggers a bulk delete, so we
+ * fail fast instead.
+ *
+ * Uses a falsy check rather than `id.length` so that a JS consumer passing
+ * `undefined`/`null` fails with a consistent `QstashError` instead of a
+ * `TypeError`.
+ */
+export function assertNonEmptyId(id: string, label = "id"): void {
+  if (!id) {
+    throw new QstashError(`${label} cannot be empty`);
+  }
+}
+
+/**
  * Serializes a label (string or array of strings) into the header value.
  * Arrays are joined with `,` so multiple labels can be sent in a single
  * `Upstash-Label` header.
@@ -268,7 +286,7 @@ export function buildBulkActionFilterPayload(request: DLQBulkActionFilters | Mes
   // Filter branch
   const count = "count" in request ? request.count ?? DEFAULT_BULK_COUNT : DEFAULT_BULK_COUNT;
   return {
-    ...renameUrlGroup(request.filter as Record<string, unknown> & { urlGroup?: string }),
+    ...renameUrlGroup(request.filter as Record<string, unknown> & { urlGroup?: string | string[] }),
     count,
     cursor,
   };
@@ -277,9 +295,9 @@ export function buildBulkActionFilterPayload(request: DLQBulkActionFilters | Mes
 /**
  * Renames `urlGroup` to `topicName` in a filter object.
  */
-export function renameUrlGroup<T extends { urlGroup?: string; api?: string }>(
+export function renameUrlGroup<T extends { urlGroup?: string | string[]; api?: string }>(
   filter: T
-): Omit<T, "urlGroup" | "api"> & { topicName?: string } {
+): Omit<T, "urlGroup" | "api"> & { topicName?: string | string[] } {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { urlGroup, api, ...rest } = filter;
   return { ...rest, ...(urlGroup === undefined ? {} : { topicName: urlGroup }) };
