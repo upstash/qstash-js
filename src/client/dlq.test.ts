@@ -1117,4 +1117,22 @@ describe("DLQ - mocked filter url shape", () => {
       },
     });
   });
+
+  test("should send multi-value responseStatus as repeated query params", async () => {
+    const mockClient = new Client({ token, baseUrl: MOCK_QSTASH_SERVER_URL });
+    await mockQStashServer({
+      execute: async () => {
+        await mockClient.dlq.delete({ filter: { responseStatus: [500, 503] } });
+      },
+      responseFields: { body: { deleted: 0 }, status: 200 },
+      receivesRequest: {
+        method: "DELETE",
+        token,
+        url: `${MOCK_QSTASH_SERVER_URL}/v2/dlq?responseStatus=500&responseStatus=503&count=100`,
+      },
+      validateRequest: (request) => {
+        expect(new URL(request.url).searchParams.getAll("responseStatus")).toEqual(["500", "503"]);
+      },
+    });
+  });
 });

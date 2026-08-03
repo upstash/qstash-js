@@ -55,7 +55,12 @@ type QStashIdentityFields = {
 
 /** DLQ-specific response filter. */
 type DLQResponseFields = {
-  responseStatus?: number;
+  /**
+   * Filter by the response status code of the last delivery attempt.
+   * Supports multiple values: pass an array to match any of the given
+   * status codes (OR semantics).
+   */
+  responseStatus?: number | number[];
 };
 
 /** Logs-specific filter fields exclusive to log endpoints. */
