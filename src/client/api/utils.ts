@@ -1,5 +1,11 @@
 import type { PublishRequest } from "../client";
-import type { LLMOptions, ProviderInfo, PublishEmailApi, PublishLLMApi } from "./types";
+import type {
+  LLMOptions,
+  ProviderInfo,
+  PublishEmailApi,
+  PublishLLMApi,
+  PublishSearchApi,
+} from "./types";
 import { upstash } from "./llm";
 import type { HeadersInit } from "../types";
 
@@ -11,7 +17,7 @@ import type { HeadersInit } from "../types";
  * @returns updated request
  */
 export const getProviderInfo = (
-  api: PublishEmailApi | PublishLLMApi,
+  api: PublishEmailApi | PublishLLMApi | PublishSearchApi,
   upstashToken: string
 ): ProviderInfo => {
   const { name, provider, ...parameters } = api;
