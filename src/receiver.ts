@@ -1,7 +1,11 @@
 import * as jose from "jose";
 import crypto from "crypto-js";
 import { getSafeEnvironment } from "./client/utils";
-import { getReceiverSigningKeys } from "./client/multi-region";
+import {
+  getReceiverSigningKeys,
+  MISSING_SIGNING_KEYS_MESSAGE,
+  withDevModeHint,
+} from "./client/multi-region";
 
 /**
  * Necessary to verify the signature of a request.
@@ -108,9 +112,7 @@ export class Receiver {
     });
 
     if (!signingKeys) {
-      throw new Error(
-        "[Upstash QStash] No signing keys available for verification. See the warning above for more details."
-      );
+      throw new Error(withDevModeHint(MISSING_SIGNING_KEYS_MESSAGE, environment));
     }
 
     let payload: jose.JWTPayload;

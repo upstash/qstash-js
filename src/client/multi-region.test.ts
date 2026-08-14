@@ -16,6 +16,24 @@ const createEnvironment = (
   return { ...environment };
 };
 
+// Runs `run` with console.warn captured, returning everything it logged.
+const captureWarnings = (run: () => void): string[] => {
+  const warnings: string[] = [];
+  // eslint-disable-next-line no-console
+  const originalWarn = console.warn;
+  // eslint-disable-next-line no-console
+  console.warn = (...arguments_: unknown[]) => {
+    warnings.push(arguments_.map(String).join(" "));
+  };
+  try {
+    run();
+  } finally {
+    // eslint-disable-next-line no-console
+    console.warn = originalWarn;
+  }
+  return warnings;
+};
+
 describe("QStash Client - Multi-Region Credentials Resolution", () => {
   describe("Default (EU) - Only Token", () => {
     test("should use default EU endpoint with token from env", () => {
@@ -423,6 +441,95 @@ describe("Receiver/Verifier - Multi-Region Signing Keys Resolution", () => {
       // Should fallback to defaults
       expect(result?.currentSigningKey).toBe("default-current");
       expect(result?.nextSigningKey).toBe("default-next");
+    });
+  });
+
+  describe("Missing credentials messages", () => {
+    test("should suggest dev mode when token is missing in development", () => {
+      const environment = createEnvironment({ NODE_ENV: "development" });
+
+      const warnings = captureWarnings(() => getClientCredentials({ environment }));
+
+      expect(warnings).toHaveLength(1);
+      expect(warnings[0]).toInclude("client token is not set");
+      expect(warnings[0]).toInclude("QSTASH_DEV=true");
+    });
+
+    test("should suggest dev mode when NODE_ENV is not set", () => {
+      const environment = createEnvironment({});
+
+      const warnings = captureWarnings(() => getClientCredentials({ environment }));
+
+      expect(warnings[0]).toInclude("QSTASH_DEV=true");
+    });
+
+    test("should not suggest dev mode in production", () => {
+      const environment = createEnvironment({ NODE_ENV: "production" });
+
+      const warnings = captureWarnings(() => getClientCredentials({ environment }));
+
+      expect(warnings[0]).toInclude("client token is not set");
+      expect(warnings[0]).not.toInclude("QSTASH_DEV=true");
+    });
+
+    test("should not warn when the token is set", () => {
+      const environment = createEnvironment({ QSTASH_TOKEN: "test-token" });
+
+      const warnings = captureWarnings(() => getClientCredentials({ environment }));
+
+      expect(warnings).toHaveLength(0);
+    });
+
+    test("should throw instead of warning when onMissingToken is throw", () => {
+      const environment = createEnvironment({ NODE_ENV: "development" });
+
+      expect(() => getClientCredentials({ environment, onMissingToken: "throw" })).toThrow(
+        /QSTASH_DEV=true/
+      );
+    });
+
+    test("should not throw in dev mode when no token is set", () => {
+      const environment = createEnvironment({ QSTASH_DEV: "true" });
+
+      const result = getClientCredentials({ environment, onMissingToken: "throw" });
+
+      expect(result.token).toBeTruthy();
+      expect(result.baseUrl).toInclude("127.0.0.1");
+    });
+
+    test("should suggest dev mode when the receiver has no signing keys", async () => {
+      const managedKeys = [
+        "NODE_ENV",
+        "QSTASH_DEV",
+        "QSTASH_REGION",
+        "QSTASH_CURRENT_SIGNING_KEY",
+        "QSTASH_NEXT_SIGNING_KEY",
+      ];
+      // process.env is typed with readonly well-known keys (NODE_ENV), so write
+      // through a plain record view of it.
+      const processEnvironment = process.env as Record<string, string | undefined>;
+      const original = Object.fromEntries(managedKeys.map((key) => [key, processEnvironment[key]]));
+      for (const key of managedKeys) Reflect.deleteProperty(processEnvironment, key);
+      processEnvironment.NODE_ENV = "development";
+
+      let error: unknown;
+      try {
+        await new Receiver({}).verify({ signature: "invalid", body: "body" });
+      } catch (verifyError) {
+        error = verifyError;
+      } finally {
+        for (const key of managedKeys) {
+          const value = original[key];
+          if (value === undefined) {
+            Reflect.deleteProperty(processEnvironment, key);
+          } else {
+            processEnvironment[key] = value;
+          }
+        }
+      }
+
+      expect((error as Error | undefined)?.message).toInclude("No signing keys available");
+      expect((error as Error | undefined)?.message).toInclude("QSTASH_DEV=true");
     });
   });
 });

@@ -433,6 +433,29 @@ export class Client {
   }
 
   /**
+   * Create a client from the environment variables
+   * (`QSTASH_TOKEN`, `QSTASH_URL` and their region-prefixed variants).
+   *
+   * Same as `new Client()`, except it throws when no credentials can be
+   * resolved instead of only warning.
+   *
+   * @example
+   * ```ts
+   * const client = Client.fromEnv();
+   * ```
+   */
+  public static fromEnv(config?: Omit<ClientConfig, "token" | "baseUrl">): Client {
+    // Throws if no token is set, unless dev mode supplies the dev credentials.
+    getClientCredentials({
+      environment: getSafeEnvironment(),
+      devMode: config?.devMode,
+      onMissingToken: "throw",
+    });
+
+    return new Client(config);
+  }
+
+  /**
    * Access the urlGroup API.
    *
    * Create, read, update or delete urlGroups.

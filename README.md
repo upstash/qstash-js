@@ -71,6 +71,14 @@ console.log(res);
 // { messageId: "msg_xxxxxxxxxxxxxxxx" }
 ```
 
+The token is optional: if you leave it out, it is read from the `QSTASH_TOKEN`
+environment variable. Use `Client.fromEnv()` when you want a missing token to
+throw instead of only logging a warning:
+
+```ts
+const client = Client.fromEnv();
+```
+
 ### Receiving a message
 
 How to receive a message depends on your http server. The `Receiver.verify`

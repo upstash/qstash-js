@@ -1,8 +1,10 @@
 import type { QStashRegion } from "./utils";
 import {
   DEFAULT_QSTASH_URL,
+  MISSING_TOKEN_MESSAGE,
   getRegionFromEnvironment,
   readClientEnvironmentVariables,
+  withDevModeHint,
 } from "./utils";
 
 import { shouldUseDevelopmentMode, getDevelopmentCredentials, DEV_PREFIX } from "../../dev-server";
@@ -16,6 +18,12 @@ type ClientCredentialConfig = {
   environment: Record<string, string | undefined>;
   config?: Credentials;
   devMode?: boolean;
+  /**
+   * What to do when no token can be resolved.
+   * - `warn` (default): log a warning and return an empty token
+   * - `throw`: throw, used by `Client.fromEnv()`
+   */
+  onMissingToken?: "warn" | "throw";
 };
 
 type CredentialsWithRegion = Required<Credentials> & {
@@ -39,7 +47,11 @@ export const getClientCredentials = (
   clientCredentialConfig: ClientCredentialConfig
 ): Required<Credentials> => {
   const credentials = resolveCredentials(clientCredentialConfig);
-  return verifyCredentials(credentials);
+  return verifyCredentials(
+    credentials,
+    clientCredentialConfig.environment,
+    clientCredentialConfig.onMissingToken ?? "warn"
+  );
 };
 
 const resolveCredentials = ({
@@ -96,7 +108,11 @@ const resolveCredentials = ({
   };
 };
 
-const verifyCredentials = (credentials: Required<Credentials>): Required<Credentials> => {
+const verifyCredentials = (
+  credentials: Required<Credentials>,
+  environment: Record<string, string | undefined>,
+  onMissingToken: "warn" | "throw"
+): Required<Credentials> => {
   const token = credentials.token;
   let baseUrl = credentials.baseUrl;
 
@@ -108,11 +124,13 @@ const verifyCredentials = (credentials: Required<Credentials>): Required<Credent
     baseUrl = DEFAULT_QSTASH_URL;
   }
 
-  // Warn if token is still missing
+  // Warn (or throw, for `Client.fromEnv()`) if token is still missing
   if (!token) {
-    console.warn(
-      "[Upstash QStash] client token is not set. Either pass a token or set QSTASH_TOKEN env variable."
-    );
+    const message = withDevModeHint(MISSING_TOKEN_MESSAGE, environment);
+    if (onMissingToken === "throw") {
+      throw new Error(message);
+    }
+    console.warn(message);
   }
   return { baseUrl, token };
 };
