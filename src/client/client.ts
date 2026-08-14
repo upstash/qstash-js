@@ -375,6 +375,15 @@ export type QueueRequest = {
   queueName?: string;
 };
 
+/**
+ * Internal marker set by `Client.fromEnv()` so the constructor throws instead
+ * of warning when no token can be resolved. A symbol keeps it out of the
+ * public `ClientConfig` type.
+ */
+const THROW_ON_MISSING_TOKEN = Symbol("qstash.throwOnMissingToken");
+
+type InternalClientConfig = ClientConfig & { [THROW_ON_MISSING_TOKEN]?: boolean };
+
 export class Client {
   public http: Requester;
   private token: string;
@@ -387,6 +396,9 @@ export class Client {
       environment,
       config,
       devMode: config?.devMode,
+      onMissingToken: (config as InternalClientConfig | undefined)?.[THROW_ON_MISSING_TOKEN]
+        ? "throw"
+        : "warn",
     });
 
     // Fire-and-forget dev server startup
@@ -436,8 +448,10 @@ export class Client {
    * Create a client from the environment variables
    * (`QSTASH_TOKEN`, `QSTASH_URL` and their region-prefixed variants).
    *
-   * Same as `new Client()`, except it throws when no credentials can be
-   * resolved instead of only warning.
+   * Same as `new Client()`, except it throws when no token can be resolved
+   * instead of only warning. Reads `process.env`, so it isn't usable on
+   * runtimes where credentials only exist as bindings (Cloudflare Workers);
+   * pass the token to `new Client()` there.
    *
    * @example
    * ```ts
@@ -445,14 +459,9 @@ export class Client {
    * ```
    */
   public static fromEnv(config?: Omit<ClientConfig, "token" | "baseUrl">): Client {
-    // Throws if no token is set, unless dev mode supplies the dev credentials.
-    getClientCredentials({
-      environment: getSafeEnvironment(),
-      devMode: config?.devMode,
-      onMissingToken: "throw",
-    });
-
-    return new Client(config);
+    // Resolves credentials once, in the constructor, and throws there if no
+    // token is set - unless dev mode supplies the dev credentials.
+    return new Client({ ...config, [THROW_ON_MISSING_TOKEN]: true } as ClientConfig);
   }
 
   /**

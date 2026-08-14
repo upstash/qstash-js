@@ -1,11 +1,13 @@
 import type { QStashRegion } from "./utils";
 import {
   DEFAULT_QSTASH_URL,
+  MISSING_TOKEN_FROM_ENV_MESSAGE,
   MISSING_TOKEN_MESSAGE,
   getRegionFromEnvironment,
   readClientEnvironmentVariables,
   withDevModeHint,
 } from "./utils";
+import { QstashError } from "../error";
 
 import { shouldUseDevelopmentMode, getDevelopmentCredentials, DEV_PREFIX } from "../../dev-server";
 
@@ -126,11 +128,11 @@ const verifyCredentials = (
 
   // Warn (or throw, for `Client.fromEnv()`) if token is still missing
   if (!token) {
-    const message = withDevModeHint(MISSING_TOKEN_MESSAGE, environment);
     if (onMissingToken === "throw") {
-      throw new Error(message);
+      // `fromEnv` can't take a token, so only point at the env variable.
+      throw new QstashError(withDevModeHint(MISSING_TOKEN_FROM_ENV_MESSAGE, environment));
     }
-    console.warn(message);
+    console.warn(withDevModeHint(MISSING_TOKEN_MESSAGE, environment));
   }
   return { baseUrl, token };
 };

@@ -1,38 +1,21 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { Client } from "./client";
+import { QstashError } from "./error";
 import type { HttpClient } from "./http";
+import { captureWarnings, stubEnvironment } from "./test-utils";
 
-// process.env is typed with readonly well-known keys (NODE_ENV), so write
-// through a plain record view of it.
-const environment = process.env as Record<string, string | undefined>;
-
-const MANAGED_KEYS = [
-  "QSTASH_TOKEN",
-  "QSTASH_URL",
-  "QSTASH_DEV",
-  "QSTASH_REGION",
-  "NODE_ENV",
-] as const;
+const MANAGED_KEYS = ["QSTASH_TOKEN", "QSTASH_URL", "QSTASH_DEV", "QSTASH_REGION", "NODE_ENV"];
 
 describe("Client.fromEnv", () => {
-  const original: Record<string, string | undefined> = {};
+  let environment: Record<string, string | undefined>;
+  let restore: () => void;
 
   beforeEach(() => {
-    for (const key of MANAGED_KEYS) {
-      original[key] = environment[key];
-      Reflect.deleteProperty(environment, key);
-    }
+    ({ environment, restore } = stubEnvironment(MANAGED_KEYS));
   });
 
   afterEach(() => {
-    for (const key of MANAGED_KEYS) {
-      const value = original[key];
-      if (value === undefined) {
-        Reflect.deleteProperty(environment, key);
-      } else {
-        environment[key] = value;
-      }
-    }
+    restore();
   });
 
   test("should build a client from env variables", () => {
@@ -56,7 +39,7 @@ describe("Client.fromEnv", () => {
   test("should throw with the dev mode hint when no token is set", () => {
     environment.NODE_ENV = "development";
 
-    expect(() => Client.fromEnv()).toThrow(/client token is not set/);
+    expect(() => Client.fromEnv()).toThrow(/Unable to find environment variable: QSTASH_TOKEN/);
     expect(() => Client.fromEnv()).toThrow(/QSTASH_DEV=true/);
   });
 
@@ -67,8 +50,22 @@ describe("Client.fromEnv", () => {
       Client.fromEnv();
       expect.unreachable("fromEnv should throw when no token is set");
     } catch (error) {
-      expect((error as Error).message).toInclude("client token is not set");
+      expect(error).toBeInstanceOf(QstashError);
+      expect((error as Error).message).toInclude(
+        "Unable to find environment variable: QSTASH_TOKEN"
+      );
       expect((error as Error).message).not.toInclude("QSTASH_DEV=true");
     }
+  });
+
+  test("should resolve credentials once, without duplicating warnings", () => {
+    // QSTASH_REGION without the region-prefixed variables warns exactly once.
+    environment.QSTASH_TOKEN = "env-token";
+    environment.QSTASH_REGION = "US_EAST_1";
+
+    const warnings = captureWarnings(() => Client.fromEnv());
+
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]).toInclude("QSTASH_REGION");
   });
 });

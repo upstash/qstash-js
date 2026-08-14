@@ -71,13 +71,20 @@ console.log(res);
 // { messageId: "msg_xxxxxxxxxxxxxxxx" }
 ```
 
-The token is optional: if you leave it out, it is read from the `QSTASH_TOKEN`
-environment variable. Use `Client.fromEnv()` when you want a missing token to
-throw instead of only logging a warning:
+The token is optional: if you leave it out, the client reads `QSTASH_TOKEN`,
+`QSTASH_URL` and their region-prefixed variants from the environment, and only
+warns when it finds nothing. Use `Client.fromEnv()` to fail fast instead:
 
 ```ts
 const client = Client.fromEnv();
+// throws: [Upstash QStash] Unable to find environment variable: QSTASH_TOKEN.
 ```
+
+`fromEnv` reads `process.env`, so on runtimes where credentials only exist as
+bindings (Cloudflare Workers) pass the token to `new Client()` instead.
+
+No credentials at all? You don't need any while developing: see
+[Local Development](#local-development) below.
 
 ### Receiving a message
 
@@ -153,7 +160,7 @@ const client = new Client({ devMode: true });
 
 The same flag works on the receiving side: pass `devMode: true` to `Receiver` or `verifySignature*` to verify signatures with the dev server's keys. Dev mode is automatically a no-op when `NODE_ENV=production` and in browser/edge runtimes.
 
-See [Local Development](https://docs.upstash.com/qstash/howto/local-development) for the full walkthrough, including the `registerQStashDev()` helper for Next.js edge routes.
+See [Local Development](https://upstash.com/docs/qstash/howto/local-development) for the full walkthrough, including the `registerQStashDev()` helper for Next.js edge routes.
 
 ## Docs
 

@@ -31,6 +31,28 @@ const countFetchCalls = async (retry: false | { retries: number }) => {
   return fetchCalls;
 };
 
+const requestWith401 = async (authorization: string) => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = (() =>
+    Promise.resolve(new Response("Unauthorized", { status: 401 }))) as typeof fetch;
+
+  const client = new HttpClient({
+    baseUrl: "https://example.com",
+    authorization,
+    retry: false,
+    devMode: false,
+  });
+
+  try {
+    await client.request({ method: "GET", path: ["v2", "messages", "msg_123"] });
+    throw new Error("expected request to throw");
+  } catch (error) {
+    return error as Error;
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+};
+
 describe("http", () => {
   test("should terminate after sleeping 5 times", () => {
     // init a cient which will always get errors
@@ -58,5 +80,19 @@ describe("http", () => {
 
   test("should call fetch twice when retries is 1", async () => {
     expect(await countFetchCalls({ retries: 1 })).toBe(2);
+  });
+
+  describe("401 handling", () => {
+    test("should explain a 401 caused by a missing token", async () => {
+      const error = await requestWith401("Bearer ");
+
+      expect(error.message).toInclude("client token is not set");
+    });
+
+    test("should keep the server error when a token is set", async () => {
+      const error = await requestWith401("Bearer test-token");
+
+      expect(error.message).toBe("Unauthorized");
+    });
   });
 });

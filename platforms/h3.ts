@@ -1,6 +1,8 @@
 import type { H3Event } from "h3";
 import { defineEventHandler, getHeader, readRawBody } from "h3";
 import { Receiver } from "../src";
+import { MISSING_SIGNING_KEYS_MESSAGE, withDevModeHint } from "../src/client/multi-region";
+import { shouldUseDevelopmentMode } from "../src/dev-server";
 
 import type { RouteFunction, WorkflowServeOptions } from "../src/client/workflow";
 import { serve as serveBase } from "../src/client/workflow";
@@ -10,6 +12,16 @@ type VerifySignatureConfig = {
   currentSigningKey?: string;
   nextSigningKey?: string;
   clockTolerance?: number;
+
+  /**
+   * Controls the local dev server signing keys.
+   * - `true`: use dev server signing keys
+   * - `false`: never use dev server signing keys (ignores QSTASH_DEV env var)
+   * - `undefined`: check QSTASH_DEV env var
+   *
+   * @default undefined
+   */
+  devMode?: boolean;
 };
 
 export const verifySignatureH3 = (
@@ -19,16 +31,16 @@ export const verifySignatureH3 = (
   const currentSigningKey = config?.currentSigningKey ?? process.env.QSTASH_CURRENT_SIGNING_KEY;
   const nextSigningKey = config?.nextSigningKey ?? process.env.QSTASH_NEXT_SIGNING_KEY;
 
-  // Only throw if both keys are missing and not in multi-region mode
-  if (!currentSigningKey && !nextSigningKey && !process.env.QSTASH_REGION) {
-    throw new Error(
-      "currentSigningKey and nextSigningKey are required, either in the config or as env variables (QSTASH_CURRENT_SIGNING_KEY and QSTASH_NEXT_SIGNING_KEY)"
-    );
+  // Skip the throw in dev mode (config flag OR QSTASH_DEV env) — Receiver auto-picks dev keys.
+  const devMode = shouldUseDevelopmentMode(config?.devMode, process.env);
+  if (!devMode && !currentSigningKey && !nextSigningKey && !process.env.QSTASH_REGION) {
+    throw new Error(withDevModeHint(MISSING_SIGNING_KEYS_MESSAGE, process.env));
   }
 
   const receiver = new Receiver({
     currentSigningKey,
     nextSigningKey,
+    devMode: config?.devMode,
   });
 
   return defineEventHandler(async (event: H3Event) => {

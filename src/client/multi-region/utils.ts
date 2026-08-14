@@ -1,3 +1,5 @@
+import { getRuntime } from "../../dev-server";
+
 export type QStashRegion = "EU_CENTRAL_1" | "US_EAST_1";
 
 const VALID_REGIONS = ["EU_CENTRAL_1", "US_EAST_1"] as const;
@@ -7,6 +9,9 @@ export const DEFAULT_QSTASH_URL = "https://qstash.upstash.io";
 export const MISSING_TOKEN_MESSAGE =
   "[Upstash QStash] client token is not set. Either pass a token or set QSTASH_TOKEN env variable.";
 
+export const MISSING_TOKEN_FROM_ENV_MESSAGE =
+  "[Upstash QStash] Unable to find environment variable: QSTASH_TOKEN.";
+
 export const MISSING_SIGNING_KEYS_MESSAGE =
   "[Upstash QStash] No signing keys available for verification. Either pass currentSigningKey and nextSigningKey, or set QSTASH_CURRENT_SIGNING_KEY and QSTASH_NEXT_SIGNING_KEY env variables.";
 
@@ -15,15 +20,19 @@ const DEV_MODE_HINT =
   "See https://upstash.com/docs/qstash/howto/local-development";
 
 /**
- * Whether we are outside production, in which case suggesting the local dev
- * server makes sense.
+ * Whether suggesting the local dev server makes sense.
  *
- * An unset NODE_ENV counts as development: plain node/bun scripts often don't
- * set it, and dev mode is a no-op in production anyway.
+ * An unset NODE_ENV only counts as development on Node/Bun: plain scripts
+ * often don't set it, while a production Cloudflare Worker or browser bundle
+ * has no `process.env` at all and can't run the dev server anyway.
  */
 export const isDevelopmentEnvironment = (
   environment: Record<string, string | undefined>
-): boolean => (environment.NODE_ENV ?? "") !== "production";
+): boolean => {
+  const nodeEnvironment = environment.NODE_ENV;
+  if (nodeEnvironment) return nodeEnvironment !== "production";
+  return getRuntime() === "nodejs";
+};
 
 /**
  * Appends the "you can use dev mode" hint to a missing-credentials message

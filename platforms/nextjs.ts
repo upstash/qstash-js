@@ -10,6 +10,7 @@ import { Receiver } from "../src/receiver";
 import type { WorkflowServeOptions, RouteFunction } from "../src/client/workflow";
 import { serve as serveBase } from "../src/client/workflow";
 import { shouldUseDevelopmentMode, startDevServer } from "../src/dev-server";
+import { MISSING_SIGNING_KEYS_MESSAGE, withDevModeHint } from "../src/client/multi-region";
 
 export type VerifySignatureConfig = {
   currentSigningKey?: string;
@@ -54,9 +55,7 @@ export function verifySignature(
   // Skip the throw in dev mode (config flag OR QSTASH_DEV env) — Receiver auto-picks dev keys.
   const devMode = shouldUseDevelopmentMode(config?.devMode, process.env);
   if (!devMode && !currentSigningKey && !nextSigningKey && !process.env.QSTASH_REGION) {
-    throw new Error(
-      "currentSigningKey and nextSigningKey are required, either in the config or as env variables (QSTASH_CURRENT_SIGNING_KEY and QSTASH_NEXT_SIGNING_KEY)"
-    );
+    throw new Error(withDevModeHint(MISSING_SIGNING_KEYS_MESSAGE, process.env));
   }
 
   const receiver = new Receiver({
@@ -121,9 +120,7 @@ export function verifySignatureEdge(
   // Skip the throw in dev mode (config flag OR QSTASH_DEV env) — Receiver auto-picks dev keys.
   const devMode = shouldUseDevelopmentMode(config?.devMode, process.env);
   if (!devMode && !currentSigningKey && !nextSigningKey && !process.env.QSTASH_REGION) {
-    throw new Error(
-      "currentSigningKey and nextSigningKey are required, either in the config or as env variables (QSTASH_CURRENT_SIGNING_KEY and QSTASH_NEXT_SIGNING_KEY)"
-    );
+    throw new Error(withDevModeHint(MISSING_SIGNING_KEYS_MESSAGE, process.env));
   }
 
   const receiver = new Receiver({
@@ -176,9 +173,7 @@ export function verifySignatureAppRouter(
   // Skip the throw in dev mode (config flag OR QSTASH_DEV env) — Receiver auto-picks dev keys.
   const devMode = shouldUseDevelopmentMode(config?.devMode, process.env);
   if (!devMode && !currentSigningKey && !nextSigningKey && !process.env.QSTASH_REGION) {
-    throw new Error(
-      "currentSigningKey and nextSigningKey are required, either in the config or as env variables (QSTASH_CURRENT_SIGNING_KEY and QSTASH_NEXT_SIGNING_KEY)"
-    );
+    throw new Error(withDevModeHint(MISSING_SIGNING_KEYS_MESSAGE, process.env));
   }
 
   const receiver = new Receiver({

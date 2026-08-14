@@ -8,30 +8,18 @@ import { Client } from "./client";
 import { Receiver } from "../receiver";
 import { getClientCredentials } from "./multi-region/outgoing";
 import { getReceiverSigningKeys } from "./multi-region/incoming";
+import { captureWarnings, stubEnvironment } from "./test-utils";
+import { MISSING_TOKEN_MESSAGE, withDevModeHint } from "./multi-region/utils";
 
-// Helper to create a clean environment for each test
+// Helper to create a clean environment for each test.
+//
+// QSTASH_DEV defaults to "false": `shouldUseDevelopmentMode` falls back to the
+// real process.env when the given environment doesn't set it, which would make
+// these tests resolve dev credentials on a machine that exports QSTASH_DEV.
 const createEnvironment = (
   environment: Record<string, string>
 ): Record<string, string | undefined> => {
-  return { ...environment };
-};
-
-// Runs `run` with console.warn captured, returning everything it logged.
-const captureWarnings = (run: () => void): string[] => {
-  const warnings: string[] = [];
-  // eslint-disable-next-line no-console
-  const originalWarn = console.warn;
-  // eslint-disable-next-line no-console
-  console.warn = (...arguments_: unknown[]) => {
-    warnings.push(arguments_.map(String).join(" "));
-  };
-  try {
-    run();
-  } finally {
-    // eslint-disable-next-line no-console
-    console.warn = originalWarn;
-  }
-  return warnings;
+  return { QSTASH_DEV: "false", ...environment };
 };
 
 describe("QStash Client - Multi-Region Credentials Resolution", () => {
@@ -498,19 +486,14 @@ describe("Receiver/Verifier - Multi-Region Signing Keys Resolution", () => {
     });
 
     test("should suggest dev mode when the receiver has no signing keys", async () => {
-      const managedKeys = [
+      const { environment, restore } = stubEnvironment([
         "NODE_ENV",
         "QSTASH_DEV",
         "QSTASH_REGION",
         "QSTASH_CURRENT_SIGNING_KEY",
         "QSTASH_NEXT_SIGNING_KEY",
-      ];
-      // process.env is typed with readonly well-known keys (NODE_ENV), so write
-      // through a plain record view of it.
-      const processEnvironment = process.env as Record<string, string | undefined>;
-      const original = Object.fromEntries(managedKeys.map((key) => [key, processEnvironment[key]]));
-      for (const key of managedKeys) Reflect.deleteProperty(processEnvironment, key);
-      processEnvironment.NODE_ENV = "development";
+      ]);
+      environment.NODE_ENV = "development";
 
       let error: unknown;
       try {
@@ -518,18 +501,32 @@ describe("Receiver/Verifier - Multi-Region Signing Keys Resolution", () => {
       } catch (verifyError) {
         error = verifyError;
       } finally {
-        for (const key of managedKeys) {
-          const value = original[key];
-          if (value === undefined) {
-            Reflect.deleteProperty(processEnvironment, key);
-          } else {
-            processEnvironment[key] = value;
-          }
-        }
+        restore();
       }
 
       expect((error as Error | undefined)?.message).toInclude("No signing keys available");
       expect((error as Error | undefined)?.message).toInclude("QSTASH_DEV=true");
+    });
+
+    test("should not suggest dev mode outside node when NODE_ENV is unset", () => {
+      // Simulates a production Cloudflare Worker / browser bundle: no NODE_ENV
+      // and no way to spawn the dev server.
+      const { restore } = stubEnvironment(["NODE_ENV"]);
+      const originalNavigator = globalThis.navigator;
+      Object.defineProperty(globalThis, "navigator", {
+        value: { userAgent: "Cloudflare-Workers" },
+        configurable: true,
+      });
+
+      try {
+        expect(withDevModeHint(MISSING_TOKEN_MESSAGE, {})).toBe(MISSING_TOKEN_MESSAGE);
+      } finally {
+        Object.defineProperty(globalThis, "navigator", {
+          value: originalNavigator,
+          configurable: true,
+        });
+        restore();
+      }
     });
   });
 });

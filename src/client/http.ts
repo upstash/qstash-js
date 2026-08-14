@@ -8,6 +8,8 @@ import {
 } from "./error";
 // eslint-disable-next-line unicorn/prevent-abbreviations
 import { ensureDevelopmentServer } from "../dev-server";
+import { MISSING_TOKEN_MESSAGE, withDevModeHint } from "./multi-region";
+import { getSafeEnvironment } from "./utils";
 import type { BodyInit, HeadersInit, HTTPMethods, RequestOptions } from "./types";
 import type { ChatCompletionChunk } from "./llm/types";
 
@@ -100,6 +102,9 @@ export class HttpClient implements Requester {
 
   public readonly devMode?: boolean;
 
+  /** Whether `authorization` carries an actual token, used to explain 401s. */
+  private readonly hasToken: boolean;
+
   public retry: {
     attempts: number;
     backoff: (retryCount: number) => number;
@@ -112,6 +117,8 @@ export class HttpClient implements Requester {
     this.baseUrl = config.baseUrl.replace(/\/$/, "");
 
     this.authorization = config.authorization;
+
+    this.hasToken = config.authorization.replace(/^Bearer/, "").trim().length > 0;
 
     this.devMode = config.devMode;
 
@@ -274,6 +281,16 @@ export class HttpClient implements Requester {
         remaining: response.headers.get("Burst-RateLimit-Remaining"),
         reset: response.headers.get("Burst-RateLimit-Reset"),
       });
+    }
+
+    // A 401 with no token at all is a setup problem, not a bad token: replace
+    // the server's generic body with something actionable. This is the error
+    // most users hit first, e.g. when triggering a workflow with no credentials.
+    if (response.status === 401 && !this.hasToken) {
+      throw new QstashError(
+        withDevModeHint(MISSING_TOKEN_MESSAGE, getSafeEnvironment()),
+        response.status
+      );
     }
 
     if (response.status < 200 || response.status >= 300) {
