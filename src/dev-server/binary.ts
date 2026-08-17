@@ -1,8 +1,8 @@
 /* eslint-disable no-console */
 import {
+  ARTIFACTS_LIST_URL,
   BINARY_URL_BASE,
   DEV_PREFIX,
-  GITHUB_RELEASES_URL,
   importFs,
   importChildProcess,
   importOs,
@@ -41,17 +41,42 @@ export const ensureBinary = async (): Promise<string> => {
 };
 
 const fetchLatestVersion = async (): Promise<string> => {
-  const { ok, statusCode, body } = await nativeGet(GITHUB_RELEASES_URL, {
-    Accept: "application/vnd.github.v3+json",
-    "User-Agent": "upstash-qstash-js",
-  });
+  const { ok, statusCode, body } = await nativeGet(ARTIFACTS_LIST_URL);
 
   if (!ok) {
     throw new Error(`[QStash Dev] Failed to fetch latest version: HTTP ${statusCode}`);
   }
 
-  const data = JSON.parse(body.toString()) as { tag_name: string };
-  return data.tag_name.replace(/^v/, "");
+  // Parse <CommonPrefixes><Prefix>qstash/versions/X.Y.Z/</Prefix></CommonPrefixes>
+  const xml = body.toString();
+  const versions: string[] = [];
+  const re = /<Prefix>qstash\/versions\/([^/<]+)\/<\/Prefix>/g;
+  let match: RegExpExecArray | null;
+  while ((match = re.exec(xml)) !== null) {
+    const v = match[1];
+    // Skip pre-releases (e.g. 2.20.7-rc.1). Only stable X.Y.Z.
+    if (/^\d+\.\d+\.\d+$/.test(v)) versions.push(v);
+  }
+
+  if (versions.length === 0) {
+    throw new Error("[QStash Dev] No stable versions found in artifact bucket");
+  }
+
+  versions.sort(compareSemver);
+  const latest = versions.at(-1);
+  if (!latest) {
+    throw new Error("[QStash Dev] No stable versions found in artifact bucket");
+  }
+  return latest;
+};
+
+const compareSemver = (a: string, b: string): number => {
+  const pa = a.split(".").map(Number);
+  const pb = b.split(".").map(Number);
+  for (const [index, part] of pa.entries()) {
+    if (part !== pb[index]) return part - pb[index];
+  }
+  return 0;
 };
 
 const findCacheDirectory = async (): Promise<string> => {

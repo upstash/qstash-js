@@ -4,8 +4,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { Client } from "./client";
-import { eventually } from "./test-utils/eventually";
-import { MOCK_QSTASH_SERVER_URL, mockQStashServer } from "./workflow/test-utils";
+import { eventually } from "./test-utils";
+import { MOCK_QSTASH_SERVER_URL, mockQStashServer, expectToReject } from "./workflow/test-utils";
 import type { HttpClient } from "./http";
 
 // Updated to use constants for magic numbers
@@ -178,7 +178,7 @@ describe("DLQ", () => {
       const retryDelay = "2000 * retried";
       const randomKey = `flow-control-key-${Date.now()}`;
       const { messageId } = await client.publish({
-        url: "https://httpbin.org/status/400",
+        url: `https://example.com/${randomKey}`,
         body: "hello",
         retries: 0,
         flowControl: {
@@ -207,7 +207,7 @@ describe("DLQ", () => {
           expect(message.period).toBe(SECONDS_IN_A_DAY);
           expect(message.retryDelayExpression).toBe(retryDelay);
         },
-        { timeout: 20_000, interval: 1000 }
+        { timeout: 25_000, interval: 1000 }
       );
     },
     {
@@ -220,7 +220,7 @@ describe("DLQ", () => {
     async () => {
       const testLabel = `dlq-test-label-${Date.now()}`;
       await client.publish({
-        url: `https://httpbin.org/status/400`, // Any broken link will work
+        url: `https://example.com/${testLabel}`, // Any broken link will work
         retries: 0,
         label: testLabel,
       });
@@ -240,7 +240,7 @@ describe("DLQ", () => {
             }
           }
         },
-        { timeout: 20_000, interval: 1000 }
+        { timeout: 15_000, interval: 1000 }
       );
     },
     { timeout: 30_000 }
@@ -253,7 +253,7 @@ describe("DLQ", () => {
       const labelTwo = `dlq-multi-b-${Date.now()}`;
 
       const { messageId } = await client.publish({
-        url: `https://httpbin.org/status/400`, // Any broken link will work
+        url: `https://example.com/${labelOne}`, // Any broken link will work
         retries: 0,
         label: [labelOne, labelTwo],
       });
@@ -271,7 +271,7 @@ describe("DLQ", () => {
           // new `labels` carries all of them
           expect(message!.labels).toEqual([labelOne, labelTwo]);
         },
-        { timeout: 20_000, interval: 1000 }
+        { timeout: 15_000, interval: 1000 }
       );
 
       await client.dlq.delete({ filter: { label: [labelOne, labelTwo] } });
@@ -288,20 +288,32 @@ describe("DLQ", () => {
 
       // msg1: [A, B], msg2: [B, C], msg3: [C]
       const { messageId: messageAB } = await client.publish({
-        url: `https://httpbin.org/status/400`,
+        url: `https://example.com/${labelA}`,
         retries: 0,
         label: [labelA, labelB],
       });
       const { messageId: messageBC } = await client.publish({
-        url: `https://httpbin.org/status/400`,
+        url: `https://example.com/${labelB}`,
         retries: 0,
         label: [labelB, labelC],
       });
       const { messageId: messageC } = await client.publish({
-        url: `https://httpbin.org/status/400`,
+        url: `https://example.com/${labelC}`,
         retries: 0,
         label: labelC,
       });
+
+      // wait for all three to land in the DLQ
+      await eventually(
+        async () => {
+          const all = await client.dlq.listMessages({
+            filter: { label: [labelA, labelB, labelC] },
+          });
+          const allIds = new Set(all.messages.map((m) => m.messageId));
+          expect(allIds.has(messageAB) && allIds.has(messageBC) && allIds.has(messageC)).toBe(true);
+        },
+        { timeout: 15_000, interval: 1000 }
+      );
 
       // filtering by [A, B] should match msgAB and msgBC (both share a label)
       // but NOT msgC.
@@ -321,6 +333,40 @@ describe("DLQ", () => {
       await client.dlq.delete({ filter: { label: [labelA, labelB, labelC] } });
     },
     { timeout: 30_000 }
+  );
+
+  test(
+    "should filter DLQ messages by multiple urls (OR semantics)",
+    async () => {
+      const stamp = Date.now();
+      const urlA = `https://example.com/dlq-url-a-${stamp}`;
+      const urlB = `https://example.com/dlq-url-b-${stamp}`;
+      const urlC = `https://example.com/dlq-url-c-${stamp}`;
+
+      const { messageId: idA } = await client.publish({ url: urlA, retries: 0 });
+      const { messageId: idB } = await client.publish({ url: urlB, retries: 0 });
+      const { messageId: idC } = await client.publish({ url: urlC, retries: 0 });
+
+      // wait for all three to land in the DLQ
+      await eventually(
+        async () => {
+          const all = await client.dlq.listMessages({ filter: { url: [urlA, urlB, urlC] } });
+          const ids = new Set(all.messages.map((m) => m.messageId));
+          expect(ids.has(idA) && ids.has(idB) && ids.has(idC)).toBe(true);
+        },
+        { timeout: 15_000, interval: 1000 }
+      );
+
+      // filtering by [A, B] should match A and B but NOT C.
+      const result = await client.dlq.listMessages({ filter: { url: [urlA, urlB] } });
+      const ids = new Set(result.messages.map((m) => m.messageId));
+      expect(ids.has(idA)).toBe(true);
+      expect(ids.has(idB)).toBe(true);
+      expect(ids.has(idC)).toBe(false);
+
+      await client.dlq.delete({ filter: { url: [urlA, urlB, urlC] } });
+    },
+    { timeout: 25_000 }
   );
 
   test(
@@ -828,7 +874,7 @@ describe("DLQ", () => {
     async () => {
       const flowKey = `dlq-flow-key-${Date.now()}`;
       await client.publish({
-        url: "https://httpbin.org/status/400",
+        url: `https://example.com/${flowKey}`,
         body: "hello",
         retries: 0,
         flowControl: {
@@ -1036,6 +1082,20 @@ describe("DLQ - mocked early return", () => {
     });
   });
 
+  test("should not send request when delete is called with an empty string", async () => {
+    await mockQStashServer({
+      execute: async () => {
+        const mockClient = new Client({
+          token: "mock-token",
+          baseUrl: MOCK_QSTASH_SERVER_URL,
+        });
+        await expectToReject(() => mockClient.dlq.delete(""), "DLQ id cannot be empty");
+      },
+      responseFields: { body: {}, status: 200 },
+      receivesRequest: false,
+    });
+  });
+
   // eslint-disable-next-line @typescript-eslint/require-await
   test("http client should throw when empty array is passed in query params", async () => {
     const mockClient = new Client({
@@ -1089,6 +1149,49 @@ describe("DLQ - mocked filter url shape", () => {
       },
       validateRequest: (request) => {
         expect(new URL(request.url).searchParams.getAll("label")).toEqual(["label-1", "label-2"]);
+      },
+    });
+  });
+
+  test("should send multi-value url and flowControlKey as repeated query params", async () => {
+    const mockClient = new Client({ token, baseUrl: MOCK_QSTASH_SERVER_URL });
+    await mockQStashServer({
+      execute: async () => {
+        await mockClient.dlq.listMessages({
+          filter: {
+            url: ["https://a.com", "https://b.com"],
+            flowControlKey: ["key-1", "key-2"],
+          },
+        });
+      },
+      responseFields: { body: { messages: [] }, status: 200 },
+      receivesRequest: {
+        method: "GET",
+        token,
+        url: `${MOCK_QSTASH_SERVER_URL}/v2/dlq?url=${encodeURIComponent("https://a.com")}&url=${encodeURIComponent("https://b.com")}&flowControlKey=key-1&flowControlKey=key-2`,
+      },
+      validateRequest: (request) => {
+        const parameters = new URL(request.url).searchParams;
+        expect(parameters.getAll("url")).toEqual(["https://a.com", "https://b.com"]);
+        expect(parameters.getAll("flowControlKey")).toEqual(["key-1", "key-2"]);
+      },
+    });
+  });
+
+  test("should send multi-value responseStatus as repeated query params", async () => {
+    const mockClient = new Client({ token, baseUrl: MOCK_QSTASH_SERVER_URL });
+    await mockQStashServer({
+      execute: async () => {
+        await mockClient.dlq.delete({ filter: { responseStatus: [500, 503] } });
+      },
+      responseFields: { body: { deleted: 0 }, status: 200 },
+      receivesRequest: {
+        method: "DELETE",
+        token,
+        url: `${MOCK_QSTASH_SERVER_URL}/v2/dlq?responseStatus=500&responseStatus=503&count=100`,
+      },
+      validateRequest: (request) => {
+        expect(new URL(request.url).searchParams.getAll("responseStatus")).toEqual(["500", "503"]);
       },
     });
   });

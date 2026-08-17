@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-deprecated */
-import { prefixHeaders, wrapWithGlobalHeaders } from "./utils";
+import { assertNonEmptyId, prefixHeaders, serializeLabel, wrapWithGlobalHeaders } from "./utils";
 import type { Requester } from "./http";
 import type { BodyInit, FlowControl, HeadersInit, HTTPMethods } from "./types";
 import type { Duration } from "./duration";
@@ -45,8 +45,18 @@ export type Schedule = {
 
   /**
    * The label assigned to the schedule for filtering purposes.
+   *
+   * @deprecated Use `labels` instead. When a schedule has multiple labels, this
+   *   field only contains the first one.
    */
   label?: string;
+
+  /**
+   * The labels assigned to the schedule for filtering purposes.
+   *
+   * A schedule can have multiple labels when created with `label: string[]`.
+   */
+  labels?: string[];
 
   /**
    * The timestamp of the last scheduled execution.
@@ -177,11 +187,14 @@ export type CreateScheduleRequest = {
   flowControl?: FlowControl;
 
   /**
-   * Assign a label to the schedule to filter logs later.
+   * Assign one or more labels to the schedule to filter logs later.
+   *
+   * Pass an array to attach multiple labels to a single schedule; they are sent
+   * as a comma-separated value in the `Upstash-Label` header.
    *
    * @default undefined
    */
-  label?: string;
+  label?: string | string[];
 
   /**
    * Configure which fields should be redacted in logs.
@@ -293,7 +306,7 @@ export class Schedules {
     }
 
     if (request.label !== undefined) {
-      headers.set("Upstash-Label", request.label);
+      headers.set("Upstash-Label", serializeLabel(request.label));
     }
 
     if (request.redact !== undefined) {
@@ -329,6 +342,7 @@ export class Schedules {
    * Get a schedule
    */
   public async get(scheduleId: string): Promise<Schedule> {
+    assertNonEmptyId(scheduleId, "Schedule id");
     const schedule = await this.http.request<Schedule>({
       method: "GET",
       path: ["v2", "schedules", scheduleId],
@@ -359,6 +373,7 @@ export class Schedules {
    * Delete a schedule
    */
   public async delete(scheduleId: string): Promise<void> {
+    assertNonEmptyId(scheduleId, "Schedule id");
     return await this.http.request({
       method: "DELETE",
       path: ["v2", "schedules", scheduleId],

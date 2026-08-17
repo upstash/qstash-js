@@ -81,8 +81,8 @@ const unreachableMessage = (baseUrl: string, runtime?: Runtime): string => {
     `Either:\n` +
     `  1. Add the instrumentation hook to start it with your app:\n\n` +
     `     // instrumentation.ts\n` +
-    `     import { registerQStashDev } from "@upstash/qstash/nextjs";\n` +
-    `     export async function register() { await registerQStashDev(); }\n\n` +
+    `     import { startDevServer } from "@upstash/qstash";\n` +
+    `     export async function register() { await startDevServer(); }\n\n` +
     `  2. Or start it manually:\n\n` +
     `     ${manualStartCmd}\n`
   );

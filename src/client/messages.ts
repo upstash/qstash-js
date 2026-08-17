@@ -2,7 +2,7 @@ import type { PublishRequest } from "./client";
 import type { Requester } from "./http";
 import type { HTTPMethods } from "./types";
 import type { MessageCancelFilters } from "./filter-types";
-import { buildBulkActionFilterPayload } from "./utils";
+import { assertNonEmptyId, buildBulkActionFilterPayload } from "./utils";
 
 export type Message = {
   /**
@@ -159,6 +159,7 @@ export class Messages {
    * Get a message
    */
   public async get(messageId: string): Promise<Message> {
+    assertNonEmptyId(messageId, "Message id");
     const messagePayload = await this.http.request<MessagePayload>({
       method: "GET",
       path: ["v2", "messages", messageId],
@@ -180,6 +181,11 @@ export class Messages {
    * - A filter object: `cancel({ filter: { flowControlKey: "key", label: "label" } })`
    * - All messages: `cancel({ all: true })`
    *
+   * Filters support multiple values: pass an array to match a message whose value
+   * equals any of the given values (OR logic). Separate filters are combined with
+   * AND logic. For example:
+   * `cancel({ filter: { url: ["https://a.com", "https://b.com"], host: "a.com" } })`
+   *
    * Pass `count` to limit the number of messages processed per call (defaults to 100).
    * Call in a loop until `cancelled` is 0:
    *
@@ -196,6 +202,7 @@ export class Messages {
   ): Promise<{ cancelled: number }> {
     // Handle single string separately, for backwards compatibility on the response
     if (typeof request === "string") {
+      assertNonEmptyId(request, "Message id");
       return await this.http.request({
         method: "DELETE",
         path: ["v2", "messages", request],
@@ -221,6 +228,7 @@ export class Messages {
    * @deprecated Use `cancel(messageId: string)` instead
    */
   public async delete(messageId: string): Promise<void> {
+    assertNonEmptyId(messageId, "Message id");
     await this.http.request({
       method: "DELETE",
       path: ["v2", "messages", messageId],

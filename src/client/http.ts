@@ -38,7 +38,7 @@ export type UpstashRequest = {
    */
   method?: HTTPMethods;
 
-  query?: Record<string, string | number | boolean | Date | string[] | undefined>;
+  query?: Record<string, string | number | boolean | Date | string[] | number[] | undefined>;
 
   /**
    * if enabled, call `res.json()`
@@ -119,7 +119,7 @@ export class HttpClient implements Requester {
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       typeof config.retry === "boolean" && !config.retry
         ? {
-            attempts: 1,
+            attempts: 0,
             backoff: () => 0,
           }
         : {
@@ -238,7 +238,7 @@ export class HttpClient implements Requester {
             throw new QstashEmptyArrayError(key);
           }
           for (const item of value) {
-            url.searchParams.append(key, item);
+            url.searchParams.append(key, item.toString());
           }
         } else if (value instanceof Date) {
           url.searchParams.set(key, value.getTime().toString());

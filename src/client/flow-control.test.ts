@@ -3,7 +3,27 @@
 
 import { describe, expect, test } from "bun:test";
 import { Client } from "./client";
-import { eventually } from "./test-utils/eventually";
+import { MOCK_QSTASH_SERVER_URL, mockQStashServer, expectToReject } from "./workflow/test-utils";
+import { eventually } from "./test-utils";
+
+describe("FlowControl empty id guard", () => {
+  test("should not send request when get is called with an empty string", async () => {
+    await mockQStashServer({
+      execute: async () => {
+        const mockClient = new Client({
+          token: "mock-token",
+          baseUrl: MOCK_QSTASH_SERVER_URL,
+        });
+        await expectToReject(
+          () => mockClient.flowControl.get(""),
+          "Flow control key cannot be empty"
+        );
+      },
+      responseFields: { body: {}, status: 200 },
+      receivesRequest: false,
+    });
+  });
+});
 
 describe("FlowControl", () => {
   const client = new Client({ token: process.env.QSTASH_TOKEN! });
@@ -190,9 +210,12 @@ describe("FlowControl", () => {
         },
       });
 
-      // Reset the rate and verify it settles back to zero. The publish above is
-      // counted asynchronously, so it may land between the reset and the check;
-      // retry until the reset wins out.
+      // Pause delivery so in-flight dispatches don't keep consuming the rate
+      // after we reset it (otherwise rateCount creeps back up).
+      await client.flowControl.pause(flowControlKey);
+
+      // Reset the rate and verify it was cleared. We reset inside the retry loop
+      // so the reset takes effect even if the pause/reset are eventually consistent.
       await eventually(
         async () => {
           await client.flowControl.resetRate(flowControlKey);

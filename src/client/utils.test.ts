@@ -6,7 +6,7 @@ import {
   serializeLabel,
 } from "./utils";
 import { describe, expect, test } from "bun:test";
-import type { DLQBulkActionFilters } from "./filter-types";
+import type { DLQBulkActionFilters, MessageCancelFilters } from "./filter-types";
 
 describe("prefixHeaders", () => {
   test("should keep headers starting with upstash as they are - Upstash-", () => {
@@ -79,6 +79,42 @@ describe("buildFilterPayload", () => {
     const request: DLQBulkActionFilters = { filter: { callerIp: "1.2.3.4" } };
     const result = buildBulkActionFilterPayload(request);
     expect(result).toHaveProperty("callerIp", "1.2.3.4");
+  });
+
+  test("should pass multi-value cancel filters through as arrays", () => {
+    const request: MessageCancelFilters = {
+      filter: {
+        url: ["https://a.com", "https://b.com"],
+        callerIp: ["1.2.3.4", "5.6.7.8"],
+        flowControlKey: ["key-1", "key-2"],
+        scheduleId: ["scd_1", "scd_2"],
+        queueName: ["queue-1", "queue-2"],
+      },
+    };
+    const result = buildBulkActionFilterPayload(request);
+    expect(result).toHaveProperty("url", ["https://a.com", "https://b.com"]);
+    expect(result).toHaveProperty("callerIp", ["1.2.3.4", "5.6.7.8"]);
+    expect(result).toHaveProperty("flowControlKey", ["key-1", "key-2"]);
+    expect(result).toHaveProperty("scheduleId", ["scd_1", "scd_2"]);
+    expect(result).toHaveProperty("queueName", ["queue-1", "queue-2"]);
+  });
+
+  test("should rename multi-value urlGroup to topicName", () => {
+    const request: MessageCancelFilters = {
+      filter: { urlGroup: ["group-1", "group-2"] },
+    };
+    const result = buildBulkActionFilterPayload(request);
+    expect(result).toHaveProperty("topicName", ["group-1", "group-2"]);
+    expect(result).not.toHaveProperty("urlGroup");
+  });
+
+  test("should pass host and path cancel filters through", () => {
+    const request: MessageCancelFilters = {
+      filter: { host: ["a.com", "b.com"], path: "/webhook" },
+    };
+    const result = buildBulkActionFilterPayload(request);
+    expect(result).toHaveProperty("host", ["a.com", "b.com"]);
+    expect(result).toHaveProperty("path", "/webhook");
   });
 });
 

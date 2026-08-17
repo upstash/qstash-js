@@ -1,7 +1,12 @@
 import type { Requester } from "./http";
 import type { Message } from "./messages";
 import type { DLQBulkActionFilters, DLQListRequest } from "./filter-types";
-import { buildBulkActionFilterPayload, normalizeCursor, renameUrlGroup } from "./utils";
+import {
+  assertNonEmptyId,
+  buildBulkActionFilterPayload,
+  normalizeCursor,
+  renameUrlGroup,
+} from "./utils";
 
 type DlqMessage = Message & {
   /**
@@ -113,6 +118,7 @@ export class DLQ {
     // Handle single string via single-item endpoint to preserve 404 semantics.
     // For backwards compatibility
     if (typeof request === "string") {
+      assertNonEmptyId(request, "DLQ id");
       await this.http.request({
         method: "DELETE",
         path: ["v2", "dlq", request],

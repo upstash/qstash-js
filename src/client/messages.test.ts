@@ -2,9 +2,77 @@
 /* eslint-disable @typescript-eslint/no-magic-numbers */
 import { beforeAll, describe, expect, test } from "bun:test";
 import { Client } from "./client";
+import { MOCK_QSTASH_SERVER_URL, mockQStashServer, expectToReject } from "./workflow/test-utils";
 
 // Updated to use constants for magic numbers
 const SECONDS_IN_A_DAY = 24 * 60 * 60;
+
+describe("Messages empty id guard", () => {
+  test("should not send request when get is called with an empty string", async () => {
+    await mockQStashServer({
+      execute: async () => {
+        const mockClient = new Client({
+          token: "mock-token",
+          baseUrl: MOCK_QSTASH_SERVER_URL,
+        });
+        await expectToReject(() => mockClient.messages.get(""), "Message id cannot be empty");
+      },
+      responseFields: { body: {}, status: 200 },
+      receivesRequest: false,
+    });
+  });
+
+  test("should throw a QstashError (not a TypeError) when get is called with undefined", async () => {
+    await mockQStashServer({
+      execute: async () => {
+        const mockClient = new Client({
+          token: "mock-token",
+          baseUrl: MOCK_QSTASH_SERVER_URL,
+        });
+        // A JS consumer may accidentally pass a missing value; it should fail
+        // with the intended "cannot be empty" error, not a TypeError.
+        await expectToReject(
+          () => mockClient.messages.get(undefined as unknown as string),
+          "Message id cannot be empty"
+        );
+      },
+      responseFields: { body: {}, status: 200 },
+      receivesRequest: false,
+    });
+  });
+
+  test("should not send request when cancel is called with an empty string", async () => {
+    await mockQStashServer({
+      execute: async () => {
+        const mockClient = new Client({
+          token: "mock-token",
+          baseUrl: MOCK_QSTASH_SERVER_URL,
+        });
+        await expectToReject(() => mockClient.messages.cancel(""), "Message id cannot be empty");
+      },
+      responseFields: { body: {}, status: 200 },
+      receivesRequest: false,
+    });
+  });
+
+  test("should not send request when delete is called with an empty string", async () => {
+    await mockQStashServer({
+      execute: async () => {
+        const mockClient = new Client({
+          token: "mock-token",
+          baseUrl: MOCK_QSTASH_SERVER_URL,
+        });
+        await expectToReject(
+          // eslint-disable-next-line @typescript-eslint/no-deprecated
+          () => mockClient.messages.delete(""),
+          "Message id cannot be empty"
+        );
+      },
+      responseFields: { body: {}, status: 200 },
+      receivesRequest: false,
+    });
+  });
+});
 
 describe("Messages", () => {
   const client = new Client({ token: process.env.QSTASH_TOKEN! });
@@ -183,6 +251,79 @@ describe("Messages", () => {
       const cancelled = await client.messages.cancel({ all: true });
 
       expect(cancelled.cancelled).toBeGreaterThanOrEqual(1);
+    },
+    { timeout: 20_000 }
+  );
+
+  test(
+    "should cancel messages by multiple flowControlKeys (OR semantics)",
+    async () => {
+      const keyA = `cancel-multi-fc-a-${Date.now()}`;
+      const keyB = `cancel-multi-fc-b-${Date.now()}`;
+      const keyC = `cancel-multi-fc-c-${Date.now()}`;
+
+      for (const key of [keyA, keyB, keyC]) {
+        await client.publish({
+          url: "https://httpbin.org/status/200",
+          body: "hello",
+          delay: "10d",
+          flowControl: { key, parallelism: 1 },
+        });
+      }
+
+      // Cancelling [A, B] should match the A and B messages but NOT C.
+      const result = await client.messages.cancel({
+        filter: { flowControlKey: [keyA, keyB] },
+      });
+      expect(result.cancelled).toBe(2);
+
+      // C survived and can still be cancelled on its own.
+      const remaining = await client.messages.cancel({ filter: { flowControlKey: keyC } });
+      expect(remaining.cancelled).toBe(1);
+    },
+    { timeout: 20_000 }
+  );
+
+  test(
+    "should cancel messages by destination path (single and multi-value)",
+    async () => {
+      const stamp = Date.now();
+      const pathA = `/cancel-path-a-${stamp}`;
+      const pathB = `/cancel-path-b-${stamp}`;
+      const pathC = `/cancel-path-c-${stamp}`;
+
+      for (const path of [pathA, pathB, pathC]) {
+        await client.publish({ url: `https://example.com${path}`, body: "hello", delay: "10d" });
+      }
+
+      // Unique paths make this deterministic: [A, B] cancels exactly two.
+      const result = await client.messages.cancel({ filter: { path: [pathA, pathB] } });
+      expect(result.cancelled).toBe(2);
+
+      // C is untouched and matched by its own path.
+      const remaining = await client.messages.cancel({ filter: { path: pathC } });
+      expect(remaining.cancelled).toBe(1);
+    },
+    { timeout: 20_000 }
+  );
+
+  test(
+    "should cancel messages by destination host (host discriminates)",
+    async () => {
+      const stamp = Date.now();
+      const comPath = `/cancel-host-com-${stamp}`;
+      const orgPath = `/cancel-host-org-${stamp}`;
+
+      await client.publish({ url: `https://example.com${comPath}`, body: "hello", delay: "10d" });
+      await client.publish({ url: `https://example.org${orgPath}`, body: "hello", delay: "10d" });
+
+      // Cancelling host example.org must not touch the example.com message.
+      const orgResult = await client.messages.cancel({ filter: { host: "example.org" } });
+      expect(orgResult.cancelled).toBeGreaterThanOrEqual(1);
+
+      // The example.com message survived — proven by cancelling it via its path.
+      const comResult = await client.messages.cancel({ filter: { path: comPath } });
+      expect(comResult.cancelled).toBe(1);
     },
     { timeout: 20_000 }
   );

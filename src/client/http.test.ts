@@ -1,6 +1,35 @@
 /* eslint-disable @typescript-eslint/no-magic-numbers */
 import { describe, test, expect } from "bun:test";
 import { Client } from "./client";
+import { HttpClient } from "./http";
+
+const countFetchCalls = async (retry: false | { retries: number }) => {
+  let fetchCalls = 0;
+  const originalFetch = globalThis.fetch;
+
+  globalThis.fetch = (() => {
+    fetchCalls += 1;
+    return Promise.reject(new Error(`forced network failure ${fetchCalls}`));
+  }) as typeof fetch;
+
+  const client = new HttpClient({
+    baseUrl: "https://example.com",
+    authorization: "Bearer test-token",
+    retry,
+    devMode: false,
+  });
+
+  try {
+    await client.request({ method: "GET", path: ["v2", "messages", "msg_123"] });
+    throw new Error("expected request to throw");
+  } catch {
+    // request is expected to fail
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+
+  return fetchCalls;
+};
 
 describe("http", () => {
   test("should terminate after sleeping 5 times", () => {
@@ -21,5 +50,13 @@ describe("http", () => {
 
     // if the Promise.race doesn't throw, that means the retries took longer than 4.5s
     expect(throws).toThrow("Was there a typo in the url or port?");
+  });
+
+  test("should call fetch exactly once when retry is disabled", async () => {
+    expect(await countFetchCalls(false)).toBe(1);
+  });
+
+  test("should call fetch twice when retries is 1", async () => {
+    expect(await countFetchCalls({ retries: 1 })).toBe(2);
   });
 });

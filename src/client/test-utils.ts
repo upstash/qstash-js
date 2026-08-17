@@ -1,13 +1,5 @@
 const EVENTUALLY_TIMEOUT = 5000;
 
-/**
- * Retries `function_` until it stops throwing or the timeout elapses.
- *
- * Useful in integration tests for asserting on eventually-consistent state
- * (e.g. a message landing in the DLQ or appearing in the logs) without a fixed
- * sleep. The callback should perform its assertions; a throw means "not ready
- * yet" and triggers another attempt after `interval` ms.
- */
 export const eventually = async function (
   function_: () => Promise<void> | void,
   options: {

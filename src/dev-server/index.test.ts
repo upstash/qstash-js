@@ -1,6 +1,7 @@
 /* eslint-disable no-console */
-import { describe, test, expect, beforeAll, afterAll } from "bun:test";
+import { describe, test, expect, beforeAll, afterAll, spyOn } from "bun:test";
 import { Client } from "../client/client";
+import * as health from "./health";
 import { getClientCredentials } from "../client/multi-region/outgoing";
 import { getReceiverSigningKeys } from "../client/multi-region/incoming";
 import {
@@ -9,7 +10,7 @@ import {
   getRuntime,
   getDevelopmentCredentials,
   ensureDevelopmentServer,
-  stopDevelopmentServer,
+  stopDevServer,
 } from "./index";
 import { DEV_CREDENTIALS, DEFAULT_DEV_PORT } from "./constants";
 
@@ -151,21 +152,29 @@ describe("ensureDevelopmentServer", () => {
     await ensureDevelopmentServer({}, undefined);
   });
 
-  test("returns singleton promise on repeated calls", async () => {
-    const p1 = ensureDevelopmentServer(undefined, true);
-    const p2 = ensureDevelopmentServer(undefined, true);
-    expect(p1).toBe(p2);
-    // Await so the spawn actually finishes before afterAll tries to stop it,
-    // otherwise the child registers after stopDevelopmentServer is a no-op
-    // and the binary is left running on the default port.
-    await p1;
+  test("dedupes concurrent calls into a single startup", async () => {
+    stopDevServer(); // reset the singleton so this test owns the startup
+    // isDevServerRunning is the first step of the (singleton) startup pipeline,
+    // so sharing the singleton means it runs exactly once across both calls.
+    const runningSpy = spyOn(health, "isDevServerRunning");
+    try {
+      const p1 = ensureDevelopmentServer(undefined, true);
+      const p2 = ensureDevelopmentServer(undefined, true);
+      // Await so the spawn actually finishes before afterAll tries to stop it,
+      // otherwise the child registers after stopDevServer is a no-op and the
+      // binary is left running on the default port.
+      await Promise.all([p1, p2]);
+      expect(runningSpy).toHaveBeenCalledTimes(1);
+    } finally {
+      runningSpy.mockRestore();
+    }
   });
 
   // The singleton-promise test above actually spawns the dev binary on the
   // default port. Stop it so the integration block below can rebind on a
   // non-default port and so other test files don't inherit a held 8080.
   afterAll(() => {
-    stopDevelopmentServer();
+    stopDevServer();
   });
 });
 
@@ -231,7 +240,7 @@ describe("dev server integration", () => {
   afterAll(() => {
     // Kill the spawned binary so it doesn't hold the port for the rest of the
     // test process (workflow test-utils and others bind 8080 / would race here).
-    stopDevelopmentServer();
+    stopDevServer();
     if (savedPort === undefined) delete process.env.QSTASH_DEV_PORT;
     else process.env.QSTASH_DEV_PORT = savedPort;
   });

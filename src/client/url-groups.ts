@@ -1,4 +1,5 @@
 import type { Requester } from "./http";
+import { assertNonEmptyId } from "./utils";
 
 export type Endpoint = {
   /**
@@ -108,6 +109,7 @@ export class UrlGroups {
    * Get a single url group
    */
   public async get(name: string): Promise<UrlGroup> {
+    assertNonEmptyId(name, "Url group name");
     return await this.http.request<UrlGroup>({
       method: "GET",
       path: ["v2", "topics", name],
@@ -118,6 +120,7 @@ export class UrlGroups {
    * Delete a url group
    */
   public async delete(name: string): Promise<void> {
+    assertNonEmptyId(name, "Url group name");
     return await this.http.request({
       method: "DELETE",
       path: ["v2", "topics", name],
