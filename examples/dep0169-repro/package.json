@@ -1,0 +1,15 @@
+{
+  "name": "dep0169-repro",
+  "private": true,
+  "type": "module",
+  "description": "Minimal repro for the reported DEP0169 (url.parse) warning with @upstash/qstash 2.11.0 / crypto-js 4.2.0 on Node 24",
+  "scripts": {
+    "start": "node --trace-deprecation index.mjs",
+    "start:demo-warning": "node --trace-deprecation index.mjs --demo-warning"
+  },
+  "dependencies": {
+    "@upstash/qstash": "2.11.0",
+    "crypto-js": "4.2.0",
+    "jose": "^5.2.3"
+  }
+}

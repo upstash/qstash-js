@@ -1,7 +1,20 @@
 import * as jose from "jose";
-import crypto from "crypto-js";
 import { getSafeEnvironment } from "./client/utils";
 import { getReceiverSigningKeys } from "./client/multi-region";
+
+/**
+ * Computes the SHA-256 hash of the given string and returns it as an unpadded
+ * base64url-encoded value, using the Web Crypto API (`crypto.subtle`).
+ *
+ * `globalThis.crypto` is available on browsers, Cloudflare Workers, Vercel Edge,
+ * Bun, Deno and Node.js >= 19 (Node.js 18 and older are end-of-life). Relying
+ * on the global keeps the bundle free of `node:` specifiers, which edge
+ * runtimes refuse to load.
+ */
+async function sha256Base64url(body: string): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(body));
+  return jose.base64url.encode(new Uint8Array(digest));
+}
 
 /**
  * Necessary to verify the signature of a request.
@@ -119,7 +132,7 @@ export class Receiver {
     } catch {
       payload = await this.verifyWithKey(signingKeys.nextSigningKey, request);
     }
-    this.verifyBodyAndUrl(payload, request);
+    await this.verifyBodyAndUrl(payload, request);
     return true;
   }
 
@@ -139,7 +152,7 @@ export class Receiver {
     return jwt.payload;
   }
 
-  private verifyBodyAndUrl(payload: jose.JWTPayload, request: VerifyRequest) {
+  private async verifyBodyAndUrl(payload: jose.JWTPayload, request: VerifyRequest) {
     const p = payload as {
       iss: string;
       sub: string;
@@ -154,7 +167,7 @@ export class Receiver {
       throw new SignatureError(`invalid subject: ${p.sub}, want: ${request.url}`);
     }
 
-    const bodyHash = crypto.SHA256(request.body).toString(crypto.enc.Base64url);
+    const bodyHash = await sha256Base64url(request.body);
 
     const padding = new RegExp(/=+$/);
 
