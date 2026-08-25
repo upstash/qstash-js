@@ -27,13 +27,13 @@ export const verifySignatureSolidjs = (
   handler: APIHandler,
   config?: VerifySignatureConfig
 ): APIHandler => {
-  const currentSigningKey = config?.currentSigningKey ?? process.env.QSTASH_CURRENT_SIGNING_KEY;
-  const nextSigningKey = config?.nextSigningKey ?? process.env.QSTASH_NEXT_SIGNING_KEY;
+  const environment = getSafeEnvironment();
+  const currentSigningKey = config?.currentSigningKey ?? environment.QSTASH_CURRENT_SIGNING_KEY;
+  const nextSigningKey = config?.nextSigningKey ?? environment.QSTASH_NEXT_SIGNING_KEY;
 
   // Skip the throw in dev mode (config flag OR QSTASH_DEV env) — Receiver auto-picks dev keys.
-  const environment = getSafeEnvironment();
   const devMode = shouldUseDevelopmentMode(config?.devMode, environment);
-  if (!devMode && !currentSigningKey && !nextSigningKey && !process.env.QSTASH_REGION) {
+  if (!devMode && !currentSigningKey && !nextSigningKey && !environment.QSTASH_REGION) {
     throw new Error(withDevModeHint(MISSING_SIGNING_KEYS_MESSAGE, environment));
   }
 

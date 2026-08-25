@@ -26,7 +26,7 @@ import { getClientCredentials } from "./multi-region";
 
 import { shouldUseDevelopmentMode, ensureDevelopmentServer, DEV_PREFIX } from "../dev-server";
 
-type ClientConfig = {
+export type ClientConfig = {
   /**
    * Url of the QStash api server.
    *

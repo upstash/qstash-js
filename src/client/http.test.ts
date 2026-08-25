@@ -109,8 +109,9 @@ describe("http", () => {
 
     test("should keep the server error when the request's own key is empty", async () => {
       // `chat` doesn't validate the provider token, so an unset OPENAI_API_KEY
-      // sends `Bearer ` to the provider. That 401 is still not about QStash.
-      const error = await requestWith401("Bearer qstash-token", { Authorization: "Bearer " });
+      // sends `Bearer ` to the provider. That 401 is about the provider, not
+      // QStash, even when the QStash token is missing too.
+      const error = await requestWith401("Bearer ", { Authorization: "Bearer " });
 
       expect(error.message).toBe("Unauthorized");
     });

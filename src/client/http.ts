@@ -96,8 +96,8 @@ export type HttpClientConfig = {
 const UNAUTHORIZED = 401;
 
 /** Whether an `Authorization` header actually carries a bearer token. */
-const hasBearerToken = (authorization: string | null): boolean =>
-  (authorization ?? "").replace(/^Bearer/, "").trim().length > 0;
+const hasBearerToken = (authorization: string): boolean =>
+  authorization.replace(/^Bearer/, "").trim().length > 0;
 
 export class HttpClient implements Requester {
   public readonly baseUrl: string;
@@ -196,7 +196,7 @@ export class HttpClient implements Requester {
     response: Response;
     error: Error | undefined;
   }> => {
-    const [url, requestOptions, outgoingAuthorization] = this.processRequest(request);
+    const [url, requestOptions, usedOwnCredentials] = this.processRequest(request);
 
     let response: Response | undefined = undefined;
     let error: Error | undefined = undefined;
@@ -216,7 +216,7 @@ export class HttpClient implements Requester {
     if (!response) {
       throw error ?? new Error("Exhausted all retries");
     }
-    await this.checkResponse(response, outgoingAuthorization);
+    await this.checkResponse(response, usedOwnCredentials);
 
     return {
       response,
@@ -224,10 +224,13 @@ export class HttpClient implements Requester {
     };
   };
 
-  private processRequest = (request: UpstashRequest): [string, RequestOptions, string | null] => {
+  private processRequest = (request: UpstashRequest): [string, RequestOptions, boolean] => {
     //@ts-expect-error caused by undici and bunjs type overlap
     const headers = new Headers(request.headers);
-    if (!headers.has("Authorization")) {
+    // Tracked rather than compared afterwards: `Headers` normalizes values, so
+    // the header we set doesn't always read back as the string we passed in.
+    const usedOwnCredentials = !headers.has("Authorization");
+    if (usedOwnCredentials) {
       headers.set("Authorization", this.authorization);
     }
     const requestOptions: RequestOptions = {
@@ -255,10 +258,10 @@ export class HttpClient implements Requester {
         }
       }
     }
-    return [url.toString(), requestOptions, headers.get("Authorization")];
+    return [url.toString(), requestOptions, usedOwnCredentials];
   };
 
-  private async checkResponse(response: Response, outgoingAuthorization: string | null) {
+  private async checkResponse(response: Response, usedOwnCredentials: boolean) {
     if (response.status === 429) {
       if (response.headers.get("x-ratelimit-limit-requests")) {
         throw new QstashChatRatelimitError({
@@ -287,16 +290,15 @@ export class HttpClient implements Requester {
     // A 401 with no token at all is a setup problem, not a bad token: replace
     // the server's generic body with something actionable. This is the error
     // most users hit first, e.g. when triggering a workflow with no credentials.
-    // Only when the header we sent is our own empty one: `chat` requests carry a
-    // provider's key, and a 401 from that provider says nothing about QStash.
-    // Compared trimmed: `Headers` strips surrounding whitespace, so an empty
-    // `Bearer ` comes back out as `Bearer`.
-    const sentOwnCredentials = outgoingAuthorization?.trim() === this.authorization.trim();
+    // Only when we sent our own empty header: `chat` requests carry a provider's
+    // key, and a 401 from that provider says nothing about the QStash token.
     if (
       response.status === UNAUTHORIZED &&
-      sentOwnCredentials &&
+      usedOwnCredentials &&
       !hasBearerToken(this.authorization)
     ) {
+      // Drained so the socket is released, as on every other error path here.
+      await response.text();
       throw new QstashError(
         withDevModeHint(MISSING_TOKEN_MESSAGE, getSafeEnvironment()),
         response.status
