@@ -31,7 +31,7 @@ const countFetchCalls = async (retry: false | { retries: number }) => {
   return fetchCalls;
 };
 
-const requestWith401 = async (authorization: string) => {
+const requestWith401 = async (authorization: string, requestHeaders?: Record<string, string>) => {
   const originalFetch = globalThis.fetch;
   globalThis.fetch = (() =>
     Promise.resolve(new Response("Unauthorized", { status: 401 }))) as typeof fetch;
@@ -44,7 +44,11 @@ const requestWith401 = async (authorization: string) => {
   });
 
   try {
-    await client.request({ method: "GET", path: ["v2", "messages", "msg_123"] });
+    await client.request({
+      method: "GET",
+      path: ["v2", "messages", "msg_123"],
+      headers: requestHeaders,
+    });
     throw new Error("expected request to throw");
   } catch (error) {
     return error as Error;
@@ -91,6 +95,14 @@ describe("http", () => {
 
     test("should keep the server error when a token is set", async () => {
       const error = await requestWith401("Bearer test-token");
+
+      expect(error.message).toBe("Unauthorized");
+    });
+
+    test("should keep the server error when the request carries its own key", async () => {
+      // e.g. `client.chat` against a custom LLM provider: the 401 comes from the
+      // provider, not from QStash, even when no QStash token is configured.
+      const error = await requestWith401("Bearer ", { Authorization: "Bearer provider-key" });
 
       expect(error.message).toBe("Unauthorized");
     });

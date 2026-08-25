@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { Receiver } from "../../receiver";
 import { Client } from "../client";
-import { formatWorkflowError } from "../error";
-import { DEFAULT_RETRIES } from "./constants";
+import { formatWorkflowError, QstashError } from "../error";
+import { DEFAULT_RETRIES, UNAUTHORIZED } from "./constants";
 import { DisabledWorkflowContext, WorkflowContext } from "./context";
 import { WorkflowLogger } from "./logger";
 import type {
@@ -271,7 +271,11 @@ export const serve = <
     try {
       return await handler(request);
     } catch (error) {
-      console.error(error);
+      // A 401 without a token is a setup problem, not a bug: the stack trace is
+      // noise on top of an already actionable message.
+      console.error(
+        error instanceof QstashError && error.status === UNAUTHORIZED ? error.message : error
+      );
       return new Response(JSON.stringify(formatWorkflowError(error)), { status: 500 }) as TResponse;
     }
   };

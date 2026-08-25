@@ -93,6 +93,12 @@ export type HttpClientConfig = {
   devMode?: boolean;
 };
 
+const UNAUTHORIZED = 401;
+
+/** Whether an `Authorization` header actually carries a bearer token. */
+const hasBearerToken = (authorization: string | null): boolean =>
+  (authorization ?? "").replace(/^Bearer/, "").trim().length > 0;
+
 export class HttpClient implements Requester {
   public readonly baseUrl: string;
 
@@ -101,9 +107,6 @@ export class HttpClient implements Requester {
   public readonly options?: { backend?: string };
 
   public readonly devMode?: boolean;
-
-  /** Whether `authorization` carries an actual token, used to explain 401s. */
-  private readonly hasToken: boolean;
 
   public retry: {
     attempts: number;
@@ -117,8 +120,6 @@ export class HttpClient implements Requester {
     this.baseUrl = config.baseUrl.replace(/\/$/, "");
 
     this.authorization = config.authorization;
-
-    this.hasToken = config.authorization.replace(/^Bearer/, "").trim().length > 0;
 
     this.devMode = config.devMode;
 
@@ -195,7 +196,7 @@ export class HttpClient implements Requester {
     response: Response;
     error: Error | undefined;
   }> => {
-    const [url, requestOptions] = this.processRequest(request);
+    const [url, requestOptions, outgoingAuthorization] = this.processRequest(request);
 
     let response: Response | undefined = undefined;
     let error: Error | undefined = undefined;
@@ -215,7 +216,7 @@ export class HttpClient implements Requester {
     if (!response) {
       throw error ?? new Error("Exhausted all retries");
     }
-    await this.checkResponse(response);
+    await this.checkResponse(response, outgoingAuthorization);
 
     return {
       response,
@@ -223,7 +224,7 @@ export class HttpClient implements Requester {
     };
   };
 
-  private processRequest = (request: UpstashRequest): [string, RequestOptions] => {
+  private processRequest = (request: UpstashRequest): [string, RequestOptions, string | null] => {
     //@ts-expect-error caused by undici and bunjs type overlap
     const headers = new Headers(request.headers);
     if (!headers.has("Authorization")) {
@@ -254,10 +255,10 @@ export class HttpClient implements Requester {
         }
       }
     }
-    return [url.toString(), requestOptions];
+    return [url.toString(), requestOptions, headers.get("Authorization")];
   };
 
-  private async checkResponse(response: Response) {
+  private async checkResponse(response: Response, outgoingAuthorization: string | null) {
     if (response.status === 429) {
       if (response.headers.get("x-ratelimit-limit-requests")) {
         throw new QstashChatRatelimitError({
@@ -286,7 +287,9 @@ export class HttpClient implements Requester {
     // A 401 with no token at all is a setup problem, not a bad token: replace
     // the server's generic body with something actionable. This is the error
     // most users hit first, e.g. when triggering a workflow with no credentials.
-    if (response.status === 401 && !this.hasToken) {
+    // Checks the header we actually sent: chat requests carry a provider's own
+    // key, and a 401 from that provider has nothing to do with the QStash token.
+    if (response.status === UNAUTHORIZED && !hasBearerToken(outgoingAuthorization)) {
       throw new QstashError(
         withDevModeHint(MISSING_TOKEN_MESSAGE, getSafeEnvironment()),
         response.status
