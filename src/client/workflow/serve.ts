@@ -2,7 +2,8 @@
 import { Receiver } from "../../receiver";
 import { Client } from "../client";
 import { formatWorkflowError, QstashError } from "../error";
-import { DEFAULT_RETRIES, UNAUTHORIZED } from "./constants";
+import { DEFAULT_RETRIES } from "./constants";
+import { MISSING_TOKEN_MESSAGE } from "../multi-region";
 import { DisabledWorkflowContext, WorkflowContext } from "./context";
 import { WorkflowLogger } from "./logger";
 import type {
@@ -271,11 +272,12 @@ export const serve = <
     try {
       return await handler(request);
     } catch (error) {
-      // A 401 without a token is a setup problem, not a bug: the stack trace is
-      // noise on top of an already actionable message.
-      console.error(
-        error instanceof QstashError && error.status === UNAUTHORIZED ? error.message : error
-      );
+      // A missing token is a setup problem, not a bug: the stack trace is noise
+      // on top of an already actionable message. Any other 401 (revoked or
+      // mistyped token) keeps its stack, since that one does need debugging.
+      const isMissingCredentials =
+        error instanceof QstashError && error.message.startsWith(MISSING_TOKEN_MESSAGE);
+      console.error(isMissingCredentials ? error.message : error);
       return new Response(JSON.stringify(formatWorkflowError(error)), { status: 500 }) as TResponse;
     }
   };

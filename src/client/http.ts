@@ -287,9 +287,16 @@ export class HttpClient implements Requester {
     // A 401 with no token at all is a setup problem, not a bad token: replace
     // the server's generic body with something actionable. This is the error
     // most users hit first, e.g. when triggering a workflow with no credentials.
-    // Checks the header we actually sent: chat requests carry a provider's own
-    // key, and a 401 from that provider has nothing to do with the QStash token.
-    if (response.status === UNAUTHORIZED && !hasBearerToken(outgoingAuthorization)) {
+    // Only when the header we sent is our own empty one: `chat` requests carry a
+    // provider's key, and a 401 from that provider says nothing about QStash.
+    // Compared trimmed: `Headers` strips surrounding whitespace, so an empty
+    // `Bearer ` comes back out as `Bearer`.
+    const sentOwnCredentials = outgoingAuthorization?.trim() === this.authorization.trim();
+    if (
+      response.status === UNAUTHORIZED &&
+      sentOwnCredentials &&
+      !hasBearerToken(this.authorization)
+    ) {
       throw new QstashError(
         withDevModeHint(MISSING_TOKEN_MESSAGE, getSafeEnvironment()),
         response.status

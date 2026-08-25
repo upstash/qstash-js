@@ -11,6 +11,3 @@ export const DEFAULT_CONTENT_TYPE = "application/json";
 export const NO_CONCURRENCY = 1;
 export const NOT_SET = "not-set";
 export const DEFAULT_RETRIES = 3;
-
-/** HTTP 401, used to keep a missing-credentials error terse in logs. */
-export const UNAUTHORIZED = 401;

@@ -11,6 +11,7 @@ import type { WorkflowServeOptions, RouteFunction } from "../src/client/workflow
 import { serve as serveBase } from "../src/client/workflow";
 import { shouldUseDevelopmentMode, startDevServer } from "../src/dev-server";
 import { MISSING_SIGNING_KEYS_MESSAGE, withDevModeHint } from "../src/client/multi-region";
+import { getSafeEnvironment } from "../src/client/utils";
 
 export type VerifySignatureConfig = {
   currentSigningKey?: string;
@@ -53,9 +54,10 @@ export function verifySignature(
   const nextSigningKey = config?.nextSigningKey ?? process.env.QSTASH_NEXT_SIGNING_KEY;
 
   // Skip the throw in dev mode (config flag OR QSTASH_DEV env) — Receiver auto-picks dev keys.
-  const devMode = shouldUseDevelopmentMode(config?.devMode, process.env);
+  const environment = getSafeEnvironment();
+  const devMode = shouldUseDevelopmentMode(config?.devMode, environment);
   if (!devMode && !currentSigningKey && !nextSigningKey && !process.env.QSTASH_REGION) {
-    throw new Error(withDevModeHint(MISSING_SIGNING_KEYS_MESSAGE, process.env));
+    throw new Error(withDevModeHint(MISSING_SIGNING_KEYS_MESSAGE, environment));
   }
 
   const receiver = new Receiver({
@@ -118,9 +120,10 @@ export function verifySignatureEdge(
   const nextSigningKey = config?.nextSigningKey ?? process.env.QSTASH_NEXT_SIGNING_KEY;
 
   // Skip the throw in dev mode (config flag OR QSTASH_DEV env) — Receiver auto-picks dev keys.
-  const devMode = shouldUseDevelopmentMode(config?.devMode, process.env);
+  const environment = getSafeEnvironment();
+  const devMode = shouldUseDevelopmentMode(config?.devMode, environment);
   if (!devMode && !currentSigningKey && !nextSigningKey && !process.env.QSTASH_REGION) {
-    throw new Error(withDevModeHint(MISSING_SIGNING_KEYS_MESSAGE, process.env));
+    throw new Error(withDevModeHint(MISSING_SIGNING_KEYS_MESSAGE, environment));
   }
 
   const receiver = new Receiver({
@@ -171,9 +174,10 @@ export function verifySignatureAppRouter(
   const nextSigningKey = config?.nextSigningKey ?? process.env.QSTASH_NEXT_SIGNING_KEY;
 
   // Skip the throw in dev mode (config flag OR QSTASH_DEV env) — Receiver auto-picks dev keys.
-  const devMode = shouldUseDevelopmentMode(config?.devMode, process.env);
+  const environment = getSafeEnvironment();
+  const devMode = shouldUseDevelopmentMode(config?.devMode, environment);
   if (!devMode && !currentSigningKey && !nextSigningKey && !process.env.QSTASH_REGION) {
-    throw new Error(withDevModeHint(MISSING_SIGNING_KEYS_MESSAGE, process.env));
+    throw new Error(withDevModeHint(MISSING_SIGNING_KEYS_MESSAGE, environment));
   }
 
   const receiver = new Receiver({

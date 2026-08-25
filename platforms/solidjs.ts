@@ -1,12 +1,13 @@
 import type { APIEvent, APIHandler } from "@solidjs/start/server";
 import { Receiver } from "../src";
 import { MISSING_SIGNING_KEYS_MESSAGE, withDevModeHint } from "../src/client/multi-region";
+import { getSafeEnvironment } from "../src/client/utils";
 import { shouldUseDevelopmentMode } from "../src/dev-server";
 
 import type { RouteFunction, WorkflowServeOptions } from "../src/client/workflow";
 import { serve as serveBase } from "../src/client/workflow";
 
-type VerifySignatureConfig = {
+export type VerifySignatureConfig = {
   currentSigningKey?: string;
   nextSigningKey?: string;
   clockTolerance?: number;
@@ -30,9 +31,10 @@ export const verifySignatureSolidjs = (
   const nextSigningKey = config?.nextSigningKey ?? process.env.QSTASH_NEXT_SIGNING_KEY;
 
   // Skip the throw in dev mode (config flag OR QSTASH_DEV env) — Receiver auto-picks dev keys.
-  const devMode = shouldUseDevelopmentMode(config?.devMode, process.env);
+  const environment = getSafeEnvironment();
+  const devMode = shouldUseDevelopmentMode(config?.devMode, environment);
   if (!devMode && !currentSigningKey && !nextSigningKey && !process.env.QSTASH_REGION) {
-    throw new Error(withDevModeHint(MISSING_SIGNING_KEYS_MESSAGE, process.env));
+    throw new Error(withDevModeHint(MISSING_SIGNING_KEYS_MESSAGE, environment));
   }
 
   const receiver = new Receiver({
