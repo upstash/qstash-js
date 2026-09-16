@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-magic-numbers */
 import { describe, test, expect } from "bun:test";
-import { Client } from "./client";
 import { HttpClient } from "./http";
 
 const countFetchCalls = async (retry: false | { retries: number }) => {
@@ -58,24 +57,39 @@ const requestWith401 = async (authorization: string, requestHeaders?: Record<str
 };
 
 describe("http", () => {
-  test("should terminate after sleeping 5 times", () => {
-    // init a cient which will always get errors
-    const client = new Client({
-      baseUrl: "https:/",
-      token: "",
-      // set retry explicitly
+  test("should stop after five retries and preserve the final network error", async () => {
+    const originalFetch = globalThis.fetch;
+    const networkError = new Error("forced network failure");
+    let fetchCalls = 0;
+    const backoffCalls: number[] = [];
+    globalThis.fetch = (() => {
+      fetchCalls += 1;
+      return Promise.reject(networkError);
+    }) as typeof fetch;
+
+    const client = new HttpClient({
+      baseUrl: "https://example.com",
+      authorization: "Bearer test-token",
+      devMode: false,
       retry: {
         retries: 5,
-        backoff: (retryCount) => Math.exp(retryCount) * 50,
+        backoff: (retryCount) => {
+          backoffCalls.push(retryCount);
+          return 0;
+        },
       },
     });
 
-    // get should take 4.287 seconds and terminate before the timeout.
-    const throws = () =>
-      Promise.race([client.dlq.listMessages(), new Promise((r) => setTimeout(r, 4500))]);
-
-    // if the Promise.race doesn't throw, that means the retries took longer than 4.5s
-    expect(throws).toThrow("Was there a typo in the url or port?");
+    try {
+      const result: unknown = await client
+        .request({ method: "GET", path: ["v2", "dlq"] })
+        .catch((error: unknown) => error);
+      expect(result).toBe(networkError);
+      expect(fetchCalls).toBe(6);
+      expect(backoffCalls).toEqual([0, 1, 2, 3, 4]);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
   });
 
   test("should call fetch exactly once when retry is disabled", async () => {
