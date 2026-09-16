@@ -4,7 +4,15 @@ import { QstashError } from "./error";
 import type { HttpClient } from "./http";
 import { captureWarnings, stubEnvironment } from "./test-utils";
 
-const MANAGED_KEYS = ["QSTASH_TOKEN", "QSTASH_URL", "QSTASH_DEV", "QSTASH_REGION", "NODE_ENV"];
+const MANAGED_KEYS = [
+  "QSTASH_TOKEN",
+  "QSTASH_URL",
+  "QSTASH_DEV",
+  "QSTASH_REGION",
+  "US_EAST_1_QSTASH_TOKEN",
+  "US_EAST_1_QSTASH_URL",
+  "NODE_ENV",
+];
 
 describe("Client.fromEnv", () => {
   let environment: Record<string, string | undefined>;
@@ -34,6 +42,17 @@ describe("Client.fromEnv", () => {
     const client = Client.fromEnv({ retry: false });
 
     expect((client.http as HttpClient).retry.attempts).toBe(0);
+  });
+
+  test("should read region-prefixed credentials", () => {
+    environment.QSTASH_REGION = "US_EAST_1";
+    environment.US_EAST_1_QSTASH_TOKEN = "regional-token";
+    environment.US_EAST_1_QSTASH_URL = "https://qstash-us-east-1.upstash.io";
+
+    const client = Client.fromEnv();
+
+    expect((client.http as HttpClient).authorization).toBe("Bearer regional-token");
+    expect((client.http as HttpClient).baseUrl).toBe("https://qstash-us-east-1.upstash.io");
   });
 
   test("should throw with the dev mode hint when no token is set", () => {

@@ -22,21 +22,18 @@ const DEV_MODE_HINT =
 /**
  * Whether suggesting the local dev server makes sense.
  *
- * An unset NODE_ENV only counts as development on Node/Bun: plain scripts
- * often don't set it, while a production Cloudflare Worker or browser bundle
- * has no `process.env` at all and can't run the dev server anyway.
+ * Only suggest the local server in explicit development on Node/Bun.
+ * Browser and edge runtimes cannot spawn it.
  */
 export const isDevelopmentEnvironment = (
   environment: Record<string, string | undefined>
 ): boolean => {
-  const nodeEnvironment = environment.NODE_ENV;
-  if (nodeEnvironment) return nodeEnvironment !== "production";
-  return getRuntime() === "nodejs";
+  return environment.NODE_ENV === "development" && getRuntime() === "nodejs";
 };
 
 /**
  * Appends the "you can use dev mode" hint to a missing-credentials message
- * when we're not running in production.
+ * when local development is explicitly enabled.
  */
 export const withDevModeHint = (
   message: string,

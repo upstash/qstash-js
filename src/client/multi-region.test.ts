@@ -443,13 +443,17 @@ describe("Receiver/Verifier - Multi-Region Signing Keys Resolution", () => {
       expect(warnings[0]).toInclude("QSTASH_DEV=true");
     });
 
-    test("should suggest dev mode when NODE_ENV is not set", () => {
-      const environment = createEnvironment({});
+    test.each([undefined, "test", "staging"])(
+      "should not suggest dev mode when NODE_ENV is %s",
+      (nodeEnvironment) => {
+        const environment = { ...createEnvironment({}), NODE_ENV: nodeEnvironment };
 
-      const warnings = captureWarnings(() => getClientCredentials({ environment }));
+        const warnings = captureWarnings(() => getClientCredentials({ environment }));
 
-      expect(warnings[0]).toInclude("QSTASH_DEV=true");
-    });
+        expect(warnings[0]).toInclude("client token is not set");
+        expect(warnings[0]).not.toInclude("QSTASH_DEV=true");
+      }
+    );
 
     test("should not suggest dev mode in production", () => {
       const environment = createEnvironment({ NODE_ENV: "production" });
@@ -520,6 +524,9 @@ describe("Receiver/Verifier - Multi-Region Signing Keys Resolution", () => {
 
       try {
         expect(withDevModeHint(MISSING_TOKEN_MESSAGE, {})).toBe(MISSING_TOKEN_MESSAGE);
+        expect(withDevModeHint(MISSING_TOKEN_MESSAGE, { NODE_ENV: "development" })).toBe(
+          MISSING_TOKEN_MESSAGE
+        );
       } finally {
         Object.defineProperty(globalThis, "navigator", {
           value: originalNavigator,
