@@ -3,6 +3,8 @@
 import { beforeAll, describe, expect, test } from "bun:test";
 import { Client } from "./client";
 import { MOCK_QSTASH_SERVER_URL, mockQStashServer, expectToReject } from "./workflow/test-utils";
+import { eventually } from "./test-utils";
+import type { State } from "./types";
 
 // Updated to use constants for magic numbers
 const SECONDS_IN_A_DAY = 24 * 60 * 60;
@@ -77,6 +79,23 @@ describe("Messages empty id guard", () => {
 describe("Messages", () => {
   const client = new Client({ token: process.env.QSTASH_TOKEN! });
 
+  /**
+   * Filter-based bulk cancel (`host`, `path`, `label`, ...) is served by the
+   * events index, which is populated asynchronously a few seconds after a
+   * message is published or cancelled. `messages.get(id)` sees the message
+   * immediately, so it cannot be used to wait. Poll the logs until the
+   * message reaches the given state before issuing a filter-based cancel.
+   */
+  const waitForLog = async (messageId: string, state: State) => {
+    await eventually(
+      async () => {
+        const { logs } = await client.logs({ filter: { messageId, state } });
+        expect(logs.length).toBeGreaterThan(0);
+      },
+      { timeout: 15_000, interval: 500 }
+    );
+  };
+
   beforeAll(async () => {
     await client.messages.cancel({ all: true });
   });
@@ -125,28 +144,18 @@ describe("Messages", () => {
   );
 
   test(
-    "should cancel many and all",
+    "should cancel many by id and the rest by filter",
     async () => {
-      const messages = await client.batchJSON([
-        {
+      const label = `cancel-many-${Date.now()}`;
+      const messages = await client.batchJSON(
+        [1, 2, 3].map((n) => ({
           url: `https://example.com`,
-          body: { hello: "world" },
-          timeout: 90,
-          delay: 10,
-        },
-        {
-          url: `https://example.com`,
-          body: { hello: "world" },
-          timeout: 90,
-          delay: 10,
-        },
-        {
-          url: `https://example.com`,
-          body: { hello: "world" },
+          body: { n },
           timeout: 90,
           delay: "10d",
-        },
-      ]);
+          label,
+        }))
+      );
 
       expect(messages.length).toBe(3);
 
@@ -157,10 +166,20 @@ describe("Messages", () => {
 
       expect(cancelled.cancelled).toBe(2);
 
-      const cancelledAll = await client.messages.cancel({ all: true });
-      expect(cancelledAll.cancelled).toBe(1);
+      // The label filter is answered from the events index: wait until it has
+      // seen the two cancellations and the third message before relying on it.
+      await Promise.all([
+        waitForLog(messages[0].messageId, "CANCELED"),
+        waitForLog(messages[1].messageId, "CANCELED"),
+        waitForLog(messages[2].messageId, "CREATED"),
+      ]);
+
+      // Scoped by label so concurrent test runs on the same account cannot
+      // change the count.
+      const cancelledRest = await client.messages.cancel({ filter: { label } });
+      expect(cancelledRest.cancelled).toBe(1);
     },
-    { timeout: 20_000 }
+    { timeout: 30_000 }
   );
 
   test("should create message with flow control", async () => {
@@ -314,8 +333,23 @@ describe("Messages", () => {
       const comPath = `/cancel-host-com-${stamp}`;
       const orgPath = `/cancel-host-org-${stamp}`;
 
-      await client.publish({ url: `https://example.com${comPath}`, body: "hello", delay: "10d" });
-      await client.publish({ url: `https://example.org${orgPath}`, body: "hello", delay: "10d" });
+      const com = await client.publish({
+        url: `https://example.com${comPath}`,
+        body: "hello",
+        delay: "10d",
+      });
+      const org = await client.publish({
+        url: `https://example.org${orgPath}`,
+        body: "hello",
+        delay: "10d",
+      });
+
+      // host/path filters are answered from the events index, which lags
+      // publish by a few seconds. Cancelling before it catches up returns 0.
+      await Promise.all([
+        waitForLog(com.messageId, "CREATED"),
+        waitForLog(org.messageId, "CREATED"),
+      ]);
 
       // Cancelling host example.org must not touch the example.com message.
       const orgResult = await client.messages.cancel({ filter: { host: "example.org" } });
