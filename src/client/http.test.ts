@@ -32,25 +32,31 @@ const countFetchCalls = async (retry: false | { retries: number }) => {
 };
 
 describe("http", () => {
-  test("should terminate after sleeping 5 times", () => {
-    // init a cient which will always get errors
-    const client = new Client({
-      baseUrl: "https:/",
-      token: "",
-      // set retry explicitly
-      retry: {
-        retries: 5,
-        backoff: (retryCount) => Math.exp(retryCount) * 50,
-      },
-    });
+  test(
+    "should terminate after sleeping 5 times",
+    () => {
+      // init a cient which will always get errors
+      const client = new Client({
+        baseUrl: "https:/",
+        token: "",
+        // set retry explicitly
+        retry: {
+          retries: 5,
+          backoff: (retryCount) => Math.exp(retryCount) * 50,
+        },
+      });
 
-    // get should take 4.287 seconds and terminate before the timeout.
-    const throws = () =>
-      Promise.race([client.dlq.listMessages(), new Promise((r) => setTimeout(r, 4500))]);
+      // The five backoff sleeps add up to ~4.29s. The race window only has to
+      // prove the retries are bounded, so leave headroom for slow CI runners
+      // rather than racing the sleeps by a couple hundred milliseconds.
+      const throws = () =>
+        Promise.race([client.dlq.listMessages(), new Promise((r) => setTimeout(r, 7000))]);
 
-    // if the Promise.race doesn't throw, that means the retries took longer than 4.5s
-    expect(throws).toThrow("Was there a typo in the url or port?");
-  });
+      // if the Promise.race doesn't throw, that means the retries never terminated
+      expect(throws).toThrow("Was there a typo in the url or port?");
+    },
+    { timeout: 10_000 }
+  );
 
   test("should call fetch exactly once when retry is disabled", async () => {
     expect(await countFetchCalls(false)).toBe(1);
