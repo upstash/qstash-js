@@ -16,7 +16,13 @@
   "module": "./index.mjs",
   "types": "./index.d.ts",
   "files": [
-    "./*"
+    "./*",
+    "!src/**/*.test.*",
+    "!src/**/*.test-d.*",
+    "!src/**/*.spec.*",
+    "!src/**/test-utils.*",
+    "!src/**/__tests__/**",
+    "!src/**/__snapshots__/**"
   ],
   "exports": {
     ".": {
@@ -68,12 +74,13 @@
     "upstash"
   ],
   "scripts": {
-    "build": "tsup && cp README.md ./dist/ && cp package.json ./dist/ && cp LICENSE ./dist/",
+    "build": "tsup && mkdir -p dist/src && cp -R src platforms version.ts dist/src/ && cp README.md ./dist/ && cp package.json ./dist/ && cp LICENSE ./dist/",
     "test": "bun test src",
     "fmt": "prettier --write .",
     "lint": "tsc && eslint \"{src,platforms}/**/*.{js,ts,tsx}\"  --quiet --fix",
     "check-exports": "bun run build && cd dist && attw -P",
-    "prepare": "husky"
+    "prepare": "husky",
+    "prepack": "giget gh:upstash/docs/qstash/sdks/ts docs --force-clean 1>&2"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.2.2",
@@ -89,6 +96,7 @@
     "bun-types": "^1.1.7",
     "eslint": "^9.10.0",
     "eslint-plugin-unicorn": "^51.0.1",
+    "giget": "3.3.1",
     "h3": "^1.12.0",
     "hono": "^4.5.8",
     "husky": "^9.0.10",
@@ -103,5 +111,8 @@
     "neverthrow": "^7.0.1",
     "crypto-js": ">=4.2.0",
     "jose": "^5.2.3"
+  },
+  "directories": {
+    "doc": "./docs"
   }
 }

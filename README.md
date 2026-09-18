@@ -151,6 +151,11 @@ See [Local Development](https://docs.upstash.com/qstash/howto/local-development)
 
 See [the documentation](https://docs.upstash.com/qstash) for details.
 
+The npm package includes documentation in `node_modules/@upstash/qstash/docs/`
+and TypeScript source in `node_modules/@upstash/qstash/src/` for offline reference
+and coding agents. Start with `docs/overview.mdx`; the SDK entrypoint is
+in `src/src/index.ts` and platform adapters are in `src/platforms/`.
+
 ## Telemetry
 
 This sdk sends anonymous telemetry headers to help us improve your experience.
