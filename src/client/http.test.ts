@@ -34,7 +34,7 @@ const countFetchCalls = async (retry: false | { retries: number }) => {
 describe("http", () => {
   test(
     "should terminate after sleeping 5 times",
-    () => {
+    async () => {
       // init a cient which will always get errors
       const client = new Client({
         baseUrl: "https:/",
@@ -49,11 +49,25 @@ describe("http", () => {
       // The five backoff sleeps add up to ~4.29s. The race window only has to
       // prove the retries are bounded, so leave headroom for slow CI runners
       // rather than racing the sleeps by a couple hundred milliseconds.
-      const throws = () =>
-        Promise.race([client.dlq.listMessages(), new Promise((r) => setTimeout(r, 7000))]);
+      const TIMED_OUT = Symbol("timed out");
+      const outcome = await Promise.race([
+        client.dlq.listMessages().then(
+          () => "resolved",
+          (error: unknown) => error
+        ),
+        new Promise<typeof TIMED_OUT>((r) => {
+          setTimeout(() => {
+            r(TIMED_OUT);
+          }, 7000);
+        }),
+      ]);
 
-      // if the Promise.race doesn't throw, that means the retries never terminated
-      expect(throws).toThrow("Was there a typo in the url or port?");
+      // Once the retries are exhausted the underlying network error must
+      // surface. Its wording is Bun's and changed between 1.3 ("Was there a
+      // typo in the url or port?") and 1.4 ("getaddrinfo ENOTFOUND v2"), so
+      // only assert that an error came back before the window closed.
+      expect(outcome).not.toBe(TIMED_OUT);
+      expect(outcome).toBeInstanceOf(Error);
     },
     { timeout: 10_000 }
   );
