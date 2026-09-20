@@ -433,17 +433,20 @@ describe("Receiver/Verifier - Multi-Region Signing Keys Resolution", () => {
   });
 
   describe("Missing credentials messages", () => {
-    test("should suggest dev mode when token is missing in development", () => {
-      const environment = createEnvironment({ NODE_ENV: "development" });
+    test.each([undefined, "development"])(
+      "should suggest dev mode when NODE_ENV is %s",
+      (nodeEnvironment) => {
+        const environment = { ...createEnvironment({}), NODE_ENV: nodeEnvironment };
 
-      const warnings = captureWarnings(() => getClientCredentials({ environment }));
+        const warnings = captureWarnings(() => getClientCredentials({ environment }));
 
-      expect(warnings).toHaveLength(1);
-      expect(warnings[0]).toInclude("client token is not set");
-      expect(warnings[0]).toInclude("QSTASH_DEV=true");
-    });
+        expect(warnings).toHaveLength(1);
+        expect(warnings[0]).toInclude("client token is not set");
+        expect(warnings[0]).toInclude("QSTASH_DEV=true");
+      }
+    );
 
-    test.each([undefined, "test", "staging"])(
+    test.each(["production", "test", "staging"])(
       "should not suggest dev mode when NODE_ENV is %s",
       (nodeEnvironment) => {
         const environment = { ...createEnvironment({}), NODE_ENV: nodeEnvironment };

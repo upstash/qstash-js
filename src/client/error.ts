@@ -16,6 +16,17 @@ export class QstashError extends Error {
   }
 }
 
+/** A setup error that consumers can distinguish from invalid credentials. */
+export class QstashMissingCredentialsError extends QstashError {
+  public readonly code = "QSTASH_MISSING_CREDENTIALS";
+  public readonly alreadyLogged: boolean;
+
+  constructor(message: string, options: { status?: number; alreadyLogged?: boolean } = {}) {
+    super(message, options.status);
+    this.alreadyLogged = options.alreadyLogged ?? false;
+  }
+}
+
 export class QstashRatelimitError extends QstashError {
   public limit: string | null;
   public remaining: string | null;

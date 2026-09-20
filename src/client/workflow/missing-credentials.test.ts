@@ -3,9 +3,11 @@ import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
 import type { Mock } from "bun:test";
 import { serve } from "./serve";
 import { stubEnvironment } from "../test-utils";
+import { Client } from "../client";
 
 const UNAUTHORIZED = 401;
 const INTERNAL_SERVER_ERROR = 500;
+const REQUEST_COUNT = 2;
 
 describe("Workflow missing credentials", () => {
   let environment: Record<string, string | undefined>;
@@ -43,25 +45,45 @@ describe("Workflow missing credentials", () => {
     restore();
   });
 
-  test.each(["development", "production"])(
-    "preserves the missing-token message in %s responses",
+  test.each([undefined, "development", "production"])(
+    "returns missing-token errors without repeating the setup warning when NODE_ENV is %s",
     async (nodeEnvironment) => {
-      environment.NODE_ENV = nodeEnvironment;
+      if (nodeEnvironment) environment.NODE_ENV = nodeEnvironment;
       const handler = serve(async (context) => {
         await context.sleep("wait", 1);
       });
 
-      const response = await handler(
-        new Request("https://workflow.example.test", { method: "POST", body: "{}" })
-      );
-      const body = (await response.json()) as { message: string };
+      for (let attempt = 0; attempt < REQUEST_COUNT; attempt++) {
+        const response = await handler(
+          new Request("https://workflow.example.test", { method: "POST", body: "{}" })
+        );
+        const body = (await response.json()) as { message: string; stack?: string };
 
-      expect(response.status).toBe(INTERNAL_SERVER_ERROR);
-      expect(body.message).toInclude("client token is not set");
-      expect(body.message.includes("QSTASH_DEV=true")).toBe(nodeEnvironment === "development");
-      expect(errorLog).toHaveBeenCalledWith(body.message);
+        expect(response.status).toBe(INTERNAL_SERVER_ERROR);
+        expect(body.message).toInclude("client token is not set");
+        expect(body.message.includes("QSTASH_DEV=true")).toBe(nodeEnvironment !== "production");
+        expect(body).not.toHaveProperty("stack");
+      }
+      expect(warningLog).toHaveBeenCalledTimes(1);
+      expect(errorLog).not.toHaveBeenCalled();
     }
   );
+
+  test("does not warn about a discarded default client when a client is supplied", async () => {
+    const qstashClient = new Client({ token: "configured-token", devMode: false });
+    const handler = serve(
+      async (context) => {
+        await context.sleep("wait", 1);
+      },
+      { qstashClient }
+    );
+    const response = await handler(
+      new Request("https://workflow.example.test", { method: "POST", body: "{}" })
+    );
+    expect(((await response.json()) as { message: string }).message).toBe("Unauthorized");
+    expect(warningLog).not.toHaveBeenCalled();
+    expect(errorLog).toHaveBeenCalledTimes(1);
+  });
 
   test("preserves the server error and stack for an invalid configured token", async () => {
     environment.NODE_ENV = "development";

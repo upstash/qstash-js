@@ -1,9 +1,8 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { Receiver } from "../../receiver";
 import { Client } from "../client";
-import { formatWorkflowError, QstashError } from "../error";
+import { formatWorkflowError } from "../error";
 import { DEFAULT_RETRIES } from "./constants";
-import { MISSING_TOKEN_MESSAGE } from "../multi-region";
 import { DisabledWorkflowContext, WorkflowContext } from "./context";
 import { WorkflowLogger } from "./logger";
 import type {
@@ -49,10 +48,12 @@ export const processOptions = <TResponse extends Response = Response, TInitialPa
   );
 
   return {
-    qstashClient: new Client({
-      baseUrl: environment.QSTASH_URL!,
-      token: environment.QSTASH_TOKEN!,
-    }),
+    qstashClient:
+      options?.qstashClient ??
+      new Client({
+        baseUrl: environment.QSTASH_URL!,
+        token: environment.QSTASH_TOKEN!,
+      }),
     onStepFinish: (workflowRunId: string, _finishCondition: FinishCondition) =>
       new Response(JSON.stringify({ workflowRunId }), {
         status: 200,
@@ -272,12 +273,20 @@ export const serve = <
     try {
       return await handler(request);
     } catch (error) {
-      // A missing token is a setup problem, not a bug: the stack trace is noise
-      // on top of an already actionable message. Any other 401 (revoked or
-      // mistyped token) keeps its stack, since that one does need debugging.
-      const isMissingCredentials =
-        error instanceof QstashError && error.message.startsWith(MISSING_TOKEN_MESSAGE);
-      console.error(isMissingCredentials ? error.message : error);
+      // Keep returning the actionable error, but don't repeat a setup warning
+      // that the client already printed when it was constructed.
+      // Check the marker so clients imported from another bundle work too.
+      if (
+        error instanceof Error &&
+        "code" in error &&
+        error.code === "QSTASH_MISSING_CREDENTIALS"
+      ) {
+        if (!("alreadyLogged" in error && error.alreadyLogged === true)) {
+          console.error(error.message);
+        }
+      } else {
+        console.error(error);
+      }
       return new Response(JSON.stringify(formatWorkflowError(error)), { status: 500 }) as TResponse;
     }
   };

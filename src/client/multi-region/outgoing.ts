@@ -7,7 +7,7 @@ import {
   readClientEnvironmentVariables,
   withDevModeHint,
 } from "./utils";
-import { QstashError } from "../error";
+import { QstashMissingCredentialsError } from "../error";
 
 import { shouldUseDevelopmentMode, getDevelopmentCredentials, DEV_PREFIX } from "../../dev-server";
 
@@ -130,7 +130,9 @@ const verifyCredentials = (
   if (!token) {
     if (onMissingToken === "throw") {
       // `fromEnv` can't take a token, so only point at the env variable.
-      throw new QstashError(withDevModeHint(MISSING_TOKEN_FROM_ENV_MESSAGE, environment));
+      throw new QstashMissingCredentialsError(
+        withDevModeHint(MISSING_TOKEN_FROM_ENV_MESSAGE, environment)
+      );
     }
     console.warn(withDevModeHint(MISSING_TOKEN_MESSAGE, environment));
   }

@@ -85,6 +85,8 @@ bindings (Cloudflare Workers) pass the token to `new Client()` instead.
 
 No credentials at all? You don't need any while developing: see
 [Local Development](#local-development) below.
+Missing-credential messages suggest this option on Node.js and Bun when
+`NODE_ENV` is unset or `development`.
 
 ### Receiving a message
 

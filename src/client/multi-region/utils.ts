@@ -22,18 +22,21 @@ const DEV_MODE_HINT =
 /**
  * Whether suggesting the local dev server makes sense.
  *
- * Only suggest the local server in explicit development on Node/Bun.
+ * Suggest the local server in development and plain Node/Bun scripts.
  * Browser and edge runtimes cannot spawn it.
  */
 export const isDevelopmentEnvironment = (
   environment: Record<string, string | undefined>
 ): boolean => {
-  return environment.NODE_ENV === "development" && getRuntime() === "nodejs";
+  return (
+    (environment.NODE_ENV === undefined || environment.NODE_ENV === "development") &&
+    getRuntime() === "nodejs"
+  );
 };
 
 /**
  * Appends the "you can use dev mode" hint to a missing-credentials message
- * when local development is explicitly enabled.
+ * when the runtime and environment support local development.
  */
 export const withDevModeHint = (
   message: string,

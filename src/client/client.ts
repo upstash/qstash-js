@@ -434,6 +434,7 @@ export class Client {
       retry: config?.retry,
       baseUrl,
       authorization: `Bearer ${token}`,
+      missingTokenAlreadyLogged: !token,
       //@ts-expect-error caused by undici and bunjs type overlap
       headers: prefixHeaders(new Headers(config?.headers ?? {})),
       //@ts-expect-error caused by undici and bunjs type overlap

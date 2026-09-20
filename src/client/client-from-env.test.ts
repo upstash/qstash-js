@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { Client } from "./client";
-import { QstashError } from "./error";
+import { QstashError, QstashMissingCredentialsError } from "./error";
 import type { HttpClient } from "./http";
 import { captureWarnings, stubEnvironment } from "./test-utils";
 
@@ -55,12 +55,23 @@ describe("Client.fromEnv", () => {
     expect((client.http as HttpClient).baseUrl).toBe("https://qstash-us-east-1.upstash.io");
   });
 
-  test("should throw with the dev mode hint when no token is set", () => {
-    environment.NODE_ENV = "development";
-
-    expect(() => Client.fromEnv()).toThrow(/Unable to find environment variable: QSTASH_TOKEN/);
-    expect(() => Client.fromEnv()).toThrow(/QSTASH_DEV=true/);
-  });
+  test.each([undefined, "development"])(
+    "should throw an unlogged setup error when NODE_ENV is %s",
+    (nodeEnvironment) => {
+      if (nodeEnvironment) environment.NODE_ENV = nodeEnvironment;
+      try {
+        Client.fromEnv();
+        expect.unreachable("missing credentials should throw");
+      } catch (error) {
+        expect(error).toBeInstanceOf(QstashMissingCredentialsError);
+        expect((error as QstashMissingCredentialsError).alreadyLogged).toBe(false);
+        expect((error as Error).message).toInclude(
+          "Unable to find environment variable: QSTASH_TOKEN"
+        );
+        expect((error as Error).message).toInclude("QSTASH_DEV=true");
+      }
+    }
+  );
 
   test("should throw without the dev mode hint in production", () => {
     environment.NODE_ENV = "production";
