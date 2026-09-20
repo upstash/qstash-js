@@ -1,5 +1,7 @@
 /* eslint-disable @typescript-eslint/no-magic-numbers */
 import { describe, test, expect } from "bun:test";
+import { createServer } from "node:http";
+import { Client } from "./client";
 import { HttpClient } from "./http";
 
 const countFetchCalls = async (retry: false | { retries: number }) => {
@@ -31,38 +33,47 @@ const countFetchCalls = async (retry: false | { retries: number }) => {
 };
 
 describe("http", () => {
-  test("should stop after five retries and preserve the final network error", async () => {
-    const originalFetch = globalThis.fetch;
-    const networkError = new Error("forced network failure");
-    let fetchCalls = 0;
+  test("should stop after five retries over a real connection", async () => {
+    const requests: { url: string | undefined; authorization: string | undefined }[] = [];
     const backoffCalls: number[] = [];
-    globalThis.fetch = (() => {
-      fetchCalls += 1;
-      return Promise.reject(networkError);
-    }) as typeof fetch;
-
-    const client = new HttpClient({
-      baseUrl: "https://example.com",
-      authorization: "Bearer test-token",
-      devMode: false,
-      retry: {
-        retries: 5,
-        backoff: (retryCount) => {
-          backoffCalls.push(retryCount);
-          return 0;
-        },
-      },
+    // Exercise Client -> fetch -> TCP. Closing before an HTTP response causes
+    // a real transport failure without relying on DNS or runtime error wording.
+    const server = createServer((request) => {
+      requests.push({ url: request.url, authorization: request.headers.authorization });
+      request.socket.destroy();
     });
-
+    await new Promise<void>((resolve, reject) => {
+      server.once("error", reject);
+      server.listen(0, "127.0.0.1", resolve);
+    });
     try {
-      const result: unknown = await client
-        .request({ method: "GET", path: ["v2", "dlq"] })
-        .catch((error: unknown) => error);
-      expect(result).toBe(networkError);
-      expect(fetchCalls).toBe(6);
+      const address = server.address();
+      if (!address || typeof address === "string") throw new Error("No server port assigned");
+      const client = new Client({
+        baseUrl: `http://127.0.0.1:${address.port}`,
+        token: "test-token",
+        devMode: false,
+        retry: {
+          retries: 5,
+          backoff: (retryCount) => {
+            backoffCalls.push(retryCount);
+            return (retryCount + 1) * 10;
+          },
+        },
+      });
+      const error: unknown = await client.dlq.listMessages().catch((error: unknown) => error);
+      expect(error).toBeInstanceOf(Error);
+      expect(requests).toHaveLength(6);
+      expect(requests.every((request) => request.url === "/v2/dlq")).toBe(true);
+      expect(requests.every((request) => request.authorization === "Bearer test-token")).toBe(true);
       expect(backoffCalls).toEqual([0, 1, 2, 3, 4]);
     } finally {
-      globalThis.fetch = originalFetch;
+      await new Promise<void>((resolve, reject) => {
+        server.close((error) => {
+          if (error) reject(error);
+          else resolve();
+        });
+      });
     }
   });
 
