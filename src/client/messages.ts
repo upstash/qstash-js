@@ -186,15 +186,17 @@ export class Messages {
    * AND logic. For example:
    * `cancel({ filter: { url: ["https://a.com", "https://b.com"], host: "a.com" } })`
    *
-   * Pass `count` to limit the number of messages processed per call (defaults to 100).
-   * Call in a loop until `cancelled` is 0:
+   * A filter-based cancel (including `all: true`) processes all matching pending
+   * messages in one call. The legacy `count` option is ignored by the server.
+   * The request waits for the bulk action to finish; no batching loop is needed.
+   *
+   * For filter-based requests, `cancelled` is a snapshot of matching in-progress
+   * messages when the request was accepted, not a progress counter. Cancelling
+   * by message ID or an array of IDs returns the actual number cancelled.
    *
    * ```ts
-   * let cancelled: number;
-   * do {
-   *   const result = await messages.cancel({ all: true, count: 100 });
-   *   cancelled = result.cancelled;
-   * } while (cancelled > 0);
+   * await messages.cancel({ filter: { label: "my-label" } });
+   * await messages.cancel({ all: true });
    * ```
    */
   public async cancel(
