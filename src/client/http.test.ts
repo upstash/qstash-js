@@ -33,7 +33,7 @@ const countFetchCalls = async (retry: false | { retries: number }) => {
 };
 
 describe("http", () => {
-  test("should stop after five retries over a real connection", async () => {
+  test("should wait for five backoffs and stop retrying over a real connection", async () => {
     const requests: { url: string | undefined; authorization: string | undefined }[] = [];
     const backoffCalls: number[] = [];
     // Exercise Client -> fetch -> TCP. Closing before an HTTP response causes
@@ -61,12 +61,17 @@ describe("http", () => {
           },
         },
       });
+      const startedAt = performance.now();
       const error: unknown = await client.dlq.listMessages().catch((error: unknown) => error);
+      const elapsed = performance.now() - startedAt;
       expect(error).toBeInstanceOf(Error);
       expect(requests).toHaveLength(6);
       expect(requests.every((request) => request.url === "/v2/dlq")).toBe(true);
       expect(requests.every((request) => request.authorization === "Bearer test-token")).toBe(true);
       expect(backoffCalls).toEqual([0, 1, 2, 3, 4]);
+      // Backoffs total 150 ms. Allow 5 ms of timer tolerance and ample CI overhead.
+      expect(elapsed).toBeGreaterThanOrEqual(145);
+      expect(elapsed).toBeLessThan(4500);
     } finally {
       await new Promise<void>((resolve, reject) => {
         server.close((error) => {
