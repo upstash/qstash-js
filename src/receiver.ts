@@ -1,18 +1,32 @@
 import * as jose from "jose";
+import { subtle as uncryptoSubtle } from "uncrypto";
 import { getSafeEnvironment } from "./client/utils";
 import { getReceiverSigningKeys } from "./client/multi-region";
 
 /**
  * Computes the SHA-256 hash of the given string and returns it as an unpadded
- * base64url-encoded value, using the Web Crypto API (`crypto.subtle`).
+ * base64url-encoded value, using the Web Crypto API.
  *
- * `globalThis.crypto` is available on browsers, Cloudflare Workers, Vercel Edge,
- * Bun, Deno and Node.js >= 19 (Node.js 18 and older are end-of-life). Relying
- * on the global keeps the bundle free of `node:` specifiers, which edge
- * runtimes refuse to load.
+ * `subtle` comes from `uncrypto`, which picks the implementation through
+ * package `exports` conditions: edge, worker, browser, Bun and Deno builds get
+ * `globalThis.crypto.subtle`, while Node.js gets `node:crypto`'s
+ * `webcrypto.subtle`. That keeps Node.js 16/18 working (they have no global
+ * Web Crypto) without putting a `node:` specifier in edge bundles, which
+ * Vercel's edge analyzer rejects.
+ *
+ * `uncrypto` must stay external to our build (it is, as a regular
+ * dependency). Bundling it would resolve the conditions at our build time and
+ * bake one variant into every output.
+ *
+ * This replaces `crypto-js`, which relied on the deprecated `url.parse()` and
+ * triggered Node.js DEP0169 warnings.
  */
+// `uncrypto` declares its export as `Crypto["subtle"]`, which resolves to an
+// untyped value without the DOM lib. Pin it to the runtime's Web Crypto type.
+const subtle = uncryptoSubtle as typeof globalThis.crypto.subtle;
+
 async function sha256Base64url(body: string): Promise<string> {
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(body));
+  const digest = await subtle.digest("SHA-256", new TextEncoder().encode(body));
   return jose.base64url.encode(new Uint8Array(digest));
 }
 

@@ -12,9 +12,6 @@
   "bugs": {
     "url": "https://github.com/upstash/qstash-js/issues"
   },
-  "engines": {
-    "node": ">=20"
-  },
   "main": "./index.js",
   "module": "./index.mjs",
   "types": "./index.d.ts",
@@ -102,7 +99,8 @@
     "vitest": "latest"
   },
   "dependencies": {
+    "jose": "^5.2.3",
     "neverthrow": "^7.0.1",
-    "jose": "^5.2.3"
+    "uncrypto": "^0.1.3"
   }
 }
