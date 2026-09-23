@@ -22,16 +22,14 @@ const DEV_MODE_HINT =
 /**
  * Whether suggesting the local dev server makes sense.
  *
- * Suggest the local server in development and plain Node/Bun scripts.
- * Browser and edge runtimes cannot spawn it.
+ * Only when NODE_ENV is explicitly `development`: production often leaves it
+ * unset, and QSTASH_DEV makes the Receiver trust the public dev signing keys.
+ * Browser and edge runtimes cannot spawn the local server.
  */
 export const isDevelopmentEnvironment = (
   environment: Record<string, string | undefined>
 ): boolean => {
-  return (
-    (environment.NODE_ENV === undefined || environment.NODE_ENV === "development") &&
-    getRuntime() === "nodejs"
-  );
+  return environment.NODE_ENV === "development" && getRuntime() === "nodejs";
 };
 
 /**

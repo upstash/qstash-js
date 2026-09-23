@@ -92,8 +92,6 @@ export type HttpClientConfig = {
   headers?: Headers;
   telemetryHeaders?: Headers;
   devMode?: boolean;
-  /** The client constructor already warned that its token is missing. */
-  missingTokenAlreadyLogged?: boolean;
 };
 
 const UNAUTHORIZED = 401;
@@ -111,8 +109,6 @@ export class HttpClient implements Requester {
 
   public readonly devMode?: boolean;
 
-  private readonly missingTokenAlreadyLogged: boolean;
-
   public retry: {
     attempts: number;
     backoff: (retryCount: number) => number;
@@ -127,7 +123,6 @@ export class HttpClient implements Requester {
     this.authorization = config.authorization;
 
     this.devMode = config.devMode;
-    this.missingTokenAlreadyLogged = config.missingTokenAlreadyLogged ?? false;
 
     this.retry =
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
@@ -307,7 +302,7 @@ export class HttpClient implements Requester {
       await response.text();
       throw new QstashMissingCredentialsError(
         withDevModeHint(MISSING_TOKEN_MESSAGE, getSafeEnvironment()),
-        { status: response.status, alreadyLogged: this.missingTokenAlreadyLogged }
+        response.status
       );
     }
 

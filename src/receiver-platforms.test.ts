@@ -8,6 +8,8 @@ import { verifySignatureH3 } from "../platforms/h3";
 import { verifySignatureSvelte } from "../platforms/svelte";
 import { verifySignatureSolidjs } from "../platforms/solidjs";
 import { stubEnvironment } from "./client/test-utils";
+import { QstashMissingCredentialsError } from "./client/error";
+import { Receiver } from "./receiver";
 
 const handler = () => Promise.resolve(new Response("ok"));
 const platforms = [
@@ -42,11 +44,12 @@ describe.each(platforms)("%s missing signing keys", (_name, createHandler) => {
   });
 
   test("suggests dev mode when credentials are missing in development", () => {
+    expect(() => createHandler()).toThrow(QstashMissingCredentialsError);
     expect(() => createHandler()).toThrow(/QSTASH_DEV=true/);
   });
 
-  test("omits the dev hint in production", () => {
-    environment.NODE_ENV = "production";
+  test.each([undefined, "production"])("omits the dev hint when NODE_ENV is %s", (nodeEnv) => {
+    environment.NODE_ENV = nodeEnv;
     try {
       createHandler();
       expect.unreachable("missing signing keys should throw");
@@ -66,5 +69,32 @@ describe.each(platforms)("%s missing signing keys", (_name, createHandler) => {
   test("honors an explicit devMode false over the environment", () => {
     environment.QSTASH_DEV = "true";
     expect(() => createHandler({ devMode: false })).toThrow(/No signing keys available/);
+  });
+});
+
+describe("Receiver missing signing keys", () => {
+  let restore: () => void;
+
+  beforeEach(() => {
+    ({ restore } = stubEnvironment([
+      "QSTASH_DEV",
+      "QSTASH_REGION",
+      "QSTASH_CURRENT_SIGNING_KEY",
+      "QSTASH_NEXT_SIGNING_KEY",
+    ]));
+  });
+
+  afterEach(() => {
+    restore();
+  });
+
+  test("throws a typed setup error", async () => {
+    const receiver = new Receiver({ devMode: false });
+    const verification = receiver.verify({ signature: "signature", body: "" });
+    expect(verification).rejects.toBeInstanceOf(QstashMissingCredentialsError);
+    expect(verification).rejects.toThrow(/No signing keys available/);
+    await verification.catch(() => {
+      // Asserted above.
+    });
   });
 });

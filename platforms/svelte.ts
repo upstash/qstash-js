@@ -1,8 +1,7 @@
 import type { RequestHandler } from "@sveltejs/kit";
 import { Receiver } from "../src";
-import { MISSING_SIGNING_KEYS_MESSAGE, withDevModeHint } from "../src/client/multi-region";
+import { getVerifierSigningKeys } from "../src/client/multi-region";
 import { getSafeEnvironment } from "../src/client/utils";
-import { shouldUseDevelopmentMode } from "../src/dev-server";
 
 import type { RouteFunction, WorkflowServeOptions } from "../src/client/workflow";
 import { serve as serveBase } from "../src/client/workflow";
@@ -30,15 +29,10 @@ export const verifySignatureSvelte = <
   handler: RequestHandler<Parameters, RouteId>,
   config?: VerifySignatureConfig
 ) => {
-  const environment = getSafeEnvironment();
-  const currentSigningKey = config?.currentSigningKey ?? environment.QSTASH_CURRENT_SIGNING_KEY;
-  const nextSigningKey = config?.nextSigningKey ?? environment.QSTASH_NEXT_SIGNING_KEY;
-
-  // Skip the throw in dev mode (config flag OR QSTASH_DEV env) — Receiver auto-picks dev keys.
-  const devMode = shouldUseDevelopmentMode(config?.devMode, environment);
-  if (!devMode && !currentSigningKey && !nextSigningKey && !environment.QSTASH_REGION) {
-    throw new Error(withDevModeHint(MISSING_SIGNING_KEYS_MESSAGE, environment));
-  }
+  const { currentSigningKey, nextSigningKey } = getVerifierSigningKeys(
+    config,
+    getSafeEnvironment()
+  );
 
   const receiver = new Receiver({
     currentSigningKey,

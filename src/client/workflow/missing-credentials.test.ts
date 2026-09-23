@@ -46,7 +46,7 @@ describe("Workflow missing credentials", () => {
   });
 
   test.each([undefined, "development", "production"])(
-    "returns missing-token errors without repeating the setup warning when NODE_ENV is %s",
+    "returns and logs missing-token errors without the stack when NODE_ENV is %s",
     async (nodeEnvironment) => {
       if (nodeEnvironment) environment.NODE_ENV = nodeEnvironment;
       const handler = serve(async (context) => {
@@ -61,11 +61,13 @@ describe("Workflow missing credentials", () => {
 
         expect(response.status).toBe(INTERNAL_SERVER_ERROR);
         expect(body.message).toInclude("client token is not set");
-        expect(body.message.includes("QSTASH_DEV=true")).toBe(nodeEnvironment !== "production");
+        expect(body.message.includes("QSTASH_DEV=true")).toBe(nodeEnvironment === "development");
         expect(body).not.toHaveProperty("stack");
       }
       expect(warningLog).toHaveBeenCalledTimes(1);
-      expect(errorLog).not.toHaveBeenCalled();
+      // Each failed request leaves a log line, without a stack trace.
+      expect(errorLog).toHaveBeenCalledTimes(REQUEST_COUNT);
+      expect(errorLog).toHaveBeenCalledWith(expect.stringContaining("client token is not set"));
     }
   );
 

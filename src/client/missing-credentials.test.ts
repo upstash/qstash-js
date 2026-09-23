@@ -13,7 +13,7 @@ afterEach(() => {
 });
 
 describe("missing credential metadata", () => {
-  test("marks errors from a warned client without logging again for each request", async () => {
+  test("warns once at construction and throws a typed error for each request", async () => {
     const { restore } = stubEnvironment(["QSTASH_TOKEN", "QSTASH_REGION", "QSTASH_DEV"]);
     globalThis.fetch = (() =>
       Promise.resolve(new Response("Unauthorized", { status: UNAUTHORIZED }))) as typeof fetch;
@@ -30,7 +30,6 @@ describe("missing credential metadata", () => {
         } catch (error) {
           expect(error).toBeInstanceOf(QstashMissingCredentialsError);
           expect((error as QstashMissingCredentialsError).code).toBe("QSTASH_MISSING_CREDENTIALS");
-          expect((error as QstashMissingCredentialsError).alreadyLogged).toBe(true);
           expect((error as QstashMissingCredentialsError).status).toBe(UNAUTHORIZED);
         }
       }
@@ -39,7 +38,7 @@ describe("missing credential metadata", () => {
     }
   });
 
-  test("does not claim a warning was printed by a standalone HTTP client", async () => {
+  test("names the error for a standalone HTTP client", async () => {
     globalThis.fetch = (() =>
       Promise.resolve(new Response("Unauthorized", { status: UNAUTHORIZED }))) as typeof fetch;
     const client = new HttpClient({
@@ -53,7 +52,6 @@ describe("missing credential metadata", () => {
     } catch (error) {
       expect(error).toBeInstanceOf(QstashMissingCredentialsError);
       expect((error as QstashMissingCredentialsError).name).toBe("QstashMissingCredentialsError");
-      expect((error as QstashMissingCredentialsError).alreadyLogged).toBe(false);
     }
   });
 

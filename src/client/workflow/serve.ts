@@ -273,17 +273,14 @@ export const serve = <
     try {
       return await handler(request);
     } catch (error) {
-      // Keep returning the actionable error, but don't repeat a setup warning
-      // that the client already printed when it was constructed.
+      // A setup error's stack adds nothing to its actionable message.
       // Check the marker so clients imported from another bundle work too.
       if (
         error instanceof Error &&
         "code" in error &&
         error.code === "QSTASH_MISSING_CREDENTIALS"
       ) {
-        if (!("alreadyLogged" in error && error.alreadyLogged === true)) {
-          console.error(error.message);
-        }
+        console.error(error.message);
       } else {
         console.error(error);
       }

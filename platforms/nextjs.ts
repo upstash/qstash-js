@@ -9,8 +9,8 @@ import { Receiver } from "../src/receiver";
 
 import type { WorkflowServeOptions, RouteFunction } from "../src/client/workflow";
 import { serve as serveBase } from "../src/client/workflow";
-import { shouldUseDevelopmentMode, startDevServer } from "../src/dev-server";
-import { MISSING_SIGNING_KEYS_MESSAGE, withDevModeHint } from "../src/client/multi-region";
+import { startDevServer } from "../src/dev-server";
+import { getVerifierSigningKeys } from "../src/client/multi-region";
 import { getSafeEnvironment } from "../src/client/utils";
 
 export type VerifySignatureConfig = {
@@ -50,15 +50,10 @@ export function verifySignature(
   handler: NextApiHandler,
   config?: VerifySignatureConfig
 ): NextApiHandler {
-  const environment = getSafeEnvironment();
-  const currentSigningKey = config?.currentSigningKey ?? environment.QSTASH_CURRENT_SIGNING_KEY;
-  const nextSigningKey = config?.nextSigningKey ?? environment.QSTASH_NEXT_SIGNING_KEY;
-
-  // Skip the throw in dev mode (config flag OR QSTASH_DEV env) — Receiver auto-picks dev keys.
-  const devMode = shouldUseDevelopmentMode(config?.devMode, environment);
-  if (!devMode && !currentSigningKey && !nextSigningKey && !environment.QSTASH_REGION) {
-    throw new Error(withDevModeHint(MISSING_SIGNING_KEYS_MESSAGE, environment));
-  }
+  const { currentSigningKey, nextSigningKey } = getVerifierSigningKeys(
+    config,
+    getSafeEnvironment()
+  );
 
   const receiver = new Receiver({
     currentSigningKey,
@@ -116,15 +111,10 @@ export function verifySignatureEdge(
   handler: (request: NextRequest, nfe?: NextFetchEvent) => Response | Promise<Response>,
   config?: VerifySignatureConfig
 ) {
-  const environment = getSafeEnvironment();
-  const currentSigningKey = config?.currentSigningKey ?? environment.QSTASH_CURRENT_SIGNING_KEY;
-  const nextSigningKey = config?.nextSigningKey ?? environment.QSTASH_NEXT_SIGNING_KEY;
-
-  // Skip the throw in dev mode (config flag OR QSTASH_DEV env) — Receiver auto-picks dev keys.
-  const devMode = shouldUseDevelopmentMode(config?.devMode, environment);
-  if (!devMode && !currentSigningKey && !nextSigningKey && !environment.QSTASH_REGION) {
-    throw new Error(withDevModeHint(MISSING_SIGNING_KEYS_MESSAGE, environment));
-  }
+  const { currentSigningKey, nextSigningKey } = getVerifierSigningKeys(
+    config,
+    getSafeEnvironment()
+  );
 
   const receiver = new Receiver({
     currentSigningKey,
@@ -170,15 +160,10 @@ export function verifySignatureAppRouter(
     | ((request: NextRequest, params?: any) => VerifySignatureAppRouterResponse),
   config?: VerifySignatureConfig
 ) {
-  const environment = getSafeEnvironment();
-  const currentSigningKey = config?.currentSigningKey ?? environment.QSTASH_CURRENT_SIGNING_KEY;
-  const nextSigningKey = config?.nextSigningKey ?? environment.QSTASH_NEXT_SIGNING_KEY;
-
-  // Skip the throw in dev mode (config flag OR QSTASH_DEV env) — Receiver auto-picks dev keys.
-  const devMode = shouldUseDevelopmentMode(config?.devMode, environment);
-  if (!devMode && !currentSigningKey && !nextSigningKey && !environment.QSTASH_REGION) {
-    throw new Error(withDevModeHint(MISSING_SIGNING_KEYS_MESSAGE, environment));
-  }
+  const { currentSigningKey, nextSigningKey } = getVerifierSigningKeys(
+    config,
+    getSafeEnvironment()
+  );
 
   const receiver = new Receiver({
     currentSigningKey,

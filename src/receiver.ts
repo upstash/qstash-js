@@ -1,6 +1,7 @@
 import * as jose from "jose";
 import crypto from "crypto-js";
 import { getSafeEnvironment } from "./client/utils";
+import { QstashMissingCredentialsError } from "./client/error";
 import {
   getReceiverSigningKeys,
   MISSING_SIGNING_KEYS_MESSAGE,
@@ -112,7 +113,9 @@ export class Receiver {
     });
 
     if (!signingKeys) {
-      throw new Error(withDevModeHint(MISSING_SIGNING_KEYS_MESSAGE, environment));
+      throw new QstashMissingCredentialsError(
+        withDevModeHint(MISSING_SIGNING_KEYS_MESSAGE, environment)
+      );
     }
 
     let payload: jose.JWTPayload;
