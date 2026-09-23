@@ -32,6 +32,62 @@ jobs:
       - name: Build
         run: bun run build
 
+      - name: Check edge bundles for Node.js builtins
+        run: node scripts/check-edge-bundle.mjs
+
+  receiver-node-versions:
+    name: Receiver Web Crypto (Node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # 16/18 have no global Web Crypto and exercise uncrypto's `node` export
+        # condition (node:crypto webcrypto); 20/22/24 have the global.
+        node: [16, 18, 20, 22, 24]
+    steps:
+      - name: Setup repo
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Install Dependencies
+        run: bun install
+
+      - name: Build
+        run: bun run build
+
+      - name: Setup Node.js ${{ matrix.node }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: Verify receiver under Node ${{ matrix.node }} (ESM + CJS)
+        run: node scripts/check-receiver-runtime.mjs
+
+  receiver-bun-runtime:
+    name: Receiver Web Crypto (Bun)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup repo
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Install Dependencies
+        run: bun install
+
+      - name: Build
+        run: bun run build
+
+      - name: Verify receiver under Bun (ESM + CJS)
+        run: bun scripts/check-receiver-runtime.mjs
+
   cloudflare-workers-local-build:
     runs-on: ubuntu-latest
     name: CF Workers Local Build
@@ -148,9 +204,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Oldest and newest Node versions the SDK supports (the receiver relies
-        # on globalThis.crypto, which Node ships from v19 onwards).
-        node: [20, 24]
+        # Build + run the example across Node versions so bundler and runtime
+        # regressions in the receiver are caught everywhere, not just on the
+        # latest Node. Next.js 14 needs Node >= 18.17, so 16 is covered by
+        # receiver-node-versions instead.
+        node: [18, 20, 22, 24]
     # The /serverless and /edge example routes call verifySignatureAppRouter()
     # at module load (page-data collection at build, route compile at dev).
     # Without keys in env it throws synchronously, so provide dummies. Real
@@ -280,6 +338,8 @@ jobs:
       - cloudflare-workers-local-build
       - nextjs-local-build
       - local-tests
+      - receiver-node-versions
+      - receiver-bun-runtime
 
     name: Release
     runs-on: ubuntu-latest
