@@ -119,9 +119,8 @@ export type MessageCancelFilters =
 
 type MessageCancelCount = {
   /**
-   * Maximum number of messages to cancel per call.
-   *
-   * @default 100
+   * @deprecated Ignored by the server. A bulk cancel processes all matching
+   * messages. Retained for compatibility with existing callers.
    */
   count?: number;
 };

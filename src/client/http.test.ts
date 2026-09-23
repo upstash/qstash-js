@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-magic-numbers */
 import { describe, test, expect, spyOn, afterEach } from "bun:test";
+import { createServer } from "node:http";
 import { Client } from "./client";
 import { HttpClient } from "./http";
 import { QstashError, QstashRatelimitError } from "./error";
@@ -33,24 +34,53 @@ const countFetchCalls = async (retry: false | { retries: number }) => {
 };
 
 describe("http", () => {
-  test("should terminate after sleeping 5 times", () => {
-    // init a cient which will always get errors
-    const client = new Client({
-      baseUrl: "https:/",
-      token: "",
-      // set retry explicitly
-      retry: {
-        retries: 5,
-        backoff: (retryCount) => Math.exp(retryCount) * 50,
-      },
+  test("should wait for five backoffs and stop retrying over a real connection", async () => {
+    const requests: { url: string | undefined; authorization: string | undefined }[] = [];
+    const backoffCalls: number[] = [];
+    // Exercise Client -> fetch -> TCP. Closing before an HTTP response causes
+    // a real transport failure without relying on DNS or runtime error wording.
+    const server = createServer((request) => {
+      requests.push({ url: request.url, authorization: request.headers.authorization });
+      request.socket.destroy();
     });
-
-    // get should take 4.287 seconds and terminate before the timeout.
-    const throws = () =>
-      Promise.race([client.dlq.listMessages(), new Promise((r) => setTimeout(r, 4500))]);
-
-    // if the Promise.race doesn't throw, that means the retries took longer than 4.5s
-    expect(throws).toThrow("Was there a typo in the url or port?");
+    await new Promise<void>((resolve, reject) => {
+      server.once("error", reject);
+      server.listen(0, "127.0.0.1", resolve);
+    });
+    try {
+      const address = server.address();
+      if (!address || typeof address === "string") throw new Error("No server port assigned");
+      const client = new Client({
+        baseUrl: `http://127.0.0.1:${address.port}`,
+        token: "test-token",
+        devMode: false,
+        retry: {
+          retries: 5,
+          backoff: (retryCount) => {
+            backoffCalls.push(retryCount);
+            return (retryCount + 1) * 10;
+          },
+        },
+      });
+      const startedAt = performance.now();
+      const error: unknown = await client.dlq.listMessages().catch((error: unknown) => error);
+      const elapsed = performance.now() - startedAt;
+      expect(error).toBeInstanceOf(Error);
+      expect(requests).toHaveLength(6);
+      expect(requests.every((request) => request.url === "/v2/dlq")).toBe(true);
+      expect(requests.every((request) => request.authorization === "Bearer test-token")).toBe(true);
+      expect(backoffCalls).toEqual([0, 1, 2, 3, 4]);
+      // Backoffs total 150 ms. Allow 5 ms of timer tolerance and ample CI overhead.
+      expect(elapsed).toBeGreaterThanOrEqual(145);
+      expect(elapsed).toBeLessThan(4500);
+    } finally {
+      await new Promise<void>((resolve, reject) => {
+        server.close((error) => {
+          if (error) reject(error);
+          else resolve();
+        });
+      });
+    }
   });
 
   test("should call fetch exactly once when retry is disabled", async () => {
