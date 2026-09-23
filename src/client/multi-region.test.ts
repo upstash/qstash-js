@@ -443,6 +443,15 @@ describe("Receiver/Verifier - Multi-Region Signing Keys Resolution", () => {
       expect(warnings[0]).toInclude("QSTASH_DEV=true");
     });
 
+    test("should not suggest dev mode when devMode is explicitly false", () => {
+      const environment = createEnvironment({ NODE_ENV: "development" });
+
+      const warnings = captureWarnings(() => getClientCredentials({ environment, devMode: false }));
+
+      expect(warnings[0]).toInclude("client token is not set");
+      expect(warnings[0]).not.toInclude("QSTASH_DEV=true");
+    });
+
     test.each([undefined, "production", "test", "staging"])(
       "should not suggest dev mode when NODE_ENV is %s",
       (nodeEnvironment) => {

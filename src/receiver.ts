@@ -114,7 +114,7 @@ export class Receiver {
 
     if (!signingKeys) {
       throw new QstashMissingCredentialsError(
-        withDevModeHint(MISSING_SIGNING_KEYS_MESSAGE, environment)
+        withDevModeHint(MISSING_SIGNING_KEYS_MESSAGE, environment, this.devMode)
       );
     }
 

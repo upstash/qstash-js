@@ -69,6 +69,8 @@ describe.each(platforms)("%s missing signing keys", (_name, createHandler) => {
   test("honors an explicit devMode false over the environment", () => {
     environment.QSTASH_DEV = "true";
     expect(() => createHandler({ devMode: false })).toThrow(/No signing keys available/);
+    // The hint can't help when devMode: false overrides QSTASH_DEV.
+    expect(() => createHandler({ devMode: false })).not.toThrow(/QSTASH_DEV=true/);
   });
 });
 
@@ -90,11 +92,12 @@ describe("Receiver missing signing keys", () => {
 
   test("throws a typed setup error", async () => {
     const receiver = new Receiver({ devMode: false });
-    const verification = receiver.verify({ signature: "signature", body: "" });
-    expect(verification).rejects.toBeInstanceOf(QstashMissingCredentialsError);
-    expect(verification).rejects.toThrow(/No signing keys available/);
-    await verification.catch(() => {
-      // Asserted above.
-    });
+    try {
+      await receiver.verify({ signature: "signature", body: "" });
+      expect.unreachable("missing signing keys should throw");
+    } catch (error) {
+      expect(error).toBeInstanceOf(QstashMissingCredentialsError);
+      expect((error as Error).message).toInclude("No signing keys available");
+    }
   });
 });

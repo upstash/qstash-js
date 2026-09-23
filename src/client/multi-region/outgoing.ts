@@ -52,7 +52,8 @@ export const getClientCredentials = (
   return verifyCredentials(
     credentials,
     clientCredentialConfig.environment,
-    clientCredentialConfig.onMissingToken ?? "warn"
+    clientCredentialConfig.onMissingToken ?? "warn",
+    clientCredentialConfig.devMode
   );
 };
 
@@ -113,7 +114,8 @@ const resolveCredentials = ({
 const verifyCredentials = (
   credentials: Required<Credentials>,
   environment: Record<string, string | undefined>,
-  onMissingToken: "warn" | "throw"
+  onMissingToken: "warn" | "throw",
+  devMode: boolean | undefined
 ): Required<Credentials> => {
   const token = credentials.token;
   let baseUrl = credentials.baseUrl;
@@ -131,10 +133,10 @@ const verifyCredentials = (
     if (onMissingToken === "throw") {
       // `fromEnv` can't take a token, so only point at the env variable.
       throw new QstashMissingCredentialsError(
-        withDevModeHint(MISSING_TOKEN_FROM_ENV_MESSAGE, environment)
+        withDevModeHint(MISSING_TOKEN_FROM_ENV_MESSAGE, environment, devMode)
       );
     }
-    console.warn(withDevModeHint(MISSING_TOKEN_MESSAGE, environment));
+    console.warn(withDevModeHint(MISSING_TOKEN_MESSAGE, environment, devMode));
   }
   return { baseUrl, token };
 };

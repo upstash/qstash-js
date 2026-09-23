@@ -34,12 +34,17 @@ export const isDevelopmentEnvironment = (
 
 /**
  * Appends the "you can use dev mode" hint to a missing-credentials message
- * when the runtime and environment support local development.
+ * when the runtime and environment support local development. An explicit
+ * `devMode: false` overrides QSTASH_DEV, so the hint could not help there.
  */
 export const withDevModeHint = (
   message: string,
-  environment: Record<string, string | undefined>
-): string => (isDevelopmentEnvironment(environment) ? `${message}\n${DEV_MODE_HINT}` : message);
+  environment: Record<string, string | undefined>,
+  devMode?: boolean
+): string =>
+  devMode !== false && isDevelopmentEnvironment(environment)
+    ? `${message}\n${DEV_MODE_HINT}`
+    : message;
 
 export const getRegionFromEnvironment = (
   environment: Record<string, string | undefined>

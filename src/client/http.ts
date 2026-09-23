@@ -301,7 +301,7 @@ export class HttpClient implements Requester {
       // Drained so the socket is released, as on every other error path here.
       await response.text();
       throw new QstashMissingCredentialsError(
-        withDevModeHint(MISSING_TOKEN_MESSAGE, getSafeEnvironment()),
+        withDevModeHint(MISSING_TOKEN_MESSAGE, getSafeEnvironment(), this.devMode),
         response.status
       );
     }

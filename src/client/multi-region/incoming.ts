@@ -113,17 +113,19 @@ export const getVerifierSigningKeys = (
   config: (SigningKeys & { devMode?: boolean }) | undefined,
   environment: Record<string, string | undefined>
 ): SigningKeys => {
-  const currentSigningKey = config?.currentSigningKey ?? environment.QSTASH_CURRENT_SIGNING_KEY;
-  const nextSigningKey = config?.nextSigningKey ?? environment.QSTASH_NEXT_SIGNING_KEY;
+  // Literal `process.env.X` reads so keys inlined by bundlers (Next.js `env`,
+  // DefinePlugin, Vite `define`) still resolve.
+  const currentSigningKey = config?.currentSigningKey ?? process.env.QSTASH_CURRENT_SIGNING_KEY;
+  const nextSigningKey = config?.nextSigningKey ?? process.env.QSTASH_NEXT_SIGNING_KEY;
 
   if (
     !shouldUseDevelopmentMode(config?.devMode, environment) &&
     !currentSigningKey &&
     !nextSigningKey &&
-    !environment.QSTASH_REGION
+    !process.env.QSTASH_REGION
   ) {
     throw new QstashMissingCredentialsError(
-      withDevModeHint(MISSING_SIGNING_KEYS_MESSAGE, environment)
+      withDevModeHint(MISSING_SIGNING_KEYS_MESSAGE, environment, config?.devMode)
     );
   }
 
