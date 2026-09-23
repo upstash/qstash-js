@@ -2,7 +2,6 @@ import type { H3Event } from "h3";
 import { defineEventHandler, getHeader, readRawBody } from "h3";
 import { Receiver } from "../src";
 import { getVerifierSigningKeys } from "../src/client/multi-region";
-import { getSafeEnvironment } from "../src/client/utils";
 
 import type { RouteFunction, WorkflowServeOptions } from "../src/client/workflow";
 import { serve as serveBase } from "../src/client/workflow";
@@ -28,10 +27,7 @@ export const verifySignatureH3 = (
   handler: (event: H3Event) => Promise<unknown>,
   config?: VerifySignatureConfig
 ) => {
-  const { currentSigningKey, nextSigningKey } = getVerifierSigningKeys(
-    config,
-    getSafeEnvironment()
-  );
+  const { currentSigningKey, nextSigningKey } = getVerifierSigningKeys(config);
 
   const receiver = new Receiver({
     currentSigningKey,

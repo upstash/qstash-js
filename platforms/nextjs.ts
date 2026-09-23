@@ -11,7 +11,6 @@ import type { WorkflowServeOptions, RouteFunction } from "../src/client/workflow
 import { serve as serveBase } from "../src/client/workflow";
 import { startDevServer } from "../src/dev-server";
 import { getVerifierSigningKeys } from "../src/client/multi-region";
-import { getSafeEnvironment } from "../src/client/utils";
 
 export type VerifySignatureConfig = {
   currentSigningKey?: string;
@@ -50,10 +49,7 @@ export function verifySignature(
   handler: NextApiHandler,
   config?: VerifySignatureConfig
 ): NextApiHandler {
-  const { currentSigningKey, nextSigningKey } = getVerifierSigningKeys(
-    config,
-    getSafeEnvironment()
-  );
+  const { currentSigningKey, nextSigningKey } = getVerifierSigningKeys(config);
 
   const receiver = new Receiver({
     currentSigningKey,
@@ -111,10 +107,7 @@ export function verifySignatureEdge(
   handler: (request: NextRequest, nfe?: NextFetchEvent) => Response | Promise<Response>,
   config?: VerifySignatureConfig
 ) {
-  const { currentSigningKey, nextSigningKey } = getVerifierSigningKeys(
-    config,
-    getSafeEnvironment()
-  );
+  const { currentSigningKey, nextSigningKey } = getVerifierSigningKeys(config);
 
   const receiver = new Receiver({
     currentSigningKey,
@@ -160,10 +153,7 @@ export function verifySignatureAppRouter(
     | ((request: NextRequest, params?: any) => VerifySignatureAppRouterResponse),
   config?: VerifySignatureConfig
 ) {
-  const { currentSigningKey, nextSigningKey } = getVerifierSigningKeys(
-    config,
-    getSafeEnvironment()
-  );
+  const { currentSigningKey, nextSigningKey } = getVerifierSigningKeys(config);
 
   const receiver = new Receiver({
     currentSigningKey,

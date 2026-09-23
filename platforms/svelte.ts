@@ -1,7 +1,6 @@
 import type { RequestHandler } from "@sveltejs/kit";
 import { Receiver } from "../src";
 import { getVerifierSigningKeys } from "../src/client/multi-region";
-import { getSafeEnvironment } from "../src/client/utils";
 
 import type { RouteFunction, WorkflowServeOptions } from "../src/client/workflow";
 import { serve as serveBase } from "../src/client/workflow";
@@ -29,10 +28,7 @@ export const verifySignatureSvelte = <
   handler: RequestHandler<Parameters, RouteId>,
   config?: VerifySignatureConfig
 ) => {
-  const { currentSigningKey, nextSigningKey } = getVerifierSigningKeys(
-    config,
-    getSafeEnvironment()
-  );
+  const { currentSigningKey, nextSigningKey } = getVerifierSigningKeys(config);
 
   const receiver = new Receiver({
     currentSigningKey,

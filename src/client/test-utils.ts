@@ -35,16 +35,13 @@ export const stubEnvironment = (
  */
 export const captureWarnings = (run: () => void): string[] => {
   const warnings: string[] = [];
-  // eslint-disable-next-line no-console
   const originalWarn = console.warn;
-  // eslint-disable-next-line no-console
   console.warn = (...arguments_: unknown[]) => {
     warnings.push(arguments_.map(String).join(" "));
   };
   try {
     run();
   } finally {
-    // eslint-disable-next-line no-console
     console.warn = originalWarn;
   }
   return warnings;

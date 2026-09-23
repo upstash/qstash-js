@@ -7,6 +7,7 @@ import {
   withDevModeHint,
 } from "./utils";
 import { QstashMissingCredentialsError } from "../error";
+import { getSafeEnvironment } from "../utils";
 import { shouldUseDevelopmentMode, getDevelopmentCredentials, DEV_PREFIX } from "../../dev-server";
 
 type SigningKeys = {
@@ -110,9 +111,9 @@ export const getReceiverSigningKeys = ({
  * Dev mode and multi-region keys are resolved per request by the Receiver.
  */
 export const getVerifierSigningKeys = (
-  config: (SigningKeys & { devMode?: boolean }) | undefined,
-  environment: Record<string, string | undefined>
+  config: (SigningKeys & { devMode?: boolean }) | undefined
 ): SigningKeys => {
+  const environment = getSafeEnvironment();
   // Literal `process.env.X` reads so keys inlined by bundlers (Next.js `env`,
   // DefinePlugin, Vite `define`) still resolve.
   const currentSigningKey = config?.currentSigningKey ?? process.env.QSTASH_CURRENT_SIGNING_KEY;
