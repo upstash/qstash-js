@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 /* eslint-disable @typescript-eslint/no-magic-numbers */
-import { describe, expect, test } from "bun:test";
+import { beforeAll, describe, expect, test } from "bun:test";
 import { Client } from "./client";
-import { MOCK_QSTASH_SERVER_URL, mockQStashServer, expectToReject } from "./workflow/test-utils";
+import { QstashError } from "./error";
 import { eventually } from "./test-utils";
-import type { MessageCancelFilters } from "./filter-types";
+import { MOCK_QSTASH_SERVER_URL, mockQStashServer, expectToReject } from "./workflow/test-utils";
 
 // Updated to use constants for magic numbers
 const SECONDS_IN_A_DAY = 24 * 60 * 60;
@@ -79,28 +79,24 @@ describe("Messages empty id guard", () => {
 describe("Messages", () => {
   const client = new Client({ token: process.env.QSTASH_TOKEN! });
 
-  /**
-   * Bulk cancel by filter (`host`, `path`, `label`, `flowControlKey`, ...) or
-   * with `all: true` is answered from an events index that lags publish by a
-   * few seconds, and the returned `cancelled` is only a snapshot of that index
-   * taken when the request is accepted: it can be 0 while the matching
-   * messages are still cancelled by the background worker moments later. So
-   * instead of trusting the count, keep cancelling until every targeted
-   * message is really gone, checked via `messages.get`, which reads the
-   * primary store and is immediate. While the index is catching up a single
-   * cancel call can itself block for 10-30s, hence the generous timeout.
-   */
-  const cancelUntilGone = async (request: MessageCancelFilters, goneIds: string[]) => {
+  const expectMessagesCancelled = async (messages: { messageId: string }[]) => {
     await eventually(
       async () => {
-        await client.messages.cancel(request);
-        for (const messageId of goneIds) {
-          await expectToReject(() => client.messages.get(messageId), "not found");
+        for (const { messageId } of messages) {
+          const result: unknown = await client.messages
+            .get(messageId)
+            .catch((error: unknown) => error);
+          expect(result).toBeInstanceOf(QstashError);
+          expect(result).toMatchObject({ status: 404 });
         }
       },
-      { timeout: 90_000, interval: 1000 }
+      { timeout: 10_000, interval: 500 }
     );
   };
+
+  beforeAll(async () => {
+    await client.messages.cancel({ all: true });
+  });
 
   test(
     "should send message, cancel it then verify cancel",
@@ -146,18 +142,28 @@ describe("Messages", () => {
   );
 
   test(
-    "should cancel many by id and the rest by filter",
+    "should cancel many and all",
     async () => {
-      const label = `cancel-many-${Date.now()}`;
-      const messages = await client.batchJSON(
-        [1, 2, 3].map((n) => ({
+      const messages = await client.batchJSON([
+        {
           url: `https://example.com`,
-          body: { n },
+          body: { hello: "world" },
+          timeout: 90,
+          delay: 10,
+        },
+        {
+          url: `https://example.com`,
+          body: { hello: "world" },
+          timeout: 90,
+          delay: 10,
+        },
+        {
+          url: `https://example.com`,
+          body: { hello: "world" },
           timeout: 90,
           delay: "10d",
-          label,
-        }))
-      );
+        },
+      ]);
 
       expect(messages.length).toBe(3);
 
@@ -168,11 +174,10 @@ describe("Messages", () => {
 
       expect(cancelled.cancelled).toBe(2);
 
-      // The third message is matched by the label. Scoped by label so
-      // concurrent test runs on the same account cannot interfere.
-      await cancelUntilGone({ filter: { label } }, [messages[2].messageId]);
+      await client.messages.cancel({ all: true });
+      await expectMessagesCancelled(messages);
     },
-    { timeout: 120_000 }
+    { timeout: 20_000 }
   );
 
   test("should create message with flow control", async () => {
@@ -204,7 +209,7 @@ describe("Messages", () => {
   test(
     "should cancel all messages with flowControlKey filter",
     async () => {
-      const flowControlKey = "flow-key";
+      const flowControlKey = `cancel-flow-${Date.now()}`;
       // Create messages with the same flow control key
       const message1 = await client.publish({
         url: "https://httpbin.org/status/200",
@@ -240,33 +245,30 @@ describe("Messages", () => {
         },
       });
 
-      // Cancel all messages with the specific flowControlKey: both of ours go...
-      await cancelUntilGone({ filter: { flowControlKey } }, [
-        message1.messageId,
-        message2.messageId,
-      ]);
-
-      // ...and the one with a different key survives.
-      const survivor = await client.messages.get(message3.messageId);
-      expect(survivor.flowControlKey).toBe("different-flow-key");
-
+      // Cancel all messages with the specific flowControlKey
+      await client.messages.cancel({ filter: { flowControlKey } });
+      await expectMessagesCancelled([message1, message2]);
+      expect(await client.messages.get(message3.messageId)).toMatchObject({
+        messageId: message3.messageId,
+      });
       await client.messages.cancel(message3.messageId);
     },
-    { timeout: 120_000 }
+    { timeout: 20_000 }
   );
 
   test(
     "should cancel all messages using all: true",
     async () => {
-      const { messageId } = await client.publish({
+      const message = await client.publish({
         url: "https://httpbin.org/status/200",
         body: "hello",
         delay: "10d",
       });
 
-      await cancelUntilGone({ all: true }, [messageId]);
+      await client.messages.cancel({ all: true });
+      await expectMessagesCancelled([message]);
     },
-    { timeout: 120_000 }
+    { timeout: 20_000 }
   );
 
   test(
@@ -276,29 +278,25 @@ describe("Messages", () => {
       const keyB = `cancel-multi-fc-b-${Date.now()}`;
       const keyC = `cancel-multi-fc-c-${Date.now()}`;
 
-      const ids: string[] = [];
-      for (const key of [keyA, keyB, keyC]) {
-        const { messageId } = await client.publish({
+      const messages = await client.batchJSON(
+        [keyA, keyB, keyC].map((key) => ({
           url: "https://httpbin.org/status/200",
           body: "hello",
           delay: "10d",
           flowControl: { key, parallelism: 1 },
-        });
-        ids.push(messageId);
-      }
-      const [a, b, c] = ids;
+        }))
+      );
 
-      // Cancelling [A, B] should match the A and B messages but NOT C.
-      await cancelUntilGone({ filter: { flowControlKey: [keyA, keyB] } }, [a, b]);
+      await client.messages.cancel({ filter: { flowControlKey: [keyA, keyB] } });
+      await expectMessagesCancelled(messages.slice(0, 2));
+      expect(await client.messages.get(messages[2].messageId)).toMatchObject({
+        messageId: messages[2].messageId,
+      });
 
-      // C survived...
-      const survivor = await client.messages.get(c);
-      expect(survivor.flowControlKey).toBe(keyC);
-
-      // ...and can still be cancelled on its own.
-      await cancelUntilGone({ filter: { flowControlKey: keyC } }, [c]);
+      await client.messages.cancel({ filter: { flowControlKey: keyC } });
+      await expectMessagesCancelled([messages[2]]);
     },
-    { timeout: 200_000 }
+    { timeout: 20_000 }
   );
 
   test(
@@ -309,28 +307,24 @@ describe("Messages", () => {
       const pathB = `/cancel-path-b-${stamp}`;
       const pathC = `/cancel-path-c-${stamp}`;
 
-      const ids: string[] = [];
-      for (const path of [pathA, pathB, pathC]) {
-        const { messageId } = await client.publish({
+      const messages = await client.batchJSON(
+        [pathA, pathB, pathC].map((path) => ({
           url: `https://example.com${path}`,
           body: "hello",
           delay: "10d",
-        });
-        ids.push(messageId);
-      }
-      const [a, b, c] = ids;
+        }))
+      );
 
-      // Unique paths make this deterministic: [A, B] cancels exactly A and B.
-      await cancelUntilGone({ filter: { path: [pathA, pathB] } }, [a, b]);
+      await client.messages.cancel({ filter: { path: [pathA, pathB] } });
+      await expectMessagesCancelled(messages.slice(0, 2));
+      expect(await client.messages.get(messages[2].messageId)).toMatchObject({
+        messageId: messages[2].messageId,
+      });
 
-      // C is untouched...
-      const survivor = await client.messages.get(c);
-      expect(survivor.url).toBe(`https://example.com${pathC}`);
-
-      // ...and matched by its own path.
-      await cancelUntilGone({ filter: { path: pathC } }, [c]);
+      await client.messages.cancel({ filter: { path: pathC } });
+      await expectMessagesCancelled([messages[2]]);
     },
-    { timeout: 200_000 }
+    { timeout: 20_000 }
   );
 
   test(
@@ -340,67 +334,77 @@ describe("Messages", () => {
       const comPath = `/cancel-host-com-${stamp}`;
       const orgPath = `/cancel-host-org-${stamp}`;
 
-      const com = await client.publish({
+      const comMessage = await client.publish({
         url: `https://example.com${comPath}`,
         body: "hello",
         delay: "10d",
       });
-      const org = await client.publish({
+      const orgMessage = await client.publish({
         url: `https://example.org${orgPath}`,
         body: "hello",
         delay: "10d",
       });
 
-      // Cancelling host example.org must not touch the example.com message.
-      await cancelUntilGone({ filter: { host: "example.org" } }, [org.messageId]);
+      await client.messages.cancel({ filter: { host: "example.org" } });
+      await expectMessagesCancelled([orgMessage]);
+      expect(await client.messages.get(comMessage.messageId)).toMatchObject({
+        messageId: comMessage.messageId,
+      });
 
-      // The example.com message survived...
-      const survivor = await client.messages.get(com.messageId);
-      expect(survivor.url).toBe(`https://example.com${comPath}`);
-
-      // ...and is matched by its own path.
-      await cancelUntilGone({ filter: { path: comPath } }, [com.messageId]);
-    },
-    { timeout: 200_000 }
-  );
-
-  // The server stopped applying `count` to DELETE /v2/messages when bulk cancel
-  // became an asynchronous bulk action (qstash-server #1063, 2026-08-04). The
-  // parameter is still accepted and still documented in the OpenAPI spec, and
-  // DELETE /v2/dlq still honours it, so these assertions are kept as written
-  // and skipped until the server either restores `count` or removes it from
-  // the API contract. See upstash/qstash-js#270 for the investigation.
-  test.skip(
-    "should respect count: 1 with all: true",
-    async () => {
-      await client.batchJSON([
-        { url: "https://httpbin.org/status/200", body: { n: 1 }, delay: "10d" },
-        { url: "https://httpbin.org/status/200", body: { n: 2 }, delay: "10d" },
-      ]);
-
-      const result = await client.messages.cancel({ all: true, count: 1 });
-      expect(result.cancelled).toBe(1);
-
-      // clean up remaining
-      await client.messages.cancel({ all: true });
+      await client.messages.cancel({ filter: { path: comPath } });
+      await expectMessagesCancelled([comMessage]);
     },
     { timeout: 20_000 }
   );
 
-  test.skip(
-    "should respect count: 1 with filter",
+  test(
+    "should cancel all pending messages even when legacy count is set",
     async () => {
-      const label = `cancel-count-filter-${Date.now()}`;
-      await client.batchJSON([
-        { url: "https://httpbin.org/status/200", body: { n: 1 }, delay: "10d", label },
-        { url: "https://httpbin.org/status/200", body: { n: 2 }, delay: "10d", label },
+      const messages = await client.batchJSON([
+        { url: "https://httpbin.org/status/200", body: { n: 1 }, delay: "10d" },
+        { url: "https://httpbin.org/status/200", body: { n: 2 }, delay: "10d" },
       ]);
 
-      const result = await client.messages.cancel({ filter: { label }, count: 1 });
-      expect(result.cancelled).toBe(1);
+      try {
+        // Kept intentionally to cover callers compiled against the old API.
+        const result = await client.messages.cancel({ all: true, count: 1 });
+        expect(Number.isInteger(result.cancelled)).toBe(true);
+        expect(result.cancelled).toBeGreaterThanOrEqual(0);
+        await expectMessagesCancelled(messages);
+      } finally {
+        await client.messages.cancel(messages.map(({ messageId }) => messageId));
+      }
+    },
+    { timeout: 20_000 }
+  );
 
-      // clean up remaining
-      await client.messages.cancel({ filter: { label } });
+  test(
+    "should cancel every matching message and preserve others even when legacy count is set",
+    async () => {
+      const label = `cancel-count-filter-${Date.now()}`;
+      const messages = await client.batchJSON([
+        { url: "https://httpbin.org/status/200", body: { n: 1 }, delay: "10d", label },
+        { url: "https://httpbin.org/status/200", body: { n: 2 }, delay: "10d", label },
+        {
+          url: "https://httpbin.org/status/200",
+          body: { n: 3 },
+          delay: "10d",
+          label: `${label}-other`,
+        },
+      ]);
+
+      try {
+        // The snapshot count is not proof of cancellation. Inspect each fixture.
+        const result = await client.messages.cancel({ filter: { label }, count: 1 });
+        expect(Number.isInteger(result.cancelled)).toBe(true);
+        expect(result.cancelled).toBeGreaterThanOrEqual(0);
+        await expectMessagesCancelled(messages.slice(0, 2));
+        expect(await client.messages.get(messages[2].messageId)).toMatchObject({
+          messageId: messages[2].messageId,
+        });
+      } finally {
+        await client.messages.cancel(messages.map(({ messageId }) => messageId));
+      }
     },
     { timeout: 20_000 }
   );

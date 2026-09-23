@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-magic-numbers */
 import { describe, test, expect } from "bun:test";
+import { createServer } from "node:http";
 import { Client } from "./client";
 import { HttpClient } from "./http";
 
@@ -32,45 +33,54 @@ const countFetchCalls = async (retry: false | { retries: number }) => {
 };
 
 describe("http", () => {
-  test(
-    "should terminate after sleeping 5 times",
-    async () => {
-      // init a cient which will always get errors
+  test("should wait for five backoffs and stop retrying over a real connection", async () => {
+    const requests: { url: string | undefined; authorization: string | undefined }[] = [];
+    const backoffCalls: number[] = [];
+    // Exercise Client -> fetch -> TCP. Closing before an HTTP response causes
+    // a real transport failure without relying on DNS or runtime error wording.
+    const server = createServer((request) => {
+      requests.push({ url: request.url, authorization: request.headers.authorization });
+      request.socket.destroy();
+    });
+    await new Promise<void>((resolve, reject) => {
+      server.once("error", reject);
+      server.listen(0, "127.0.0.1", resolve);
+    });
+    try {
+      const address = server.address();
+      if (!address || typeof address === "string") throw new Error("No server port assigned");
       const client = new Client({
-        baseUrl: "https:/",
-        token: "",
-        // set retry explicitly
+        baseUrl: `http://127.0.0.1:${address.port}`,
+        token: "test-token",
+        devMode: false,
         retry: {
           retries: 5,
-          backoff: (retryCount) => Math.exp(retryCount) * 50,
+          backoff: (retryCount) => {
+            backoffCalls.push(retryCount);
+            return (retryCount + 1) * 10;
+          },
         },
       });
-
-      // The five backoff sleeps add up to ~4.29s. The race window only has to
-      // prove the retries are bounded, so leave headroom for slow CI runners
-      // rather than racing the sleeps by a couple hundred milliseconds.
-      const TIMED_OUT = Symbol("timed out");
-      const outcome = await Promise.race([
-        client.dlq.listMessages().then(
-          () => "resolved",
-          (error: unknown) => error
-        ),
-        new Promise<typeof TIMED_OUT>((r) => {
-          setTimeout(() => {
-            r(TIMED_OUT);
-          }, 7000);
-        }),
-      ]);
-
-      // Once the retries are exhausted the underlying network error must
-      // surface. Its wording is Bun's and changed between 1.3 ("Was there a
-      // typo in the url or port?") and 1.4 ("getaddrinfo ENOTFOUND v2"), so
-      // only assert that an error came back before the window closed.
-      expect(outcome).not.toBe(TIMED_OUT);
-      expect(outcome).toBeInstanceOf(Error);
-    },
-    { timeout: 10_000 }
-  );
+      const startedAt = performance.now();
+      const error: unknown = await client.dlq.listMessages().catch((error: unknown) => error);
+      const elapsed = performance.now() - startedAt;
+      expect(error).toBeInstanceOf(Error);
+      expect(requests).toHaveLength(6);
+      expect(requests.every((request) => request.url === "/v2/dlq")).toBe(true);
+      expect(requests.every((request) => request.authorization === "Bearer test-token")).toBe(true);
+      expect(backoffCalls).toEqual([0, 1, 2, 3, 4]);
+      // Backoffs total 150 ms. Allow 5 ms of timer tolerance and ample CI overhead.
+      expect(elapsed).toBeGreaterThanOrEqual(145);
+      expect(elapsed).toBeLessThan(4500);
+    } finally {
+      await new Promise<void>((resolve, reject) => {
+        server.close((error) => {
+          if (error) reject(error);
+          else resolve();
+        });
+      });
+    }
+  });
 
   test("should call fetch exactly once when retry is disabled", async () => {
     expect(await countFetchCalls(false)).toBe(1);
