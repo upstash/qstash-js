@@ -175,8 +175,9 @@ describe("http logging", () => {
 
       expect(error).toHaveBeenCalledTimes(1);
       expect(error.mock.calls[0][0]).toContain(
-        "DELETE https://example.com/v2/messages/msg_123 failed with status 404: message not found"
+        "DELETE https://example.com/v2/messages/msg_123 failed with status 404"
       );
+      expect(String(error.mock.calls[0][0])).not.toContain("message not found");
     } finally {
       error.mockRestore();
     }

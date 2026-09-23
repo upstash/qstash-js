@@ -266,9 +266,9 @@ export class HttpClient implements Requester {
   private async checkResponse(response: Response, requestLabel: string) {
     const error = await this.getResponseError(response);
     if (error) {
-      console.error(
-        `${LOG_PREFIX} ${requestLabel} failed with status ${response.status}: ${error.message}`
-      );
+      // The response body is intentionally left out of the log. It is still
+      // available on the thrown error's message.
+      console.error(`${LOG_PREFIX} ${requestLabel} failed with status ${response.status}`);
       throw error;
     }
   }
