@@ -48,8 +48,13 @@ describe.each(platforms)("%s missing signing keys", (_name, createHandler) => {
     expect(() => createHandler()).toThrow(/QSTASH_DEV=true/);
   });
 
-  test.each([undefined, "production"])("omits the dev hint when NODE_ENV is %s", (nodeEnv) => {
-    environment.NODE_ENV = nodeEnv;
+  test("suggests dev mode when NODE_ENV is unset", () => {
+    environment.NODE_ENV = undefined;
+    expect(() => createHandler()).toThrow(/QSTASH_DEV=true/);
+  });
+
+  test("omits the dev hint in production", () => {
+    environment.NODE_ENV = "production";
     try {
       createHandler();
       expect.unreachable("missing signing keys should throw");

@@ -61,7 +61,7 @@ describe("Workflow missing credentials", () => {
 
         expect(response.status).toBe(INTERNAL_SERVER_ERROR);
         expect(body.message).toInclude("client token is not set");
-        expect(body.message.includes("QSTASH_DEV=true")).toBe(nodeEnvironment === "development");
+        expect(body.message.includes("QSTASH_DEV=true")).toBe(nodeEnvironment !== "production");
         expect(body).not.toHaveProperty("stack");
       }
       expect(warningLog).toHaveBeenCalledTimes(1);

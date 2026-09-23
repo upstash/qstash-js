@@ -55,21 +55,24 @@ describe("Client.fromEnv", () => {
     expect((client.http as HttpClient).baseUrl).toBe("https://qstash-us-east-1.upstash.io");
   });
 
-  test("should throw a setup error with the dev mode hint in development", () => {
-    environment.NODE_ENV = "development";
-    try {
-      Client.fromEnv();
-      expect.unreachable("missing credentials should throw");
-    } catch (error) {
-      expect(error).toBeInstanceOf(QstashMissingCredentialsError);
-      expect((error as Error).message).toInclude(
-        "Unable to find environment variable: QSTASH_TOKEN"
-      );
-      expect((error as Error).message).toInclude("QSTASH_DEV=true");
+  test.each([undefined, "development"])(
+    "should throw a setup error with the dev mode hint when NODE_ENV is %s",
+    (nodeEnvironment) => {
+      if (nodeEnvironment) environment.NODE_ENV = nodeEnvironment;
+      try {
+        Client.fromEnv();
+        expect.unreachable("missing credentials should throw");
+      } catch (error) {
+        expect(error).toBeInstanceOf(QstashMissingCredentialsError);
+        expect((error as Error).message).toInclude(
+          "Unable to find environment variable: QSTASH_TOKEN"
+        );
+        expect((error as Error).message).toInclude("QSTASH_DEV=true");
+      }
     }
-  });
+  );
 
-  test.each([undefined, "production"])(
+  test.each(["production"])(
     "should throw without the dev mode hint when NODE_ENV is %s",
     (nodeEnvironment) => {
       if (nodeEnvironment) environment.NODE_ENV = nodeEnvironment;
