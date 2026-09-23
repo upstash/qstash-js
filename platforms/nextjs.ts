@@ -9,7 +9,8 @@ import { Receiver } from "../src/receiver";
 
 import type { WorkflowServeOptions, RouteFunction } from "../src/client/workflow";
 import { serve as serveBase } from "../src/client/workflow";
-import { shouldUseDevelopmentMode, startDevServer } from "../src/dev-server";
+import { startDevServer } from "../src/dev-server";
+import { getVerifierSigningKeys } from "../src/client/multi-region";
 
 export type VerifySignatureConfig = {
   currentSigningKey?: string;
@@ -48,16 +49,7 @@ export function verifySignature(
   handler: NextApiHandler,
   config?: VerifySignatureConfig
 ): NextApiHandler {
-  const currentSigningKey = config?.currentSigningKey ?? process.env.QSTASH_CURRENT_SIGNING_KEY;
-  const nextSigningKey = config?.nextSigningKey ?? process.env.QSTASH_NEXT_SIGNING_KEY;
-
-  // Skip the throw in dev mode (config flag OR QSTASH_DEV env) — Receiver auto-picks dev keys.
-  const devMode = shouldUseDevelopmentMode(config?.devMode, process.env);
-  if (!devMode && !currentSigningKey && !nextSigningKey && !process.env.QSTASH_REGION) {
-    throw new Error(
-      "currentSigningKey and nextSigningKey are required, either in the config or as env variables (QSTASH_CURRENT_SIGNING_KEY and QSTASH_NEXT_SIGNING_KEY)"
-    );
-  }
+  const { currentSigningKey, nextSigningKey } = getVerifierSigningKeys(config);
 
   const receiver = new Receiver({
     currentSigningKey,
@@ -115,16 +107,7 @@ export function verifySignatureEdge(
   handler: (request: NextRequest, nfe?: NextFetchEvent) => Response | Promise<Response>,
   config?: VerifySignatureConfig
 ) {
-  const currentSigningKey = config?.currentSigningKey ?? process.env.QSTASH_CURRENT_SIGNING_KEY;
-  const nextSigningKey = config?.nextSigningKey ?? process.env.QSTASH_NEXT_SIGNING_KEY;
-
-  // Skip the throw in dev mode (config flag OR QSTASH_DEV env) — Receiver auto-picks dev keys.
-  const devMode = shouldUseDevelopmentMode(config?.devMode, process.env);
-  if (!devMode && !currentSigningKey && !nextSigningKey && !process.env.QSTASH_REGION) {
-    throw new Error(
-      "currentSigningKey and nextSigningKey are required, either in the config or as env variables (QSTASH_CURRENT_SIGNING_KEY and QSTASH_NEXT_SIGNING_KEY)"
-    );
-  }
+  const { currentSigningKey, nextSigningKey } = getVerifierSigningKeys(config);
 
   const receiver = new Receiver({
     currentSigningKey,
@@ -170,16 +153,7 @@ export function verifySignatureAppRouter(
     | ((request: NextRequest, params?: any) => VerifySignatureAppRouterResponse),
   config?: VerifySignatureConfig
 ) {
-  const currentSigningKey = config?.currentSigningKey ?? process.env.QSTASH_CURRENT_SIGNING_KEY;
-  const nextSigningKey = config?.nextSigningKey ?? process.env.QSTASH_NEXT_SIGNING_KEY;
-
-  // Skip the throw in dev mode (config flag OR QSTASH_DEV env) — Receiver auto-picks dev keys.
-  const devMode = shouldUseDevelopmentMode(config?.devMode, process.env);
-  if (!devMode && !currentSigningKey && !nextSigningKey && !process.env.QSTASH_REGION) {
-    throw new Error(
-      "currentSigningKey and nextSigningKey are required, either in the config or as env variables (QSTASH_CURRENT_SIGNING_KEY and QSTASH_NEXT_SIGNING_KEY)"
-    );
-  }
+  const { currentSigningKey, nextSigningKey } = getVerifierSigningKeys(config);
 
   const receiver = new Receiver({
     currentSigningKey,

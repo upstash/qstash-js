@@ -48,10 +48,12 @@ export const processOptions = <TResponse extends Response = Response, TInitialPa
   );
 
   return {
-    qstashClient: new Client({
-      baseUrl: environment.QSTASH_URL!,
-      token: environment.QSTASH_TOKEN!,
-    }),
+    qstashClient:
+      options?.qstashClient ??
+      new Client({
+        baseUrl: environment.QSTASH_URL!,
+        token: environment.QSTASH_TOKEN!,
+      }),
     onStepFinish: (workflowRunId: string, _finishCondition: FinishCondition) =>
       new Response(JSON.stringify({ workflowRunId }), {
         status: 200,
@@ -271,7 +273,17 @@ export const serve = <
     try {
       return await handler(request);
     } catch (error) {
-      console.error(error);
+      // A setup error's stack adds nothing to its actionable message.
+      // Check the marker so clients imported from another bundle work too.
+      if (
+        error instanceof Error &&
+        "code" in error &&
+        error.code === "QSTASH_MISSING_CREDENTIALS"
+      ) {
+        console.error(error.message);
+      } else {
+        console.error(error);
+      }
       return new Response(JSON.stringify(formatWorkflowError(error)), { status: 500 }) as TResponse;
     }
   };

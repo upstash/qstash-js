@@ -5,9 +5,12 @@ import {
   QstashChatRatelimitError,
   QstashDailyRatelimitError,
   QstashEmptyArrayError,
+  QstashMissingCredentialsError,
 } from "./error";
 // eslint-disable-next-line unicorn/prevent-abbreviations
 import { ensureDevelopmentServer } from "../dev-server";
+import { MISSING_TOKEN_MESSAGE, withDevModeHint } from "./multi-region";
+import { getSafeEnvironment } from "./utils";
 import type { BodyInit, HeadersInit, HTTPMethods, RequestOptions } from "./types";
 import type { ChatCompletionChunk } from "./llm/types";
 
@@ -90,6 +93,12 @@ export type HttpClientConfig = {
   telemetryHeaders?: Headers;
   devMode?: boolean;
 };
+
+const UNAUTHORIZED = 401;
+
+/** Whether an `Authorization` header actually carries a bearer token. */
+const hasBearerToken = (authorization: string): boolean =>
+  authorization.replace(/^Bearer/, "").trim().length > 0;
 
 export class HttpClient implements Requester {
   public readonly baseUrl: string;
@@ -188,7 +197,7 @@ export class HttpClient implements Requester {
     response: Response;
     error: Error | undefined;
   }> => {
-    const [url, requestOptions] = this.processRequest(request);
+    const [url, requestOptions, usedOwnCredentials] = this.processRequest(request);
 
     let response: Response | undefined = undefined;
     let error: Error | undefined = undefined;
@@ -208,7 +217,7 @@ export class HttpClient implements Requester {
     if (!response) {
       throw error ?? new Error("Exhausted all retries");
     }
-    await this.checkResponse(response);
+    await this.checkResponse(response, usedOwnCredentials);
 
     return {
       response,
@@ -216,10 +225,13 @@ export class HttpClient implements Requester {
     };
   };
 
-  private processRequest = (request: UpstashRequest): [string, RequestOptions] => {
+  private processRequest = (request: UpstashRequest): [string, RequestOptions, boolean] => {
     //@ts-expect-error caused by undici and bunjs type overlap
     const headers = new Headers(request.headers);
-    if (!headers.has("Authorization")) {
+    // Tracked rather than compared afterwards: `Headers` normalizes values, so
+    // the header we set doesn't always read back as the string we passed in.
+    const usedOwnCredentials = !headers.has("Authorization");
+    if (usedOwnCredentials) {
       headers.set("Authorization", this.authorization);
     }
     const requestOptions: RequestOptions = {
@@ -247,10 +259,10 @@ export class HttpClient implements Requester {
         }
       }
     }
-    return [url.toString(), requestOptions];
+    return [url.toString(), requestOptions, usedOwnCredentials];
   };
 
-  private async checkResponse(response: Response) {
+  private async checkResponse(response: Response, usedOwnCredentials: boolean) {
     if (response.status === 429) {
       if (response.headers.get("x-ratelimit-limit-requests")) {
         throw new QstashChatRatelimitError({
@@ -274,6 +286,24 @@ export class HttpClient implements Requester {
         remaining: response.headers.get("Burst-RateLimit-Remaining"),
         reset: response.headers.get("Burst-RateLimit-Reset"),
       });
+    }
+
+    // A 401 with no token at all is a setup problem, not a bad token: replace
+    // the server's generic body with something actionable. This is the error
+    // most users hit first, e.g. when triggering a workflow with no credentials.
+    // Only when we sent our own empty header: `chat` requests carry a provider's
+    // key, and a 401 from that provider says nothing about the QStash token.
+    if (
+      response.status === UNAUTHORIZED &&
+      usedOwnCredentials &&
+      !hasBearerToken(this.authorization)
+    ) {
+      // Drained so the socket is released, as on every other error path here.
+      await response.text();
+      throw new QstashMissingCredentialsError(
+        withDevModeHint(MISSING_TOKEN_MESSAGE, getSafeEnvironment(), this.devMode),
+        response.status
+      );
     }
 
     if (response.status < 200 || response.status >= 300) {

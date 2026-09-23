@@ -1,9 +1,13 @@
 import type { QStashRegion } from "./utils";
 import {
+  MISSING_SIGNING_KEYS_MESSAGE,
   getRegionFromEnvironment,
   normalizeRegionHeader,
   readReceiverEnvironmentVariables,
+  withDevModeHint,
 } from "./utils";
+import { QstashMissingCredentialsError } from "../error";
+import { getSafeEnvironment } from "../utils";
 import { shouldUseDevelopmentMode, getDevelopmentCredentials, DEV_PREFIX } from "../../dev-server";
 
 type SigningKeys = {
@@ -99,4 +103,32 @@ export const getReceiverSigningKeys = ({
       nextSigningKey: defaultCreds.QSTASH_NEXT_SIGNING_KEY,
     };
   }
+};
+
+/**
+ * Signing keys for the platform `verifySignature*` wrappers, checked when the
+ * handler is built so a route without keys fails at startup.
+ * Dev mode and multi-region keys are resolved per request by the Receiver.
+ */
+export const getVerifierSigningKeys = (
+  config: (SigningKeys & { devMode?: boolean }) | undefined
+): SigningKeys => {
+  const environment = getSafeEnvironment();
+  // Literal `process.env.X` reads so keys inlined by bundlers (Next.js `env`,
+  // DefinePlugin, Vite `define`) still resolve.
+  const currentSigningKey = config?.currentSigningKey ?? process.env.QSTASH_CURRENT_SIGNING_KEY;
+  const nextSigningKey = config?.nextSigningKey ?? process.env.QSTASH_NEXT_SIGNING_KEY;
+
+  if (
+    !shouldUseDevelopmentMode(config?.devMode, environment) &&
+    !currentSigningKey &&
+    !nextSigningKey &&
+    !process.env.QSTASH_REGION
+  ) {
+    throw new QstashMissingCredentialsError(
+      withDevModeHint(MISSING_SIGNING_KEYS_MESSAGE, environment, config?.devMode)
+    );
+  }
+
+  return { currentSigningKey, nextSigningKey };
 };

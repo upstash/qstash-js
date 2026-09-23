@@ -8,12 +8,18 @@ import { Client } from "./client";
 import { Receiver } from "../receiver";
 import { getClientCredentials } from "./multi-region/outgoing";
 import { getReceiverSigningKeys } from "./multi-region/incoming";
+import { captureWarnings, stubEnvironment } from "./test-utils";
+import { MISSING_TOKEN_MESSAGE, withDevModeHint } from "./multi-region/utils";
 
-// Helper to create a clean environment for each test
+// Helper to create a clean environment for each test.
+//
+// QSTASH_DEV defaults to "false": `shouldUseDevelopmentMode` falls back to the
+// real process.env when the given environment doesn't set it, which would make
+// these tests resolve dev credentials on a machine that exports QSTASH_DEV.
 const createEnvironment = (
   environment: Record<string, string>
 ): Record<string, string | undefined> => {
-  return { ...environment };
+  return { QSTASH_DEV: "false", ...environment };
 };
 
 describe("QStash Client - Multi-Region Credentials Resolution", () => {
@@ -423,6 +429,123 @@ describe("Receiver/Verifier - Multi-Region Signing Keys Resolution", () => {
       // Should fallback to defaults
       expect(result?.currentSigningKey).toBe("default-current");
       expect(result?.nextSigningKey).toBe("default-next");
+    });
+  });
+
+  describe("Missing credentials messages", () => {
+    test.each([undefined, "development"])(
+      "should suggest dev mode when NODE_ENV is %s",
+      (nodeEnvironment) => {
+        const environment = { ...createEnvironment({}), NODE_ENV: nodeEnvironment };
+
+        const warnings = captureWarnings(() => getClientCredentials({ environment }));
+
+        expect(warnings).toHaveLength(1);
+        expect(warnings[0]).toInclude("client token is not set");
+        expect(warnings[0]).toInclude("QSTASH_DEV=true");
+      }
+    );
+
+    test("should not suggest dev mode when devMode is explicitly false", () => {
+      const environment = createEnvironment({ NODE_ENV: "development" });
+
+      const warnings = captureWarnings(() => getClientCredentials({ environment, devMode: false }));
+
+      expect(warnings[0]).toInclude("client token is not set");
+      expect(warnings[0]).not.toInclude("QSTASH_DEV=true");
+    });
+
+    test.each(["production", "test", "staging"])(
+      "should not suggest dev mode when NODE_ENV is %s",
+      (nodeEnvironment) => {
+        const environment = { ...createEnvironment({}), NODE_ENV: nodeEnvironment };
+
+        const warnings = captureWarnings(() => getClientCredentials({ environment }));
+
+        expect(warnings[0]).toInclude("client token is not set");
+        expect(warnings[0]).not.toInclude("QSTASH_DEV=true");
+      }
+    );
+
+    test("should not suggest dev mode in production", () => {
+      const environment = createEnvironment({ NODE_ENV: "production" });
+
+      const warnings = captureWarnings(() => getClientCredentials({ environment }));
+
+      expect(warnings[0]).toInclude("client token is not set");
+      expect(warnings[0]).not.toInclude("QSTASH_DEV=true");
+    });
+
+    test("should not warn when the token is set", () => {
+      const environment = createEnvironment({ QSTASH_TOKEN: "test-token" });
+
+      const warnings = captureWarnings(() => getClientCredentials({ environment }));
+
+      expect(warnings).toHaveLength(0);
+    });
+
+    test("should throw instead of warning when onMissingToken is throw", () => {
+      const environment = createEnvironment({ NODE_ENV: "development" });
+
+      expect(() => getClientCredentials({ environment, onMissingToken: "throw" })).toThrow(
+        /QSTASH_DEV=true/
+      );
+    });
+
+    test("should not throw in dev mode when no token is set", () => {
+      const environment = createEnvironment({ QSTASH_DEV: "true" });
+
+      const result = getClientCredentials({ environment, onMissingToken: "throw" });
+
+      expect(result.token).toBeTruthy();
+      expect(result.baseUrl).toInclude("127.0.0.1");
+    });
+
+    test("should suggest dev mode when the receiver has no signing keys", async () => {
+      const { environment, restore } = stubEnvironment([
+        "NODE_ENV",
+        "QSTASH_DEV",
+        "QSTASH_REGION",
+        "QSTASH_CURRENT_SIGNING_KEY",
+        "QSTASH_NEXT_SIGNING_KEY",
+      ]);
+      environment.NODE_ENV = "development";
+
+      let error: unknown;
+      try {
+        await new Receiver({}).verify({ signature: "invalid", body: "body" });
+      } catch (verifyError) {
+        error = verifyError;
+      } finally {
+        restore();
+      }
+
+      expect((error as Error | undefined)?.message).toInclude("No signing keys available");
+      expect((error as Error | undefined)?.message).toInclude("QSTASH_DEV=true");
+    });
+
+    test("should not suggest dev mode outside node when NODE_ENV is unset", () => {
+      // Simulates a production Cloudflare Worker / browser bundle: no NODE_ENV
+      // and no way to spawn the dev server.
+      const { restore } = stubEnvironment(["NODE_ENV"]);
+      const originalNavigator = globalThis.navigator;
+      Object.defineProperty(globalThis, "navigator", {
+        value: { userAgent: "Cloudflare-Workers" },
+        configurable: true,
+      });
+
+      try {
+        expect(withDevModeHint(MISSING_TOKEN_MESSAGE, {})).toBe(MISSING_TOKEN_MESSAGE);
+        expect(withDevModeHint(MISSING_TOKEN_MESSAGE, { NODE_ENV: "development" })).toBe(
+          MISSING_TOKEN_MESSAGE
+        );
+      } finally {
+        Object.defineProperty(globalThis, "navigator", {
+          value: originalNavigator,
+          configurable: true,
+        });
+        restore();
+      }
     });
   });
 });

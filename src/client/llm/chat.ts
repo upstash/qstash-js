@@ -57,7 +57,9 @@ export class Chat {
     let baseUrl = undefined;
     let headers = {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${this.token}`,
+      // Without a token, the HTTP client adds its own empty header so a 401
+      // explains the missing token instead of a generic "Unauthorized".
+      ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
       ...("stream" in request && request.stream
         ? {
             Connection: "keep-alive",
