@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { Client } from "./client";
 import { HttpClient } from "./http";
+import { upstash } from "./api/llm";
 import { QstashMissingCredentialsError } from "./error";
 import { captureWarnings, stubEnvironment } from "./test-utils";
 
@@ -51,7 +52,53 @@ describe("missing credential metadata", () => {
       expect.unreachable("missing credentials should throw");
     } catch (error) {
       expect(error).toBeInstanceOf(QstashMissingCredentialsError);
+      expect((error as QstashMissingCredentialsError).name).toBe("QstashMissingCredentialsError");
       expect((error as QstashMissingCredentialsError).alreadyLogged).toBe(false);
     }
+  });
+
+  test("explains a 401 from Upstash chat when no token is set", async () => {
+    const { restore } = stubEnvironment(["QSTASH_TOKEN", "QSTASH_REGION", "QSTASH_DEV"]);
+    globalThis.fetch = (() =>
+      Promise.resolve(new Response("Unauthorized", { status: UNAUTHORIZED }))) as typeof fetch;
+    try {
+      let client!: Client;
+      captureWarnings(() => {
+        client = new Client({ baseUrl: "https://qstash.example.test", devMode: false });
+      });
+      // eslint-disable-next-line @typescript-eslint/no-deprecated
+      await client.chat().create({
+        // eslint-disable-next-line @typescript-eslint/no-deprecated
+        provider: upstash(),
+        model: "meta-llama/Meta-Llama-3-8B-Instruct",
+        messages: [{ role: "user", content: "hi" }],
+      });
+      expect.unreachable("missing credentials should throw");
+    } catch (error) {
+      expect(error).toBeInstanceOf(QstashMissingCredentialsError);
+    } finally {
+      restore();
+    }
+  });
+
+  test("still authenticates Upstash chat with the client token", async () => {
+    const authorizations: (string | null)[] = [];
+    globalThis.fetch = ((_url: string, init: RequestInit) => {
+      authorizations.push(new Headers(init.headers).get("Authorization"));
+      return Promise.resolve(Response.json({ choices: [] }));
+    }) as typeof fetch;
+    const client = new Client({
+      baseUrl: "https://qstash.example.test",
+      token: "test-token",
+      devMode: false,
+    });
+    // eslint-disable-next-line @typescript-eslint/no-deprecated
+    await client.chat().create({
+      // eslint-disable-next-line @typescript-eslint/no-deprecated
+      provider: upstash(),
+      model: "meta-llama/Meta-Llama-3-8B-Instruct",
+      messages: [{ role: "user", content: "hi" }],
+    });
+    expect(authorizations).toEqual(["Bearer test-token"]);
   });
 });

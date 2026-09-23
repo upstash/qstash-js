@@ -57,7 +57,6 @@ export class Chat {
     let baseUrl = undefined;
     let headers = {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${this.token}`,
       ...("stream" in request && request.stream
         ? {
             Connection: "keep-alive",

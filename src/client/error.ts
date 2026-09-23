@@ -23,6 +23,7 @@ export class QstashMissingCredentialsError extends QstashError {
 
   constructor(message: string, options: { status?: number; alreadyLogged?: boolean } = {}) {
     super(message, options.status);
+    this.name = "QstashMissingCredentialsError";
     this.alreadyLogged = options.alreadyLogged ?? false;
   }
 }
