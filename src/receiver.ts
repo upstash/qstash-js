@@ -18,8 +18,7 @@ import { getReceiverSigningKeys } from "./client/multi-region";
  * dependency). Bundling it would resolve the conditions at our build time and
  * bake one variant into every output.
  *
- * This replaces `crypto-js`, which relied on the deprecated `url.parse()` and
- * triggered Node.js DEP0169 warnings.
+ * This replaces `crypto-js`, which is no longer maintained.
  */
 // `uncrypto` declares its export as `Crypto["subtle"]`, which resolves to an
 // untyped value without the DOM lib. Pin it to the runtime's Web Crypto type.
