@@ -22,7 +22,8 @@
     "!src/**/*.spec.*",
     "!src/**/test-utils.*",
     "!src/**/__tests__/**",
-    "!src/**/__snapshots__/**"
+    "!src/**/__snapshots__/**",
+    "!src/**/integration.*"
   ],
   "exports": {
     ".": {

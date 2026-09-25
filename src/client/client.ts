@@ -174,7 +174,7 @@ export type PublishRequest<TBody = BodyInit> = {
    * Configure how many times you would like the delivery to be retried up to the maxRetries limit
    * defined in your plan.
    *
-   * Capped by your plan's max retries; the publish fails above it. Counts retries after the
+   * The publish fails above that limit. Counts retries after the
    * first delivery, so `retries: 2` means up to 3 deliveries. A message that fails every attempt
    * goes to the DLQ, so do not return non-2xx to make a message wait for another one: for
    * one-at-a-time processing in publish order, enqueue to a queue with parallelism 1. Queues
@@ -208,7 +208,8 @@ export type PublishRequest<TBody = BodyInit> = {
    *
    * A string expression in milliseconds, at most 64 characters, such as `"2000"` or
    * `"1000 * pow(2, retried)"`. Duration strings like `"2s"` are rejected at publish time. A
-   * `Retry-After` header on the failed response takes precedence. Capped at 24 hours.
+   * `Retry-After` or `X-RateLimit-Reset*` header on the failed response takes precedence.
+   * Capped at 24 hours.
    *
    * Examples of valid `retryDelay` values:
    * ```ts
