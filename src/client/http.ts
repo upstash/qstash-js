@@ -318,10 +318,22 @@ const LOG_PREFIX = "[Upstash QStash]";
  *
  * Query parameters are left out to keep logs short and to avoid leaking
  * filter values or identifiers passed as query parameters.
+ *
+ * Publish, enqueue and schedule paths embed the destination URL, whose path,
+ * query and credentials can hold secrets (e.g. webhook tokens). Only its
+ * origin is logged.
  */
 const describeRequest = (method: string | undefined, url: string): string => {
   const { origin, pathname } = new URL(url);
-  return `${method ?? "GET"} ${origin}${pathname}`;
+  const safePath = pathname.replace(/\/[a-z][\w+.-]*:\/\/.*$/i, (destination) => {
+    try {
+      const destinationUrl = new URL(destination.slice(1));
+      return `/${destinationUrl.origin}${destinationUrl.pathname === "/" ? "" : "/…"}`;
+    } catch {
+      return "/<destination>";
+    }
+  });
+  return `${method ?? "GET"} ${origin}${safePath}`;
 };
 
 const formatError = (error: unknown): string => {

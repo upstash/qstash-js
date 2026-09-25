@@ -1,4 +1,6 @@
 /* eslint-disable @typescript-eslint/no-magic-numbers */
+// `await expect(...).rejects` and silenced console mocks in the logging tests
+/* eslint-disable @typescript-eslint/await-thenable, @typescript-eslint/no-confusing-void-expression, @typescript-eslint/no-empty-function */
 import { describe, test, expect, spyOn, afterEach } from "bun:test";
 import { createServer } from "node:http";
 import { Client } from "./client";
@@ -92,6 +94,14 @@ describe("http", () => {
   });
 });
 
+const makeClient = (retry: false | { retries: number }) =>
+  new HttpClient({
+    baseUrl: "https://example.com",
+    authorization: "Bearer test-token",
+    retry: retry === false ? false : { ...retry, backoff: () => 0 },
+    devMode: false,
+  });
+
 describe("http logging", () => {
   const originalFetch = globalThis.fetch;
 
@@ -102,14 +112,6 @@ describe("http logging", () => {
   const mockFetch = (implementation: () => Promise<Response>) => {
     globalThis.fetch = implementation as unknown as typeof fetch;
   };
-
-  const makeClient = (retry: false | { retries: number }) =>
-    new HttpClient({
-      baseUrl: "https://example.com",
-      authorization: "Bearer test-token",
-      retry: retry === false ? false : { ...retry, backoff: () => 0 },
-      devMode: false,
-    });
 
   test("should warn on each retry and log an error once when all attempts fail", async () => {
     mockFetch(() => Promise.reject(new Error("forced network failure")));
@@ -199,6 +201,41 @@ describe("http logging", () => {
       expect(error).toHaveBeenCalledTimes(1);
       expect(error.mock.calls[0][0]).toContain("failed with status 429");
     } finally {
+      error.mockRestore();
+    }
+  });
+
+  test("should only log the origin of a destination url", async () => {
+    mockFetch(() => Promise.reject(new Error("forced network failure")));
+    const warn = spyOn(console, "warn").mockImplementation(() => {});
+    const error = spyOn(console, "error").mockImplementation(() => {});
+
+    try {
+      for (const destination of [
+        "https://hooks.slack.com/services/T0/B0/webhook-secret",
+        "https://user:basic-auth-secret@api.example.com/hook?token=query-secret",
+      ]) {
+        await expect(
+          makeClient({ retries: 1 }).request({
+            method: "POST",
+            path: ["v2", "publish", destination],
+          })
+        ).rejects.toThrow("forced network failure");
+      }
+
+      const logs = [...warn.mock.calls, ...error.mock.calls].map((call) => String(call[0]));
+      expect(logs).toHaveLength(4);
+      expect(logs.join("\n")).toContain(
+        "POST https://example.com/v2/publish/https://hooks.slack.com/…"
+      );
+      expect(logs.join("\n")).toContain(
+        "POST https://example.com/v2/publish/https://api.example.com/…"
+      );
+      for (const log of logs) {
+        expect(log).not.toContain("secret");
+      }
+    } finally {
+      warn.mockRestore();
       error.mockRestore();
     }
   });
