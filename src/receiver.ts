@@ -1,7 +1,33 @@
 import * as jose from "jose";
-import crypto from "crypto-js";
+import { subtle as uncryptoSubtle } from "uncrypto";
 import { getSafeEnvironment } from "./client/utils";
 import { getReceiverSigningKeys } from "./client/multi-region";
+
+/**
+ * Computes the SHA-256 hash of the given string and returns it as an unpadded
+ * base64url-encoded value, using the Web Crypto API.
+ *
+ * `subtle` comes from `uncrypto`, which picks the implementation through
+ * package `exports` conditions: edge, worker, browser, Bun and Deno builds get
+ * `globalThis.crypto.subtle`, while Node.js gets `node:crypto`'s
+ * `webcrypto.subtle`. That keeps Node.js 16/18 working (they have no global
+ * Web Crypto) without putting a `node:` specifier in edge bundles, which
+ * Vercel's edge analyzer rejects.
+ *
+ * `uncrypto` must stay external to our build (it is, as a regular
+ * dependency). Bundling it would resolve the conditions at our build time and
+ * bake one variant into every output.
+ *
+ * This replaces `crypto-js`, which is no longer maintained.
+ */
+// `uncrypto` declares its export as `Crypto["subtle"]`, which resolves to an
+// untyped value without the DOM lib. Pin it to the runtime's Web Crypto type.
+const subtle = uncryptoSubtle as typeof globalThis.crypto.subtle;
+
+async function sha256Base64url(body: string): Promise<string> {
+  const digest = await subtle.digest("SHA-256", new TextEncoder().encode(body));
+  return jose.base64url.encode(new Uint8Array(digest));
+}
 
 /**
  * Necessary to verify the signature of a request.
@@ -119,7 +145,7 @@ export class Receiver {
     } catch {
       payload = await this.verifyWithKey(signingKeys.nextSigningKey, request);
     }
-    this.verifyBodyAndUrl(payload, request);
+    await this.verifyBodyAndUrl(payload, request);
     return true;
   }
 
@@ -139,7 +165,7 @@ export class Receiver {
     return jwt.payload;
   }
 
-  private verifyBodyAndUrl(payload: jose.JWTPayload, request: VerifyRequest) {
+  private async verifyBodyAndUrl(payload: jose.JWTPayload, request: VerifyRequest) {
     const p = payload as {
       iss: string;
       sub: string;
@@ -154,7 +180,7 @@ export class Receiver {
       throw new SignatureError(`invalid subject: ${p.sub}, want: ${request.url}`);
     }
 
-    const bodyHash = crypto.SHA256(request.body).toString(crypto.enc.Base64url);
+    const bodyHash = await sha256Base64url(request.body);
 
     const padding = new RegExp(/=+$/);
 
