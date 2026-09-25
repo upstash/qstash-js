@@ -42,6 +42,9 @@ export type RemoveEndpointsRequest = {
   )[];
 };
 
+/**
+ * @see node_modules/@upstash/qstash/docs/examples/url-groups.mdx
+ */
 export type UrlGroup = {
   /**
    * A unix timestamp (milliseconds)
@@ -62,6 +65,9 @@ export type UrlGroup = {
   endpoints: Endpoint[];
 };
 
+/**
+ * @see node_modules/@upstash/qstash/docs/examples/url-groups.mdx
+ */
 export class UrlGroups {
   private readonly http: Requester;
 
@@ -71,6 +77,8 @@ export class UrlGroups {
 
   /**
    * Create a new url group with the given name and endpoints
+   *
+   * @see node_modules/@upstash/qstash/docs/examples/url-groups.mdx
    */
   public async addEndpoints(request: AddEndpointsRequest): Promise<void> {
     await this.http.request<UrlGroup>({
@@ -84,6 +92,8 @@ export class UrlGroups {
 
   /**
    * Remove endpoints from a url group.
+   *
+   * @see node_modules/@upstash/qstash/docs/examples/url-groups.mdx
    */
   public async removeEndpoints(request: RemoveEndpointsRequest): Promise<void> {
     await this.http.request<UrlGroup>({
@@ -97,6 +107,8 @@ export class UrlGroups {
 
   /**
    * Get a list of all url groups.
+   *
+   * @see node_modules/@upstash/qstash/docs/examples/url-groups.mdx
    */
   public async list(): Promise<UrlGroup[]> {
     return await this.http.request<UrlGroup[]>({
@@ -107,6 +119,8 @@ export class UrlGroups {
 
   /**
    * Get a single url group
+   *
+   * @see node_modules/@upstash/qstash/docs/examples/url-groups.mdx
    */
   public async get(name: string): Promise<UrlGroup> {
     assertNonEmptyId(name, "Url group name");
@@ -118,6 +132,8 @@ export class UrlGroups {
 
   /**
    * Delete a url group
+   *
+   * @see node_modules/@upstash/qstash/docs/examples/url-groups.mdx
    */
   public async delete(name: string): Promise<void> {
     assertNonEmptyId(name, "Url group name");

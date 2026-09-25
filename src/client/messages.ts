@@ -4,6 +4,9 @@ import type { HTTPMethods } from "./types";
 import type { MessageCancelFilters } from "./filter-types";
 import { assertNonEmptyId, buildBulkActionFilterPayload } from "./utils";
 
+/**
+ * @see node_modules/@upstash/qstash/docs/examples/messages.mdx
+ */
 export type Message = {
   /**
    * A unique identifier for this message.
@@ -64,7 +67,7 @@ export type Message = {
 
   /**
    * The retry delay expression for this message,
-   * if retry_delay was set when publishing the message.
+   * if retryDelay was set when publishing the message.
    */
   retryDelayExpression?: PublishRequest["retryDelay"];
 
@@ -148,6 +151,9 @@ export type Message = {
 
 export type MessagePayload = Omit<Message, "urlGroup"> & { topicName: string };
 
+/**
+ * @see node_modules/@upstash/qstash/docs/examples/messages.mdx
+ */
 export class Messages {
   private readonly http: Requester;
 
@@ -157,6 +163,8 @@ export class Messages {
 
   /**
    * Get a message
+   *
+   * @see node_modules/@upstash/qstash/docs/examples/messages.mdx
    */
   public async get(messageId: string): Promise<Message> {
     assertNonEmptyId(messageId, "Message id");
@@ -196,6 +204,8 @@ export class Messages {
    *   cancelled = result.cancelled;
    * } while (cancelled > 0);
    * ```
+   *
+   * @see node_modules/@upstash/qstash/docs/examples/messages.mdx
    */
   public async cancel(
     request: string | string[] | MessageCancelFilters
@@ -226,6 +236,8 @@ export class Messages {
    * Delete a message.
    *
    * @deprecated Use `cancel(messageId: string)` instead
+   *
+   * @see node_modules/@upstash/qstash/docs/examples/messages.mdx
    */
   public async delete(messageId: string): Promise<void> {
     assertNonEmptyId(messageId, "Message id");
@@ -240,6 +252,8 @@ export class Messages {
    * Cancel multiple messages by their messageIds.
    *
    * @deprecated Use `cancel(messageIds: string[])` instead
+   *
+   * @see node_modules/@upstash/qstash/docs/examples/messages.mdx
    */
   public async deleteMany(messageIds: string[]): Promise<number> {
     const result = await this.cancel(messageIds);
@@ -249,6 +263,8 @@ export class Messages {
   /**
    * Cancel all messages
    * @deprecated Use `cancel({all: true})` to cancel all
+   *
+   * @see node_modules/@upstash/qstash/docs/examples/messages.mdx
    */
   public async deleteAll(): Promise<number> {
     const result = await this.cancel({ all: true });

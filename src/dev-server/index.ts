@@ -88,6 +88,8 @@ export const ensureDevelopmentServer = async (
  * import { startDevServer } from "@upstash/qstash";
  * await startDevServer();
  * ```
+ *
+ * @see node_modules/@upstash/qstash/docs/gettingstarted.mdx
  */
 export const startDevServer = async (): Promise<void> => {
   try {

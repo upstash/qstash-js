@@ -26,6 +26,9 @@ import { getClientCredentials } from "./multi-region";
 
 import { shouldUseDevelopmentMode, ensureDevelopmentServer, DEV_PREFIX } from "../dev-server";
 
+/**
+ * @see node_modules/@upstash/qstash/docs/gettingstarted.mdx
+ */
 type ClientConfig = {
   /**
    * Url of the QStash api server.
@@ -78,9 +81,20 @@ type ClientConfig = {
   devMode?: boolean;
 };
 
+/**
+ * @see node_modules/@upstash/qstash/docs/examples/publish.mdx
+ */
 export type PublishBatchRequest<TBody = BodyInit> = PublishRequest<TBody> & {
+  /**
+   * Enqueue the message to this queue instead of publishing it directly.
+   *
+   * Only letters, digits, "-", "_" and "." are allowed.
+   */
   queueName?: string;
 };
+/**
+ * @see node_modules/@upstash/qstash/docs/examples/publish.mdx
+ */
 export type PublishRequest<TBody = BodyInit> = {
   /**
    * The message to send.
@@ -103,7 +117,7 @@ export type PublishRequest<TBody = BodyInit> = {
   /**
    * Optionally delay the delivery of this message.
    *
-   * In seconds.
+   * In seconds, for example `delay: 3` or `delay: "3s"`.
    *
    * @default undefined
    */
@@ -128,6 +142,9 @@ export type PublishRequest<TBody = BodyInit> = {
    * same deduplication id is delivered again.
    *
    * When scheduling a message, the deduplication happens before the schedule is created.
+   *
+   * Must not contain ":" or spaces; the publish is rejected otherwise. Hash or replace them,
+   * for example `transfer-<id>`.
    *
    * @default undefined
    */
@@ -157,6 +174,12 @@ export type PublishRequest<TBody = BodyInit> = {
    * Configure how many times you would like the delivery to be retried up to the maxRetries limit
    * defined in your plan.
    *
+   * Capped by your plan's max retries; the publish fails above it. Counts retries after the
+   * first delivery, so `retries: 2` means up to 3 deliveries. A message that fails every attempt
+   * goes to the DLQ, so do not return non-2xx to make a message wait for another one: for
+   * one-at-a-time processing in publish order, enqueue to a queue with parallelism 1. Queues
+   * count against your plan's max queues, so use a few queues, not one per entity.
+   *
    * @default 3
    */
   retries?: number;
@@ -183,12 +206,16 @@ export type PublishRequest<TBody = BodyInit> = {
    * - `min`
    * - `max`
    *
+   * A string expression in milliseconds, at most 64 characters, such as `"2000"` or
+   * `"1000 * pow(2, retried)"`. Duration strings like `"2s"` are rejected at publish time. A
+   * `Retry-After` header on the failed response takes precedence. Capped at 24 hours.
+   *
    * Examples of valid `retryDelay` values:
    * ```ts
-   * 1000 // 1 second
-   * 1000 * (1 + retried)  // 1 second multiplied by the current retry attempt
-   * pow(2, retried) // 2 to the power of the current retry attempt
-   * max(10, pow(2, retried)) // The greater of 10 or 2^retried
+   * "1000" // 1 second
+   * "1000 * (1 + retried)" // 1 second multiplied by (1 + the current retry attempt)
+   * "1000 * pow(2, retried)" // 2 to the power of the current retry attempt, in seconds
+   * "max(10000, 1000 * pow(2, retried))" // The greater of 10 seconds or 2^retried seconds
    * ```
    */
   retryDelay?: string;
@@ -197,6 +224,8 @@ export type PublishRequest<TBody = BodyInit> = {
    * Use a failure callback url to handle messages that could not be delivered.
    *
    * The failure callback url must be publicly accessible
+   *
+   * Called once, after the last attempt fails. `callback` is called for that attempt as well.
    *
    * @default undefined
    */
@@ -224,6 +253,9 @@ export type PublishRequest<TBody = BodyInit> = {
   /**
    * Settings for controlling the number of active requests
    * and number of requests per second with the same key.
+   *
+   * Limits how many deliveries per key run at once; it does not preserve publish order. For
+   * FIFO per key, enqueue to a queue with parallelism 1.
    */
   flowControl?: FlowControl;
 
@@ -264,6 +296,13 @@ export type PublishRequest<TBody = BodyInit> = {
        *
        * The callback url must be publicly accessible
        *
+       * Called after every delivery attempt, including failed attempts that QStash will retry.
+       * The request body is JSON `{ status, body, sourceBody, retried, ... }` where `body` is the
+       * destination's response and `sourceBody` the original message, both base64. Act only when
+       * `status` is 2xx; decode with `decodeBase64` from "@upstash/qstash" (`atob` breaks UTF-8).
+       * `retried` is omitted on the first attempt. When retries run out, `callback` still gets the
+       * last failed attempt and `failureCallback` is called as well.
+       *
        * @default undefined
        */
       callback?: string;
@@ -281,6 +320,13 @@ export type PublishRequest<TBody = BodyInit> = {
        *
        * The callback url must be publicly accessible
        *
+       * Called after every delivery attempt, including failed attempts that QStash will retry.
+       * The request body is JSON `{ status, body, sourceBody, retried, ... }` where `body` is the
+       * destination's response and `sourceBody` the original message, both base64. Act only when
+       * `status` is 2xx; decode with `decodeBase64` from "@upstash/qstash" (`atob` breaks UTF-8).
+       * `retried` is omitted on the first attempt. When retries run out, `callback` still gets the
+       * last failed attempt and `failureCallback` is called as well.
+       *
        * @default undefined
        */
       callback?: string;
@@ -297,6 +343,13 @@ export type PublishRequest<TBody = BodyInit> = {
        * Use a callback url to forward the response of your destination server to your callback url.
        *
        * The callback url must be publicly accessible
+       *
+       * Called after every delivery attempt, including failed attempts that QStash will retry.
+       * The request body is JSON `{ status, body, sourceBody, retried, ... }` where `body` is the
+       * destination's response and `sourceBody` the original message, both base64. Act only when
+       * `status` is 2xx; decode with `decodeBase64` from "@upstash/qstash" (`atob` breaks UTF-8).
+       * `retried` is omitted on the first attempt. When retries run out, `callback` still gets the
+       * last failed attempt and `failureCallback` is called as well.
        *
        * @default undefined
        */
@@ -327,12 +380,22 @@ export type PublishRequest<TBody = BodyInit> = {
        *
        * The callback url must be publicly accessible
        *
+       * Called after every delivery attempt, including failed attempts that QStash will retry.
+       * The request body is JSON `{ status, body, sourceBody, retried, ... }` where `body` is the
+       * destination's response and `sourceBody` the original message, both base64. Act only when
+       * `status` is 2xx; decode with `decodeBase64` from "@upstash/qstash" (`atob` breaks UTF-8).
+       * `retried` is omitted on the first attempt. When retries run out, `callback` still gets the
+       * last failed attempt and `failureCallback` is called as well.
+       *
        * @default undefined
        */
       callback?: string;
     }
 );
 
+/**
+ * @see node_modules/@upstash/qstash/docs/examples/publish.mdx
+ */
 export type PublishJsonRequest = Omit<PublishRequest, "body"> & {
   /**
    * The message to send.
@@ -341,6 +404,9 @@ export type PublishJsonRequest = Omit<PublishRequest, "body"> & {
   body: unknown;
 };
 
+/**
+ * @see node_modules/@upstash/qstash/docs/examples/logs.mdx
+ */
 export type LogsRequest = {
   /** Max 1000. Defaults to 10 when `groupBy` is used. */
   count?: number;
@@ -371,10 +437,22 @@ export type GetLogsResponse = {
  */
 export type GetEventsResponse = GetLogsResponse;
 
+/**
+ * @see node_modules/@upstash/qstash/docs/examples/queues.mdx
+ */
 export type QueueRequest = {
+  /**
+   * Only letters, digits, "-", "_" and "." are allowed.
+   */
   queueName?: string;
 };
 
+/**
+ * QStash client: publish messages, and manage schedules, queues, url groups, the DLQ and logs.
+ *
+ * @see node_modules/@upstash/qstash/docs/gettingstarted.mdx
+ * @see node_modules/@upstash/qstash/docs/overview.mdx
+ */
 export class Client {
   public http: Requester;
   private token: string;
@@ -436,6 +514,8 @@ export class Client {
    * Access the urlGroup API.
    *
    * Create, read, update or delete urlGroups.
+   *
+   * @see node_modules/@upstash/qstash/docs/examples/url-groups.mdx
    */
   public get urlGroups(): UrlGroups {
     return new UrlGroups(this.http);
@@ -447,6 +527,8 @@ export class Client {
    * Access the topic API.
    *
    * Create, read, update or delete topics.
+   *
+   * @see node_modules/@upstash/qstash/docs/examples/url-groups.mdx
    */
   public get topics(): UrlGroups {
     return this.urlGroups;
@@ -456,6 +538,8 @@ export class Client {
    * Access the dlq API.
    *
    * List or remove messages from the DLQ.
+   *
+   * @see node_modules/@upstash/qstash/docs/examples/dlq.mdx
    */
   public get dlq(): DLQ {
     return new DLQ(this.http);
@@ -465,6 +549,8 @@ export class Client {
    * Access the message API.
    *
    * Read or cancel messages.
+   *
+   * @see node_modules/@upstash/qstash/docs/examples/messages.mdx
    */
   public get messages(): Messages {
     return new Messages(this.http);
@@ -474,6 +560,8 @@ export class Client {
    * Access the schedule API.
    *
    * Create, read or delete schedules.
+   *
+   * @see node_modules/@upstash/qstash/docs/examples/schedules.mdx
    */
   public get schedules(): Schedules {
     return new Schedules(this.http);
@@ -483,6 +571,8 @@ export class Client {
    * Access the flow control API.
    *
    * List, get, or reset flow controls.
+   *
+   * @see node_modules/@upstash/qstash/docs/examples/flow-control.mdx
    */
   public get flowControl(): FlowControlApi {
     return new FlowControlApi(this.http);
@@ -506,6 +596,8 @@ export class Client {
    * Access the queue API.
    *
    * Create, read, update or delete queues.
+   *
+   * @see node_modules/@upstash/qstash/docs/examples/queues.mdx
    */
   public queue(request?: QueueRequest): Queue {
     return new Queue(this.http, request?.queueName);
@@ -522,6 +614,11 @@ export class Client {
     return new Chat(this.http, this.token);
   }
 
+  /**
+   * Publish a message to a url, url group or api.
+   *
+   * @see node_modules/@upstash/qstash/docs/examples/publish.mdx
+   */
   public async publish<TRequest extends PublishRequest>(
     request: TRequest
   ): Promise<PublishResponse<TRequest>> {
@@ -542,6 +639,8 @@ export class Client {
   /**
    * publishJSON is a utility wrapper around `publish` that automatically serializes the body
    * and sets the `Content-Type` header to `application/json`.
+   *
+   * @see node_modules/@upstash/qstash/docs/examples/publish.mdx
    */
   public async publishJSON<
     TBody = unknown,
@@ -566,6 +665,8 @@ export class Client {
 
   /**
    * Batch publish messages to QStash.
+   *
+   * @see node_modules/@upstash/qstash/docs/examples/publish.mdx
    */
   public async batch(request: PublishBatchRequest[]): Promise<PublishResponse<PublishRequest>[]> {
     const messages = [];
@@ -602,6 +703,8 @@ export class Client {
 
   /**
    * Batch publish messages to QStash, serializing each body to JSON.
+   *
+   * @see node_modules/@upstash/qstash/docs/examples/publish.mdx
    */
   public async batchJSON<
     TBody = unknown,
@@ -647,6 +750,8 @@ export class Client {
    *   cursor = res.cursor ?? 0
    * }
    * ```
+   *
+   * @see node_modules/@upstash/qstash/docs/examples/logs.mdx
    */
   public async logs(request: LogsRequest = {}): Promise<GetLogsResponse> {
     const query = {
@@ -685,6 +790,8 @@ export class Client {
    *   cursor = res.cursor ?? 0
    * }
    * ```
+   *
+   * @see node_modules/@upstash/qstash/docs/examples/logs.mdx
    */
   public async events(request?: LogsRequest): Promise<GetLogsResponse> {
     return await this.logs(request);

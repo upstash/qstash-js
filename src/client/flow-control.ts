@@ -99,6 +99,9 @@ export type UnpinFlowControlOptions = {
   rate?: boolean;
 };
 
+/**
+ * @see node_modules/@upstash/qstash/docs/examples/flow-control.mdx
+ */
 export class FlowControlApi {
   private readonly http: Requester;
 
@@ -108,6 +111,8 @@ export class FlowControlApi {
 
   /**
    * Get a single flow control by key.
+   *
+   * @see node_modules/@upstash/qstash/docs/examples/flow-control.mdx
    */
   public async get(flowControlKey: string): Promise<FlowControlInfo> {
     assertNonEmptyId(flowControlKey, "Flow control key");
@@ -119,6 +124,8 @@ export class FlowControlApi {
 
   /**
    * Get the global parallelism info.
+   *
+   * @see node_modules/@upstash/qstash/docs/examples/flow-control.mdx
    */
   public async getGlobalParallelism(): Promise<GlobalParallelismInfo> {
     const response = await this.http.request<Partial<GlobalParallelismInfo>>({
@@ -137,6 +144,8 @@ export class FlowControlApi {
    *
    * Messages already in the waitlist will remain there.
    * New incoming messages will be added directly to the waitlist.
+   *
+   * @see node_modules/@upstash/qstash/docs/examples/flow-control.mdx
    */
   public async pause(flowControlKey: string): Promise<void> {
     await this.http.request({
@@ -148,6 +157,8 @@ export class FlowControlApi {
 
   /**
    * Resume message delivery for a flow-control key.
+   *
+   * @see node_modules/@upstash/qstash/docs/examples/flow-control.mdx
    */
   public async resume(flowControlKey: string): Promise<void> {
     await this.http.request({
@@ -162,6 +173,8 @@ export class FlowControlApi {
    *
    * While pinned, the system ignores configurations provided by incoming
    * messages and uses the pinned configuration instead.
+   *
+   * @see node_modules/@upstash/qstash/docs/examples/flow-control.mdx
    */
   public async pin(flowControlKey: string, options: PinFlowControlOptions): Promise<void> {
     await this.http.request({
@@ -181,6 +194,8 @@ export class FlowControlApi {
    *
    * After unpinning, the system resumes updating the configuration
    * based on incoming messages.
+   *
+   * @see node_modules/@upstash/qstash/docs/examples/flow-control.mdx
    */
   public async unpin(flowControlKey: string, options: UnpinFlowControlOptions): Promise<void> {
     await this.http.request({
@@ -199,6 +214,8 @@ export class FlowControlApi {
    *
    * Clears the current rate count and immediately ends the current period.
    * The current timestamp becomes the start of the new rate period.
+   *
+   * @see node_modules/@upstash/qstash/docs/examples/flow-control.mdx
    */
   public async resetRate(flowControlKey: string): Promise<void> {
     await this.http.request({

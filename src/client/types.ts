@@ -12,6 +12,9 @@ export type State =
 
 export type HTTPMethods = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
 
+/**
+ * @see node_modules/@upstash/qstash/docs/examples/logs.mdx
+ */
 export type Log = {
   time: number;
   state: State;
@@ -93,9 +96,17 @@ export type RateLimit = {
   reset: string | null;
 };
 
+/**
+ * Limits how many deliveries per key run at once; it does not preserve publish order. For
+ * FIFO per key, enqueue to a queue with parallelism 1.
+ *
+ * @see node_modules/@upstash/qstash/docs/examples/flow-control.mdx
+ */
 export type FlowControl = {
   /**
    * flow control key
+   *
+   * Only letters, digits, "-", "_" and "." are allowed.
    */
   key: string;
 } & (
