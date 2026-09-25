@@ -10,6 +10,12 @@ permissions:
   id-token: write
   contents: read
 
+# E2E suites share an account and perform account-wide cleanup.
+# Queue across branches so one run cannot delete another run's fixtures.
+concurrency:
+  group: qstash-ci-shared-account
+  queue: max
+
 jobs:
   tests:
     if: github.event_name != 'release'

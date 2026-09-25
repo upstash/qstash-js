@@ -190,6 +190,9 @@ export class HttpClient implements Requester {
   }> => {
     const [url, requestOptions] = this.processRequest(request);
 
+    const requestLabel = describeRequest(requestOptions.method, url);
+    const totalAttempts = this.retry.attempts + 1;
+
     let response: Response | undefined = undefined;
     let error: Error | undefined = undefined;
     for (let index = 0; index <= this.retry.attempts; index++) {
@@ -201,14 +204,24 @@ export class HttpClient implements Requester {
 
         // Only sleep if this is not the last attempt
         if (index < this.retry.attempts) {
-          await new Promise((r) => setTimeout(r, this.retry.backoff(index)));
+          const backoffMs = this.retry.backoff(index);
+          console.warn(
+            `${LOG_PREFIX} ${requestLabel} failed (attempt ${index + 1}/${totalAttempts}), ` +
+              `retrying in ${Math.round(backoffMs)}ms: ${formatError(error)}`
+          );
+          await new Promise((r) => setTimeout(r, backoffMs));
         }
       }
     }
     if (!response) {
-      throw error ?? new Error("Exhausted all retries");
+      const finalError = error ?? new Error("Exhausted all retries");
+      console.error(
+        `${LOG_PREFIX} ${requestLabel} failed after ${totalAttempts} ` +
+          `${totalAttempts === 1 ? "attempt" : "attempts"}: ${formatError(finalError)}`
+      );
+      throw finalError;
     }
-    await this.checkResponse(response);
+    await this.checkResponse(response, requestLabel);
 
     return {
       response,
@@ -250,10 +263,20 @@ export class HttpClient implements Requester {
     return [url.toString(), requestOptions];
   };
 
-  private async checkResponse(response: Response) {
+  private async checkResponse(response: Response, requestLabel: string) {
+    const error = await this.getResponseError(response);
+    if (error) {
+      // The response body is intentionally left out of the log. It is still
+      // available on the thrown error's message.
+      console.error(`${LOG_PREFIX} ${requestLabel} failed with status ${response.status}`);
+      throw error;
+    }
+  }
+
+  private async getResponseError(response: Response): Promise<QstashError | undefined> {
     if (response.status === 429) {
       if (response.headers.get("x-ratelimit-limit-requests")) {
-        throw new QstashChatRatelimitError({
+        return new QstashChatRatelimitError({
           "limit-requests": response.headers.get("x-ratelimit-limit-requests"),
           "limit-tokens": response.headers.get("x-ratelimit-limit-tokens"),
           "remaining-requests": response.headers.get("x-ratelimit-remaining-requests"),
@@ -262,14 +285,14 @@ export class HttpClient implements Requester {
           "reset-tokens": response.headers.get("x-ratelimit-reset-tokens"),
         });
       } else if (response.headers.get("RateLimit-Limit")) {
-        throw new QstashDailyRatelimitError({
+        return new QstashDailyRatelimitError({
           limit: response.headers.get("RateLimit-Limit"),
           remaining: response.headers.get("RateLimit-Remaining"),
           reset: response.headers.get("RateLimit-Reset"),
         });
       }
 
-      throw new QstashRatelimitError({
+      return new QstashRatelimitError({
         limit: response.headers.get("Burst-RateLimit-Limit"),
         remaining: response.headers.get("Burst-RateLimit-Remaining"),
         reset: response.headers.get("Burst-RateLimit-Reset"),
@@ -278,10 +301,44 @@ export class HttpClient implements Requester {
 
     if (response.status < 200 || response.status >= 300) {
       const body = await response.text();
-      throw new QstashError(
+      return new QstashError(
         body.length > 0 ? body : `Error: status=${response.status}`,
         response.status
       );
     }
+
+    return undefined;
   }
 }
+
+const LOG_PREFIX = "[Upstash QStash]";
+
+/**
+ * Describes a request for logs as `METHOD origin/path`.
+ *
+ * Query parameters are left out to keep logs short and to avoid leaking
+ * filter values or identifiers passed as query parameters.
+ *
+ * Publish, enqueue and schedule paths embed the destination URL, whose path,
+ * query and credentials can hold secrets (e.g. webhook tokens). Only its
+ * origin is logged.
+ */
+const describeRequest = (method: string | undefined, url: string): string => {
+  const { origin, pathname } = new URL(url);
+  const safePath = pathname.replace(/\/[a-z][\w+.-]*:\/\/.*$/i, (destination) => {
+    try {
+      const destinationUrl = new URL(destination.slice(1));
+      return `/${destinationUrl.origin}${destinationUrl.pathname === "/" ? "" : "/…"}`;
+    } catch {
+      return "/<destination>";
+    }
+  });
+  return `${method ?? "GET"} ${origin}${safePath}`;
+};
+
+const formatError = (error: unknown): string => {
+  if (!(error instanceof Error)) return String(error);
+  // undici wraps the underlying network error (ECONNREFUSED, ENOTFOUND, ...) in `cause`
+  const cause = (error as Error & { cause?: unknown }).cause;
+  return cause instanceof Error ? `${error.message} (cause: ${cause.message})` : error.message;
+};
