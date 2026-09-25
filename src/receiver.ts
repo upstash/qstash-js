@@ -31,6 +31,8 @@ async function sha256Base64url(body: string): Promise<string> {
 
 /**
  * Necessary to verify the signature of a request.
+ *
+ * @see node_modules/@upstash/qstash/docs/examples/receiver.mdx
  */
 export type ReceiverConfig = {
   /**
@@ -53,11 +55,18 @@ export type ReceiverConfig = {
    * - `false`: never use dev server signing keys (ignores QSTASH_DEV env var)
    * - `undefined`: check QSTASH_DEV env var
    *
+   * When devMode is true, or devMode is undefined and QSTASH_DEV is "true" or "1", the configured
+   * keys are ignored and the local dev server's public keys are accepted. Never set QSTASH_DEV in
+   * production; pass devMode: false there to be safe.
+   *
    * @default undefined
    */
   devMode?: boolean;
 };
 
+/**
+ * @see node_modules/@upstash/qstash/docs/examples/receiver.mdx
+ */
 export type VerifyRequest = {
   /**
    * The signature from the `upstash-signature` header.
@@ -72,7 +81,13 @@ export type VerifyRequest = {
   /**
    * URL of the endpoint where the request was sent to.
    *
-   * Omit empty to disable checking the url.
+   * url must equal the URL the message was published to, query string included (QStash drops
+   * upstash-* query parameters). Do not pass request.url: behind a proxy, or when the server
+   * binds 0.0.0.0, it differs from the published URL and verify throws "invalid subject". Build
+   * it from your configured public origin plus the path. Leaving url undefined skips the check,
+   * so a signature for any other endpoint of your account is accepted; url: "" throws. A
+   * signature stays valid for 5 minutes and can be replayed in that window, so deduplicate by
+   * the Upstash-Message-Id header.
    */
   url?: string;
 
@@ -99,6 +114,12 @@ export class SignatureError extends Error {
 }
 /**
  * Receiver offers a simple way to verify the signature of a request.
+ *
+ * When devMode is true, or devMode is undefined and QSTASH_DEV is "true" or "1", the configured
+ * keys are ignored and the local dev server's public keys are accepted. Never set QSTASH_DEV in
+ * production; pass devMode: false there to be safe.
+ *
+ * @see node_modules/@upstash/qstash/docs/examples/receiver.mdx
  */
 export class Receiver {
   private readonly currentSigningKey?: string;
@@ -119,6 +140,19 @@ export class Receiver {
    * try to verify the signature with the next signing key.
    *
    * If that fails, the signature is invalid and a `SignatureError` is thrown.
+   *
+   * Resolves to true or throws; it never returns false. Without signing keys it throws a plain
+   * `Error`, not a `SignatureError`.
+   *
+   * url must equal the URL the message was published to, query string included (QStash drops
+   * upstash-* query parameters). Do not pass request.url: behind a proxy, or when the server
+   * binds 0.0.0.0, it differs from the published URL and verify throws "invalid subject". Build
+   * it from your configured public origin plus the path. Leaving url undefined skips the check,
+   * so a signature for any other endpoint of your account is accepted; url: "" throws. A
+   * signature stays valid for 5 minutes and can be replayed in that window, so deduplicate by
+   * the Upstash-Message-Id header.
+   *
+   * @see node_modules/@upstash/qstash/docs/examples/receiver.mdx
    */
   public async verify(request: VerifyRequest): Promise<boolean> {
     const environment = getSafeEnvironment();

@@ -13,6 +13,9 @@ export type QueueResponse = {
   paused: boolean;
 };
 
+/**
+ * @see node_modules/@upstash/qstash/docs/examples/queues.mdx
+ */
 export type UpsertQueueRequest = {
   /**
    * The number of parallel consumers consuming from the queue.
@@ -30,6 +33,9 @@ export type UpsertQueueRequest = {
   paused?: boolean;
 };
 
+/**
+ * @see node_modules/@upstash/qstash/docs/examples/queues.mdx
+ */
 export class Queue {
   private readonly http: Requester;
   private readonly queueName: string | undefined;
@@ -41,6 +47,8 @@ export class Queue {
 
   /**
    * Create or update the queue
+   *
+   * @see node_modules/@upstash/qstash/docs/examples/queues.mdx
    */
   public async upsert(request: UpsertQueueRequest): Promise<void> {
     if (!this.queueName) {
@@ -66,6 +74,8 @@ export class Queue {
 
   /**
    * Get the queue details
+   *
+   * @see node_modules/@upstash/qstash/docs/examples/queues.mdx
    */
   public async get(): Promise<QueueResponse> {
     if (!this.queueName) {
@@ -80,6 +90,8 @@ export class Queue {
 
   /**
    * List queues
+   *
+   * @see node_modules/@upstash/qstash/docs/examples/queues.mdx
    */
   public async list(): Promise<QueueResponse[]> {
     return await this.http.request<QueueResponse[]>({
@@ -90,6 +102,8 @@ export class Queue {
 
   /**
    * Delete the queue
+   *
+   * @see node_modules/@upstash/qstash/docs/examples/queues.mdx
    */
   public async delete(): Promise<void> {
     if (!this.queueName) {
@@ -105,6 +119,10 @@ export class Queue {
 
   /**
    * Enqueue a message to a queue.
+   *
+   * If the queue does not exist, it is created with parallelism 1.
+   *
+   * @see node_modules/@upstash/qstash/docs/examples/queues.mdx
    */
   public async enqueue<TRequest extends PublishRequest>(
     request: TRequest
@@ -132,6 +150,10 @@ export class Queue {
 
   /**
    * Enqueue a message to a queue, serializing the body to JSON.
+   *
+   * If the queue does not exist, it is created with parallelism 1.
+   *
+   * @see node_modules/@upstash/qstash/docs/examples/queues.mdx
    */
   public async enqueueJSON<
     TBody = unknown,
@@ -159,6 +181,8 @@ export class Queue {
    *
    * A paused queue will not deliver messages until
    * it is resumed.
+   *
+   * @see node_modules/@upstash/qstash/docs/examples/queues.mdx
    */
   public async pause() {
     if (!this.queueName) {
@@ -174,6 +198,8 @@ export class Queue {
 
   /**
    * Resumes the queue.
+   *
+   * @see node_modules/@upstash/qstash/docs/examples/queues.mdx
    */
   public async resume() {
     if (!this.queueName) {

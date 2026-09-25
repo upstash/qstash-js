@@ -12,6 +12,14 @@ type VerifySignatureConfig = {
   clockTolerance?: number;
 };
 
+/**
+ * Verifies the `Upstash-Signature` header with `Receiver` before calling the handler.
+ *
+ * It does not check the URL the message was signed for, so a signature for any other endpoint
+ * of your account is accepted. To check it, call `Receiver.verify` with `url`.
+ *
+ * @see node_modules/@upstash/qstash/docs/examples/receiver.mdx
+ */
 export const verifySignatureH3 = (
   handler: (event: H3Event) => Promise<unknown>,
   config?: VerifySignatureConfig
