@@ -225,6 +225,30 @@ export class Messages {
   }
 
   /**
+   * Deliver a pending message now instead of waiting for its scheduled time.
+   *
+   * Works for a message that is delayed (published with `delay` / `notBefore`,
+   * or a Workflow `context.sleep` / `sleepUntil` step) and for a message waiting
+   * out its retry backoff after a failed attempt. Queue messages are not
+   * supported.
+   *
+   * Throws a `QstashError` with status 404 when the message is not waiting
+   * anymore, for example because it is already running or finished.
+   *
+   * ```ts
+   * await client.messages.runNow("msg_123");
+   * ```
+   */
+  public async runNow(messageId: string): Promise<void> {
+    assertNonEmptyId(messageId, "Message id");
+    await this.http.request({
+      method: "POST",
+      path: ["v2", "messages", messageId, "retry"],
+      parseResponseAsJson: false,
+    });
+  }
+
+  /**
    * Delete a message.
    *
    * @deprecated Use `cancel(messageId: string)` instead
