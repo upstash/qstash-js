@@ -57,14 +57,14 @@ describe("Messages empty id guard", () => {
     });
   });
 
-  test("should not send request when retry is called with an empty string", async () => {
+  test("should not send request when runNow is called with an empty string", async () => {
     await mockQStashServer({
       execute: async () => {
         const mockClient = new Client({
           token: "mock-token",
           baseUrl: MOCK_QSTASH_SERVER_URL,
         });
-        await expectToReject(() => mockClient.messages.retry(""), "Message id cannot be empty");
+        await expectToReject(() => mockClient.messages.runNow(""), "Message id cannot be empty");
       },
       responseFields: { body: {}, status: 200 },
       receivesRequest: false,
@@ -90,7 +90,7 @@ describe("Messages empty id guard", () => {
   });
 });
 
-describe("Messages retry", () => {
+describe("Messages runNow", () => {
   test("should POST to the message retry endpoint", async () => {
     await mockQStashServer({
       execute: async () => {
@@ -98,7 +98,7 @@ describe("Messages retry", () => {
           token: "mock-token",
           baseUrl: MOCK_QSTASH_SERVER_URL,
         });
-        await mockClient.messages.retry("msg_123");
+        await mockClient.messages.runNow("msg_123");
       },
       responseFields: { body: "", status: 200 },
       receivesRequest: {
@@ -117,7 +117,7 @@ describe("Messages retry", () => {
           baseUrl: MOCK_QSTASH_SERVER_URL,
           retry: false,
         });
-        const error = await mockClient.messages.retry("msg_123").catch((error_: unknown) => error_);
+        const error = await mockClient.messages.runNow("msg_123").catch((error_: unknown) => error_);
         expect(error).toBeInstanceOf(QstashError);
         expect((error as QstashError).status).toBe(404);
       },

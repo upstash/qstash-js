@@ -236,10 +236,10 @@ export class Messages {
    * anymore, for example because it is already running or finished.
    *
    * ```ts
-   * await client.messages.retry("msg_123");
+   * await client.messages.runNow("msg_123");
    * ```
    */
-  public async retry(messageId: string): Promise<void> {
+  public async runNow(messageId: string): Promise<void> {
     assertNonEmptyId(messageId, "Message id");
     await this.http.request({
       method: "POST",
