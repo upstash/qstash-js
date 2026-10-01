@@ -3,6 +3,7 @@ import {
   getRegionFromEnvironment,
   normalizeRegionHeader,
   readReceiverEnvironmentVariables,
+  withDevModeHint,
 } from "./utils";
 import { shouldUseDevelopmentMode, getDevelopmentCredentials, DEV_PREFIX } from "../../dev-server";
 
@@ -120,7 +121,10 @@ export const getVerifierSigningKeys = (
     !process.env.QSTASH_REGION
   ) {
     throw new Error(
-      "currentSigningKey and nextSigningKey are required, either in the config or as env variables (QSTASH_CURRENT_SIGNING_KEY and QSTASH_NEXT_SIGNING_KEY)"
+      withDevModeHint(
+        "currentSigningKey and nextSigningKey are required, either in the config or as env variables (QSTASH_CURRENT_SIGNING_KEY and QSTASH_NEXT_SIGNING_KEY)",
+        process.env
+      )
     );
   }
 
