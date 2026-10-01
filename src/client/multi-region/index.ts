@@ -1,2 +1,2 @@
-export { getReceiverSigningKeys } from "./incoming";
+export { getReceiverSigningKeys, getVerifierSigningKeys } from "./incoming";
 export { getClientCredentials } from "./outgoing";
