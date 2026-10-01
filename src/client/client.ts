@@ -375,6 +375,12 @@ export type QueueRequest = {
   queueName?: string;
 };
 
+/**
+ * Internal marker set by `Client.fromEnv()` so the constructor throws instead
+ * of warning when no token is found. A symbol keeps it out of `ClientConfig`.
+ */
+const THROW_ON_MISSING_TOKEN = Symbol("qstash.throwOnMissingToken");
+
 export class Client {
   public http: Requester;
   private token: string;
@@ -387,6 +393,9 @@ export class Client {
       environment,
       config,
       devMode: config?.devMode,
+      throwOnMissingToken: Boolean(
+        (config as { [THROW_ON_MISSING_TOKEN]?: boolean } | undefined)?.[THROW_ON_MISSING_TOKEN]
+      ),
     });
 
     // Fire-and-forget dev server startup
@@ -430,6 +439,23 @@ export class Client {
     });
 
     this.token = token;
+  }
+
+  /**
+   * Create a client from the `QSTASH_TOKEN` and `QSTASH_URL` env variables
+   * (or their region-prefixed variants).
+   *
+   * Same as `new Client()`, except it throws when no token is found instead of
+   * only warning. Reads `process.env`, so on runtimes where credentials only
+   * exist as bindings (Cloudflare Workers) pass the token to `new Client()`.
+   *
+   * @example
+   * ```ts
+   * const client = Client.fromEnv();
+   * ```
+   */
+  public static fromEnv(config?: Omit<ClientConfig, "token" | "baseUrl">): Client {
+    return new Client({ ...config, [THROW_ON_MISSING_TOKEN]: true } as ClientConfig);
   }
 
   /**
