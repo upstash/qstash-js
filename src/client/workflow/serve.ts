@@ -48,10 +48,14 @@ export const processOptions = <TResponse extends Response = Response, TInitialPa
   );
 
   return {
-    qstashClient: new Client({
-      baseUrl: environment.QSTASH_URL!,
-      token: environment.QSTASH_TOKEN!,
-    }),
+    // Only build the default client when none is passed, so a supplied client
+    // doesn't trigger a missing-token warning.
+    qstashClient:
+      options?.qstashClient ??
+      new Client({
+        baseUrl: environment.QSTASH_URL!,
+        token: environment.QSTASH_TOKEN!,
+      }),
     onStepFinish: (workflowRunId: string, _finishCondition: FinishCondition) =>
       new Response(JSON.stringify({ workflowRunId }), {
         status: 200,

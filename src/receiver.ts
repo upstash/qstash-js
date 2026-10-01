@@ -1,7 +1,7 @@
 import * as jose from "jose";
 import { subtle as uncryptoSubtle } from "uncrypto";
 import { getSafeEnvironment } from "./client/utils";
-import { getReceiverSigningKeys } from "./client/multi-region";
+import { getReceiverSigningKeys, withDevModeHint } from "./client/multi-region";
 
 /**
  * Computes the SHA-256 hash of the given string and returns it as an unpadded
@@ -135,7 +135,10 @@ export class Receiver {
 
     if (!signingKeys) {
       throw new Error(
-        "[Upstash QStash] No signing keys available for verification. See the warning above for more details."
+        withDevModeHint(
+          "[Upstash QStash] No signing keys available for verification. Either pass currentSigningKey and nextSigningKey, or set QSTASH_CURRENT_SIGNING_KEY and QSTASH_NEXT_SIGNING_KEY env variables.",
+          environment
+        )
       );
     }
 
