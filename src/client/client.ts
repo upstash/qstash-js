@@ -375,12 +375,6 @@ export type QueueRequest = {
   queueName?: string;
 };
 
-/**
- * Internal marker set by `Client.fromEnv()` so the constructor throws instead
- * of warning when no token is found. A symbol keeps it out of `ClientConfig`.
- */
-const THROW_ON_MISSING_TOKEN = Symbol("qstash.throwOnMissingToken");
-
 export class Client {
   public http: Requester;
   private token: string;
@@ -393,9 +387,6 @@ export class Client {
       environment,
       config,
       devMode: config?.devMode,
-      throwOnMissingToken: Boolean(
-        (config as { [THROW_ON_MISSING_TOKEN]?: boolean } | undefined)?.[THROW_ON_MISSING_TOKEN]
-      ),
     });
 
     // Fire-and-forget dev server startup
@@ -455,7 +446,13 @@ export class Client {
    * ```
    */
   public static fromEnv(config?: Omit<ClientConfig, "token" | "baseUrl">): Client {
-    return new Client({ ...config, [THROW_ON_MISSING_TOKEN]: true } as ClientConfig);
+    // Throws before the constructor would only warn about the missing token.
+    getClientCredentials({
+      environment: getSafeEnvironment(),
+      devMode: config?.devMode,
+      throwOnMissingToken: true,
+    });
+    return new Client(config);
   }
 
   /**
