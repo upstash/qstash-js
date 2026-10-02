@@ -433,6 +433,29 @@ export class Client {
   }
 
   /**
+   * Create a client from the `QSTASH_TOKEN` and `QSTASH_URL` env variables
+   * (or their region-prefixed variants).
+   *
+   * Same as `new Client()`, except it throws when no token is found instead of
+   * only warning. Reads `process.env`, so on runtimes where credentials only
+   * exist as bindings (Cloudflare Workers) pass the token to `new Client()`.
+   *
+   * @example
+   * ```ts
+   * const client = Client.fromEnv();
+   * ```
+   */
+  public static fromEnv(config?: Omit<ClientConfig, "token" | "baseUrl">): Client {
+    // Throws before the constructor would only warn about the missing token.
+    getClientCredentials({
+      environment: getSafeEnvironment(),
+      devMode: config?.devMode,
+      throwOnMissingToken: true,
+    });
+    return new Client(config);
+  }
+
+  /**
    * Access the urlGroup API.
    *
    * Create, read, update or delete urlGroups.

@@ -6,6 +6,7 @@ import {
   withDevModeHint,
 } from "./utils";
 
+import { QstashError } from "../error";
 import { shouldUseDevelopmentMode, getDevelopmentCredentials, DEV_PREFIX } from "../../dev-server";
 
 type Credentials = {
@@ -17,6 +18,8 @@ type ClientCredentialConfig = {
   environment: Record<string, string | undefined>;
   config?: Credentials;
   devMode?: boolean;
+  /** Throw instead of warning when no token is found, used by `Client.fromEnv()` */
+  throwOnMissingToken?: boolean;
 };
 
 type CredentialsWithRegion = Required<Credentials> & {
@@ -40,7 +43,11 @@ export const getClientCredentials = (
   clientCredentialConfig: ClientCredentialConfig
 ): Required<Credentials> => {
   const credentials = resolveCredentials(clientCredentialConfig);
-  return verifyCredentials(credentials, clientCredentialConfig.environment);
+  return verifyCredentials(
+    credentials,
+    clientCredentialConfig.environment,
+    clientCredentialConfig.throwOnMissingToken
+  );
 };
 
 const resolveCredentials = ({
@@ -99,7 +106,8 @@ const resolveCredentials = ({
 
 const verifyCredentials = (
   credentials: Required<Credentials>,
-  environment: Record<string, string | undefined>
+  environment: Record<string, string | undefined>,
+  throwOnMissingToken = false
 ): Required<Credentials> => {
   const token = credentials.token;
   let baseUrl = credentials.baseUrl;
@@ -114,6 +122,14 @@ const verifyCredentials = (
 
   // Warn if token is still missing
   if (!token) {
+    if (throwOnMissingToken) {
+      throw new QstashError(
+        withDevModeHint(
+          "[Upstash QStash] Unable to find environment variable: QSTASH_TOKEN.",
+          environment
+        )
+      );
+    }
     console.warn(
       withDevModeHint(
         "[Upstash QStash] client token is not set. Either pass a token or set QSTASH_TOKEN env variable.",
