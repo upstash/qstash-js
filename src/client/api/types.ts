@@ -28,8 +28,8 @@ export type ProviderInfo = {
   method: HTTPMethods;
 };
 
-export type ApiKind = "llm" | "email";
-export type Owner = EmailOwner | LLMOwner;
+export type ApiKind = "llm" | "email" | "search";
+export type Owner = EmailOwner | LLMOwner | SearchOwner;
 
 type PublishApi<TName extends ApiKind, TProvider extends BaseProvider<TName>> = {
   name: TName;
@@ -50,3 +50,9 @@ export type LLMOptions = {
   analytics?: { name: "helicone"; token: string };
 };
 export type PublishLLMApi = PublishApi<"llm", BaseProvider<"llm", LLMOwner>> & LLMOptions;
+
+/**
+ * Search
+ */
+export type SearchOwner = "search";
+export type PublishSearchApi = PublishApi<"search", BaseProvider<"search", SearchOwner>>;
