@@ -1,8 +1,28 @@
+import { getRuntime } from "../../dev-server";
+
 export type QStashRegion = "EU_CENTRAL_1" | "US_EAST_1";
 
 const VALID_REGIONS = ["EU_CENTRAL_1", "US_EAST_1"] as const;
 
 export const DEFAULT_QSTASH_URL = "https://qstash.upstash.io";
+
+const DEV_MODE_HINT =
+  "You can also develop without credentials: set QSTASH_DEV=true (or pass devMode: true) to run QStash locally. " +
+  "See https://upstash.com/docs/qstash/howto/local-development";
+
+/**
+ * Appends the "you can use dev mode" hint to a missing-credentials message on
+ * Node.js and Bun when NODE_ENV is unset or `development`. Browser and edge
+ * runtimes cannot spawn the local server.
+ */
+export const withDevModeHint = (
+  message: string,
+  environment: Record<string, string | undefined>
+): string =>
+  (environment.NODE_ENV === undefined || environment.NODE_ENV === "development") &&
+  getRuntime() === "nodejs"
+    ? `${message}\n${DEV_MODE_HINT}`
+    : message;
 
 export const getRegionFromEnvironment = (
   environment: Record<string, string | undefined>
