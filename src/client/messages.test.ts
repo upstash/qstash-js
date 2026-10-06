@@ -57,6 +57,20 @@ describe("Messages empty id guard", () => {
     });
   });
 
+  test("should not send request when runNow is called with an empty string", async () => {
+    await mockQStashServer({
+      execute: async () => {
+        const mockClient = new Client({
+          token: "mock-token",
+          baseUrl: MOCK_QSTASH_SERVER_URL,
+        });
+        await expectToReject(() => mockClient.messages.runNow(""), "Message id cannot be empty");
+      },
+      responseFields: { body: {}, status: 200 },
+      receivesRequest: false,
+    });
+  });
+
   test("should not send request when delete is called with an empty string", async () => {
     await mockQStashServer({
       execute: async () => {
@@ -72,6 +86,47 @@ describe("Messages empty id guard", () => {
       },
       responseFields: { body: {}, status: 200 },
       receivesRequest: false,
+    });
+  });
+});
+
+describe("Messages runNow", () => {
+  test("should POST to the message retry endpoint", async () => {
+    await mockQStashServer({
+      execute: async () => {
+        const mockClient = new Client({
+          token: "mock-token",
+          baseUrl: MOCK_QSTASH_SERVER_URL,
+        });
+        await mockClient.messages.runNow("msg_123");
+      },
+      responseFields: { body: "", status: 200 },
+      receivesRequest: {
+        method: "POST",
+        token: "mock-token",
+        url: `${MOCK_QSTASH_SERVER_URL}/v2/messages/msg_123/retry`,
+      },
+    });
+  });
+
+  test("should surface a 404 when the message is not waiting anymore", async () => {
+    await mockQStashServer({
+      execute: async () => {
+        const mockClient = new Client({
+          token: "mock-token",
+          baseUrl: MOCK_QSTASH_SERVER_URL,
+          retry: false,
+        });
+        const error = await mockClient.messages.runNow("msg_123").catch((error_: unknown) => error_);
+        expect(error).toBeInstanceOf(QstashError);
+        expect((error as QstashError).status).toBe(404);
+      },
+      responseFields: { body: { error: "message not found" }, status: 404 },
+      receivesRequest: {
+        method: "POST",
+        token: "mock-token",
+        url: `${MOCK_QSTASH_SERVER_URL}/v2/messages/msg_123/retry`,
+      },
     });
   });
 });
