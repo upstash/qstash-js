@@ -100,3 +100,29 @@ export const getReceiverSigningKeys = ({
     };
   }
 };
+
+/**
+ * Signing keys for the platform `verifySignature*` wrappers, checked when the
+ * handler is built so a route without keys fails at startup.
+ * Dev mode and multi-region keys are resolved per request by the Receiver.
+ */
+export const getVerifierSigningKeys = (
+  config: (SigningKeys & { devMode?: boolean }) | undefined
+): SigningKeys => {
+  // Literal `process.env.X` reads so keys inlined by bundlers still resolve.
+  const currentSigningKey = config?.currentSigningKey ?? process.env.QSTASH_CURRENT_SIGNING_KEY;
+  const nextSigningKey = config?.nextSigningKey ?? process.env.QSTASH_NEXT_SIGNING_KEY;
+
+  if (
+    !shouldUseDevelopmentMode(config?.devMode, process.env) &&
+    !currentSigningKey &&
+    !nextSigningKey &&
+    !process.env.QSTASH_REGION
+  ) {
+    throw new Error(
+      "currentSigningKey and nextSigningKey are required, either in the config or as env variables (QSTASH_CURRENT_SIGNING_KEY and QSTASH_NEXT_SIGNING_KEY)"
+    );
+  }
+
+  return { currentSigningKey, nextSigningKey };
+};
