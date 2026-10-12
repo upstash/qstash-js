@@ -9,7 +9,7 @@ import { verifySignatureSvelte } from "../platforms/svelte";
 import { verifySignatureSolidjs } from "../platforms/solidjs";
 
 const handler = () => Promise.resolve(new Response("ok"));
-type Config = { devMode?: boolean };
+type Config = { devMode?: boolean; currentSigningKey?: string; nextSigningKey?: string };
 const platforms = [
   ["Next.js App Router", (config?: Config) => verifySignatureAppRouter(handler, config)],
   ["Next.js Edge", (config?: Config) => verifySignatureEdge(handler, config)],
@@ -55,5 +55,16 @@ describe.each(platforms)("%s signing keys", (_name, createHandler) => {
   test("honors an explicit devMode false over QSTASH_DEV", () => {
     environment.QSTASH_DEV = "true";
     expect(() => createHandler({ devMode: false })).toThrow();
+  });
+
+  test("does not read process when keys are in the config", () => {
+    const saved = globalThis.process;
+    // @ts-expect-error simulate a runtime without `process`
+    globalThis.process = undefined;
+    try {
+      expect(() => createHandler({ currentSigningKey: "a", nextSigningKey: "b" })).not.toThrow();
+    } finally {
+      globalThis.process = saved;
+    }
   });
 });
