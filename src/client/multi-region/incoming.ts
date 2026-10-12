@@ -113,11 +113,12 @@ export const getVerifierSigningKeys = (
   const currentSigningKey = config?.currentSigningKey ?? process.env.QSTASH_CURRENT_SIGNING_KEY;
   const nextSigningKey = config?.nextSigningKey ?? process.env.QSTASH_NEXT_SIGNING_KEY;
 
+  // `process` is only touched when keys are missing, as on runtimes without it.
   if (
-    !shouldUseDevelopmentMode(config?.devMode, process.env) &&
     !currentSigningKey &&
     !nextSigningKey &&
-    !process.env.QSTASH_REGION
+    !process.env.QSTASH_REGION &&
+    !shouldUseDevelopmentMode(config?.devMode, process.env)
   ) {
     throw new Error(
       "currentSigningKey and nextSigningKey are required, either in the config or as env variables (QSTASH_CURRENT_SIGNING_KEY and QSTASH_NEXT_SIGNING_KEY)"
