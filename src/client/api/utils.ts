@@ -90,8 +90,7 @@ export const processApi = (
   upstashToken: string
 ): PublishRequest<unknown> => {
   if (!request.api) {
-    request.headers = headers;
-    return request;
+    return { ...request, headers };
   }
 
   const { url, appendHeaders, owner, method } = getProviderInfo(request.api, upstashToken);
