@@ -1,4 +1,5 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+/* eslint-disable @typescript-eslint/no-empty-function */
+import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
 import { Client } from "./client";
 import { QstashError } from "./error";
 import type { HttpClient } from "./http";
@@ -49,6 +50,37 @@ describe("Client.fromEnv", () => {
 
     expect(http.authorization).toBe("Bearer regional-token");
     expect(http.baseUrl).toBe("https://qstash-us-east-1.upstash.io");
+  });
+
+  test("resolves credentials once", () => {
+    environment.QSTASH_REGION = "US_EAST_1";
+    environment.QSTASH_TOKEN = "env-token";
+    const warn = spyOn(console, "warn").mockImplementation(() => {});
+
+    try {
+      const http = Client.fromEnv().http as HttpClient;
+
+      expect(http.authorization).toBe("Bearer env-token");
+      expect(warn).toHaveBeenCalledTimes(1);
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
+  test("uses dev credentials without warning about the config", () => {
+    environment.QSTASH_DEV = "true";
+    // Keeps the constructor from starting the dev server.
+    environment.NODE_ENV = "production";
+    const warn = spyOn(console, "warn").mockImplementation(() => {});
+
+    try {
+      const http = Client.fromEnv().http as HttpClient;
+
+      expect(http.baseUrl).toStartWith("http://127.0.0.1:");
+      expect(warn).not.toHaveBeenCalledWith(expect.stringContaining("Ignoring baseUrl/token"));
+    } finally {
+      warn.mockRestore();
+    }
   });
 
   test("throws with the dev mode hint when no token is set", () => {

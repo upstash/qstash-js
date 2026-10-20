@@ -446,13 +446,16 @@ export class Client {
    * ```
    */
   public static fromEnv(config?: Omit<ClientConfig, "token" | "baseUrl">): Client {
-    // Throws before the constructor would only warn about the missing token.
-    getClientCredentials({
-      environment: getSafeEnvironment(),
-      devMode: config?.devMode,
+    const environment = getSafeEnvironment();
+    // Dev mode resolves its own credentials, and would warn about ones in the config.
+    if (shouldUseDevelopmentMode(config?.devMode, environment)) return new Client(config);
+
+    const { baseUrl, token } = getClientCredentials({
+      environment,
+      devMode: false,
       throwOnMissingToken: true,
     });
-    return new Client(config);
+    return new Client({ ...config, baseUrl, token });
   }
 
   /**
