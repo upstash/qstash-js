@@ -3,6 +3,7 @@ import {
   DEFAULT_QSTASH_URL,
   getRegionFromEnvironment,
   readClientEnvironmentVariables,
+  withDevModeHint,
 } from "./utils";
 
 import { shouldUseDevelopmentMode, getDevelopmentCredentials, DEV_PREFIX } from "../../dev-server";
@@ -39,7 +40,7 @@ export const getClientCredentials = (
   clientCredentialConfig: ClientCredentialConfig
 ): Required<Credentials> => {
   const credentials = resolveCredentials(clientCredentialConfig);
-  return verifyCredentials(credentials);
+  return verifyCredentials(credentials, clientCredentialConfig.environment);
 };
 
 const resolveCredentials = ({
@@ -96,7 +97,10 @@ const resolveCredentials = ({
   };
 };
 
-const verifyCredentials = (credentials: Required<Credentials>): Required<Credentials> => {
+const verifyCredentials = (
+  credentials: Required<Credentials>,
+  environment: Record<string, string | undefined>
+): Required<Credentials> => {
   const token = credentials.token;
   let baseUrl = credentials.baseUrl;
 
@@ -111,7 +115,10 @@ const verifyCredentials = (credentials: Required<Credentials>): Required<Credent
   // Warn if token is still missing
   if (!token) {
     console.warn(
-      "[Upstash QStash] client token is not set. Either pass a token or set QSTASH_TOKEN env variable."
+      withDevModeHint(
+        "[Upstash QStash] client token is not set. Either pass a token or set QSTASH_TOKEN env variable.",
+        environment
+      )
     );
   }
   return { baseUrl, token };
