@@ -136,7 +136,7 @@ export const getVerifierSigningKeys = (
     throw new Error(
       withDevModeHint(
         "currentSigningKey and nextSigningKey are required, either in the config or as env variables (QSTASH_CURRENT_SIGNING_KEY and QSTASH_NEXT_SIGNING_KEY)",
-        process.env
+        { NODE_ENV: readEnv(() => process.env.NODE_ENV) }
       )
     );
   }
