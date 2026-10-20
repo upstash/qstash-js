@@ -87,8 +87,9 @@ export type VerifyRequest = {
    * it from your configured public origin plus the path. Leaving url undefined skips the check,
    * so a signature for any other endpoint of your account is accepted; url: "" throws. A
    * signature stays valid for 5 minutes and can be replayed in that window. To reject replays,
-   * store each verified Upstash-Signature value for 5 minutes and refuse repeats; the
-   * Upstash-Message-Id header is not signed, so use it only to skip retried deliveries.
+   * store each verified Upstash-Signature value for 5 minutes (plus clockTolerance) and refuse
+   * repeats; the Upstash-Message-Id header is not signed, so use it only to skip retried
+   * deliveries.
    */
   url?: string;
 
@@ -151,8 +152,9 @@ export class Receiver {
    * it from your configured public origin plus the path. Leaving url undefined skips the check,
    * so a signature for any other endpoint of your account is accepted; url: "" throws. A
    * signature stays valid for 5 minutes and can be replayed in that window. To reject replays,
-   * store each verified Upstash-Signature value for 5 minutes and refuse repeats; the
-   * Upstash-Message-Id header is not signed, so use it only to skip retried deliveries.
+   * store each verified Upstash-Signature value for 5 minutes (plus clockTolerance) and refuse
+   * repeats; the Upstash-Message-Id header is not signed, so use it only to skip retried
+   * deliveries.
    *
    * @see node_modules/@upstash/qstash/docs/examples/receiver.mdx
    */
