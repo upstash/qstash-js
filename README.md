@@ -71,6 +71,14 @@ console.log(res);
 // { messageId: "msg_xxxxxxxxxxxxxxxx" }
 ```
 
+The token is optional: without it, the client reads `QSTASH_TOKEN` and
+`QSTASH_URL` from the environment. You can also create the client from the
+environment explicitly:
+
+```ts
+const client = Client.fromEnv();
+```
+
 ### Receiving a message
 
 How to receive a message depends on your http server. The `Receiver.verify`
