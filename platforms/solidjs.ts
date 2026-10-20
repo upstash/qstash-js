@@ -21,6 +21,14 @@ type VerifySignatureConfig = {
   devMode?: boolean;
 };
 
+/**
+ * Verifies the `Upstash-Signature` header with `Receiver` before calling the handler.
+ *
+ * It does not check the URL the message was signed for, so a signature for any other endpoint
+ * of your account is accepted. To check it, call `Receiver.verify` with `url`.
+ *
+ * @see node_modules/@upstash/qstash/docs/examples/receiver.mdx
+ */
 export const verifySignatureSolidjs = (
   handler: APIHandler,
   config?: VerifySignatureConfig

@@ -6,6 +6,9 @@ import type { Duration } from "./duration";
 import { QstashError } from "./error";
 import type { PublishRequest } from "./client";
 
+/**
+ * @see node_modules/@upstash/qstash/docs/examples/schedules.mdx
+ */
 export type Schedule = {
   scheduleId: string;
   cron: string;
@@ -39,7 +42,7 @@ export type Schedule = {
   period?: number;
   /**
    * The retry delay expression for this schedule,
-   * if retry_delay was set when creating the schedule.
+   * if retryDelay was set when creating the schedule.
    */
   retryDelayExpression?: PublishRequest["retryDelay"];
 
@@ -81,6 +84,9 @@ export type Schedule = {
   callerIP?: string;
 };
 
+/**
+ * @see node_modules/@upstash/qstash/docs/examples/schedules.mdx
+ */
 export type CreateScheduleRequest = {
   /**
    * Either a URL or urlGroup name
@@ -108,7 +114,7 @@ export type CreateScheduleRequest = {
   /**
    * Optionally delay the delivery of this message.
    *
-   * In seconds.
+   * In seconds, for example `delay: 3` or `delay: "3s"`.
    *
    * @default undefined
    */
@@ -120,7 +126,11 @@ export type CreateScheduleRequest = {
    *
    * Configure how many times you would like the delivery to be retried
    *
-   * @default The maximum retry quota associated with your account.
+   * Capped by your plan's max retries; creating the schedule fails above it. Counts retries
+   * after the first delivery, so `retries: 2` means up to 3 deliveries. A message that fails
+   * every attempt goes to the DLQ.
+   *
+   * @default 3
    */
   retries?: number;
 
@@ -128,6 +138,13 @@ export type CreateScheduleRequest = {
    * Use a callback url to forward the response of your destination server to your callback url.
    *
    * The callback url must be publicly accessible
+   *
+   * Called after every delivery attempt, including failed attempts that QStash will retry.
+   * The request body is JSON `{ status, body, sourceBody, retried, ... }` where `body` is the
+   * destination's response and `sourceBody` the original message, both base64. Act only when
+   * `status` is 2xx; decode with `decodeBase64` from "@upstash/qstash" (`atob` breaks UTF-8).
+   * `retried` is omitted on the first attempt. When retries run out, `callback` still gets the
+   * last failed attempt and `failureCallback` is called as well.
    *
    * @default undefined
    */
@@ -137,6 +154,8 @@ export type CreateScheduleRequest = {
    * Use a failure callback url to handle messages that could not be delivered.
    *
    * The failure callback url must be publicly accessible
+   *
+   * Called once, after the last attempt fails. `callback` is called for that attempt as well.
    *
    * @default undefined
    */
@@ -151,6 +170,9 @@ export type CreateScheduleRequest = {
 
   /**
    * Specify a cron expression to repeatedly send this message to the destination.
+   *
+   * Evaluated in UTC. Prefix `"CRON_TZ=<IANA zone> "` (for example
+   * `"CRON_TZ=America/New_York 0 9 * * *"`) to run in a timezone, including DST changes.
    */
   cron: string;
 
@@ -177,12 +199,17 @@ export type CreateScheduleRequest = {
 
   /**
    * Queue name to schedule the message over.
+   *
+   * Only letters, digits, "-", "_" and "." are allowed.
    */
   queueName?: string;
 
   /**
    * Settings for controlling the number of active requests
    * and number of requests per second with the same key.
+   *
+   * Limits how many deliveries per key run at once; it does not preserve publish order. For
+   * FIFO per key, use a queue with parallelism 1.
    */
   flowControl?: FlowControl;
 
@@ -211,6 +238,9 @@ export type CreateScheduleRequest = {
   };
 } & Pick<PublishRequest, "retryDelay">;
 
+/**
+ * @see node_modules/@upstash/qstash/docs/examples/schedules.mdx
+ */
 export class Schedules {
   private readonly http: Requester;
 
@@ -220,6 +250,8 @@ export class Schedules {
 
   /**
    * Create a schedule
+   *
+   * @see node_modules/@upstash/qstash/docs/examples/schedules.mdx
    */
   public async create(request: CreateScheduleRequest): Promise<{ scheduleId: string }> {
     //@ts-expect-error caused by undici and bunjs type overlap
@@ -340,6 +372,8 @@ export class Schedules {
   }
   /**
    * Get a schedule
+   *
+   * @see node_modules/@upstash/qstash/docs/examples/schedules.mdx
    */
   public async get(scheduleId: string): Promise<Schedule> {
     assertNonEmptyId(scheduleId, "Schedule id");
@@ -355,6 +389,8 @@ export class Schedules {
 
   /**
    * List your schedules
+   *
+   * @see node_modules/@upstash/qstash/docs/examples/schedules.mdx
    */
   public async list(): Promise<Schedule[]> {
     const schedules = await this.http.request<Schedule[]>({
@@ -371,6 +407,8 @@ export class Schedules {
 
   /**
    * Delete a schedule
+   *
+   * @see node_modules/@upstash/qstash/docs/examples/schedules.mdx
    */
   public async delete(scheduleId: string): Promise<void> {
     assertNonEmptyId(scheduleId, "Schedule id");
@@ -386,6 +424,8 @@ export class Schedules {
    *
    * A paused schedule will not deliver messages until
    * it is resumed.
+   *
+   * @see node_modules/@upstash/qstash/docs/examples/schedules.mdx
    */
   public async pause({ schedule }: { schedule: string }) {
     await this.http.request({
@@ -397,6 +437,8 @@ export class Schedules {
 
   /**
    * Resumes the schedule.
+   *
+   * @see node_modules/@upstash/qstash/docs/examples/schedules.mdx
    */
   public async resume({ schedule }: { schedule: string }) {
     await this.http.request({

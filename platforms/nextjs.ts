@@ -12,14 +12,17 @@ import { serve as serveBase } from "../src/client/workflow";
 import { startDevServer } from "../src/dev-server";
 import { getVerifierSigningKeys } from "../src/client/multi-region";
 
+/**
+ * @see node_modules/@upstash/qstash/docs/examples/receiver.mdx
+ */
 export type VerifySignatureConfig = {
   currentSigningKey?: string;
   nextSigningKey?: string;
 
   /**
-   * The url of this api route, including the protocol.
-   *
-   * If you omit this, the url will be automatically determined by checking the `VERCEL_URL` env variable and assuming `https`
+   * Not used: the `verifySignature*` wrappers ignore it and never check the URL, so a signature
+   * for any other endpoint of your account is accepted. To check the URL, call
+   * `Receiver.verify` with `url`.
    */
   url?: string;
 
@@ -38,6 +41,10 @@ export type VerifySignatureConfig = {
    * - `false`: never use dev server signing keys (ignores QSTASH_DEV env var)
    * - `undefined`: check QSTASH_DEV env var
    *
+   * When devMode is true, or devMode is undefined and QSTASH_DEV is "true" or "1", the configured
+   * keys are ignored and the local dev server's public keys are accepted. Never set QSTASH_DEV in
+   * production; pass devMode: false there to be safe.
+   *
    * @default undefined
    */
   devMode?: boolean;
@@ -45,6 +52,14 @@ export type VerifySignatureConfig = {
 
 const BAD_REQUEST = 400;
 
+/**
+ * Verifies the `Upstash-Signature` header with `Receiver` before calling the handler.
+ *
+ * It does not check the URL the message was signed for, so a signature for any other endpoint
+ * of your account is accepted. To check it, call `Receiver.verify` with `url`.
+ *
+ * @see node_modules/@upstash/qstash/docs/examples/receiver.mdx
+ */
 export function verifySignature(
   handler: NextApiHandler,
   config?: VerifySignatureConfig
@@ -103,6 +118,14 @@ export function verifySignature(
   };
 }
 
+/**
+ * Verifies the `Upstash-Signature` header with `Receiver` before calling the handler.
+ *
+ * It does not check the URL the message was signed for, so a signature for any other endpoint
+ * of your account is accepted. To check it, call `Receiver.verify` with `url`.
+ *
+ * @see node_modules/@upstash/qstash/docs/examples/receiver.mdx
+ */
 export function verifySignatureEdge(
   handler: (request: NextRequest, nfe?: NextFetchEvent) => Response | Promise<Response>,
   config?: VerifySignatureConfig
@@ -147,6 +170,14 @@ export function verifySignatureEdge(
 
 type VerifySignatureAppRouterResponse = Response | Promise<Response>;
 
+/**
+ * Verifies the `Upstash-Signature` header with `Receiver` before calling the handler.
+ *
+ * It does not check the URL the message was signed for, so a signature for any other endpoint
+ * of your account is accepted. To check it, call `Receiver.verify` with `url`.
+ *
+ * @see node_modules/@upstash/qstash/docs/examples/receiver.mdx
+ */
 export function verifySignatureAppRouter(
   handler:
     | ((request: Request, params?: any) => VerifySignatureAppRouterResponse)
