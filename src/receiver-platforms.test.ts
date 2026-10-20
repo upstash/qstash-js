@@ -67,4 +67,15 @@ describe.each(platforms)("%s signing keys", (_name, createHandler) => {
       globalThis.process = saved;
     }
   });
+
+  test("throws the missing-keys error on runtimes without process", () => {
+    const saved = globalThis.process;
+    // @ts-expect-error simulate a runtime without `process`
+    globalThis.process = undefined;
+    try {
+      expect(() => createHandler()).toThrow(/currentSigningKey and nextSigningKey are required/);
+    } finally {
+      globalThis.process = saved;
+    }
+  });
 });

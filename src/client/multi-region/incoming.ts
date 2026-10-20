@@ -101,6 +101,15 @@ export const getReceiverSigningKeys = ({
   }
 };
 
+/** Runs a literal `process.env.X` read, returning undefined on runtimes without `process`. */
+const readEnv = (read: () => string | undefined): string | undefined => {
+  try {
+    return read();
+  } catch {
+    return undefined;
+  }
+};
+
 /**
  * Signing keys for the platform `verifySignature*` wrappers, checked when the
  * handler is built so a route without keys fails at startup.
@@ -110,15 +119,18 @@ export const getVerifierSigningKeys = (
   config: (SigningKeys & { devMode?: boolean }) | undefined
 ): SigningKeys => {
   // Literal `process.env.X` reads so keys inlined by bundlers still resolve.
-  const currentSigningKey = config?.currentSigningKey ?? process.env.QSTASH_CURRENT_SIGNING_KEY;
-  const nextSigningKey = config?.nextSigningKey ?? process.env.QSTASH_NEXT_SIGNING_KEY;
+  const currentSigningKey =
+    config?.currentSigningKey ?? readEnv(() => process.env.QSTASH_CURRENT_SIGNING_KEY);
+  const nextSigningKey =
+    config?.nextSigningKey ?? readEnv(() => process.env.QSTASH_NEXT_SIGNING_KEY);
 
-  // `process` is only touched when keys are missing, as on runtimes without it.
   if (
     !currentSigningKey &&
     !nextSigningKey &&
-    !process.env.QSTASH_REGION &&
-    !shouldUseDevelopmentMode(config?.devMode, process.env)
+    !readEnv(() => process.env.QSTASH_REGION) &&
+    !shouldUseDevelopmentMode(config?.devMode, {
+      QSTASH_DEV: readEnv(() => process.env.QSTASH_DEV),
+    })
   ) {
     throw new Error(
       "currentSigningKey and nextSigningKey are required, either in the config or as env variables (QSTASH_CURRENT_SIGNING_KEY and QSTASH_NEXT_SIGNING_KEY)"
