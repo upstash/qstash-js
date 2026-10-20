@@ -72,8 +72,8 @@ console.log(res);
 ```
 
 The token is optional: without it, the client reads `QSTASH_TOKEN` and
-`QSTASH_URL` from the environment and only warns when they are missing. Use
-`Client.fromEnv()` to fail fast instead:
+`QSTASH_URL` from the environment. You can also create the client from the
+environment explicitly:
 
 ```ts
 const client = Client.fromEnv();
