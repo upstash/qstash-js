@@ -634,15 +634,18 @@ export class Client {
     TRequest extends PublishBatchRequest<TBody> = PublishBatchRequest<TBody>,
   >(request: TRequest[]): Promise<PublishResponse<TRequest>[]> {
     const batchPayload = request.map((message) => {
-      if ("body" in message) {
-        message.body = JSON.stringify(message.body) as unknown as TBody;
-      }
+      // Copy instead of assigning to `message.body`, so the caller's array is
+      // left as it was and calling batchJSON again does not stringify twice.
+      const jsonMessage =
+        "body" in message
+          ? { ...message, body: JSON.stringify(message.body) as unknown as TBody }
+          : { ...message };
 
       //@ts-expect-error hacky way to get bearer token
       const upstashToken = String(this.http.authorization).split("Bearer ")[1];
 
       //@ts-expect-error caused by undici and bunjs type overlap
-      const nonApiMessage = processApi(message, new Headers(message.headers), upstashToken);
+      const nonApiMessage = processApi(jsonMessage, new Headers(jsonMessage.headers), upstashToken);
 
       (nonApiMessage.headers as Headers).set("Content-Type", "application/json");
 
