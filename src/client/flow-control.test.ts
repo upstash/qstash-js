@@ -34,7 +34,7 @@ describe("FlowControl", () => {
       const flowControlKey = `fc-info-${Date.now()}`;
       // Publish a message with flow control to ensure the key exists
       const { messageId } = await client.publish({
-        url: "https://mock.httpstatus.io/200?sleep=30000",
+        url: "https://httpbin.org/delay/10",
         body: "hello",
         flowControl: {
           key: flowControlKey,
@@ -74,7 +74,7 @@ describe("FlowControl", () => {
       const flowControlKey = `fc-pause-${Date.now()}`;
       // Publish a message with flow control to ensure the key exists
       const { messageId } = await client.publish({
-        url: "https://mock.httpstatus.io/200?sleep=30000",
+        url: "https://httpbin.org/delay/10",
         body: "hello",
         flowControl: {
           key: flowControlKey,
@@ -111,7 +111,7 @@ describe("FlowControl", () => {
       const flowControlKey = `fc-pin-${Date.now()}`;
       // Publish a message with flow control to ensure the key exists
       const { messageId } = await client.publish({
-        url: "https://mock.httpstatus.io/200?sleep=30000",
+        url: "https://httpbin.org/delay/10",
         body: "hello",
         flowControl: {
           key: flowControlKey,
@@ -159,7 +159,7 @@ describe("FlowControl", () => {
     async () => {
       const flowControlKey = `fc-unpin-single-${Date.now()}`;
       const { messageId } = await client.publish({
-        url: "https://mock.httpstatus.io/200?sleep=30000",
+        url: "https://httpbin.org/delay/10",
         body: "hello",
         flowControl: {
           key: flowControlKey,
@@ -200,7 +200,7 @@ describe("FlowControl", () => {
       const flowControlKey = `fc-reset-${Date.now()}`;
       // Publish a message with flow control to ensure the key exists
       const { messageId } = await client.publish({
-        url: "https://mock.httpstatus.io/200?sleep=30000",
+        url: "https://httpbin.org/delay/10",
         body: "hello",
         flowControl: {
           key: flowControlKey,
