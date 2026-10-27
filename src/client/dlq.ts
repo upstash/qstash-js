@@ -44,6 +44,9 @@ export type DlqMessageGetPayload = {
   cursor?: string;
 };
 
+/**
+ * @see node_modules/@upstash/qstash/docs/examples/dlq.mdx
+ */
 export class DLQ {
   private readonly http: Requester;
 
@@ -58,6 +61,8 @@ export class DLQ {
    * - Filters: `listMessages({ filter: { url: "https://example.com" } })`
    * - DLQ IDs: `listMessages({ dlqIds: ["id1", "id2"] })`
    * - No filter (list all): `listMessages()`
+   *
+   * @see node_modules/@upstash/qstash/docs/examples/dlq.mdx
    */
   public async listMessages(
     options: {
@@ -111,6 +116,8 @@ export class DLQ {
    *   cursor = result.cursor;
    * } while (cursor);
    * ```
+   *
+   * @see node_modules/@upstash/qstash/docs/examples/dlq.mdx
    */
   public async delete(
     request: string | string[] | DLQBulkActionFilters
@@ -142,6 +149,8 @@ export class DLQ {
    * Remove multiple messages from the dlq using their `dlqId`s
    *
    * @deprecated Use `delete` instead
+   *
+   * @see node_modules/@upstash/qstash/docs/examples/dlq.mdx
    */
   public async deleteMany(request: {
     dlqIds: string[];
@@ -169,6 +178,8 @@ export class DLQ {
    *   cursor = result.cursor;
    * } while (cursor);
    * ```
+   *
+   * @see node_modules/@upstash/qstash/docs/examples/dlq.mdx
    */
   public async retry(
     request: string | string[] | DLQBulkActionFilters
