@@ -255,3 +255,64 @@ describe("http logging", () => {
     }
   });
 });
+
+describe("http requestStream", () => {
+  const streamWithReads = (reads: string[]) => {
+    const encoder = new TextEncoder();
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = (() =>
+      Promise.resolve(
+        new Response(
+          new ReadableStream<Uint8Array>({
+            start(controller) {
+              for (const read of reads) controller.enqueue(encoder.encode(read));
+              controller.close();
+            },
+          }),
+          { status: 200 }
+        )
+      )) as typeof fetch;
+    return () => {
+      globalThis.fetch = originalFetch;
+    };
+  };
+
+  const collect = async () => {
+    const client = new HttpClient({
+      baseUrl: "https://example.com",
+      authorization: "Bearer test-token",
+      retry: false,
+      devMode: false,
+    });
+    const ids: string[] = [];
+    for await (const chunk of client.requestStream({
+      method: "POST",
+      path: ["llm", "v1", "chat", "completions"],
+      body: "{}",
+    })) {
+      ids.push(chunk.id);
+    }
+    return ids;
+  };
+
+  test("should reassemble an SSE event split across reads", async () => {
+    const restore = streamWithReads([
+      'data: {"id":"a"}\n\ndata: {"id":',
+      '"b"}\n\ndata: {"id":"c"}\n\ndata: [DONE]\n\n',
+    ]);
+    try {
+      expect(await collect()).toEqual(["a", "b", "c"]);
+    } finally {
+      restore();
+    }
+  });
+
+  test("should still yield a final event that has no trailing newline", async () => {
+    const restore = streamWithReads(['data: {"id":"a"}\n\ndata: {"id":"b"}']);
+    try {
+      expect(await collect()).toEqual(["a", "b"]);
+    } finally {
+      restore();
+    }
+  });
+});

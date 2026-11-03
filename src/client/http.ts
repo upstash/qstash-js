@@ -152,19 +152,20 @@ export class HttpClient implements Requester {
     const reader = body.getReader();
     const decoder = new TextDecoder();
 
+    // A read can end in the middle of an SSE line, so keep the unfinished tail for the next read.
+    let buffer = "";
+
     try {
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       while (true) {
         const { done, value } = await reader.read();
-        if (done) {
-          // stops here when max token reached
-          break;
-        }
 
-        const chunkText = decoder.decode(value, { stream: true });
-        const chunks = chunkText.split("\n").filter(Boolean);
+        // On the last read there is no trailing newline to wait for, so flush what is left.
+        buffer += done ? decoder.decode() : decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = done ? "" : lines.pop() ?? "";
 
-        for (const chunk of chunks) {
+        for (const chunk of lines) {
           if (chunk.startsWith("data: ")) {
             const data = chunk.slice(6);
 
@@ -175,6 +176,11 @@ export class HttpClient implements Requester {
 
             yield JSON.parse(data);
           }
+        }
+
+        if (done) {
+          // stops here when max token reached
+          break;
         }
       }
     } finally {
