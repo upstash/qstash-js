@@ -1,33 +1,37 @@
 {
   "name": "qstash-js",
+  "description": "The Upstash QStash agent skill for Claude Code",
   "owner": {
-    "name": "Upstash"
+    "name": "Upstash",
+    "url": "https://upstash.com"
   },
-  "description": "Upstash QStash agent skill",
   "plugins": [
     {
       "name": "qstash-js",
       "displayName": "Upstash QStash",
-      "description": "Upstash QStash agent skill for Claude Code",
+      "description": "Guides coding agents through the Upstash QStash JavaScript/TypeScript SDK for serverless HTTP messaging and scheduling. Use when publishing messages to endpoints or URL groups, creating schedules, managing queues and flow control, verifying webhook signatures, or implementing callbacks, DLQ handling, and deduplication.",
       "source": "./",
       "strict": false,
+      "version": "0.1.0",
       "author": {
         "name": "Upstash",
-        "url": "https://github.com/upstash"
+        "url": "https://upstash.com"
       },
-      "homepage": "https://docs.upstash.com/qstash",
+      "homepage": "https://upstash.com/qstash",
       "repository": "https://github.com/upstash/qstash-js",
       "license": "MIT",
       "keywords": [
         "upstash",
         "qstash",
         "messaging",
-        "serverless"
+        "serverless",
+        "scheduling",
+        "queues",
+        "webhooks",
+        "coding-agents"
       ],
       "category": "development",
-      "skills": [
-        "./skills"
-      ]
+      "skills": ["./skills"]
     }
   ]
 }

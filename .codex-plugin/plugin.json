@@ -1,28 +1,40 @@
 {
   "name": "qstash-js",
-  "description": "Upstash QStash agent skill",
+  "version": "0.1.0",
+  "description": "Guides coding agents through the Upstash QStash JavaScript/TypeScript SDK for serverless HTTP messaging and scheduling.",
   "author": {
     "name": "Upstash",
-    "url": "https://github.com/upstash"
+    "url": "https://upstash.com"
   },
-  "homepage": "https://docs.upstash.com/qstash",
+  "homepage": "https://upstash.com/qstash",
   "repository": "https://github.com/upstash/qstash-js",
   "license": "MIT",
   "keywords": [
     "upstash",
     "qstash",
     "messaging",
-    "serverless"
+    "serverless",
+    "scheduling",
+    "queues",
+    "webhooks",
+    "coding-agents"
   ],
-  "skills": [
-    "./skills"
-  ],
+  "skills": ["./skills"],
   "interface": {
     "displayName": "Upstash QStash",
-    "shortDescription": "Upstash QStash agent skill",
-    "longDescription": "Agent skill for the Upstash QStash SDK, installed from the skill already in this repository.",
+    "shortDescription": "Build serverless messaging and schedules with the QStash JS SDK",
+    "longDescription": "QStash is an HTTP-based messaging and scheduling solution for serverless and edge runtimes. This plugin installs the qstash-js agent skill already in this repository so coding agents can use the @upstash/qstash SDK effectively.\n\nUse it when publishing HTTP messages to endpoints or URL groups, creating scheduled or delayed delivery, managing FIFO queues with flow control, verifying incoming QStash webhook signatures, or implementing callbacks, dead-letter queues, and message deduplication. The skill covers Next.js, Cloudflare Workers, Deno, Node.js, and other HTTP-first runtimes. For durable multi-step workflows, prefer the separate @upstash/workflow SDK.",
     "developerName": "Upstash",
     "category": "Developer Tools",
-    "websiteURL": "https://docs.upstash.com/qstash"
+    "capabilities": ["Message publishing", "Schedules and queues", "Webhook verification"],
+    "websiteURL": "https://upstash.com/qstash",
+    "defaultPrompt": [
+      "Publish a JSON message to a webhook with QStash",
+      "Create a cron schedule that hits my API every hour",
+      "Verify an incoming QStash signature in a Next.js route"
+    ],
+    "brandColor": "#00C98D",
+    "composerIcon": "./assets/logo.svg",
+    "logo": "./assets/logo.svg"
   }
 }
