@@ -9,7 +9,7 @@
       "name": "qstash-js",
       "displayName": "Upstash QStash",
       "description": "Upstash QStash agent skill for Claude Code",
-      "source": "./skills",
+      "source": "./",
       "strict": false,
       "author": {
         "name": "Upstash",
@@ -26,7 +26,7 @@
       ],
       "category": "development",
       "skills": [
-        "./"
+        "./skills"
       ]
     }
   ]
