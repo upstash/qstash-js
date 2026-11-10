@@ -1,0 +1,33 @@
+{
+  "name": "qstash-js",
+  "owner": {
+    "name": "Upstash"
+  },
+  "description": "Upstash QStash agent skill",
+  "plugins": [
+    {
+      "name": "qstash-js",
+      "displayName": "Upstash QStash",
+      "description": "Upstash QStash agent skill for Claude Code",
+      "source": "./skills",
+      "strict": false,
+      "author": {
+        "name": "Upstash",
+        "url": "https://github.com/upstash"
+      },
+      "homepage": "https://docs.upstash.com/qstash",
+      "repository": "https://github.com/upstash/qstash-js",
+      "license": "MIT",
+      "keywords": [
+        "upstash",
+        "qstash",
+        "messaging",
+        "serverless"
+      ],
+      "category": "development",
+      "skills": [
+        "./"
+      ]
+    }
+  ]
+}

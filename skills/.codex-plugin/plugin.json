@@ -1,0 +1,28 @@
+{
+  "name": "qstash-js",
+  "description": "Upstash QStash agent skill",
+  "author": {
+    "name": "Upstash",
+    "url": "https://github.com/upstash"
+  },
+  "homepage": "https://docs.upstash.com/qstash",
+  "repository": "https://github.com/upstash/qstash-js",
+  "license": "MIT",
+  "keywords": [
+    "upstash",
+    "qstash",
+    "messaging",
+    "serverless"
+  ],
+  "skills": [
+    "./"
+  ],
+  "interface": {
+    "displayName": "Upstash QStash",
+    "shortDescription": "Upstash QStash agent skill",
+    "longDescription": "Agent skill for the Upstash QStash SDK, installed from the skill already in this repository.",
+    "developerName": "Upstash",
+    "category": "Developer Tools",
+    "websiteURL": "https://docs.upstash.com/qstash"
+  }
+}
