@@ -1,4 +1,4 @@
-import type { RequestHandler } from "@sveltejs/kit";
+import type { RequestEvent, RequestHandler } from "@sveltejs/kit";
 import { Receiver } from "../src";
 import { getVerifierSigningKeys } from "../src/client/multi-region";
 
@@ -30,8 +30,8 @@ type VerifySignatureConfig = {
  * @see node_modules/@upstash/qstash/docs/examples/receiver.mdx
  */
 export const verifySignatureSvelte = <
-  Parameters extends Partial<Record<string, string>> = Partial<Record<string, string>>,
-  RouteId extends string | null = string | null,
+  Parameters extends RequestEvent["params"] = RequestEvent["params"],
+  RouteId extends RequestEvent["route"]["id"] = RequestEvent["route"]["id"],
 >(
   handler: RequestHandler<Parameters, RouteId>,
   config?: VerifySignatureConfig

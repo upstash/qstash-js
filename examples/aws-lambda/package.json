@@ -12,7 +12,7 @@
   "devDependencies": {
     "@types/aws-lambda": "^8.10.119",
     "@types/node": "^20.5.7",
-    "esbuild": "^0.19.2"
+    "esbuild": "^0.25.0"
   },
   "dependencies": {
     "@upstash/qstash": "latest"
