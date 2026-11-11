@@ -1,6 +1,6 @@
 {
   "name": "qstash-js",
-  "description": "The Upstash QStash agent skill for Claude Code",
+  "description": "The Upstash QStash agent skill",
   "owner": {
     "name": "Upstash",
     "url": "https://upstash.com"
