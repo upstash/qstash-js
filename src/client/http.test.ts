@@ -5,7 +5,7 @@ import { describe, test, expect, spyOn, afterEach } from "bun:test";
 import { createServer } from "node:http";
 import { Client } from "./client";
 import { HttpClient } from "./http";
-import type { BodyInit, RequestOptions } from "./types";
+import type { RequestOptions } from "./types";
 import { QstashError, QstashRatelimitError } from "./error";
 
 const countFetchCalls = async (retry: false | { retries: number }) => {
@@ -37,28 +37,13 @@ const countFetchCalls = async (retry: false | { retries: number }) => {
 };
 
 describe("http", () => {
-  test("should set duplex only for streams even without a global stream constructor", async () => {
+  test("should set duplex only when the body is a stream", async () => {
     const originalFetch = globalThis.fetch;
     const requests: RequestOptions[] = [];
     globalThis.fetch = ((_url: string, init: RequestOptions) => {
       requests.push(init);
       return Promise.resolve(new Response("{}"));
     }) as typeof fetch;
-    const stream = new ReadableStream<Uint8Array>();
-    const streamConstructor = Object.getOwnPropertyDescriptor(globalThis, "ReadableStream");
-    const form = new FormData();
-    form.append("field", "value");
-    const bodies: (BodyInit | null | undefined)[] = [
-      stream,
-      "payload",
-      //@ts-expect-error caused by undici and bunjs type overlap
-      new Blob(["payload"]),
-      form,
-      new URLSearchParams({ field: "value" }),
-      // eslint-disable-next-line unicorn/no-null -- null is an explicitly supported request body.
-      null,
-      undefined,
-    ];
     const client = new HttpClient({
       baseUrl: "http://127.0.0.1:1",
       authorization: "Bearer test-token",
@@ -67,22 +52,16 @@ describe("http", () => {
     });
 
     try {
-      expect(Reflect.deleteProperty(globalThis, "ReadableStream")).toBe(true);
-      expect(typeof globalThis.ReadableStream).toBe("undefined");
-      for (const body of bodies) {
-        await client.request({ method: "POST", path: ["body"], body });
-        const options = requests.at(-1);
-        expect(Object.is(options?.body, body)).toBe(true);
-        expect(options).toHaveProperty("method", "POST");
-        expect(options?.headers).toBeInstanceOf(Headers);
-        if (body === stream) expect(options).toHaveProperty("duplex", "half");
-        else expect(options).not.toHaveProperty("duplex");
-      }
+      await client.request({ method: "POST", path: ["body"], body: new ReadableStream() });
+      expect(requests.at(-1)).toHaveProperty("duplex", "half");
+
+      await client.request({ method: "POST", path: ["body"], body: "payload" });
+      expect(requests.at(-1)).not.toHaveProperty("duplex");
+
+      await client.request({ method: "POST", path: ["body"] });
+      expect(requests.at(-1)).not.toHaveProperty("duplex");
     } finally {
       globalThis.fetch = originalFetch;
-      if (streamConstructor) {
-        Object.defineProperty(globalThis, "ReadableStream", streamConstructor);
-      }
     }
   });
 

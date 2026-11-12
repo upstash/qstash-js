@@ -241,13 +241,8 @@ export class HttpClient implements Requester {
       body: request.body,
       keepalive: request.keepalive,
     };
-    // Node fetch requires duplex for streams, including polyfills without a global constructor.
-    if (
-      request.body &&
-      typeof request.body === "object" &&
-      "getReader" in request.body &&
-      typeof request.body.getReader === "function"
-    ) {
+    // Node fetch requires duplex when the body is a stream
+    if (typeof ReadableStream !== "undefined" && request.body instanceof ReadableStream) {
       requestOptions.duplex = "half";
     }
 
