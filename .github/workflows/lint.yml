@@ -1,0 +1,37 @@
+name: Lint
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup repo
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Install Dependencies
+        run: bun install
+
+      - name: Typecheck
+        run: bunx tsc
+
+      - name: Lint
+        run: bunx eslint "{src,platforms}/**/*.{js,ts,tsx}" --quiet
+
+      - name: Build
+        run: bun run build
+
+      - name: Check edge bundles for Node.js builtins
+        run: node scripts/check-edge-bundle.mjs
