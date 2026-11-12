@@ -5,6 +5,7 @@ import { describe, test, expect, spyOn, afterEach } from "bun:test";
 import { createServer } from "node:http";
 import { Client } from "./client";
 import { HttpClient } from "./http";
+import type { RequestOptions } from "./types";
 import { QstashError, QstashRatelimitError } from "./error";
 
 const countFetchCalls = async (retry: false | { retries: number }) => {
@@ -36,6 +37,34 @@ const countFetchCalls = async (retry: false | { retries: number }) => {
 };
 
 describe("http", () => {
+  test("should set duplex only when the body is a stream", async () => {
+    const originalFetch = globalThis.fetch;
+    const requests: RequestOptions[] = [];
+    globalThis.fetch = ((_url: string, init: RequestOptions) => {
+      requests.push(init);
+      return Promise.resolve(new Response("{}"));
+    }) as typeof fetch;
+    const client = new HttpClient({
+      baseUrl: "http://127.0.0.1:1",
+      authorization: "Bearer test-token",
+      devMode: false,
+      retry: false,
+    });
+
+    try {
+      await client.request({ method: "POST", path: ["body"], body: new ReadableStream() });
+      expect(requests.at(-1)).toHaveProperty("duplex", "half");
+
+      await client.request({ method: "POST", path: ["body"], body: "payload" });
+      expect(requests.at(-1)).not.toHaveProperty("duplex");
+
+      await client.request({ method: "POST", path: ["body"] });
+      expect(requests.at(-1)).not.toHaveProperty("duplex");
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
   test("should wait for five backoffs and stop retrying over a real connection", async () => {
     const requests: { url: string | undefined; authorization: string | undefined }[] = [];
     const backoffCalls: number[] = [];

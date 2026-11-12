@@ -235,12 +235,16 @@ export class HttpClient implements Requester {
     if (!headers.has("Authorization")) {
       headers.set("Authorization", this.authorization);
     }
-    const requestOptions: RequestOptions = {
+    const requestOptions: RequestOptions & { duplex?: "half" } = {
       method: request.method,
       headers,
       body: request.body,
       keepalive: request.keepalive,
     };
+    // Node fetch requires duplex when the body is a stream
+    if (typeof ReadableStream !== "undefined" && request.body instanceof ReadableStream) {
+      requestOptions.duplex = "half";
+    }
 
     const url = new URL([request.baseUrl ?? this.baseUrl, ...request.path].join("/"));
     if (request.query) {
