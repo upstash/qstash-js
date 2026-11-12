@@ -24,14 +24,14 @@ jobs:
       - name: Install Dependencies
         run: bun install
 
+      - name: Build
+        run: bun run build
+
       - name: Typecheck
         run: bunx tsc
 
       - name: Lint
         run: bunx eslint "{src,platforms}/**/*.{js,ts,tsx}" --quiet
-
-      - name: Build
-        run: bun run build
 
       - name: Check edge bundles for Node.js builtins
         run: node scripts/check-edge-bundle.mjs
