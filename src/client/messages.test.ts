@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 /* eslint-disable @typescript-eslint/no-magic-numbers */
-import { beforeAll, describe, expect, test } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import { Client } from "./client";
 import { QstashError } from "./error";
 import { eventually } from "./test-utils";
@@ -117,7 +117,9 @@ describe("Messages runNow", () => {
           baseUrl: MOCK_QSTASH_SERVER_URL,
           retry: false,
         });
-        const error = await mockClient.messages.runNow("msg_123").catch((error_: unknown) => error_);
+        const error = await mockClient.messages
+          .runNow("msg_123")
+          .catch((error_: unknown) => error_);
         expect(error).toBeInstanceOf(QstashError);
         expect((error as QstashError).status).toBe(404);
       },
@@ -134,24 +136,38 @@ describe("Messages runNow", () => {
 describe("Messages", () => {
   const client = new Client({ token: process.env.QSTASH_TOKEN! });
 
-  const expectMessagesCancelled = async (messages: { messageId: string }[]) => {
+  /**
+   * Bulk cancel takes a few seconds to apply, so poll until every message is gone.
+   * If it fails, the error shows which messages are still there and what cancel returned.
+   */
+  const expectMessagesCancelled = async (
+    messages: { messageId: string }[],
+    cancelResult?: { cancelled: number }
+  ) => {
     await eventually(
       async () => {
+        const stillPresent: string[] = [];
         for (const { messageId } of messages) {
           const result: unknown = await client.messages
             .get(messageId)
             .catch((error: unknown) => error);
-          expect(result).toBeInstanceOf(QstashError);
-          expect(result).toMatchObject({ status: 404 });
+          if (!(result instanceof QstashError && result.status === 404)) {
+            stillPresent.push(messageId);
+          }
         }
+        expect({ stillPresent, cancelResult }).toEqual({ stillPresent: [], cancelResult });
       },
-      { timeout: 10_000, interval: 500 }
+      { timeout: 30_000, interval: 500 }
     );
   };
 
-  beforeAll(async () => {
-    await client.messages.cancel({ all: true });
-  });
+  test(
+    "should cancel leftover messages before the other tests",
+    async () => {
+      await client.messages.cancel({ all: true });
+    },
+    { timeout: 30_000 }
+  );
 
   test(
     "should send message, cancel it then verify cancel",
@@ -229,10 +245,9 @@ describe("Messages", () => {
 
       expect(cancelled.cancelled).toBe(2);
 
-      await client.messages.cancel({ all: true });
-      await expectMessagesCancelled(messages);
+      await expectMessagesCancelled(messages, await client.messages.cancel({ all: true }));
     },
-    { timeout: 20_000 }
+    { timeout: 70_000 }
   );
 
   test("should create message with flow control", async () => {
@@ -301,14 +316,16 @@ describe("Messages", () => {
       });
 
       // Cancel all messages with the specific flowControlKey
-      await client.messages.cancel({ filter: { flowControlKey } });
-      await expectMessagesCancelled([message1, message2]);
+      await expectMessagesCancelled(
+        [message1, message2],
+        await client.messages.cancel({ filter: { flowControlKey } })
+      );
       expect(await client.messages.get(message3.messageId)).toMatchObject({
         messageId: message3.messageId,
       });
       await client.messages.cancel(message3.messageId);
     },
-    { timeout: 20_000 }
+    { timeout: 70_000 }
   );
 
   test(
@@ -320,10 +337,9 @@ describe("Messages", () => {
         delay: "10d",
       });
 
-      await client.messages.cancel({ all: true });
-      await expectMessagesCancelled([message]);
+      await expectMessagesCancelled([message], await client.messages.cancel({ all: true }));
     },
-    { timeout: 20_000 }
+    { timeout: 70_000 }
   );
 
   test(
@@ -342,16 +358,20 @@ describe("Messages", () => {
         }))
       );
 
-      await client.messages.cancel({ filter: { flowControlKey: [keyA, keyB] } });
-      await expectMessagesCancelled(messages.slice(0, 2));
+      await expectMessagesCancelled(
+        messages.slice(0, 2),
+        await client.messages.cancel({ filter: { flowControlKey: [keyA, keyB] } })
+      );
       expect(await client.messages.get(messages[2].messageId)).toMatchObject({
         messageId: messages[2].messageId,
       });
 
-      await client.messages.cancel({ filter: { flowControlKey: keyC } });
-      await expectMessagesCancelled([messages[2]]);
+      await expectMessagesCancelled(
+        [messages[2]],
+        await client.messages.cancel({ filter: { flowControlKey: keyC } })
+      );
     },
-    { timeout: 20_000 }
+    { timeout: 70_000 }
   );
 
   test(
@@ -370,16 +390,20 @@ describe("Messages", () => {
         }))
       );
 
-      await client.messages.cancel({ filter: { path: [pathA, pathB] } });
-      await expectMessagesCancelled(messages.slice(0, 2));
+      await expectMessagesCancelled(
+        messages.slice(0, 2),
+        await client.messages.cancel({ filter: { path: [pathA, pathB] } })
+      );
       expect(await client.messages.get(messages[2].messageId)).toMatchObject({
         messageId: messages[2].messageId,
       });
 
-      await client.messages.cancel({ filter: { path: pathC } });
-      await expectMessagesCancelled([messages[2]]);
+      await expectMessagesCancelled(
+        [messages[2]],
+        await client.messages.cancel({ filter: { path: pathC } })
+      );
     },
-    { timeout: 20_000 }
+    { timeout: 70_000 }
   );
 
   test(
@@ -400,16 +424,20 @@ describe("Messages", () => {
         delay: "10d",
       });
 
-      await client.messages.cancel({ filter: { host: "example.org" } });
-      await expectMessagesCancelled([orgMessage]);
+      await expectMessagesCancelled(
+        [orgMessage],
+        await client.messages.cancel({ filter: { host: "example.org" } })
+      );
       expect(await client.messages.get(comMessage.messageId)).toMatchObject({
         messageId: comMessage.messageId,
       });
 
-      await client.messages.cancel({ filter: { path: comPath } });
-      await expectMessagesCancelled([comMessage]);
+      await expectMessagesCancelled(
+        [comMessage],
+        await client.messages.cancel({ filter: { path: comPath } })
+      );
     },
-    { timeout: 20_000 }
+    { timeout: 70_000 }
   );
 
   test(
@@ -425,12 +453,12 @@ describe("Messages", () => {
         const result = await client.messages.cancel({ all: true, count: 1 });
         expect(Number.isInteger(result.cancelled)).toBe(true);
         expect(result.cancelled).toBeGreaterThanOrEqual(0);
-        await expectMessagesCancelled(messages);
+        await expectMessagesCancelled(messages, result);
       } finally {
         await client.messages.cancel(messages.map(({ messageId }) => messageId));
       }
     },
-    { timeout: 20_000 }
+    { timeout: 70_000 }
   );
 
   test(
@@ -453,7 +481,7 @@ describe("Messages", () => {
         const result = await client.messages.cancel({ filter: { label }, count: 1 });
         expect(Number.isInteger(result.cancelled)).toBe(true);
         expect(result.cancelled).toBeGreaterThanOrEqual(0);
-        await expectMessagesCancelled(messages.slice(0, 2));
+        await expectMessagesCancelled(messages.slice(0, 2), result);
         expect(await client.messages.get(messages[2].messageId)).toMatchObject({
           messageId: messages[2].messageId,
         });
@@ -461,7 +489,7 @@ describe("Messages", () => {
         await client.messages.cancel(messages.map(({ messageId }) => messageId));
       }
     },
-    { timeout: 20_000 }
+    { timeout: 70_000 }
   );
 
   test(
