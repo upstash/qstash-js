@@ -8,6 +8,7 @@ import {
   processHeaders,
   wrapWithGlobalHeaders,
   toPathSegment,
+  toDestinationPath,
 } from "./utils";
 
 export type QueueResponse = {
@@ -143,7 +144,7 @@ export class Queue {
       this.http.telemetryHeaders
     ) as HeadersInit;
 
-    const destination = getRequestPath(request);
+    const destination = toDestinationPath(getRequestPath(request));
     const response = await this.http.request<PublishResponse<TRequest>>({
       path: ["v2", "enqueue", toPathSegment(this.queueName, "Queue name"), destination],
       body: request.body,

@@ -64,11 +64,19 @@ export function toPathSegment(id: string, label = "id"): string {
  * request path. Destinations with `.` or `..` path segments are not accepted.
  */
 export function toDestinationPath(destination: string): string {
-  const path = destination.replaceAll(WHITESPACE_OR_CONTROL, "").split(/[#?]/, 1)[0];
-  if (path.split(/[/\\]/).some((part) => DOT_SEGMENT.test(part))) {
-    throw new QstashError(`Destination cannot contain "." or ".." path segments: ${destination}`);
+  const input: unknown = destination;
+  const value = input instanceof URL ? input.toString() : input;
+  if (typeof value !== "string") {
+    throw new QstashError("Destination must be a string");
   }
-  return destination;
+  const path = value.replaceAll(WHITESPACE_OR_CONTROL, "").split(/[#?]/, 1)[0];
+  if (path.length === 0) {
+    throw new QstashError("Destination cannot be empty");
+  }
+  if (path.split(/[/\\]/).some((part) => DOT_SEGMENT.test(part))) {
+    throw new QstashError(`Destination cannot contain "." or ".." path segments: ${value}`);
+  }
+  return value;
 }
 
 export function serializeLabel(label: string | string[]): string {
@@ -234,7 +242,7 @@ export function getRequestPath(
   request: Pick<PublishRequest, "url" | "urlGroup" | "api" | "topic">
 ): string {
   const nonApiPath = request.url ?? request.urlGroup ?? request.topic;
-  if (nonApiPath) return toDestinationPath(nonApiPath);
+  if (nonApiPath) return nonApiPath;
 
   // return llm api
   if (request.api?.name === "llm") return `api/llm`;

@@ -11,6 +11,7 @@ import type { LogsListRequest } from "./filter-types";
 import { UrlGroups } from "./url-groups";
 import {
   getRequestPath,
+  toDestinationPath,
   getRuntime,
   getSafeEnvironment,
   prefixHeaders,
@@ -655,7 +656,7 @@ export class Client {
       this.http.telemetryHeaders
     );
     const response = await this.http.request<PublishResponse<TRequest>>({
-      path: ["v2", "publish", getRequestPath(request)],
+      path: ["v2", "publish", toDestinationPath(getRequestPath(request))],
       body: request.body,
       headers,
       method: "POST",

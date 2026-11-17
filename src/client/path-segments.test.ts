@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { Client } from "./client";
 import { toDestinationPath, toPathSegment } from "./utils";
+import { resend } from "./api/email";
 
 const originalFetch = globalThis.fetch;
 const BASE = "https://qstash.example.com";
@@ -132,5 +133,34 @@ describe("ids and destinations in request paths", () => {
     const urls = captureUrls();
     await client.publish({ url: "https://example.com/a/b?x=1" });
     expect(urls).toEqual([`${BASE}/v2/publish/https://example.com/a/b?x=1`]);
+  });
+
+  test("toDestinationPath accepts URL objects and rejects other values", () => {
+    const url = new URL("https://example.com/a/b");
+    expect(toDestinationPath(url as unknown as string)).toBe("https://example.com/a/b");
+    const lookalike = { replaceAll: () => "ok", toString: () => "../keys" };
+    expect(() => toDestinationPath(lookalike as unknown as string)).toThrow("must be a string");
+  });
+
+  test("toDestinationPath rejects destinations without a path", () => {
+    for (const destination of ["", " ", "\n", "#", "?", "?x=1", "#/../../keys"]) {
+      expect(() => toDestinationPath(destination)).toThrow("Destination cannot be empty");
+    }
+  });
+
+  test("email provider base url is checked", async () => {
+    const urls = captureUrls();
+    const provider = resend({ token: "t" });
+    (provider as { baseUrl: string }).baseUrl = "../keys";
+    expect(
+      await client.publish({ api: { name: "email", provider }, body: "x" }).then(() => "", message)
+    ).toContain("path segments");
+    expect(urls).toEqual([]);
+  });
+
+  test("batch destinations are sent in the body as they are", async () => {
+    const urls = captureUrls();
+    await client.batch([{ url: "https://example.com/a/../b" }]);
+    expect(urls).toEqual([`${BASE}/v2/batch`]);
   });
 });
