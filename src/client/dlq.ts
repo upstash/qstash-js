@@ -6,6 +6,7 @@ import {
   buildBulkActionFilterPayload,
   normalizeCursor,
   renameUrlGroup,
+  toPathSegment,
 } from "./utils";
 
 type DlqMessage = Message & {
@@ -128,7 +129,7 @@ export class DLQ {
       assertNonEmptyId(request, "DLQ id");
       await this.http.request({
         method: "DELETE",
-        path: ["v2", "dlq", request],
+        path: ["v2", "dlq", toPathSegment(request, "DLQ id")],
         parseResponseAsJson: false,
       });
       return { deleted: 1 };

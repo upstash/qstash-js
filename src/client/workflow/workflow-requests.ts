@@ -20,6 +20,7 @@ import type {
 } from "./types";
 import { StepTypes } from "./types";
 import type { WorkflowLogger } from "./logger";
+import { toPathSegment } from "../utils";
 
 export const triggerFirstInvocation = async <TInitialPayload>(
   workflowContext: WorkflowContext<TInitialPayload>,
@@ -82,7 +83,13 @@ export const triggerWorkflowDelete = async <TInitialPayload>(
     deletedWorkflowRunId: workflowContext.workflowRunId,
   });
   const result = await workflowContext.qstashClient.http.request({
-    path: ["v2", "workflows", "runs", `${workflowContext.workflowRunId}?cancel=${cancel}`],
+    path: [
+      "v2",
+      "workflows",
+      "runs",
+      toPathSegment(workflowContext.workflowRunId, "Workflow run id"),
+    ],
+    query: { cancel },
     method: "DELETE",
     parseResponseAsJson: false,
   });

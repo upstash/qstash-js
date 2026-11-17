@@ -2,7 +2,13 @@ import { processApi } from "./api/utils";
 import type { PublishRequest, PublishResponse } from "./client";
 import type { Requester } from "./http";
 import type { HeadersInit } from "./types";
-import { getRequestPath, prefixHeaders, processHeaders, wrapWithGlobalHeaders } from "./utils";
+import {
+  getRequestPath,
+  prefixHeaders,
+  processHeaders,
+  wrapWithGlobalHeaders,
+  toPathSegment,
+} from "./utils";
 
 export type QueueResponse = {
   createdAt: number;
@@ -84,7 +90,7 @@ export class Queue {
 
     return await this.http.request<QueueResponse>({
       method: "GET",
-      path: ["v2", "queues", this.queueName],
+      path: ["v2", "queues", toPathSegment(this.queueName, "Queue name")],
     });
   }
 
@@ -112,7 +118,7 @@ export class Queue {
 
     await this.http.request({
       method: "DELETE",
-      path: ["v2", "queues", this.queueName],
+      path: ["v2", "queues", toPathSegment(this.queueName, "Queue name")],
       parseResponseAsJson: false,
     });
   }
@@ -139,7 +145,7 @@ export class Queue {
 
     const destination = getRequestPath(request);
     const response = await this.http.request<PublishResponse<TRequest>>({
-      path: ["v2", "enqueue", this.queueName, destination],
+      path: ["v2", "enqueue", toPathSegment(this.queueName, "Queue name"), destination],
       body: request.body,
       headers,
       method: "POST",
@@ -191,7 +197,7 @@ export class Queue {
 
     await this.http.request({
       method: "POST",
-      path: ["v2", "queues", this.queueName, "pause"],
+      path: ["v2", "queues", toPathSegment(this.queueName, "Queue name"), "pause"],
       parseResponseAsJson: false,
     });
   }
@@ -208,7 +214,7 @@ export class Queue {
 
     await this.http.request({
       method: "POST",
-      path: ["v2", "queues", this.queueName, "resume"],
+      path: ["v2", "queues", toPathSegment(this.queueName, "Queue name"), "resume"],
       parseResponseAsJson: false,
     });
   }

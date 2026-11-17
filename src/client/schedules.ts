@@ -1,5 +1,12 @@
 /* eslint-disable @typescript-eslint/no-deprecated */
-import { assertNonEmptyId, prefixHeaders, serializeLabel, wrapWithGlobalHeaders } from "./utils";
+import {
+  assertNonEmptyId,
+  prefixHeaders,
+  serializeLabel,
+  wrapWithGlobalHeaders,
+  toPathSegment,
+  toDestinationPath,
+} from "./utils";
 import type { Requester } from "./http";
 import type { BodyInit, FlowControl, HeadersInit, HTTPMethods } from "./types";
 import type { Duration } from "./duration";
@@ -366,7 +373,7 @@ export class Schedules {
     return await this.http.request({
       method: "POST",
       headers: wrapWithGlobalHeaders(headers, this.http.headers, this.http.telemetryHeaders),
-      path: ["v2", "schedules", request.destination],
+      path: ["v2", "schedules", toDestinationPath(request.destination)],
       body: request.body,
     });
   }
@@ -379,7 +386,7 @@ export class Schedules {
     assertNonEmptyId(scheduleId, "Schedule id");
     const schedule = await this.http.request<Schedule>({
       method: "GET",
-      path: ["v2", "schedules", scheduleId],
+      path: ["v2", "schedules", toPathSegment(scheduleId, "Schedule id")],
     });
 
     if ("rate" in schedule) schedule.ratePerSecond = schedule.rate;
@@ -414,7 +421,7 @@ export class Schedules {
     assertNonEmptyId(scheduleId, "Schedule id");
     return await this.http.request({
       method: "DELETE",
-      path: ["v2", "schedules", scheduleId],
+      path: ["v2", "schedules", toPathSegment(scheduleId, "Schedule id")],
       parseResponseAsJson: false,
     });
   }
@@ -430,7 +437,7 @@ export class Schedules {
   public async pause({ schedule }: { schedule: string }) {
     await this.http.request({
       method: "PATCH",
-      path: ["v2", "schedules", schedule, "pause"],
+      path: ["v2", "schedules", toPathSegment(schedule, "Schedule id"), "pause"],
       parseResponseAsJson: false,
     });
   }
@@ -443,7 +450,7 @@ export class Schedules {
   public async resume({ schedule }: { schedule: string }) {
     await this.http.request({
       method: "PATCH",
-      path: ["v2", "schedules", schedule, "resume"],
+      path: ["v2", "schedules", toPathSegment(schedule, "Schedule id"), "resume"],
       parseResponseAsJson: false,
     });
   }

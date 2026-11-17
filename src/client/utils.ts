@@ -29,6 +29,48 @@ export function assertNonEmptyId(id: string, label = "id"): void {
  * Arrays are joined with `,` so multiple labels can be sent in a single
  * `Upstash-Label` header.
  */
+const DOT_SEGMENT = /^(?:\.|%2e){1,2}$/i;
+// eslint-disable-next-line no-control-regex
+const WHITESPACE_OR_CONTROL = /[\s\u0000-\u001F\u007F]/g;
+// eslint-disable-next-line no-control-regex
+const NOT_ALLOWED_IN_SEGMENT = /[\u0000-\u001F#/?\\\u007F]/;
+
+/**
+ * Checks that `id` can be used as a single URL path segment and returns it
+ * unchanged.
+ *
+ * Ids are sent as they are, so an id has to stay in its own segment by
+ * itself: `/`, `\`, `?`, `#`, control characters and surrounding whitespace
+ * are not accepted, and neither are `.` and `..`.
+ */
+export function toPathSegment(id: string, label = "id"): string {
+  assertNonEmptyId(id, label);
+  if (typeof id !== "string") {
+    throw new QstashError(`${label} must be a string`);
+  }
+  if (DOT_SEGMENT.test(id.replaceAll(WHITESPACE_OR_CONTROL, ""))) {
+    throw new QstashError(`${label} cannot be "." or ".."`);
+  }
+  if (NOT_ALLOWED_IN_SEGMENT.test(id) || id !== id.trim()) {
+    throw new QstashError(
+      `${label} cannot contain "/", "\\", "?", "#" or control characters, or start or end with whitespace`
+    );
+  }
+  return id;
+}
+
+/**
+ * Returns a publish destination (url or url group name) for use in the
+ * request path. Destinations with `.` or `..` path segments are not accepted.
+ */
+export function toDestinationPath(destination: string): string {
+  const path = destination.replaceAll(WHITESPACE_OR_CONTROL, "").split(/[#?]/, 1)[0];
+  if (path.split(/[/\\]/).some((part) => DOT_SEGMENT.test(part))) {
+    throw new QstashError(`Destination cannot contain "." or ".." path segments: ${destination}`);
+  }
+  return destination;
+}
+
 export function serializeLabel(label: string | string[]): string {
   return Array.isArray(label) ? label.join(",") : label;
 }
@@ -192,7 +234,7 @@ export function getRequestPath(
   request: Pick<PublishRequest, "url" | "urlGroup" | "api" | "topic">
 ): string {
   const nonApiPath = request.url ?? request.urlGroup ?? request.topic;
-  if (nonApiPath) return nonApiPath;
+  if (nonApiPath) return toDestinationPath(nonApiPath);
 
   // return llm api
   if (request.api?.name === "llm") return `api/llm`;

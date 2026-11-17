@@ -1,5 +1,5 @@
 import type { Requester } from "./http";
-import { assertNonEmptyId } from "./utils";
+import { assertNonEmptyId, toPathSegment } from "./utils";
 
 export type FlowControlInfo = {
   /**
@@ -118,7 +118,7 @@ export class FlowControlApi {
     assertNonEmptyId(flowControlKey, "Flow control key");
     return await this.http.request<FlowControlInfo>({
       method: "GET",
-      path: ["v2", "flowControl", flowControlKey],
+      path: ["v2", "flowControl", toPathSegment(flowControlKey, "Flow control key")],
     });
   }
 
@@ -150,7 +150,7 @@ export class FlowControlApi {
   public async pause(flowControlKey: string): Promise<void> {
     await this.http.request({
       method: "POST",
-      path: ["v2", "flowControl", flowControlKey, "pause"],
+      path: ["v2", "flowControl", toPathSegment(flowControlKey, "Flow control key"), "pause"],
       parseResponseAsJson: false,
     });
   }
@@ -163,7 +163,7 @@ export class FlowControlApi {
   public async resume(flowControlKey: string): Promise<void> {
     await this.http.request({
       method: "POST",
-      path: ["v2", "flowControl", flowControlKey, "resume"],
+      path: ["v2", "flowControl", toPathSegment(flowControlKey, "Flow control key"), "resume"],
       parseResponseAsJson: false,
     });
   }
@@ -179,7 +179,7 @@ export class FlowControlApi {
   public async pin(flowControlKey: string, options: PinFlowControlOptions): Promise<void> {
     await this.http.request({
       method: "POST",
-      path: ["v2", "flowControl", flowControlKey, "pin"],
+      path: ["v2", "flowControl", toPathSegment(flowControlKey, "Flow control key"), "pin"],
       query: {
         parallelism: options.parallelism,
         rate: options.rate,
@@ -200,7 +200,7 @@ export class FlowControlApi {
   public async unpin(flowControlKey: string, options: UnpinFlowControlOptions): Promise<void> {
     await this.http.request({
       method: "POST",
-      path: ["v2", "flowControl", flowControlKey, "unpin"],
+      path: ["v2", "flowControl", toPathSegment(flowControlKey, "Flow control key"), "unpin"],
       query: {
         parallelism: options.parallelism,
         rate: options.rate,
@@ -220,7 +220,7 @@ export class FlowControlApi {
   public async resetRate(flowControlKey: string): Promise<void> {
     await this.http.request({
       method: "POST",
-      path: ["v2", "flowControl", flowControlKey, "resetRate"],
+      path: ["v2", "flowControl", toPathSegment(flowControlKey, "Flow control key"), "resetRate"],
       parseResponseAsJson: false,
     });
   }
