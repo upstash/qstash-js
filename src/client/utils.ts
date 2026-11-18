@@ -36,47 +36,70 @@ const WHITESPACE_OR_CONTROL = /[\s\u0000-\u001F\u007F]/g;
 const NOT_ALLOWED_IN_SEGMENT = /[\u0000-\u001F#/?\\\u007F]/;
 
 /**
- * Checks that `id` can be used as a single URL path segment and returns it
- * unchanged.
+ * Checks that `id` can be used as a single URL path segment and returns it.
  *
  * Ids are sent as they are, so an id has to stay in its own segment by
- * itself: `/`, `\`, `?`, `#`, control characters and surrounding whitespace
- * are not accepted, and neither are `.` and `..`.
+ * itself: `/`, `\`, `?`, `#` and control characters are not accepted, and
+ * neither are `.` and `..`. Surrounding whitespace is removed and numbers are
+ * converted to strings.
  */
-export function toPathSegment(id: string, label = "id"): string {
-  assertNonEmptyId(id, label);
-  if (typeof id !== "string") {
+export function toPathSegment(id: string | number, label = "id"): string {
+  const input: unknown = id;
+  const text = typeof input === "number" || typeof input === "bigint" ? String(input) : input;
+  if (typeof text !== "string") {
+    assertNonEmptyId(text as string, label);
     throw new QstashError(`${label} must be a string`);
   }
-  if (DOT_SEGMENT.test(id.replaceAll(WHITESPACE_OR_CONTROL, ""))) {
+  const segment = text.trim();
+  assertNonEmptyId(segment, label);
+  if (DOT_SEGMENT.test(segment.replaceAll(WHITESPACE_OR_CONTROL, ""))) {
     throw new QstashError(`${label} cannot be "." or ".."`);
   }
-  if (NOT_ALLOWED_IN_SEGMENT.test(id) || id !== id.trim()) {
-    throw new QstashError(
-      `${label} cannot contain "/", "\\", "?", "#" or control characters, or start or end with whitespace`
-    );
+  if (NOT_ALLOWED_IN_SEGMENT.test(segment)) {
+    throw new QstashError(`${label} cannot contain "/", "\\", "?", "#" or control characters`);
   }
-  return id;
+  return segment;
 }
+
+const hasDotSegment = (destination: string): boolean =>
+  destination
+    .replaceAll(WHITESPACE_OR_CONTROL, "")
+    .split(/[#?]/, 1)[0]
+    .split(/[/\\]/)
+    .some((part) => DOT_SEGMENT.test(part));
 
 /**
  * Returns a publish destination (url or url group name) for use in the
- * request path. Destinations with `.` or `..` path segments are not accepted.
+ * request path.
+ *
+ * `.` and `..` path segments of a url are resolved within the url, so
+ * `https://example.com/a/../b` is sent as `https://example.com/b`. A
+ * destination that still has such a segment is not accepted.
  */
 export function toDestinationPath(destination: string): string {
   const input: unknown = destination;
-  const value = input instanceof URL ? input.toString() : input;
-  if (typeof value !== "string") {
+  if (input === null || input === undefined || typeof input === "symbol") {
     throw new QstashError("Destination must be a string");
   }
-  const path = value.replaceAll(WHITESPACE_OR_CONTROL, "").split(/[#?]/, 1)[0];
-  if (path.length === 0) {
+  // eslint-disable-next-line @typescript-eslint/no-base-to-string
+  const value = typeof input === "string" ? input : String(input);
+  if (value.replaceAll(WHITESPACE_OR_CONTROL, "").split(/[#?]/, 1)[0].length === 0) {
     throw new QstashError("Destination cannot be empty");
   }
-  if (path.split(/[/\\]/).some((part) => DOT_SEGMENT.test(part))) {
-    throw new QstashError(`Destination cannot contain "." or ".." path segments: ${value}`);
+  if (!hasDotSegment(value)) {
+    return value;
   }
-  return value;
+  if (/^https?:\/\//i.test(value)) {
+    try {
+      const resolved = new URL(value).toString();
+      if (!hasDotSegment(resolved)) {
+        return resolved;
+      }
+    } catch {
+      // not a valid url, rejected below
+    }
+  }
+  throw new QstashError(`Destination cannot contain "." or ".." path segments: ${value}`);
 }
 
 export function serializeLabel(label: string | string[]): string {

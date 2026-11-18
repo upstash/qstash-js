@@ -39,17 +39,7 @@ describe("ids and destinations in request paths", () => {
   });
 
   test("toPathSegment rejects ids that do not stay in one segment", () => {
-    for (const id of [
-      "a/b",
-      String.raw`a\b`,
-      "a?b",
-      "a#b",
-      "a\tb",
-      "a\nb",
-      " a",
-      "a ",
-      "../keys",
-    ]) {
+    for (const id of ["a/b", String.raw`a\b`, "a?b", "a#b", "a\tb", "a\nb", "../keys"]) {
       expect(() => toPathSegment(id, "Queue name")).toThrow("Queue name cannot contain");
     }
   });
@@ -62,6 +52,24 @@ describe("ids and destinations in request paths", () => {
     for (const id of [".", "..", "%2e", "%2E%2e", ".%2e", ".\t.", ".. ", " ..", "..\n"]) {
       expect(() => toPathSegment(id, "Queue name")).toThrow('Queue name cannot be "." or ".."');
     }
+    for (const id of [" ", "\n", "\t "]) {
+      expect(() => toPathSegment(id, "Queue name")).toThrow("Queue name cannot be empty");
+    }
+  });
+
+  test("toPathSegment removes surrounding whitespace and converts numbers", () => {
+    expect(toPathSegment("scd_123\n")).toBe("scd_123");
+    expect(toPathSegment(" scd_123 ")).toBe("scd_123");
+    expect(toPathSegment("\tscd 123\r\n")).toBe("scd 123");
+    expect(toPathSegment(Number("42") as unknown as string)).toBe("42");
+    expect(() => toPathSegment(" a/b\n", "Queue name")).toThrow("Queue name cannot contain");
+  });
+
+  test("trimmed and numeric ids are sent in one segment", async () => {
+    const urls = captureUrls();
+    await client.schedules.get("scd_123\n");
+    await client.messages.get(Number("42") as unknown as string);
+    expect(urls).toEqual([`${BASE}/v2/schedules/scd_123`, `${BASE}/v2/messages/42`]);
   });
 
   test("toDestinationPath keeps ordinary destinations unchanged", () => {
@@ -75,16 +83,23 @@ describe("ids and destinations in request paths", () => {
     }
   });
 
-  test("toDestinationPath rejects dot segments", () => {
-    for (const destination of [
-      "https://example.com/a/../b",
-      "https://example.com/./a",
-      "https://example.com/%2e%2e/a",
-      String.raw`https://example.com\..\a`,
-      "https://example.com/a/.. ",
-      "https://example.com/a/.\t./b",
-      "..",
-    ]) {
+  test("toDestinationPath resolves dot segments within a url", () => {
+    const cases: [string, string][] = [
+      ["https://example.com/a/../b", "https://example.com/b"],
+      ["https://example.com/api/../hook?x=1#y", "https://example.com/hook?x=1#y"],
+      ["https://example.com/./a", "https://example.com/a"],
+      ["https://example.com/%2e%2e/a", "https://example.com/a"],
+      ["https://example.com/../../../keys", "https://example.com/keys"],
+      [String.raw`https://example.com\..\a`, "https://example.com/a"],
+      ["https://example.com/a/.\t./b", "https://example.com/b"],
+    ];
+    for (const [destination, resolved] of cases) {
+      expect(toDestinationPath(destination)).toBe(resolved);
+    }
+  });
+
+  test("toDestinationPath rejects dot segments outside a url", () => {
+    for (const destination of ["..", "../keys", "group/../../keys", "./group", "ftp://x/../a"]) {
       expect(() => toDestinationPath(destination)).toThrow("path segments");
     }
   });
@@ -123,10 +138,20 @@ describe("ids and destinations in request paths", () => {
     expect(await client.messages.get("..").then(() => "", message)).toBe(
       'Message id cannot be "." or ".."'
     );
-    expect(
-      await client.publish({ url: "https://example.com/a/../b" }).then(() => "", message)
-    ).toContain("path segments");
+    expect(await client.publish({ url: "../keys" }).then(() => "", message)).toContain(
+      "path segments"
+    );
     expect(urls).toEqual([]);
+  });
+
+  test("a url destination with dot segments stays under the publish endpoint", async () => {
+    const urls = captureUrls();
+    await client.publish({ url: "https://example.com/a/../b" });
+    await client.publish({ url: "https://example.com/../../../../keys/rotate" });
+    expect(urls).toEqual([
+      `${BASE}/v2/publish/https://example.com/b`,
+      `${BASE}/v2/publish/https://example.com/keys/rotate`,
+    ]);
   });
 
   test("publish destination is sent as before", async () => {
@@ -135,11 +160,14 @@ describe("ids and destinations in request paths", () => {
     expect(urls).toEqual([`${BASE}/v2/publish/https://example.com/a/b?x=1`]);
   });
 
-  test("toDestinationPath accepts URL objects and rejects other values", () => {
+  test("toDestinationPath converts objects to strings before checking them", () => {
     const url = new URL("https://example.com/a/b");
     expect(toDestinationPath(url as unknown as string)).toBe("https://example.com/a/b");
+    const endpoint = { toString: () => "https://example.com/hook" };
+    expect(toDestinationPath(endpoint as unknown as string)).toBe("https://example.com/hook");
     const lookalike = { replaceAll: () => "ok", toString: () => "../keys" };
-    expect(() => toDestinationPath(lookalike as unknown as string)).toThrow("must be a string");
+    expect(() => toDestinationPath(lookalike as unknown as string)).toThrow("path segments");
+    expect(() => toDestinationPath(undefined as unknown as string)).toThrow("must be a string");
   });
 
   test("toDestinationPath rejects destinations without a path", () => {
