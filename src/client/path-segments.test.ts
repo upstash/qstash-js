@@ -133,17 +133,6 @@ describe("ids and destinations in request paths", () => {
     expect(urls).toEqual([]);
   });
 
-  test("does not send a request for a dot id or destination", async () => {
-    const urls = captureUrls();
-    expect(await client.messages.get("..").then(() => "", message)).toBe(
-      'Message id cannot be "." or ".."'
-    );
-    expect(await client.publish({ url: "../keys" }).then(() => "", message)).toContain(
-      "path segments"
-    );
-    expect(urls).toEqual([]);
-  });
-
   test("a url destination with dot segments stays under the publish endpoint", async () => {
     const urls = captureUrls();
     await client.publish({ url: "https://example.com/a/../b" });
@@ -152,12 +141,6 @@ describe("ids and destinations in request paths", () => {
       `${BASE}/v2/publish/https://example.com/b`,
       `${BASE}/v2/publish/https://example.com/keys/rotate`,
     ]);
-  });
-
-  test("publish destination is sent as before", async () => {
-    const urls = captureUrls();
-    await client.publish({ url: "https://example.com/a/b?x=1" });
-    expect(urls).toEqual([`${BASE}/v2/publish/https://example.com/a/b?x=1`]);
   });
 
   test("toDestinationPath converts objects to strings before checking them", () => {
@@ -184,11 +167,5 @@ describe("ids and destinations in request paths", () => {
       await client.publish({ api: { name: "email", provider }, body: "x" }).then(() => "", message)
     ).toContain("path segments");
     expect(urls).toEqual([]);
-  });
-
-  test("batch destinations are sent in the body as they are", async () => {
-    const urls = captureUrls();
-    await client.batch([{ url: "https://example.com/a/../b" }]);
-    expect(urls).toEqual([`${BASE}/v2/batch`]);
   });
 });

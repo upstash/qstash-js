@@ -24,11 +24,6 @@ export function assertNonEmptyId(id: string, label = "id"): void {
   }
 }
 
-/**
- * Serializes a label (string or array of strings) into the header value.
- * Arrays are joined with `,` so multiple labels can be sent in a single
- * `Upstash-Label` header.
- */
 const DOT_SEGMENT = /^(?:\.|%2e){1,2}$/i;
 // eslint-disable-next-line no-control-regex
 const WHITESPACE_OR_CONTROL = /[\s\u0000-\u001F\u007F]/g;
@@ -61,10 +56,11 @@ export function toPathSegment(id: string | number, label = "id"): string {
   return segment;
 }
 
+const pathOf = (destination: string): string =>
+  destination.replaceAll(WHITESPACE_OR_CONTROL, "").split(/[#?]/, 1)[0];
+
 const hasDotSegment = (destination: string): boolean =>
-  destination
-    .replaceAll(WHITESPACE_OR_CONTROL, "")
-    .split(/[#?]/, 1)[0]
+  pathOf(destination)
     .split(/[/\\]/)
     .some((part) => DOT_SEGMENT.test(part));
 
@@ -82,8 +78,8 @@ export function toDestinationPath(destination: string): string {
     throw new QstashError("Destination must be a string");
   }
   // eslint-disable-next-line @typescript-eslint/no-base-to-string
-  const value = typeof input === "string" ? input : String(input);
-  if (value.replaceAll(WHITESPACE_OR_CONTROL, "").split(/[#?]/, 1)[0].length === 0) {
+  const value = String(input);
+  if (pathOf(value).length === 0) {
     throw new QstashError("Destination cannot be empty");
   }
   if (!hasDotSegment(value)) {
@@ -102,6 +98,11 @@ export function toDestinationPath(destination: string): string {
   throw new QstashError(`Destination cannot contain "." or ".." path segments: ${value}`);
 }
 
+/**
+ * Serializes a label (string or array of strings) into the header value.
+ * Arrays are joined with `,` so multiple labels can be sent in a single
+ * `Upstash-Label` header.
+ */
 export function serializeLabel(label: string | string[]): string {
   return Array.isArray(label) ? label.join(",") : label;
 }
