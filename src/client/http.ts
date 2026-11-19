@@ -68,6 +68,9 @@ export type RetryConfig =
       /**
        * The number of retries to attempt before giving up.
        *
+       * Stream bodies are retained in memory for retries, up to the entire body.
+       * Use `retry: false` to avoid this retention for large or unbounded streams.
+       *
        * @default 5
        */
       retries?: number;
@@ -193,25 +196,62 @@ export class HttpClient implements Requester {
     const requestLabel = describeRequest(requestOptions.method, url);
     const totalAttempts = this.retry.attempts + 1;
 
+    let replayBody =
+      this.retry.attempts > 0 &&
+      typeof ReadableStream !== "undefined" &&
+      requestOptions.body instanceof ReadableStream
+        ? requestOptions.body.pipeThrough(
+            new TransformStream<Uint8Array, Uint8Array>({
+              transform(chunk, controller) {
+                // Source buffers can be reused after an upload chunk is consumed.
+                controller.enqueue(new Uint8Array(chunk));
+              },
+            })
+          )
+        : undefined;
+
     let response: Response | undefined = undefined;
     let error: Error | undefined = undefined;
-    for (let index = 0; index <= this.retry.attempts; index++) {
-      try {
-        response = await fetch(url.toString(), requestOptions);
-        break;
-      } catch (error_) {
-        error = error_ as Error;
+    try {
+      for (let index = 0; index <= this.retry.attempts; index++) {
+        let stopUpload: (() => void) | undefined;
+        try {
+          if (replayBody) {
+            let body = replayBody;
+            replayBody = undefined;
+            if (index < this.retry.attempts) {
+              // Retain bytes for retry while the first upload remains streaming.
+              // The unread branch can buffer the entire body.
+              [body, replayBody] = body.tee();
+            }
+            [requestOptions.body, stopUpload] = prepareStreamAttempt(body);
+          }
+          try {
+            response = await fetch(url.toString(), requestOptions);
+          } finally {
+            // Stop uploading even if fetch returned before consuming the body.
+            stopUpload?.();
+          }
+          break;
+        } catch (error_) {
+          error = error_ as Error;
 
-        // Only sleep if this is not the last attempt
-        if (index < this.retry.attempts) {
-          const backoffMs = this.retry.backoff(index);
-          console.warn(
-            `${LOG_PREFIX} ${requestLabel} failed (attempt ${index + 1}/${totalAttempts}), ` +
-              `retrying in ${Math.round(backoffMs)}ms: ${formatError(error)}`
-          );
-          await new Promise((r) => setTimeout(r, backoffMs));
+          // Only sleep if this is not the last attempt
+          if (index < this.retry.attempts) {
+            const backoffMs = this.retry.backoff(index);
+            console.warn(
+              `${LOG_PREFIX} ${requestLabel} failed (attempt ${index + 1}/${totalAttempts}), ` +
+                `retrying in ${Math.round(backoffMs)}ms: ${formatError(error)}`
+            );
+            await new Promise((r) => setTimeout(r, backoffMs));
+          }
         }
       }
+    } finally {
+      // Tee cancellation waits for both branches; never await the unused branch.
+      void replayBody?.cancel().catch(() => {
+        // Cancellation must not hide the request result.
+      });
     }
     if (!response) {
       const finalError = error ?? new Error("Exhausted all retries");
@@ -345,4 +385,61 @@ const formatError = (error: unknown): string => {
   // undici wraps the underlying network error (ECONNREFUSED, ENOTFOUND, ...) in `cause`
   const cause = (error as Error & { cause?: unknown }).cause;
   return cause instanceof Error ? `${error.message} (cause: ${cause.message})` : error.message;
+};
+
+/** Keep ownership of the reader so an early response can stop a Fetch-locked upload. */
+const prepareStreamAttempt = (
+  body: ReadableStream<Uint8Array>
+): [ReadableStream<Uint8Array>, () => void] => {
+  const reader = body.getReader();
+  let finished = false;
+  let controller: ReadableStreamDefaultController<Uint8Array>;
+  const cancel = () => {
+    // An unread tee sibling may delay cancellation; do not wait for it.
+    void reader
+      .cancel()
+      .finally(() => {
+        reader.releaseLock();
+      })
+      .catch(() => {
+        // Cancellation must not hide the request result.
+      });
+  };
+  const stream = new ReadableStream<Uint8Array>({
+    start(value) {
+      controller = value;
+    },
+    async pull() {
+      try {
+        const { done, value } = await reader.read();
+        if (finished) return;
+        if (done) {
+          finished = true;
+          controller.close();
+          reader.releaseLock();
+        } else {
+          controller.enqueue(value);
+        }
+      } catch (error) {
+        if (!finished) {
+          finished = true;
+          controller.error(error);
+          reader.releaseLock();
+        }
+      }
+    },
+    cancel() {
+      finished = true;
+      cancel();
+    },
+  });
+  return [
+    stream,
+    () => {
+      if (finished) return;
+      finished = true;
+      controller.close();
+      cancel();
+    },
+  ];
 };
