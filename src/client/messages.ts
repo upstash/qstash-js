@@ -2,7 +2,7 @@ import type { PublishRequest } from "./client";
 import type { Requester } from "./http";
 import type { HTTPMethods } from "./types";
 import type { MessageCancelFilters } from "./filter-types";
-import { assertNonEmptyId, buildBulkActionFilterPayload } from "./utils";
+import { assertNonEmptyId, buildBulkActionFilterPayload, toPathSegment } from "./utils";
 
 /**
  * @see node_modules/@upstash/qstash/docs/examples/messages.mdx
@@ -170,7 +170,7 @@ export class Messages {
     assertNonEmptyId(messageId, "Message id");
     const messagePayload = await this.http.request<MessagePayload>({
       method: "GET",
-      path: ["v2", "messages", messageId],
+      path: ["v2", "messages", toPathSegment(messageId, "Message id")],
     });
     const message: Message = {
       ...messagePayload,
@@ -217,7 +217,7 @@ export class Messages {
       assertNonEmptyId(request, "Message id");
       return await this.http.request({
         method: "DELETE",
-        path: ["v2", "messages", request],
+        path: ["v2", "messages", toPathSegment(request, "Message id")],
       });
     }
 
@@ -253,7 +253,7 @@ export class Messages {
     assertNonEmptyId(messageId, "Message id");
     await this.http.request({
       method: "POST",
-      path: ["v2", "messages", messageId, "retry"],
+      path: ["v2", "messages", toPathSegment(messageId, "Message id"), "retry"],
       parseResponseAsJson: false,
     });
   }
@@ -269,7 +269,7 @@ export class Messages {
     assertNonEmptyId(messageId, "Message id");
     await this.http.request({
       method: "DELETE",
-      path: ["v2", "messages", messageId],
+      path: ["v2", "messages", toPathSegment(messageId, "Message id")],
       parseResponseAsJson: false,
     });
   }

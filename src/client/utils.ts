@@ -24,6 +24,80 @@ export function assertNonEmptyId(id: string, label = "id"): void {
   }
 }
 
+const DOT_SEGMENT = /^(?:\.|%2e){1,2}$/i;
+// eslint-disable-next-line no-control-regex
+const WHITESPACE_OR_CONTROL = /[\s\u0000-\u001F\u007F]/g;
+// eslint-disable-next-line no-control-regex
+const NOT_ALLOWED_IN_SEGMENT = /[\u0000-\u001F#/?\\\u007F]/;
+
+/**
+ * Checks that `id` can be used as a single URL path segment and returns it.
+ *
+ * Ids are sent as they are, so an id has to stay in its own segment by
+ * itself: `/`, `\`, `?`, `#` and control characters are not accepted, and
+ * neither are `.` and `..`. Surrounding whitespace is removed and numbers are
+ * converted to strings.
+ */
+export function toPathSegment(id: string | number, label = "id"): string {
+  const input: unknown = id;
+  const text = typeof input === "number" || typeof input === "bigint" ? String(input) : input;
+  if (typeof text !== "string") {
+    assertNonEmptyId(text as string, label);
+    throw new QstashError(`${label} must be a string`);
+  }
+  const segment = text.trim();
+  assertNonEmptyId(segment, label);
+  if (DOT_SEGMENT.test(segment.replaceAll(WHITESPACE_OR_CONTROL, ""))) {
+    throw new QstashError(`${label} cannot be "." or ".."`);
+  }
+  if (NOT_ALLOWED_IN_SEGMENT.test(segment)) {
+    throw new QstashError(`${label} cannot contain "/", "\\", "?", "#" or control characters`);
+  }
+  return segment;
+}
+
+const pathOf = (destination: string): string =>
+  destination.replaceAll(WHITESPACE_OR_CONTROL, "").split(/[#?]/, 1)[0];
+
+const hasDotSegment = (destination: string): boolean =>
+  pathOf(destination)
+    .split(/[/\\]/)
+    .some((part) => DOT_SEGMENT.test(part));
+
+/**
+ * Returns a publish destination (url or url group name) for use in the
+ * request path.
+ *
+ * `.` and `..` path segments of a url are resolved within the url, so
+ * `https://example.com/a/../b` is sent as `https://example.com/b`. A
+ * destination that still has such a segment is not accepted.
+ */
+export function toDestinationPath(destination: string): string {
+  const input: unknown = destination;
+  if (input === null || input === undefined || typeof input === "symbol") {
+    throw new QstashError("Destination must be a string");
+  }
+  // eslint-disable-next-line @typescript-eslint/no-base-to-string
+  const value = String(input);
+  if (pathOf(value).length === 0) {
+    throw new QstashError("Destination cannot be empty");
+  }
+  if (!hasDotSegment(value)) {
+    return value;
+  }
+  if (/^https?:\/\//i.test(value)) {
+    try {
+      const resolved = new URL(value).toString();
+      if (!hasDotSegment(resolved)) {
+        return resolved;
+      }
+    } catch {
+      // not a valid url, rejected below
+    }
+  }
+  throw new QstashError(`Destination cannot contain "." or ".." path segments: ${value}`);
+}
+
 /**
  * Serializes a label (string or array of strings) into the header value.
  * Arrays are joined with `,` so multiple labels can be sent in a single

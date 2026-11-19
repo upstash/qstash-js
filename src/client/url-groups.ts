@@ -1,5 +1,5 @@
 import type { Requester } from "./http";
-import { assertNonEmptyId } from "./utils";
+import { assertNonEmptyId, toPathSegment } from "./utils";
 
 export type Endpoint = {
   /**
@@ -83,7 +83,7 @@ export class UrlGroups {
   public async addEndpoints(request: AddEndpointsRequest): Promise<void> {
     await this.http.request<UrlGroup>({
       method: "POST",
-      path: ["v2", "topics", request.name, "endpoints"],
+      path: ["v2", "topics", toPathSegment(request.name, "URL group name"), "endpoints"],
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ endpoints: request.endpoints }),
       parseResponseAsJson: false,
@@ -98,7 +98,7 @@ export class UrlGroups {
   public async removeEndpoints(request: RemoveEndpointsRequest): Promise<void> {
     await this.http.request<UrlGroup>({
       method: "DELETE",
-      path: ["v2", "topics", request.name, "endpoints"],
+      path: ["v2", "topics", toPathSegment(request.name, "URL group name"), "endpoints"],
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ endpoints: request.endpoints }),
       parseResponseAsJson: false,
@@ -126,7 +126,7 @@ export class UrlGroups {
     assertNonEmptyId(name, "Url group name");
     return await this.http.request<UrlGroup>({
       method: "GET",
-      path: ["v2", "topics", name],
+      path: ["v2", "topics", toPathSegment(name, "URL group name")],
     });
   }
 
@@ -139,7 +139,7 @@ export class UrlGroups {
     assertNonEmptyId(name, "Url group name");
     return await this.http.request({
       method: "DELETE",
-      path: ["v2", "topics", name],
+      path: ["v2", "topics", toPathSegment(name, "URL group name")],
       parseResponseAsJson: false,
     });
   }

@@ -136,9 +136,10 @@ describe("Workflow Requests", () => {
     await triggerWorkflowDelete(context);
     expect(spy).toHaveBeenCalledTimes(1);
     expect(spy).toHaveBeenLastCalledWith({
-      path: ["v2", "workflows", "runs", `${workflowRunId}?cancel=false`],
+      path: ["v2", "workflows", "runs", workflowRunId],
       method: "DELETE",
       parseResponseAsJson: false,
+      query: { cancel: false },
     });
   });
 

@@ -1,4 +1,5 @@
 import type { Requester } from "../http";
+import { toPathSegment } from "../utils";
 
 export * from "./serve";
 export * from "./context";
@@ -25,7 +26,8 @@ export class Workflow {
    */
   public async cancel(workflowRunId: string) {
     const result = (await this.http.request({
-      path: ["v2", "workflows", "runs", `${workflowRunId}?cancel=true`],
+      path: ["v2", "workflows", "runs", toPathSegment(workflowRunId, "Workflow run id")],
+      query: { cancel: true },
       method: "DELETE",
       parseResponseAsJson: false,
     })) as { error: string } | undefined;
