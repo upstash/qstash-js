@@ -4,11 +4,13 @@
  */
 
 import { describe, expect, test } from "bun:test";
+import { createApp, readBody, readRawBody, toWebHandler } from "h3";
 import { SignJWT } from "jose";
 import { createHash } from "node:crypto";
 import { Receiver, SignatureError } from ".";
 import { nanoid } from "./client/utils";
 import { verifySignatureAppRouter } from "../platforms/nextjs";
+import { verifySignatureH3 } from "../platforms/h3";
 
 export async function createUpstashSingature({
   url,
@@ -72,6 +74,37 @@ const wrapWithKeys = () => {
   );
   return { wrapped, handlerCalls: () => handlerCalls };
 };
+
+/** Wraps a counting handler with verifySignatureH3 using explicit keys. */
+const createH3Handler = () => {
+  let handlerCalls = 0;
+  const errors: unknown[] = [];
+  const app = createApp({ onError: (error) => errors.push(error.cause) });
+  app.use(
+    verifySignatureH3(
+      async (event) => {
+        handlerCalls += 1;
+        return { json: (await readBody(event)) as unknown, raw: await readRawBody(event) };
+      },
+      { currentSigningKey, nextSigningKey }
+    )
+  );
+  return { handle: toWebHandler(app), handlerCalls: () => handlerCalls, errors };
+};
+
+const sendToH3 = (
+  handle: ReturnType<typeof toWebHandler>,
+  url: string,
+  signature: string,
+  requestBody: string
+) =>
+  handle(
+    new Request(url, {
+      method: "POST",
+      headers: { "content-type": "application/json", "upstash-signature": signature },
+      body: requestBody,
+    })
+  );
 
 describe("receiver", () => {
   test("verify signed with currentSigningKey", async () => {
@@ -212,6 +245,81 @@ describe("verifySignatureAppRouter with signing keys configured", () => {
 
     expect(response.status).toBe(200);
     expect(await response.text()).toBe("handled");
+    expect(handlerCalls()).toBe(1);
+  });
+});
+
+describe("verifySignatureH3 with signing keys configured", () => {
+  const requestUrl = "https://example.com/api/qstash";
+  const body = JSON.stringify({ hello: "wörld", count: 1 });
+
+  test("calls the handler when the signature matches the request body", async () => {
+    const { handle, handlerCalls } = createH3Handler();
+    const signature = await createUpstashSingature({
+      url: requestUrl,
+      body,
+      key: currentSigningKey,
+    });
+
+    const response = await sendToH3(handle, requestUrl, signature, body);
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ json: JSON.parse(body) as unknown, raw: body });
+    expect(handlerCalls()).toBe(1);
+  });
+
+  test("calls the handler when the signature was made with the next signing key", async () => {
+    const { handle, handlerCalls } = createH3Handler();
+    const signature = await createUpstashSingature({ url: requestUrl, body, key: nextSigningKey });
+
+    const response = await sendToH3(handle, requestUrl, signature, body);
+
+    expect(response.status).toBe(200);
+    expect(handlerCalls()).toBe(1);
+  });
+
+  test("rejects and skips the handler when the body was changed after signing", async () => {
+    const { handle, handlerCalls, errors } = createH3Handler();
+    const signature = await createUpstashSingature({
+      url: requestUrl,
+      body,
+      key: currentSigningKey,
+    });
+
+    const response = await sendToH3(
+      handle,
+      requestUrl,
+      signature,
+      JSON.stringify({ hello: "tampered" })
+    );
+
+    expect(response.status).toBe(500);
+    expect(errors[0]).toBeInstanceOf(SignatureError);
+    expect(handlerCalls()).toBe(0);
+  });
+
+  test("rejects and skips the handler when the signature key is wrong", async () => {
+    const { handle, handlerCalls, errors } = createH3Handler();
+    const forged = await createUpstashSingature({ url: requestUrl, body, key: nanoid() });
+
+    const response = await sendToH3(handle, requestUrl, forged, body);
+
+    expect(response.status).toBe(500);
+    expect(errors[0]).toBeInstanceOf(SignatureError);
+    expect(handlerCalls()).toBe(0);
+  });
+
+  test("calls the handler when a signed request has an empty body", async () => {
+    const { handle, handlerCalls } = createH3Handler();
+    const signature = await createUpstashSingature({
+      url: requestUrl,
+      body: "",
+      key: currentSigningKey,
+    });
+
+    const response = await sendToH3(handle, requestUrl, signature, "");
+
+    expect(response.status).toBe(200);
     expect(handlerCalls()).toBe(1);
   });
 });
