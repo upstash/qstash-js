@@ -217,8 +217,12 @@ export class Receiver {
       body: string;
     };
 
-    if (request.url !== undefined && p.sub !== request.url) {
+    if (request.url !== undefined && (request.url === "" || p.sub !== request.url)) {
       throw new SignatureError(`invalid subject: ${p.sub}, want: ${request.url}`);
+    }
+
+    if (typeof p.body !== "string") {
+      throw new SignatureError("invalid body claim: expected string");
     }
 
     const bodyHash = await sha256Base64url(request.body);
