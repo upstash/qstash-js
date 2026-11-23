@@ -162,6 +162,50 @@ describe("receiver", () => {
       "invalid subject"
     );
   });
+
+  test("rejects a token missing the body claim", async () => {
+    const receiver = new Receiver({ currentSigningKey, nextSigningKey });
+    const now = Math.floor(Date.now() / 1000);
+    const tokenWithoutBody = await new SignJWT({
+      iss: "Upstash",
+      sub: url,
+      exp: now + 300,
+      nbf: now,
+      iat: now,
+      jti: "jwt_missing_body",
+    })
+      .setProtectedHeader({ alg: "HS256", typ: "JWT" })
+      .sign(new Uint8Array(Buffer.from(currentSigningKey, "utf8")));
+
+    await expectSignatureError(
+      () =>
+        receiver.verify({
+          signature: tokenWithoutBody,
+          body: randomBody,
+          url,
+        }),
+      "body"
+    );
+  });
+
+  test("rejects an empty request url even when token sub is empty", async () => {
+    const receiver = new Receiver({ currentSigningKey, nextSigningKey });
+    const upstashSignature = await createUpstashSingature({
+      url: "",
+      body: randomBody,
+      key: currentSigningKey,
+    });
+
+    await expectSignatureError(
+      () =>
+        receiver.verify({
+          signature: upstashSignature,
+          body: randomBody,
+          url: "",
+        }),
+      "invalid subject"
+    );
+  });
 });
 
 describe("verifySignatureAppRouter with signing keys configured", () => {
