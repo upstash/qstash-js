@@ -24,6 +24,39 @@ type VerifySignatureConfig = {
 };
 
 /**
+ * Reads the whole request body as text.
+ *
+ * h3 leaves the request stream untouched when the headers don't announce a body, so the
+ * stream is read here in that case. The handler then gets the same body that was verified.
+ */
+const readRequestBody = async (event: H3Event): Promise<string | undefined> => {
+  const body = await readRawBody(event);
+  if (body !== undefined) {
+    return body;
+  }
+
+  const request = event.node.req;
+  if (!request.readable || request.readableEnded) {
+    return undefined;
+  }
+
+  const decoder = new TextDecoder();
+  let text = "";
+  for await (const chunk of request) {
+    text +=
+      typeof chunk === "string" ? chunk : decoder.decode(chunk as Uint8Array, { stream: true });
+  }
+  text += decoder.decode();
+
+  if (text.length === 0) {
+    // the stream is consumed now, tell h3 not to wait for it when the handler reads the body
+    (request as { rawBody?: undefined }).rawBody = undefined;
+    return undefined;
+  }
+  return text;
+};
+
+/**
  * Verifies the `Upstash-Signature` header with `Receiver` before calling the handler.
  *
  * It does not check the URL the message was signed for, so a signature for any other endpoint
@@ -54,7 +87,7 @@ export const verifySignatureH3 = (
 
     const upstashRegion = getHeader(event, "upstash-region");
 
-    const body = await readRawBody(event);
+    const body = await readRequestBody(event);
     const isValid = await receiver.verify({
       signature,
       body: body ?? "",
