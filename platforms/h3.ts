@@ -57,7 +57,7 @@ export const verifySignatureH3 = (
     const body = await readRawBody(event);
     const isValid = await receiver.verify({
       signature,
-      body: JSON.stringify(body),
+      body: body ?? "",
       clockTolerance: config?.clockTolerance,
       upstashRegion: typeof upstashRegion === "string" ? upstashRegion : undefined,
     });
