@@ -4,9 +4,12 @@
  */
 
 import { describe, expect, test } from "bun:test";
-import { createApp, readBody, readRawBody, toWebHandler } from "h3";
+import { createApp, readBody, readRawBody, toNodeListener, toWebHandler } from "h3";
 import { SignJWT } from "jose";
 import { createHash } from "node:crypto";
+import { createServer } from "node:http";
+import type { AddressInfo } from "node:net";
+import { connect } from "node:net";
 import { Receiver, SignatureError } from ".";
 import { nanoid } from "./client/utils";
 import { verifySignatureAppRouter } from "../platforms/nextjs";
@@ -105,6 +108,58 @@ const sendToH3 = (
       body: requestBody,
     })
   );
+
+/** Serves a counting handler wrapped with verifySignatureH3 on a local port. */
+const startH3Server = async () => {
+  let handlerCalls = 0;
+  const errors: unknown[] = [];
+  const app = createApp({ onError: (error) => errors.push(error.cause) });
+  app.use(
+    verifySignatureH3(
+      async (event) => {
+        handlerCalls += 1;
+        return { raw: (await readRawBody(event)) ?? "" };
+      },
+      { currentSigningKey, nextSigningKey }
+    )
+  );
+  const server = createServer(toNodeListener(app));
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+  return {
+    port: (server.address() as AddressInfo).port,
+    handlerCalls: () => handlerCalls,
+    close: () => new Promise((resolve) => server.close(resolve)),
+  };
+};
+
+/** Sends a POST request over a plain socket so the headers are sent exactly as given. */
+const sendRaw = (port: number, headers: string[], payload: string) =>
+  new Promise<{ status: number; text: string }>((resolve, reject) => {
+    const socket = connect(port, "127.0.0.1");
+    let response = "";
+    socket.on("data", (chunk) => {
+      response += chunk.toString();
+      const headerEnd = response.indexOf("\r\n\r\n");
+      if (headerEnd === -1) return;
+      const length = /content-length: (\d+)/i.exec(response.slice(0, headerEnd));
+      const received = Buffer.byteLength(response.slice(headerEnd + 4));
+      if (length ? received >= Number(length[1]) : response.endsWith("0\r\n\r\n")) {
+        socket.destroy();
+        resolve({ status: Number(response.split(" ")[1]), text: response });
+      }
+    });
+    socket.on("error", reject);
+    socket.write(
+      ["POST /api/qstash HTTP/1.1", "Host: example.com", "Connection: close", ...headers].join(
+        "\r\n"
+      ) +
+        "\r\n\r\n" +
+        payload
+    );
+  });
+
+const toChunked = (text: string) =>
+  `${Buffer.byteLength(text).toString(16)}\r\n${text}\r\n0\r\n\r\n`;
 
 describe("receiver", () => {
   test("verify signed with currentSigningKey", async () => {
@@ -365,5 +420,65 @@ describe("verifySignatureH3 with signing keys configured", () => {
 
     expect(response.status).toBe(200);
     expect(handlerCalls()).toBe(1);
+  });
+});
+
+describe("verifySignatureH3 on a node server", () => {
+  const requestUrl = "https://example.com/api/qstash";
+  const body = JSON.stringify({ hello: "world", count: 1 });
+
+  test("verifies a chunked body whatever the casing of the transfer-encoding value", async () => {
+    const server = await startH3Server();
+    const signature = await createUpstashSingature({
+      url: requestUrl,
+      body,
+      key: currentSigningKey,
+    });
+
+    const response = await sendRaw(
+      server.port,
+      [`Upstash-Signature: ${signature}`, "Transfer-Encoding: Chunked"],
+      toChunked(body)
+    );
+    await server.close();
+
+    expect(response.status).toBe(200);
+    expect(response.text).toContain(JSON.stringify({ raw: body }));
+    expect(server.handlerCalls()).toBe(1);
+  });
+
+  test("rejects a chunked body that does not match the signature", async () => {
+    const server = await startH3Server();
+    const signature = await createUpstashSingature({
+      url: requestUrl,
+      body: "",
+      key: currentSigningKey,
+    });
+
+    const response = await sendRaw(
+      server.port,
+      [`Upstash-Signature: ${signature}`, "Transfer-Encoding: Chunked"],
+      toChunked(body)
+    );
+    await server.close();
+
+    expect(response.status).toBe(500);
+    expect(server.handlerCalls()).toBe(0);
+  });
+
+  test("calls the handler when a signed request has no body", async () => {
+    const server = await startH3Server();
+    const signature = await createUpstashSingature({
+      url: requestUrl,
+      body: "",
+      key: currentSigningKey,
+    });
+
+    const response = await sendRaw(server.port, [`Upstash-Signature: ${signature}`], "");
+    await server.close();
+
+    expect(response.status).toBe(200);
+    expect(response.text).toContain(JSON.stringify({ raw: "" }));
+    expect(server.handlerCalls()).toBe(1);
   });
 });
