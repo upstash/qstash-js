@@ -90,6 +90,25 @@ describe("Messages empty id guard", () => {
   });
 });
 
+describe("Messages bulk cancel with explicit undefined", () => {
+  const token = "mock-token";
+
+  test("should keep the filter when all is undefined", async () => {
+    await mockQStashServer({
+      execute: async () => {
+        const mockClient = new Client({ token, baseUrl: MOCK_QSTASH_SERVER_URL });
+        await mockClient.messages.cancel({ filter: { label: "label-1" }, all: undefined });
+      },
+      responseFields: { body: { cancelled: 0 }, status: 200 },
+      receivesRequest: {
+        method: "DELETE",
+        token,
+        url: `${MOCK_QSTASH_SERVER_URL}/v2/messages?label=label-1&count=100`,
+      },
+    });
+  });
+});
+
 describe("Messages runNow", () => {
   test("should POST to the message retry endpoint", async () => {
     await mockQStashServer({

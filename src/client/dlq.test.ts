@@ -1196,3 +1196,36 @@ describe("DLQ - mocked filter url shape", () => {
     });
   });
 });
+
+describe("DLQ - mocked unintended bulk action guard", () => {
+  const token = "mock-token";
+
+  test("should keep the filter when all is undefined", async () => {
+    await mockQStashServer({
+      execute: async () => {
+        const client = new Client({ token, baseUrl: MOCK_QSTASH_SERVER_URL });
+        await client.dlq.delete({ filter: { label: "label-1" }, all: undefined });
+      },
+      responseFields: { body: { deleted: 0 }, status: 200 },
+      receivesRequest: {
+        method: "DELETE",
+        token,
+        url: `${MOCK_QSTASH_SERVER_URL}/v2/dlq?label=label-1&count=100`,
+      },
+    });
+  });
+
+  test("should not send a request when the filter only has api", async () => {
+    await mockQStashServer({
+      execute: async () => {
+        const client = new Client({ token, baseUrl: MOCK_QSTASH_SERVER_URL });
+        await expectToReject(
+          () => client.dlq.delete({ filter: { api: "llm" } }),
+          "use { all: true } explicitly"
+        );
+      },
+      responseFields: { body: { deleted: 0 }, status: 200 },
+      receivesRequest: false,
+    });
+  });
+});
