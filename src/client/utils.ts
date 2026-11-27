@@ -333,12 +333,12 @@ export function decodeBase64(base64: string) {
 export function buildBulkActionFilterPayload(request: DLQBulkActionFilters | MessageCancelFilters) {
   const cursor = "cursor" in request ? request.cursor : undefined;
 
-  if ("all" in request) {
+  if (request.all === true) {
     const count = "count" in request ? request.count ?? DEFAULT_BULK_COUNT : DEFAULT_BULK_COUNT;
     return { count, cursor };
   }
 
-  if ("dlqIds" in request) {
+  if ("dlqIds" in request && request.dlqIds !== undefined) {
     const ids = request.dlqIds;
     if (Array.isArray(ids) && ids.length === 0) {
       throw new QstashError(
@@ -358,12 +358,21 @@ export function buildBulkActionFilterPayload(request: DLQBulkActionFilters | Mes
   }
 
   // Filter branch
+  const filter = renameUrlGroup<Record<string, unknown> & { urlGroup?: string | string[] }>({
+    ...request.filter,
+  });
+  // `count` and `cursor` are overwritten below, so on their own they do not filter anything
+  const hasFilter = Object.entries(filter).some(
+    ([key, value]) => key !== "count" && key !== "cursor" && value !== undefined
+  );
+  if (!hasFilter) {
+    throw new QstashError(
+      "Empty filter provided. If you intend to target all messages, use { all: true } explicitly."
+    );
+  }
+
   const count = "count" in request ? request.count ?? DEFAULT_BULK_COUNT : DEFAULT_BULK_COUNT;
-  return {
-    ...renameUrlGroup(request.filter as Record<string, unknown> & { urlGroup?: string | string[] }),
-    count,
-    cursor,
-  };
+  return { ...filter, count, cursor };
 }
 
 /**

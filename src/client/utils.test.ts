@@ -118,6 +118,40 @@ describe("buildFilterPayload", () => {
   });
 });
 
+describe("buildBulkActionFilterPayload with explicit undefined", () => {
+  test("should keep the filter when all is undefined", () => {
+    const result = buildBulkActionFilterPayload({ filter: { label: "test" }, all: undefined });
+    expect(result).toHaveProperty("label", "test");
+  });
+
+  test("should keep the filter when dlqIds is undefined", () => {
+    const result = buildBulkActionFilterPayload({ filter: { label: "test" }, dlqIds: undefined });
+    expect(result).toHaveProperty("label", "test");
+  });
+
+  test("should keep dlqIds when all is undefined", () => {
+    expect(buildBulkActionFilterPayload({ dlqIds: ["id1"], all: undefined })).toEqual({
+      dlqIds: ["id1"],
+      cursor: undefined,
+    });
+  });
+
+  test("should throw when nothing is left of the filter after api is removed", () => {
+    expect(() => buildBulkActionFilterPayload({ filter: { api: "llm" } })).toThrow(
+      "use { all: true } explicitly"
+    );
+  });
+
+  test("should not treat a count inside the filter as a filter", () => {
+    const filter = { api: "llm", count: 3 };
+    expect(() => buildBulkActionFilterPayload({ filter })).toThrow("use { all: true } explicitly");
+  });
+
+  test("should keep a timestamp filter of 0", () => {
+    expect(buildBulkActionFilterPayload({ filter: { fromDate: 0 } })).toHaveProperty("fromDate", 0);
+  });
+});
+
 describe("serializeLabel", () => {
   test("should return a single label as-is", () => {
     expect(serializeLabel("my-label")).toBe("my-label");
